@@ -97,7 +97,7 @@ mesh.scale.z = 1;
 
 ## Rotation
 
-The `mesh.roation` property is also an instance of the `Vector3` class.
+The `mesh.roation` property is an instance of the `Euler` class.
 
 The important thing with rotation is that the units are in **radians**, so we should use `Math.PI` in our calculations.
 

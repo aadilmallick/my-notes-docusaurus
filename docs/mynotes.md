@@ -1,3 +1,8 @@
+---
+title: Docusaurus notes
+sidebar_position: 1
+---
+
 # My notes
 
 ## Basics
