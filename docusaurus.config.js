@@ -6,8 +6,8 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "Aadil Mallick something something",
-  tagline: "I don't know what to put here",
+  title: "Threejs Journey notes",
+  tagline: "My notes",
   favicon: "img/favicon.ico",
 
   // Set the production url of your site here
@@ -21,7 +21,7 @@ const config = {
   organizationName: "aadilmallick", // Usually your GitHub org/user name.
   projectName: "docusaurus", // Usually your repo name.
 
-  onBrokenLinks: "throw",
+  onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
 
   // Even if you don't use internalization, you can use this field to set useful
