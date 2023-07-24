@@ -305,3 +305,46 @@ const Hello = () => {
   return <div>{`${title} · ${tagline}`}</div>;
 };
 ```
+
+## Latex
+
+Follow the isntructions [here](https://docusaurus.io/docs/markdown-features/math-equations#configuration) to enable latex rendering in docusaurus
+
+First install the dependencies:
+
+```bash
+npm install --save remark-math@3 rehype-katex@5 hast-util-is-element@1.1.0
+```
+
+Then make the following changes to your `docusaurus.config.js` file:
+
+```javascript
+const math = require("remark-math");
+const katex = require("rehype-katex");
+
+module.exports = {
+  title: "Docusaurus",
+  tagline: "Build optimized websites quickly, focus on your content",
+  presets: [
+    [
+      "@docusaurus/preset-classic",
+      {
+        docs: {
+          path: "docs",
+          remarkPlugins: [math],
+          rehypePlugins: [katex],
+        },
+      },
+    ],
+  ],
+  stylesheets: [
+    {
+      href: "https://cdn.jsdelivr.net/npm/katex@0.13.24/dist/katex.min.css",
+      type: "text/css",
+      integrity:
+        "sha384-odtC+0UGzzFL/6PNoE8rX/SPcQDXBJ+uRepguP4QkPCm2LBxH3FA3y+fKSiJ+AmM",
+      crossorigin: "anonymous",
+    },
+  ],
+};
+```

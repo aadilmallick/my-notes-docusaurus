@@ -76,13 +76,18 @@ const b = new THREE.Vector3();
 const d = a.distanceTo(b);
 ```
 
-Here are some helpful mathematical methods you can use on the `Vector3` class:
+Here are some helpful methods you can use on the `Vector3` class:
 
 - `vector3.distanceToSquared(vector3)` : returns the squared distance between the vector and the given `Vector3` instance
 - `vector3.add(vector3)` : adds the given `Vector3` instance to the vector's position
 - `vector3.sub(vector3)` : subtracts the given `Vector3` instance from the vector's position
 - `vector3.multiply(vector3)` : multiplies the vector's position by the given `Vector3` instance
 - `vector3.divide(vector3)` : divides the vector's position by the given `Vector3` instance
+- `vector3.length()` : returns the Euclidean magnitude of the vector
+- `vector3.set(x, y, z)` : sets the position of the vector to the given x, y, and z values
+- `vector3.copy(vector3)` : sets the position of the vector to the given `Vector3` instance
+- `vector3.distanceTo(vector3)` : returns the distance between the vector and the given `Vector3` instance
+- `vector3.normalize()` : normalizes the vector's position, returns a unit vector.
 
 ## Scaling
 
