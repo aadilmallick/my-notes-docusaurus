@@ -9,18 +9,13 @@
   "background_color": "green",
   "icons": [
     {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
+      "src": "/img/docusaurus.png",
+      "sizes": "200x200",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-1024.png",
-      "sizes": "1024x1024",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/maskable512.png",
-      "sizes": "512x512",
+      "src": "/img/docusaurus.png",
+      "sizes": "200x200",
       "type": "image/png",
       "purpose": "maskable"
     }
