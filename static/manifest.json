@@ -1,0 +1,42 @@
+{
+  "name": "JavaScript notes",
+  "version": "1.0.0",
+  "short_name": "JS notes",
+  "start_url": "./",
+  "theme_color": "#00DD00",
+  "display": "standalone",
+  "description": "This is the PWA version of my coding notes",
+  "background_color": "green",
+  "icons": [
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/maskable512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ThreeJS notes",
+      "description": "Goes to threeJS notes",
+      "start_url": "/",
+      "short_name": "ThreeJS"
+    },
+    {
+      "name": "VanillaJS notes",
+      "description": "Goes to VanillaJS notes",
+      "start_url": "/",
+      "short_name": "VanillaJS"
+    }
+  ]
+}

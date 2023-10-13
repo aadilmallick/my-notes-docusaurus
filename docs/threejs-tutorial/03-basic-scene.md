@@ -196,3 +196,16 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 ```
+
+## Loading textures
+
+Using the `Three.TextureLoader()` constructor, you can load an image and use it as a texture for your material. Then you make it as the material for the object by setting the returned texture as the `map` property of the material.
+
+1. Create the texture
+2. Create the material from the texture
+3. Create the object by meshing the material and the geometry
+
+```javascript
+const texture = new THREE.TextureLoader().load("/Carbon.png");
+const material = new THREE.MeshBasicMaterial({ map: texture });
+```

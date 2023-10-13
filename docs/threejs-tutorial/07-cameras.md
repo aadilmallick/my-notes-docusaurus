@@ -1,4 +1,4 @@
-# Cameras
+# 07: Cameras
 
 There are many types of cameras in threejs:
 
