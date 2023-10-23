@@ -14,13 +14,16 @@ You can then communicate with workers using a messaging and event based system.
    const worker = new Worker("./worker.ts");
    ```
 
-2. Test for errors by listenening to the `onerror` event
+You can also listen to errors on the worker like so:
 
-   ```js
-   worker.onerror = (e) => {
-     console.error(e);
-   };
-   ```
+```ts
+worker.onerror = function (e) {
+  console.log("error in worker", e);
+  e.preventDefault();
+};
+```
+
+If you want to prevent the error in a worker from propagating and crashing your program, you can call `e.preventDefault()` to prevent the error from propagating into the window and main thread.
 
 Now let's talk about sending messages between the worker and main thread.
 

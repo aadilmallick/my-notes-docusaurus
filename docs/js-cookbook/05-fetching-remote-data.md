@@ -205,3 +205,40 @@ fileReader.addEventListener("load", (e) => {
 ```
 
 If I used `fileReader.readAsDataURL(file)`, then the `fileContent` variable would be a base64 encoded string.
+
+## Aborting fetch requests
+
+We can use the `AbortController` class to abort fetch requests if they are taking too long.
+
+The main steps are these:
+
+1. Instantiate an abort controller with `new AbortController()`
+2. Connect the abort controller to our fetch call by attaching the `signal` property of the abort controller to the `signal` property of the fetch options object.
+3. Call `abort()` on the abort controller after a certain amount of time. The previous connection through the `signal` property will cause the fetch request to abort.
+
+```javascript
+async function fetchWithTimeout(
+  url: string,
+  // RequestInit is the interface for the fetch options object
+  options: RequestInit = {},
+  timeout = -1
+) {
+  // user has specified they want a timeout for fetch
+  if (timeout > 0) {
+    let controller = new AbortController();
+    // connect controller to our fetch request through the options object and on options.signal
+    options.signal = controller.signal;
+
+    setTimeout(() => {
+      // this aborts the controller and any connected fetch requests
+      controller.abort();
+    }, timeout);
+  }
+
+  // need to pass options into fetch so that we get signal connection to abort controller
+  return fetch(url, options);
+}
+
+// fetches google with a timeout of 1 second, aborting the request if it takes any longer
+fetchWithTimeout("https://google.com", {}, 1000);
+```
