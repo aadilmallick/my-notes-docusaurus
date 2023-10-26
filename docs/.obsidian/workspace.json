@@ -18,8 +18,33 @@
                 "source": false
               }
             }
+          },
+          {
+            "id": "4ded469dd3592c6b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "bun-tutorial/03 Hono.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "44b180a8f9fe1943",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "js-cookbook/08-publishing-npm.md",
+                "mode": "source",
+                "source": false
+              }
+            }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -85,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "vanilla-js-tutorial/05-drag-and-drop.md",
+                "file": "js-cookbook/08-publishing-npm.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +127,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "vanilla-js-tutorial/05-drag-and-drop.md",
+                "file": "js-cookbook/08-publishing-npm.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +150,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "vanilla-js-tutorial/05-drag-and-drop.md"
+                "file": "js-cookbook/08-publishing-npm.md"
               }
             }
           }
@@ -146,8 +171,16 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "dc045f64f6be9379",
+  "active": "44b180a8f9fe1943",
   "lastOpenFiles": [
+    "js-cookbook/07-command-line-and-node.md",
+    "js-cookbook/08-publishing-npm.md",
+    "vanilla-js-tutorial/02-canvasbasics.md",
+    "vanilla-js-tutorial/05-drag-and-drop.md",
+    "bun-tutorial/03 Hono.md",
+    "bun-tutorial/04 Elysia.md",
+    "bun-tutorial/02 Bun API.md",
+    "bun-tutorial/01 Bun Basics.md",
     "vanilla-js-tutorial/04-slide-in-on-scroll.md",
     "vanilla-js-tutorial/03-devtools.md"
   ]

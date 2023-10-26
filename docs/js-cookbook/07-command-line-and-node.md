@@ -1,4 +1,15 @@
-# Command line and Node
+# Command line and Node basics
+
+## Command line arguments
+
+You can get all the command line arguments you type in from the `process.argv` array. However, this stores all the command line arguments. 
+
+`node index.js` is itself two command line arguments:
+- The first argument will always be the path to the node binary
+- The second argument will always be the filepath of the file node is running
+- Any additional arguments are ones you pass in.
+
+So to parse any arguments you pass in, you have to start looking from the 2nd element onward in `process.argv`.
 
 ## Streams
 
@@ -86,11 +97,32 @@ stats.isDirectory(); // => false: it is not a directory
 stats.size; // file size in bytes
 ```
 
+### `__dirname` in es6 modules
+
+When using es6 modules in node by change the `"type"` key in the package json to `"module"`, you no longer have access to the `__dirname` variable. To get the current directory, instead you have to do code like this: 
+
+```js
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// import.meta.url is the URL version of the filepath of the current file
+const currentFileURL = import.meta.url;
+// 1. convert import.meta.url to a static filepath
+// 2. get the directory path of the directory that houses that filepath
+const currentDir = dirname(fileURLToPath(currentFileURL));
+// you now have access to the current directory as you please
+const DB_FILE = join(currentDir, "db.json");
+```
 ## Making a CLI with commander
 
 ## Child processes
 
 The `child_process` module in node allows you to run command line tools from within your nodeJS program, like `cd`, `ls`, and much more.
+
+You can import it like so: 
+```ts
+import * as child_process from "child_process";
+```
 
 ### ExecSync
 
@@ -119,6 +151,11 @@ async function runLinuxCommandLevel1() {
 
 For a more performant way of running linux commands, we can use the `child_process.execFileSync(command, args, options)` method. This method takes in a command as its first argument, an array of arguments and options as its second, and an object of options as its third.
 
+You can also execute scripts you wrote yourself with this. 
+- First argument: the file/script or command to run
+- Second argument: a list of command line options to pass in
+- Third argument: options like encoding
+
 It's more perfomant because it doesn't spawn a shell, but instead runs the command directly.
 
 ```ts
@@ -135,6 +172,17 @@ async function runLinuxCommandLevel2() {
 ```
 
 ### Spawn
+
+With the `child_process.spawn()` method, we can have a more asynchronous approach where we listen to the stdout and stderr streams from executing a command. 
+
+```ts
+const commandListener = spawn(command, [option1, option2, ...], options)
+```
+
+Like the other methods, here are the arguments in order: 
+- First argument: the file/script or command to run
+- Second argument: a list of command line options to pass in
+- Third argument: options like encoding
 
 ```ts
 const { spawn } = require("child_process");
