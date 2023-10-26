@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.app.aadilmallick.netlify.threejsnotes.twa",
+        "sha256_cert_fingerprints": ["4B:8F:05:BF:8A:93:88:2D:03:41:A3:FC:EB:C0:DA:2C:8E:11:B1:02:5A:0B:E6:CC:66:B9:F4:89:01:06:BD:21"]
+      }
+    }]
