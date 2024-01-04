@@ -4,47 +4,22 @@
     "type": "split",
     "children": [
       {
-        "id": "77ff30a247bcc7b5",
+        "id": "fe0d437c5d57ae4b",
         "type": "tabs",
         "children": [
           {
-            "id": "dc045f64f6be9379",
+            "id": "e0e07b4f9dcfd7de",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "vanilla-js-tutorial/05-drag-and-drop.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "4ded469dd3592c6b",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "bun-tutorial/03 Hono.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "44b180a8f9fe1943",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "js-cookbook/08-publishing-npm.md",
+                "file": "css-recipes/03-CSS-snippets.md",
                 "mode": "source",
                 "source": false
               }
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "vertical"
@@ -110,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "js-cookbook/08-publishing-npm.md",
+                "file": "css-recipes/03-CSS-snippets.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -127,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "js-cookbook/08-publishing-npm.md",
+                "file": "css-recipes/03-CSS-snippets.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -150,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "js-cookbook/08-publishing-npm.md"
+                "file": "css-recipes/03-CSS-snippets.md"
               }
             }
           }
@@ -171,16 +146,33 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "44b180a8f9fe1943",
+  "active": "e0e07b4f9dcfd7de",
   "lastOpenFiles": [
-    "js-cookbook/07-command-line-and-node.md",
-    "js-cookbook/08-publishing-npm.md",
-    "vanilla-js-tutorial/02-canvasbasics.md",
-    "vanilla-js-tutorial/05-drag-and-drop.md",
-    "bun-tutorial/03 Hono.md",
-    "bun-tutorial/04 Elysia.md",
-    "bun-tutorial/02 Bun API.md",
+    "css-recipes/02-Animations.md",
+    "css-recipes/03-CSS-snippets.md",
     "bun-tutorial/01 Bun Basics.md",
+    "typescript-tutorial/05-other-typescript-tricks.md",
+    "typescript-tutorial/01-typescript-basics.md",
+    "vanilla-js-tutorial/08-advanced-js-OOP.md",
+    "vanilla-js-tutorial/09-advanced-js-APIs.md",
+    "js-cookbook/05-fetching-remote-data.md",
+    "js-cookbook/04-js-cheatsheet.md",
+    "css-recipes/01-Modern-web-design.md",
+    "bun-tutorial/03 Hono.md",
+    "OpenAI/01-openai.md",
+    "OpenAI/02-langchain-js.md",
+    "vanilla-js-tutorial/07-canvas-gamedev.md",
+    "OpenAI",
+    "vanilla-js-tutorial/07-canvas-gamedev-concepts.md",
+    "vanilla-js-tutorial/06-canvas-p5.md",
+    "typescript-tutorial/02-declaration-files.md",
+    "typescript-tutorial/03-JSDOC.md",
+    "bun-tutorial/02 Bun API.md",
+    "vanilla-js-tutorial/05-drag-and-drop.md",
+    "js-cookbook/08-publishing-npm.md",
+    "js-cookbook/07-command-line-and-node.md",
+    "vanilla-js-tutorial/02-canvasbasics.md",
+    "bun-tutorial/04 Elysia.md",
     "vanilla-js-tutorial/04-slide-in-on-scroll.md",
     "vanilla-js-tutorial/03-devtools.md"
   ]

@@ -31,6 +31,16 @@ So in summary, here are the steps:
 
 yargs is an NPM module that comes with a lot of CLI features out of the box, like specifying the number of arguments, parsing those arguments, and even displaying error messages if the arguments are in the wrong format.
 
+A simple use case is to simply use yargs to process `process.argv` into a more readable format, like so: 
+
+```javascript
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+
+// use the argv property to get the processed args back
+const args = yargs(hideBin(process.argv)).argv
+```
+This is an example of using yargs to act as a CLI tool, not only parsing command line arguments but executing code when it gets them.
 ```javascript
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -90,3 +100,97 @@ yargs(hideBin(process.argv))
 - `option()` : creates a new command option like `--tags` for the CLI
 - `demandCommand()` : the number you pass into this method is the number of arguments that are required for the command.
 - `parse()` : executes the command and parses CLI arguments
+
+## Using commander
+
+Commander is a feature-rich version of yarg that acts as a full CLI tool.
+
+```typescript
+const { Command } = require("commander");
+```
+
+Here is basic code in commander: 
+
+```typescript
+  program
+	 // define CLI version and override show version option to -v
+    .version("0.0.1", "-v, --version", "output the current version")
+     // describe CLI
+    .description("A CLI for creating canvas projects")
+    // name CLI
+    .name("commander-practice");
+
+  program
+     // define a new command with a name of create, so: commander-practice create
+    .command("create")
+    // describe command
+    .description("create a new project")
+    // 1: have a required argument, 2: describe it, 3: provide default value
+    .argument("<username>", "name of the user", "username not provided")
+    // create -n and --name option which takes an argument
+    .option("-n <name>, --name <name>", "name of the project", "default-project-name")
+    .option("-p5, --p5", "use p5.js")
+    // an option that takes arbitrary amount of arguments
+    .option("-f <FILES...>, --files <FILES...>", "use specified files files")
+    .action(async (username, options) => {
+      console.log(username);
+      console.log(options.name);
+    });
+
+  program.parse(process.argv);
+```
+
+### Options
+
+Using the `program.option()` method, we can create a global option or a command-specific option. 
+
+You can define whether an option will take arguments or not. If an option does not take arguments, it becomes a boolean type. 
+
+The method call will look like this: 
+
+```javascript
+program.option(optionSyntax, description, defaultValue)
+```
+- `optionSyntax` : a string that defines both the short form and the long form usage for the option, in this exact comma-separated syntax: `-n, --name`. If an option takes an argument, you can specify it with angle brackets or regular brackets. 
+- `description` : the option description
+- `defaultValue` : the default value for the option if the option is not specified. 
+
+After parsing the program and executing it with `program.parse(process.argv)`, you can get the options with `program.opts()`. Getting options will not work if you already have a command set up however, since you can only use commander one of two ways: 
+1. A way to process `process.argv`
+2. A full-fledged CLI tool that executes code on commands
+
+```javascript
+program
+.option("-n <name>, --name <name>", "name of the project", "default-project-name")
+.option("-p5, --p5", "use p5.js")
+.option("-f <FILES...>, --files <FILES...>", "use specified files files")
+
+program.parse(process.argv)
+const opts = program.opts()
+```
+### Commands
+
+```javascript
+  program
+    .command("create")
+    .description("create a new project")
+    .argument("<username>", "name of the user", "username not provided")
+    .option("-n <name>, --name <name>", "name of the project", "default-project-name")
+    .action(async (username, options) => {
+	    // get access to the username argument and all options
+      console.log(username);
+      console.log(options.name);
+    });
+```
+
+You create a command with `program.command(commandName)` as the first method in a series of method chains, but then you have other necessary methods to define after that: 
+
+- `command.description(description)` : the description for the command
+- `command.argument(syntax, description, defaultValue)` : defines an argument for the command. You can have as many arguments as you want, and they will be passed to the action handler in the order you call them.
+	- `syntax` : the argument syntax, using `<>` for required and `[]` for optional, like `<name>` to specify a required argument called "name".
+	- `description` : the argument description
+	- `defaultValue` : the default value if the argument is optional
+- `action()` : a callback that executes the implementation of the command. All the command arguments and options are passed as arguments into this callback
+## Typescript and creating a CLI
+
+## Github Workflow

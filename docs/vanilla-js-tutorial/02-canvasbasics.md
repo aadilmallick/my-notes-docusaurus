@@ -1,4 +1,4 @@
-# 02: Canvas Basics
+# 02: Canvas 
 
 The first step is to resize the canvas to the window size.
 
@@ -110,3 +110,4 @@ canvas.addEventListener("mousemove", (e) => {
   ctx.strokeStyle = `hsl(${hue}, 75%, 50%)`;
 });
 ```
+
