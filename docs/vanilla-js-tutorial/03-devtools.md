@@ -66,3 +66,16 @@ console.timeEnd("saying hello");
 ```
 
 the way to use this is to start time for a specific activity using `console.time()`, and then end print out the elapsed time using `console.timeEnd()` when the activity is finished.
+
+## 21 tips
+
+1. **Design mode**: you can edit text directly in the website by running this code in the console:
+
+   ```js
+   document.designMode = "on";
+   ```
+
+2. **$0**: The variable `$0` refers to the last element you selected in the elements tab.
+3. **Ctrl + P**: opens up command pallete so you can find commands and options easier.
+4. **built-in JQUery** : The `$(selector)` function is built into chrome devtools, and is a much more concise way of doing `document.querySelector(selector)`.
+5. **vizbug extension** : allows you to visually design your website.

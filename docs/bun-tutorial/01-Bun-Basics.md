@@ -1,4 +1,4 @@
-# Bun basics
+# 01: Bun basics
 
 ## `bun init`
 
