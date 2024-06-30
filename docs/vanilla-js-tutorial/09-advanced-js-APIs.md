@@ -326,3 +326,105 @@ const observer = new IntersectionObserver(
   }
 );
 ```
+
+### Proxy
+
+Proxies in javascript allow you to do reactive programming.
+
+#### Proxying objects
+
+#### Proxying and dispatching custom events
+
+#### Proxying functions
+
+You can also proxy functions, meaning you can access their args list before they get called with the `apply` trap.
+
+```javascript
+const handler = {
+  apply: function (target, thisArg, argsList) {
+    console.log(`Function ${target.name} called with args: ${argsList}`);
+    return target.apply(thisArg, argsList);
+  },
+};
+
+const add = new Proxy((a, b) => a + b, handler);
+add(1, 2); // outputs "Function add called with args: [1,2]"
+```
+
+Here is a class I made:
+
+```typescript
+class ReactiveFunction {
+  static createFunction<T extends CallableFunction>(
+    func: T,
+    onCall: (argsList: any[]) => void
+  ) {
+    const proxy = new Proxy(func, {
+      apply(targetFunc, thisArg, argArray) {
+        // run the onCall function as prehook
+        onCall(argArray);
+        // necessary to return the function call
+        return Reflect.apply(targetFunc, thisArg, argArray);
+      },
+    });
+    return proxy;
+  }
+}
+
+const multiply = ReactiveFunction.createFunction(
+  (a: number, b: number) => a * b,
+  (args) => {
+    console.log("here are my args", args);
+  }
+);
+
+console.log(multiply(5, 4));
+```
+
+#### Reactive state
+
+I created this reactive state class that essentially implements a data binding callback for a single variable:
+
+```typescript
+export default class ReactiveState<T extends Record<keyof T, V>, V> {
+  private proxy: Record<keyof T, V>;
+  private key: keyof T;
+  private _value: V;
+
+  get value() {
+    return this.proxy[this.key];
+  }
+
+  set value(newValue: V) {
+    this.proxy[this.key] = newValue;
+  }
+
+  constructor(state: T, onSet: (state: T) => void) {
+    const singleProperty = Object.keys(state)[0] as keyof T;
+    this.key = singleProperty;
+    this._value = state[singleProperty];
+    const proxy = new Proxy(state, {
+      set(target, p, newValue, receiver) {
+        if (p === singleProperty) {
+          // @ts-ignore
+          target[p] = newValue as V;
+          onSet(target);
+        }
+        return Reflect.set(target, p, newValue, receiver);
+      },
+    });
+    this.proxy = proxy;
+  }
+}
+```
+
+You can then use it like so:
+
+```typescript
+const commandsProxy = new ReactiveState(
+  { commands: [] as string[] },
+  (state) => {
+    // runs whenever the commandsProxy.commands property is modified
+  }
+);
+```

@@ -226,7 +226,7 @@ parent.greetOld();
 
 ## Closures
 
-Closures are functions returning other functions, but the function will retain and remember the values of all variables described in the outer function because they get stored on the *heap memory* of the inner function.
+Closures are functions returning other functions, but the function will retain and remember the values of all variables described in the outer function because they get stored on the _heap memory_ of the inner function.
 
 ### var, let, const
 
@@ -327,6 +327,15 @@ withClosure();
 ```
 
 By just adding the event listener inside a function and then immediately invoking it, we get all the benefits of closures.
+
+## Objects
+
+### Sealing and freezing objects
+
+Both these methods return the same object, but with different behavior.
+
+- `Object.seal(obj)` : seals an object, meaning you can't add or remove properties from it, but you can still modify the existing properties
+- `Object.freeze(obj)` : freezes an object, meaning you can't add, remove, or modify any properties on it
 
 ## Functional Programming
 
@@ -591,6 +600,96 @@ All the below methods take in an array of promises and return a single promise a
 - `Promise.race()`: Given an array of promises, this returns the first promise in the array that gets fulfilled. It doesn't matter whether it resolves or rejects. All the promises race against each other to finish, hence the name.
 - `Promise.any()`: Given an array of promises, this returns the first promise in the array that resolves successfully. If all the promises reject, then the promise returned by `Promise.any()` rejects.
 
+## SOLID principles
+
+### Single responsibility principle
+
+A class should only have one reason to change. It should only have one responsibility or function.
+
+In large codebases, this prevents God classes that do everything and are hard to maintain. This ensures proper maintainability.
+
+![SRS](https://www.webpagescreenshot.info/image-url/ppzJv3svr)
+
+### Open/closed principle
+
+A class should be open for extension but closed for modification. This means that you should be able to add new functionality to a class without changing the existing code.
+
+For example, let's think of an example where we want to calculate the area of a shape. Instead of doing a bunch of if checks to check which shape it is before calculating the area, we just create a `Shape` interface, have different shapes implement it, and call the same area method on all of them.
+
+```typescript
+class AreaCalculator {
+  constructor(private shape: Shape) {
+    console.log(this.shape.area());
+  }
+}
+
+interface Shape {
+  area(): number;
+}
+
+class Circle implements Shape {
+  constructor(private radius: number) {}
+  area() {
+    return Math.PI * this.radius ** 2;
+  }
+}
+
+class Square implements Shape {
+  constructor(private side: number) {}
+  area() {
+    return this.side ** 2;
+  }
+}
+```
+
+Basically everything goes back to dealing with interfaces rather than concrete classes.
+
+### Liskov substitution principle
+
+This principle states that objects of a superclass should be replaceable with objects of a subclass without affecting the functionality of the program.
+
+This is a fancy way of saying that if you have a class `A` and a class `B` that extends `A`, you should be able to replace `A` with `B` in any part of the code and the code should still work.
+
+Here is an example:
+
+```typescript
+class Bird {
+  fly() {
+    console.log("I am flying");
+  }
+}
+
+class Duck extends Bird {
+  quack() {
+    console.log("Quack quack");
+  }
+}
+
+function makeBirdFly(bird: Bird) {
+  bird.fly();
+}
+
+makeBirdFly(new Duck());
+```
+
+### Interface segregation principle
+
+A class should not implement interfaces that it doesn't use. This is to prevent classes from having to implement methods that they don't need.
+
+Essentially, never include unnecessary information and force a class to implement it.
+
+### Dependency inversion principle
+
+High-level modules should not depend on low-level modules. Both should depend on abstractions. Abstractions should not depend on details. Details should depend on abstractions.
+
+Basically in your classes, type variables as interfaces instead of concrete classes. This prevents tight coupling.
+
+### Law of Demeter
+
+The Law of Demeter states that a module should not know about the internal workings of the objects it interacts with. It should only know about its immediate friends.
+
+Prevent deeply nested object property access when dealing with class instances.
+
 ## Design Patterns
 
 ### Module Pattern
@@ -640,45 +739,151 @@ The singleton pattern is a design pattern that restricts the instantiation of a 
 
 #### With closures
 
-Here is an example of the singleton pattern with closures: 
+Here is an example of the singleton pattern with closures:
 
 ```typescript
-const ChickenFarm = (() => {
-	// private variables, + way to remember data
-	let instance;
-	const createInstance = () => ({numChickens: 100})
+const ChickenFarm = () => {
+  // private variables, + way to remember data
+  let instance;
+  const createInstance = () => ({ numChickens: 100 });
 
-	return {
-		// create instance and return if it doesn't exist. Else return existing
-		getInstance: () => {
-			// 1. if not null, return existing
-			if (instance) return instance;
-			// 2. if null, create and then return
-			instance = createInstance();
-			return instance;
-		}
-	}
-})
+  return {
+    // create instance and return if it doesn't exist. Else return existing
+    getInstance: () => {
+      // 1. if not null, return existing
+      if (instance) return instance;
+      // 2. if null, create and then return
+      instance = createInstance();
+      return instance;
+    },
+  };
+};
 ```
 
 #### Class example
 
-Here is a **level 1** example with classes:
+We store a static `instance` property, and the great thing about this property is that since it is static, it will be stored on the prototype of any object instance, thus this `instance` static property will always be on the class itself rather than on the instance.
 
 ```typescript
 class DBConnection {
-	private static instance?: DBConnection;
-	constructor() {
-		if (DBConnection.instance) return instance;
+  private static instance?: DBConnection;
+  constructor() {
+    if (DBConnection.instance) return instance;
 
-		DBConnection.instance = this;
-		return DBConnection.instance;
-	}
-
+    DBConnection.instance = this;
+    return DBConnection.instance;
+  }
 }
 ```
 
-We store a static `instance` property, and the great thing about this property is that since it is static, it will be stored on the prototype of any object instance, thus this `instance` static property will always be on the class itself rather than on the instance. 
+#### With `Object.freeze()`
+
+We can use the `Object.freeze()` method to freeze an object and thus any variables it referenced at runtime, using the concept of closures.
+
+```typescript
+let counter = 0;
+
+// the value of counter is baked in at 0, and then the object is frozen
+export default Object.freeze({
+  getCount: () => counter,
+  increment: () => ++counter,
+  decrement: () => --counter,
+});
+```
+
+### Observer pattern
+
+The observer pattern build son top of the registry pattern by storing an array of observables, with the ability to subscribe other observables into the observer store and notify all observers in the store.
+
+```typescript
+const observers = [];
+
+export default Object.freeze({
+  notify: (data) => observers.forEach((observer) => observer(data)),
+  subscribe: (func) => observers.push(func),
+  unsubscribe: (func) => {
+    [...observers].forEach((observer, index) => {
+      if (observer === func) {
+        observers.splice(index, 1);
+      }
+    });
+  },
+});
+```
+
+In the above example, we create an observable store that can subscribe and unsubscribe functions, and "notify" all subscribed functions by calling them all with the same data.
+
+Here's a complete example of how to use it:
+
+```javascript
+import {
+  sendToGoogleAnalytics,
+  sendToCustomAnalytics,
+  sendToEmail,
+} from "./analytics.js";
+
+const observers = [];
+
+const store = Object.freeze({
+  notify: (data) => observers.forEach((observer) => observer(data)),
+  subscribe: (func) => observers.push(func),
+  unsubscribe: (func) => {
+    [...observers].forEach((observer, index) => {
+      if (observer === func) {
+        observers.splice(index, 1);
+      }
+    });
+  },
+});
+
+store.subscribe(sendToGoogleAnalytics);
+store.subscribe(sendToCustomAnalytics);
+store.subscribe(sendToEmail);
+
+const pinkBtn = document.getElementById("pink-btn");
+const blueBtn = document.getElementById("blue-btn");
+
+pinkBtn.addEventListener("click", () => {
+  const data = "🎀 Click on pink button! 🎀";
+  store.notify(data);
+});
+
+blueBtn.addEventListener("click", () => {
+  const data = "🦋 Click on blue button! 🦋";
+  store.notify(data);
+});
+```
+
+#### Classes
+
+And here is an example with typescript:
+
+```typescript
+class ObservableStore<T extends CallableFunction> {
+  private observers: Set<T> = new Set();
+  notify(...args: any[]) {
+    this.observers.forEach((observer) => observer(...args));
+  }
+  addObserver(observer: T) {
+    this.observers.add(observer);
+  }
+  removeObserver(observer: T) {
+    this.observers.delete(observer);
+  }
+}
+
+const add = (a: number, b: number) => console.log(a + b);
+const multiply = (a: number, b: number) => console.log(a * b);
+const subtract = (a: number, b: number) => console.log(a - b);
+
+const store = new ObservableStore<typeof add>();
+store.addObserver(add);
+store.addObserver(multiply);
+store.addObserver(subtract);
+
+store.notify(5, 4); // 9, 20, 1
+```
+
 ### Registry Pattern
 
 The registry pattern is a design pattern that allows us to store objects in a central location. It is like a factory of objects that we can get objects out at any time. It is useful when we want to store objects that we want to access from anywhere in our code.
@@ -738,3 +943,22 @@ class ChickenRegistry {
   }
 }
 ```
+
+We use an object instead of an array to store the chickens because it is much faster to access an object property than it is to loop through an array.
+
+### Prototype pattern
+
+It's more memory efficient to store shared properties and methods on classes rather than on objects, because they will be stored in the prototype instead of in memory on the object.
+
+```typescript
+class Dog {
+  // stored on instance
+  constructor(public name: string, public breed: string) {}
+  // stored on prototype
+  bark() {
+    console.log("Woof woof");
+  }
+}
+```
+
+Now you don't have to worry about allocating memory for the bark method on an object.

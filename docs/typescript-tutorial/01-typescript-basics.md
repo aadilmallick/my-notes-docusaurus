@@ -8,10 +8,44 @@ Let's learn about all the compiler options in the tsconfig, which live under the
 
 - `outDir`: the directory to output compiled files to.
 - `rootDir`: the directory to compile files from.
-- `noEmit` : a boolean. If true, does not emit compiled files, meaning running `tsc` will not compile to javascript.
+- `noEmit` : a boolean. If true, does not emit compiled files, meaning running `tsc` will not compile to javascript. Use this when using some frontend framework and not compiling your own typescript.
 - `noEmitOnError`: a boolean. If true, does not emit compiled files if there are any errors.
 - `target` : the specific year of JavaScript syntax you want to compile to. If you want to support older browsers, you would do es5, but if you want to use newer syntax, you would do es6 or es2015. If you want your compiled typescript to be bleeding edge, the same syntax as typescript but without type annotations, use `esnext`.
 - `strictPropertyInitialization`: a boolean. If true, requires that all class properties are initialized and synchronously intialized in the constructor.
+- `esModuleInterop`: a boolean. If true, allows you to use default imports from commonjs modules. Always set this to true
+- `skipLibCheck`: a boolean. If true, skips type checking of all declaration files in the project. Always set this to true.
+- `resolveJsonModule`: a boolean. If true, allows you to import json files as modules. Always set this to true.
+- `lib`: Base APIs typescript gives intellisense for. It is an array of strings, and you should always at least include the `"es2022"` option, which gives base APIs for both node and the browser. If working in the browser, also include `"dom"` and `"dom.iterable"`.
+
+```json
+{
+  "compilerOptions": {
+    // base options
+    "noEmit": false,
+    "noEmitOnError": true,
+    "target": "esnext",
+    "strictPropertyInitialization": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+
+    // compiler options for working in typescript node project
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "sourceMap": true,
+
+    // compiler options for working in typescript frontend project
+    "module": "esnext",
+    "jsx": "react",
+    "moduleResolution": "Bundler",
+    "lib": ["dom", "es2022", "dom.iterable"]
+
+    // if building for library
+  }
+}
+```
 
 ### Other options
 
