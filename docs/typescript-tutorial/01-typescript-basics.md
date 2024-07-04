@@ -318,6 +318,18 @@ const lion = createInstance(Lion);
 const tiger = createInstance(Tiger);
 ```
 
+## Recursive types
+
+we can have recursive types by using the type itself when defining the type. 
+
+```ts
+type JSONObject = {
+    [key: string] : JSONValue | number | string
+}
+type JSONArray = JSONObject[] | JSONValue[]
+type JSONValue = false | true | null | JSONObject | JSONArray | string | number;
+```
+
 ### Function overloads
 
 Function overloads are a way of writing multiple method signatures for the same function, allowing you to call the function and get complete type safety in multiple different ways. There are some rules, however.
@@ -373,6 +385,11 @@ interface Dictionary {
 }
 ```
 
+A common pattern to use is to just different property access methods depending on whether you're accessing a named or index signature. 
+
+- **dot property access** : use this for properties explicitly defined on the object
+- **bracket property access** : use this for indexed-signature properties. 
+
 ### Interface with generics
 
 You can also use generic type parameters to provide generics to the properties of an interface, like so:
@@ -409,6 +426,40 @@ function fn(...args: readonly [string, number, boolean]) {
 }
 ```
 
+## Interfaces
+
+### Augmenting interfaces 
+
+You can augment interfaces and add properties to them by just redeclaring them, but you can also globally add properties to interfaces across all files in your typescript codebase by declaring a global like so: 
+
+```ts
+declare global {
+  interface Window {
+    appApi: //...
+  }
+}
+```
+
+We simply declare in the global namespace and then we augment the interfaces inside of that. 
+
+## Typing this
+
+You may often need to provide a type annotatation for `this` when it's type can't be inferred, like in an object's method or in a freestanding DOM event listener. 
+
+You always define the type of this
+
+```ts
+function myClickHandler(
+  this: HTMLButtonElement,
+  event: Event
+) {
+  // ...
+}
+
+const buttonElement = document.querySelector("button")
+const onClick = myClickHandler.bind(buttonElement)
+```
+
 ## Classes
 
 ### Definite assignment assertion operator
@@ -427,6 +478,21 @@ class MyClass {
   // set private property asynchronously
   async init() {
     this.myProp = await someAsyncOperation();
+  }
+}
+```
+
+### Static block
+
+You can use singleton construction in classes statically, using the `static {}` block that runs once when the class is first initialized, not on individual instances. 
+
+```ts
+class Statically {
+  private static count: number;
+
+  static {
+    // only run once in the program's lifetime
+    Statically.count = Math.random()
   }
 }
 ```
@@ -523,6 +589,8 @@ function printFileOrDirectory(obj: FileSystemObject) {
 }
 ```
 
+### ThisType
+
 ## Temporal callback issue
 
 Let's look at the following code:
@@ -600,11 +668,21 @@ The `infer` keyword is used in conditional types to dynamically get the type of 
 
 ```typescript
 // if generic type passed in is a function, infer the return type as Return generic and return it
-type GetReturnType<Type> = Type extends (...args: never[]) => infer Return
+type GetReturnType<T> = T extends (...args: never[]) => infer Return
   ? Return
   : never;
 
 type Num = GetReturnType<() => number>;
+```
+
+In the example above, we are basically creating another generic called `Return` that will the return type of the function we pass in. We are saying that whatever thing we pass into the `GetReturnType<>` generic type alias must be a function, and then we infer its return type.
+
+```ts
+type RType<T> = T extends (...args: any[]) => infer R ? R : never
+
+const multiply = (a: number, b: number) => a*b
+
+type MyType = RType<typeof multiply>  // number
 ```
 
 ### TYpe Distributivity
@@ -665,11 +743,84 @@ type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
 
 ### Template literal types
 
+
+You can use template literal types like so:
+
+```ts
+type Size = "small" | "medium" | "large"
+type Color = "primary" | "secondary"
+
+type Style = `${Size}-${Color}`
+```
+
 #### String manipulation utitilies
 
 - `Uppercase<T>` : takes in a string literal type and returns that literal type as all uppercase
 - `Lowercase<T>` : takes in a string literal type and returns that literal type as all lowercase
 - `Capitalize<T>` : takes in a string literal type and returns that literal type with the first letter capitalized
+
+Here is a library I made that uses these types to autogenerate types for functions that I created on the fly.
+
+```ts
+interface PrintAdvancedColors {
+  colors: {
+    RED: string;
+    GREEN: string;
+    YELLOW: string;
+    BLUE: string;
+    MAGENTA: string;
+    CYAN: string;
+  };
+  // object of functions that are lowercase of the colors
+  print: {
+    [k in Lowercase<keyof PrintAdvancedColors["colors"]>]: (
+      ...args: any[]
+    ) => void;
+  };
+}
+
+export class PrintAdvanced implements PrintAdvancedColors {
+  public readonly colors = {
+    RED: "\x1b[31m",
+    GREEN: "\x1b[32m",
+    YELLOW: "\x1b[33m",
+    BLUE: "\x1b[34m",
+    MAGENTA: "\x1b[35m",
+    CYAN: "\x1b[36m",
+  };
+  private BOLD = "";
+  private ITALIC = "";
+  private RESET = "\x1b[0m";
+  public readonly print = {} as PrintAdvancedColors["print"];
+  constructor({
+    shouldBold = false,
+    shouldItalic = false,
+  }: {
+    shouldBold?: boolean;
+    shouldItalic?: boolean;
+  } = {}) {
+    if (shouldBold) {
+      this.BOLD = "\x1b[1m";
+    }
+    if (shouldItalic) {
+      this.ITALIC = "\x1b[3m";
+    }
+
+    for (let color in this.colors) {
+      // autogenerate functions on the fly
+      this.print[color.toLowerCase() as keyof PrintAdvancedColors["print"]] = (
+        ...args: any[]
+      ) => {
+        console.log(
+          `${this.BOLD}${this.ITALIC}${
+            this.colors[color as keyof PrintAdvanced["colors"]]
+          }${args.join(" ")}${this.RESET}`
+        );
+      };
+    }
+  }
+}
+```
 
 ### Autocompletion with union types and strings
 
@@ -738,11 +889,43 @@ type MakeOptions<T> = {
 type Options = MakeOptions<typeof setOptions>;
 ```
 
+You also have a bunch of mapped types that are built into typescript.
+
 #### `ReadOnly<>`
+
+The `ReadOnly<T>` mapped type returns a type where all the keys of the passed in generic type are readonly.
+
+Here we make the type from scratch:
+
+```ts
+type ReadOnly<T> = {
+  readonly [key in keyof T] : T[key]
+}
+
+const obj = {
+  name: "john"
+}
+
+type ReadOnlyIdentifier = ReadOnly<typeof obj>
+```
 
 #### `Partial<>`
 
 The `Partial<T>` mapped type returns a type where all the keys of the passed in generic type are optional.
+
+Here we make the type from scratch:
+
+```ts
+type Partial_<T> = {
+   [key in keyof T]? : T[key]
+}
+
+const obj = {
+  name: "john"
+}
+
+type PartialIdentifier = Partial_<typeof obj>
+```
 
 #### `Required<>`
 
@@ -766,6 +949,26 @@ type MappedTypeWithNewProperties<Type> = {
 ```
 
 Using the above syntax, we can retype (or most likely rename) keys to a new type using the `as` operator.
+
+This is extremely useful for creating getters and setters on the fly. 
+
+```ts
+type Store = {
+  name: string;
+  age: number;
+}
+
+type Setters<T> = {
+  [key in keyof T as `set${Capitalize<keyof T & string>}`]: (value: T[key]) => void
+}
+
+type Getters<T> = {
+  [key in keyof T as `get${Capitalize<keyof T & string>}`]: () => T[key]
+}
+
+type StoreGetters = Getters<Store>
+type StoreSetters = Setters<Store>
+```
 
 ### Awaited
 

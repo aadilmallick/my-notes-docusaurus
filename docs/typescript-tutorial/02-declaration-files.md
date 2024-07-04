@@ -51,3 +51,14 @@ declare module "*.html" {
   export default value;
 }
 ```
+
+```ts title="global.d.ts"
+declare module "*.png" {
+  const imgUrl: string
+  export default imgUrl
+}
+```
+
+```ts title="component.ts"
+import img from "./file.png"
+```
