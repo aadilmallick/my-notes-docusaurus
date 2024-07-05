@@ -710,6 +710,36 @@ The `typeof` type operator infers the type of a variable. What's important to no
 Specifically, it’s only legal to use typeof on identifiers (i.e. variable names) or their properties. This helps avoid the confusing trap of writing code you think is executing, but isn’t:
 :::
 
+### Extract and Exclude
+
+Once you understand how `extends` works, you can use the `Extract<>` and `Exclude<>` generic types to query parts of a type of you want. 
+
+This is useful when working with union types, and you want to extract out specific parts
+
+```ts
+type FavoriteColors =
+  | "dark sienna"
+  | "van dyke brown"
+  | "yellow ochre"
+  | "sap green"
+  | "titanium white"
+  | "phthalo green"
+  | "prussian blue"
+  | "cadium yellow"
+  | [number, number, number]
+  | { red: number; green: number; blue: number }
+  | never;
+ 
+// from the union type, return only the types that extends string
+type StringColors = Extract<FavoriteColors, string>
+
+// from the union type, return only the types that do not extend string
+type NonStringColors = Exclude<FavoriteColors, string>
+```
+
+- `Extract<T, U>` : returns all subtypes from `T` that extends `U`, meaning whatever subtypes in `T` that could be assignable to type `U` , those are what are going to get extracted.
+- `Exclude<T, U>` : the exact opposite of extract. All subtypes in `T` that are **not** assignable to `U` are what get extracted and returned.
+
 ### `ReturnType<>`
 
 There is a builtin `ReturnType<>` generic that allows you to get and inger the return type of a function on the fly. This is useful if you don't want to manually type out the return type of a function and create a type Alias for that.
@@ -740,6 +770,22 @@ type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
 // 3. If the generic type does not extend a function, return `any`
 // 4. If the generic type does extend a function, return the inferred return type, which is R
 ```
+
+### Satisfies
+
+The `satisfies` keyword allows you to adhere to some type annotation but while giving more flexibility in how your type is defined. 
+
+```ts
+interface Color {
+    color?: string,
+    name?: string
+}
+
+const bruh = {color: "green"} satisfies Color
+bruh.color.repeat(3)
+```
+
+In the example above, `bruh.color` would be of type `string | undefined` if we simply type annotated it. By using `satisfies`, we turn it into a const declaration while satisfying the type simultaneously, allowing us to access the color type if we explicitly define it on the object.
 
 ### Template literal types
 
@@ -890,6 +936,22 @@ type Options = MakeOptions<typeof setOptions>;
 ```
 
 You also have a bunch of mapped types that are built into typescript.
+
+#### `Pick<T>`
+
+The `Pick` utility type allows you to extract only the properties you want from an object. 
+
+```ts
+interface Person {
+  name: string;
+  age: number;
+  location?: string;
+}
+
+const bob: Pick<Person, 'name'> = {
+  name: 'Bob'
+};
+```
 
 #### `ReadOnly<>`
 
