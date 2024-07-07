@@ -1,0 +1,296 @@
+# Motion Design for web
+
+## Hero video
+
+The main gist is as follows:
+
+1. Create a hero container that takes up a certain height of the viewport
+2. Create a video container that is absolutely positioned and takes up the entire container size. Have a dark translucent overlay over the video, and make the video autoplay, loop, and muted.
+
+```html
+<header>
+  <!-- centered on container -->
+  <div class="header-content">
+    <h1>Creating solutions</h1>
+    <p>like there's no tomorrow</p>
+  </div>
+
+  <!-- takes up whole container -->
+  <div class="video-container">
+    <video autoplay muted loop>
+      <source src="skateboard.webm" type="video/webm" />
+    </video>
+  </div>
+</header>
+```
+
+Here is the CSS:
+
+```css
+header {
+  /* set height, center content */
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+
+  .header-content {
+    /* styles for content here */
+  }
+}
+
+.video-container {
+  /* absolute position, take up full container */
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+
+  /* take up full container */
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* create dark overlay over video container */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1;
+  }
+}
+```
+
+## Page loader
+
+The page loader logic is as follows:
+
+1. Create a loader element that takes up the whole page, hides all other content with `overflow: hidden` on body.
+2. Listen for the "load" event on the window to wait for all assets to be loaded, and once that's done, remove loader element and make `overflow: visible` again.
+
+```html
+<body>
+  <div class="loader-container">
+    <div class="loader"></div>
+  </div>
+  <!-- rest of page ... -->
+</body>
+```
+
+Here are the styles for the loader:
+
+```css
+.loader-container {
+  /* take up whole screen */
+  position: fixed;
+  inset: 0;
+  background-color: #222;
+  display: grid;
+  place-content: center;
+  opacity: 1;
+  transition: opacity 1s ease-in-out;
+  z-index: 10;
+
+  /* fade out styles */
+  &.hide-loader {
+    opacity: 0;
+    z-index: -999;
+  }
+}
+
+.loader {
+  /* variables to configure */
+  --size: 4rem;
+  --color: orange;
+  --time: 1.5s;
+
+  /* creates spinner */
+  height: var(--size);
+  width: var(--size);
+  border-radius: 9999px;
+  border: rgba(255, 255, 255, 0.3) solid 0.25rem;
+  position: relative;
+  z-index: 1;
+  animation: loader var(--time) infinite linear;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border-left: var(--color) solid 0.25rem;
+    animation: loader var(--time) infinite linear;
+    z-index: 2;
+  }
+}
+
+@keyframes loader {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  to {
+    transform: rotate(360deg) scale(1);
+  }
+}
+```
+
+Then to make sure that the body has overflow set to hidden when the page is loading, we use these styles, where we reset overflow to visible when the `.hide-loader` class is applied to the loader container:
+
+```css
+body:has(:not(.loader-container.hide-loader)) {
+  overflow: hidden;
+  height: 100vh;
+}
+
+body:has(.loader-container.hide-loader) {
+  overflow: visible;
+  height: fit-content;
+}
+```
+
+For the typescript, we just listen for the `"load"` element on the window, and when that's triggered, we add the `.hide-loader` class to the loader container and shortly afterwards remove the loader container from the DOM.
+
+```ts
+class PageLoader {
+  static loadPage(loaderElement: Element) {
+    if (!loaderElement) {
+      throw new Error("Loader element not found");
+    }
+    window.addEventListener("load", () => {
+      loaderElement.classList.add("hide-loader");
+      setTimeout(() => {
+        loaderElement.remove();
+      }, 2000);
+    });
+  }
+}
+
+const loader = document.querySelector(".loader-container")!;
+
+PageLoader.loadPage(loader);
+```
+
+## Loading button animation
+
+Check out [button example](/examples/loading-button) for a working example.
+
+<iframe src="/examples/loading-button" width="400" height="300" loading="lazy" scrolling="no" />
+
+For this animation, we create a loading animation where three dots bounce up and down.
+
+Here are the steps:
+
+1. When the button is clicked, wait for some asynchronous operation to finish. Before that, add the `.loading` class to the button and append a loading container with three dot elements inside of it. That loading container will be overlayed on top of the button to hide the text content.
+2. When the async operation is finished, remove the loading dots from the DOM and remove the loading class.
+
+```css
+.btn {
+  --bg-color: #000000;
+  --text-color: #ffffff;
+  background-color: var(--bg-color);
+  border-radius: 9999px;
+  width: 15rem;
+  padding: 0.5rem;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-color);
+  text-transform: capitalize;
+  font-size: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.btn.loading {
+  /* prevent overflow */
+  overflow: hidden;
+  position: relative;
+  cursor: wait;
+
+  /*  */
+  .loader-container {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background-color: var(--bg-color);
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+    .dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 9999px;
+      background-color: var(--text-color);
+      animation: loading 1s infinite ease-in-out;
+      animation-delay: calc(var(--num) * 0.1s);
+    }
+  }
+}
+
+@keyframes loading {
+  0% {
+    transform: scale(1);
+  }
+  33% {
+    transform: scale(1.5);
+  }
+  66% {
+    transform: scale(0.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+```
+
+And this is the script. Here's the basic flow:
+
+1. Button gets clicked
+2. Add loading class, append loading container with dots inside of button.
+3. After async operation completes, remove classes and loading container.
+
+```ts
+class LoadingButton {
+  constructor(private button: HTMLButtonElement) {}
+
+  onClick(cb: () => void | Promise<void>) {
+    const button = this.button;
+    button.addEventListener("click", async () => {
+      // add css classes and add dots
+      button.classList.add("loading");
+      const loaderContainer = document.createElement("div");
+      loaderContainer.classList.add("loader-container");
+      loaderContainer.innerHTML = `
+        <div class="dot" style="--num:1;"></div>
+        <div class="dot" style="--num:2;"></div>
+        <div class="dot" style="--num:3;"></div>
+    `;
+      button.appendChild(loaderContainer);
+
+      // perform callback
+      await cb();
+
+      // remove loading styles
+      button.classList.remove("loading");
+      loaderContainer.remove();
+    });
+  }
+}
+
+const button = new LoadingButton(document.querySelector("button")!);
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// simulate network request for 5 seconds
+button.onClick(async () => {
+  await sleep(5000);
+});
+```

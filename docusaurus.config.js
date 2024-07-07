@@ -121,7 +121,7 @@ const config = {
           },
           { to: "/blog", label: "Blog", position: "left" },
           {
-            href: "https://github.com/aadilmallick",
+            href: "https://github.com/aadilmallick/my-notes-docusaurus",
             label: "GitHub",
             position: "right",
           },

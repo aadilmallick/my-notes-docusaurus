@@ -205,6 +205,8 @@ We set overflow to hidden on image container, and on hover, we scale the image n
 }
 ```
 
+### Hamburger menu animation
+
 ## Web Animations API
 
 The new JavaScript Web Animations API is a way of programatically using CSS animations and transitions with stuff like keyframes

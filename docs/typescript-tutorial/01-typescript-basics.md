@@ -685,6 +685,20 @@ const multiply = (a: number, b: number) => a*b
 type MyType = RType<typeof multiply>  // number
 ```
 
+#### Infer with constraints
+
+You can also add type constraints to your `infer` conditionals, like `infer T extends string`
+
+#### Infer with template strings
+
+You can even infer strings from template string literal types.
+
+```ts
+type EmailSurname<T> = T extends `${infer S extends string}@${string}` ? S : never;
+
+type Test = EmailSurname<"waadlingaadil@gmail.com">
+```
+
 ### TYpe Distributivity
 
 When using conditional generic types with union types, they have a **distributive effect**, where all the types in the union type are evaluated separately in the conditional types, and then joined back together in a union.
@@ -1030,6 +1044,24 @@ type Getters<T> = {
 
 type StoreGetters = Getters<Store>
 type StoreSetters = Setters<Store>
+```
+
+#### Filtering keys
+
+You can carry this further to filtering keys before doing something with them by combining mapped types with conditionals. 
+
+```ts
+type KeysThatStartWithS<T> = {
+    [key in keyof T as key extends `s${string}` ? key : never]: T[key]
+}
+
+const store = {
+    saliva: true,
+    dog: false, 
+    cat: true
+}
+
+type OnlySaliva = KeysThatStartWithS<typeof store>
 ```
 
 ### Awaited
