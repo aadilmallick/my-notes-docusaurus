@@ -1,3 +1,5 @@
+import { MenuButtonExample } from "@site/src/components/examples/SvgExample";
+
 # Motion Design for web
 
 ## Hero video
@@ -179,7 +181,13 @@ PageLoader.loadPage(loader);
 
 Check out [button example](/examples/loading-button) for a working example.
 
-<iframe src="/examples/loading-button" width="400" height="300" loading="lazy" scrolling="no" />
+<iframe
+  src="/examples/loading-button"
+  width="400"
+  height="300"
+  loading="lazy"
+  scrolling="no"
+/>
 
 For this animation, we create a loading animation where three dots bounce up and down.
 
@@ -294,3 +302,56 @@ button.onClick(async () => {
   await sleep(5000);
 });
 ```
+
+## Hamburger button
+
+```html
+<button class="menu-button">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+```
+
+```css
+.menu-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 1.25rem;
+  height: 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  span {
+    width: 100%;
+    display: block;
+    height: 2px;
+    background-color: #222;
+    border-radius: 0.25rem;
+    transition: transform 0.3s ease;
+
+    &:nth-child(2) {
+      transform-origin: center center;
+    }
+  }
+}
+
+.menu-button.menu-button-open {
+  span:nth-child(1) {
+    transform: translat    <button class="menu-button">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    transform: scaleX(0);
+  }
+  span:nth-child(3) {
+    transform: translate3d(0, -8px, 0) rotate(-45deg);
+  }
+}
+```
+
+<MenuButtonExample />

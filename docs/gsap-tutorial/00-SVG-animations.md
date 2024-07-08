@@ -1,3 +1,0 @@
-# SVG animations
-
-## Drawing stroke

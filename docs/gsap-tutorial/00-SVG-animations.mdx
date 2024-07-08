@@ -1,0 +1,164 @@
+import SVGExample, {
+  SVGExample2,
+} from "@site/src/components/examples/SvgExample";
+
+# SVG animations
+
+## SVG basics
+
+### SVG properties
+
+These are CSS properties and HTML attributes you can set on pretty much any SVG element.
+
+- `fill` : the fill color
+- `fill-opacity` : the opacity of the fill color
+- `stroke` : the color of the stroke
+- `stroke-opacity` : the opacity of the stroke color
+- `stroke-width` : the stroke width
+- `stroke-linecap` : the shape of the stroke line endings
+- `stroke-linejoin` : the shape of the stroke line joins
+- `stroke-dasharray` : controls the dashing of a path. The actual value is a number, and signals the width of the dashes.
+  - `stroke-dasharray: 0` : 0px dashed width, which is essentially a solid line
+  - Lower numbers means smaller dash width, so more dashes
+  - Higher numbers mean larger dash width, so less dashes, and eventually when the number is high enough, it's just a solid line.
+
+## Drawing stroke
+
+### Drawing paths
+
+Drawing lines involves setting the `stroke-dasharray` and the `stroke-dashoffset` to a value greater than or equal to the path size of a line, and then animating the `stroke-dashoffset` back to 0.
+
+```css
+.line {
+  /* say path length <= 650 */
+  stroke-dashoffset: 650;
+  stroke-dasharray: 650;
+}
+
+@keyframes drawPath {
+  0% {
+    stroke-dashoffset: 650;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+```
+
+You can get the path length by using javascript. Select the path in the svg element through the DOM, and then
+
+```javascript
+const squareBorder = document.getElementById("square-border");
+console.log(squareBorder.getTotalLength()); // 595.372
+```
+
+This is a complete example:
+
+```html
+<style>
+  #aadil {
+    stroke: blue;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    /* 1. make sure both values are larger than path length */
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: draw 5s linear forwards infinite;
+    animation-direction: alternate;
+  }
+
+  /* animate to stroke-dashoffset: 0 */
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+</style>
+
+<svg
+  width="209"
+  height="100"
+  viewBox="0 0 209 100"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <g id="handwriting-svg"><path id="aadil" d="path data" /></g>
+</svg>
+```
+
+<SVGExample />
+
+### DRawing text
+
+For this example, we animate the `<text>` element in an SVG. Here are the attributes
+
+```html
+<text class="text" x="50%" y="50%" text-anchor="middle" dy="0.5rem">
+  Graphics
+</text>
+```
+
+- `x` and `y` are the coordinates of the text element relative to the SVG viewbox
+- `text-anchor` is the alignment of the text. `middle` aligns the text to the center of the x coordinate
+- `dy` is the offset of the text from the y coordinate
+
+**Complete example**
+
+```css
+#svg-drawing-example {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 800px;
+  padding: 3rem;
+}
+
+svg {
+  width: 30rem;
+  overflow: visible;
+  background-color: black;
+  position: relative;
+
+  .text {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 3rem;
+    font-weight: bold;
+    stroke: white;
+    letter-spacing: -3px;
+    stroke-width: 3;
+    animation: draw-svg-stroke 5s linear infinite;
+    animation-fill-mode: both;
+    animation-direction: alternate;
+  }
+}
+
+@keyframes draw-svg-stroke {
+  from {
+    fill: transparent;
+    stroke-dashoffset: 25%;
+    stroke-dasharray: 0 32%;
+  }
+  75% {
+    stroke-dasharray: 32% 0;
+    stroke-dashoffset: -25%;
+    fill: transparent;
+    stroke-width: 3;
+  }
+  80%,
+  100% {
+    fill: white;
+    stroke-width: 0;
+  }
+}
+```
+
+```html
+<svg viewBox="0 0 400 80">
+  <text class="text" x="50%" y="50%" text-anchor="middle" dy="0.5rem">
+    Graphics
+  </text>
+</svg>
+```
+
+<SVGExample2 />

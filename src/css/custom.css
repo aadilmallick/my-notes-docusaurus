@@ -91,3 +91,116 @@
     transform: scale(1);
   }
 }
+
+#aadil {
+  stroke: blue;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 5s linear forwards infinite;
+  animation-direction: alternate;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+#svg-drawing-example {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 800px;
+  padding: 3rem;
+  svg {
+    width: 30rem;
+    overflow: visible;
+    background-color: black;
+    position: relative;
+
+    .text {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 3rem;
+      font-weight: bold;
+      stroke: white;
+      letter-spacing: -3px;
+      stroke-width: 3;
+      animation: draw-svg-stroke 5s linear infinite;
+      animation-fill-mode: both;
+      animation-direction: alternate;
+    }
+  }
+}
+
+@keyframes draw-svg-stroke {
+  from {
+    fill: transparent;
+    stroke-dashoffset: 25%;
+    stroke-dasharray: 0 32%;
+  }
+  75% {
+    stroke-dasharray: 32% 0;
+    stroke-dashoffset: -25%;
+    fill: transparent;
+    stroke-width: 3;
+  }
+  80%,
+  100% {
+    fill: white;
+    stroke-width: 0;
+  }
+}
+
+#menu-button-example {
+  width: 5rem;
+  padding: 0.5rem;
+  border: 1px solid red;
+  display: grid;
+  place-content: center;
+  box-sizing: content-box;
+  button {
+    padding: 0;
+    border: none;
+  }
+  .menu-button {
+    box-sizing: content-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+
+    span {
+      width: 100%;
+      box-sizing: content-box;
+      display: block;
+      height: 2px;
+      background-color: #222;
+      border-radius: 0.25rem;
+      transition: transform 0.3s ease;
+
+      &:nth-child(2) {
+        transform-origin: center center;
+      }
+    }
+  }
+
+  .menu-button.menu-button-open {
+    span:nth-child(1) {
+      transform: translate3d(0, 6px, 0) rotate(45deg);
+    }
+    span:nth-child(2) {
+      transform: scaleX(0);
+    }
+    span:nth-child(3) {
+      transform: translate3d(0, -8px, 0) rotate(-45deg);
+    }
+  }
+}
