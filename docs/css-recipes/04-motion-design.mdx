@@ -355,3 +355,95 @@ button.onClick(async () => {
 ```
 
 <MenuButtonExample />
+
+## Creating a debugger element for mousemouse Events
+
+First, create the debugger class that instantiates a `.debugger` element in the DOM.
+
+```typescript
+class Debugger {
+  private static _element: HTMLElement;
+
+  private static get element() {
+    if (!Debugger._element) {
+      return Debugger.create();
+    }
+    return Debugger._element;
+  }
+
+  private static create() {
+    try {
+      const debuggerElement = selectWithThrow(".debugger") as HTMLElement;
+      return debuggerElement;
+    } catch (error) {
+      console.log("creating new debugger element");
+      const debuggerElement = document.createElement("div");
+      debuggerElement.classList.add("debugger");
+      document.body.appendChild(debuggerElement);
+      return debuggerElement;
+    }
+  }
+
+  static hideDebugger() {
+    Debugger.element.style.display = "none";
+  }
+
+  static showDebugger() {
+    Debugger.element.style.display = "block";
+  }
+
+  static displayInfo(info: Record<string, any>) {
+    Debugger.element.innerHTML = "";
+    const list = document.createElement("ul");
+    for (const key in info) {
+      const listItem = document.createElement("li");
+      listItem.textContent = `${key}: ${info[key]}`;
+      list.appendChild(listItem);
+    }
+    Debugger.element.appendChild(list);
+  }
+}
+```
+
+Then here is the CSS:
+
+```css
+.debugger {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  background-color: rgba(34, 34, 34, 0.725);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  min-width: 15rem;
+  max-width: 20rem;
+  min-height: 10rem;
+  color: white;
+}
+```
+
+And here is an example of how to use it:
+
+```ts
+Debugger.showDebugger();
+
+const magneto = selectWithThrow(".magneto") as HTMLButtonElement;
+
+magneto.addEventListener("mousemove", (e: MouseEvent) => {
+  let { bottom, height, left, right, top, width, x, y } =
+    magneto.getBoundingClientRect();
+  const buttonStrength = 40;
+  const textStrength = 80;
+  Debugger.displayInfo({
+    cursorX: e.clientX,
+    cursorY: e.clientY,
+    bottom,
+    height,
+    left,
+    right,
+    top,
+    width,
+    leftCornerOfElement: `(${x}, ${y})`,
+  });
+});
+```

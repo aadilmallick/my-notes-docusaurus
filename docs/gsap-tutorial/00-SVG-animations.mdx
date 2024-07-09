@@ -22,6 +22,37 @@ These are CSS properties and HTML attributes you can set on pretty much any SVG 
   - Lower numbers means smaller dash width, so more dashes
   - Higher numbers mean larger dash width, so less dashes, and eventually when the number is high enough, it's just a solid line.
 
+### SVG accessibility
+
+SVGs can be accessible when used in conjunction with a `<title>` element to explain its use.
+
+**SVG Attributes**
+
+These attributes should be set on the `<svg>` element to give accessibility details.
+
+- `aria-labelledby` : set this to the id of the `<title>` element in the SVG.
+- `role` : whether it is a presentation of image
+
+**<title> attributes**
+
+- The `<title>` tag in SVG is used to let screen readers read the SVG. You must include this as the first element at the top level of the SVG.
+- `id` : a required attribute. The aria label of the SVG must match this
+- `lang` : include this attribute so that it automatically translates the language for screen readers in their target language.
+
+```html
+<svg
+  aria-labelledby="chicken-wings"
+  id="svg"
+  role="presentation"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 765 587"
+>
+  <title id="chicken-wings" lang="en">
+    Icons that illustrate Global Warming Solutions
+  </title>
+</svg>
+```
+
 ## Drawing stroke
 
 ### Drawing paths

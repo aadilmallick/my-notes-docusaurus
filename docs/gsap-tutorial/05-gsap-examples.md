@@ -1,5 +1,9 @@
 # Examples
 
-## Basic logo animation
+## Choreographed animations
 
 ## Magneto buttons
+
+## Scrolling animation
+
+## Parallax scrolling
