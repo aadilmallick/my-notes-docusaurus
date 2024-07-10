@@ -348,3 +348,56 @@ module.exports = {
   ],
 };
 ```
+
+## Markdown specific things
+
+You can have markdown specific alert blocks that work great in all types of markdown.
+
+[article](https://www.freecodecamp.org/news/how-to-create-notice-blocks-in-markdown/?ref=dailydev)
+
+### Note block
+
+```md
+> [!NOTE]
+> I want the readers to read it carefully as it contains many important docs.
+```
+
+> [!NOTE]
+> I want the readers to read it carefully as it contains many important docs.
+
+### Tip block
+
+```md
+> [!TIP]
+> Use the command line to detect and resolve the errors!
+```
+
+> [!TIP]
+> Use the command line to detect and resolve the errors!
+
+### Warning block
+
+```md
+> [!WARNING]
+> DON'T DELETE THE `package.json` file!
+```
+
+> [!WARNING]
+> DON'T DELETE THE `package.json` file!
+
+### Caution block
+
+```md
+> [!CAUTION]
+> Don't execute the code without commenting the test cases.
+```
+
+> [!CAUTION]
+> Don't execute the code without commenting the test cases.
+
+### Important block
+
+```md
+> [!IMPORTANT]  
+> Read the contribution guideline before adding a pull request.
+```
