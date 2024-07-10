@@ -34,27 +34,4 @@ export function SVGExample2() {
   );
 }
 
-export function MenuButtonExample() {
-  React.useEffect(() => {
-    const listener = () => {
-      const menuButton = document.querySelector(".menu-button");
-      console.log(menuButton);
-      menuButton.addEventListener("click", () => {
-        menuButton.classList.toggle("menu-button-open");
-      });
-    };
-    window.addEventListener("load", listener);
-    return () => {
-      window.removeEventListener("load", listener);
-    };
-  }, []);
-  return (
-    <div id="menu-button-example">
-      <button className="menu-button">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-    </div>
-  );
-}
+
