@@ -320,13 +320,13 @@ const tiger = createInstance(Tiger);
 
 ## Recursive types
 
-we can have recursive types by using the type itself when defining the type. 
+we can have recursive types by using the type itself when defining the type.
 
 ```ts
 type JSONObject = {
-    [key: string] : JSONValue | number | string
-}
-type JSONArray = JSONObject[] | JSONValue[]
+  [key: string]: JSONValue | number | string;
+};
+type JSONArray = JSONObject[] | JSONValue[];
 type JSONValue = false | true | null | JSONObject | JSONArray | string | number;
 ```
 
@@ -385,10 +385,10 @@ interface Dictionary {
 }
 ```
 
-A common pattern to use is to just different property access methods depending on whether you're accessing a named or index signature. 
+A common pattern to use is to just different property access methods depending on whether you're accessing a named or index signature.
 
 - **dot property access** : use this for properties explicitly defined on the object
-- **bracket property access** : use this for indexed-signature properties. 
+- **bracket property access** : use this for indexed-signature properties.
 
 ### Interface with generics
 
@@ -428,9 +428,9 @@ function fn(...args: readonly [string, number, boolean]) {
 
 ## Interfaces
 
-### Augmenting interfaces 
+### Augmenting interfaces
 
-You can augment interfaces and add properties to them by just redeclaring them, but you can also globally add properties to interfaces across all files in your typescript codebase by declaring a global like so: 
+You can augment interfaces and add properties to them by just redeclaring them, but you can also globally add properties to interfaces across all files in your typescript codebase by declaring a global like so:
 
 ```ts
 declare global {
@@ -440,24 +440,21 @@ declare global {
 }
 ```
 
-We simply declare in the global namespace and then we augment the interfaces inside of that. 
+We simply declare in the global namespace and then we augment the interfaces inside of that.
 
 ## Typing this
 
-You may often need to provide a type annotatation for `this` when it's type can't be inferred, like in an object's method or in a freestanding DOM event listener. 
+You may often need to provide a type annotatation for `this` when it's type can't be inferred, like in an object's method or in a freestanding DOM event listener.
 
 You always define the type of this
 
 ```ts
-function myClickHandler(
-  this: HTMLButtonElement,
-  event: Event
-) {
+function myClickHandler(this: HTMLButtonElement, event: Event) {
   // ...
 }
 
-const buttonElement = document.querySelector("button")
-const onClick = myClickHandler.bind(buttonElement)
+const buttonElement = document.querySelector("button");
+const onClick = myClickHandler.bind(buttonElement);
 ```
 
 ## Classes
@@ -484,7 +481,7 @@ class MyClass {
 
 ### Static block
 
-You can use singleton construction in classes statically, using the `static {}` block that runs once when the class is first initialized, not on individual instances. 
+You can use singleton construction in classes statically, using the `static {}` block that runs once when the class is first initialized, not on individual instances.
 
 ```ts
 class Statically {
@@ -492,7 +489,7 @@ class Statically {
 
   static {
     // only run once in the program's lifetime
-    Statically.count = Math.random()
+    Statically.count = Math.random();
   }
 }
 ```
@@ -589,8 +586,6 @@ function printFileOrDirectory(obj: FileSystemObject) {
 }
 ```
 
-### ThisType
-
 ## Temporal callback issue
 
 Let's look at the following code:
@@ -678,11 +673,11 @@ type Num = GetReturnType<() => number>;
 In the example above, we are basically creating another generic called `Return` that will the return type of the function we pass in. We are saying that whatever thing we pass into the `GetReturnType<>` generic type alias must be a function, and then we infer its return type.
 
 ```ts
-type RType<T> = T extends (...args: any[]) => infer R ? R : never
+type RType<T> = T extends (...args: any[]) => infer R ? R : never;
 
-const multiply = (a: number, b: number) => a*b
+const multiply = (a: number, b: number) => a * b;
 
-type MyType = RType<typeof multiply>  // number
+type MyType = RType<typeof multiply>; // number
 ```
 
 #### Infer with constraints
@@ -694,9 +689,11 @@ You can also add type constraints to your `infer` conditionals, like `infer T ex
 You can even infer strings from template string literal types.
 
 ```ts
-type EmailSurname<T> = T extends `${infer S extends string}@${string}` ? S : never;
+type EmailSurname<T> = T extends `${infer S extends string}@${string}`
+  ? S
+  : never;
 
-type Test = EmailSurname<"waadlingaadil@gmail.com">
+type Test = EmailSurname<"waadlingaadil@gmail.com">;
 ```
 
 ### TYpe Distributivity
@@ -714,19 +711,11 @@ type ToArrayNonDist<Type> = [Type] extends [any] ? Type[] : never;
 type ArrOfStrOrNum = ToArrayNonDist<string | number>; // returns (string | number)[]
 ```
 
-## Other type things
-
-### `typeof`
-
-The `typeof` type operator infers the type of a variable. What's important to note is that this only works on a variable reference, not any variable value like when executing a function.
-
-:::warning
-Specifically, it’s only legal to use typeof on identifiers (i.e. variable names) or their properties. This helps avoid the confusing trap of writing code you think is executing, but isn’t:
-:::
+## Utility types
 
 ### Extract and Exclude
 
-Once you understand how `extends` works, you can use the `Extract<>` and `Exclude<>` generic types to query parts of a type of you want. 
+Once you understand how `extends` works, you can use the `Extract<>` and `Exclude<>` generic types to query parts of a type of you want.
 
 This is useful when working with union types, and you want to extract out specific parts
 
@@ -743,12 +732,12 @@ type FavoriteColors =
   | [number, number, number]
   | { red: number; green: number; blue: number }
   | never;
- 
+
 // from the union type, return only the types that extends string
-type StringColors = Extract<FavoriteColors, string>
+type StringColors = Extract<FavoriteColors, string>;
 
 // from the union type, return only the types that do not extend string
-type NonStringColors = Exclude<FavoriteColors, string>
+type NonStringColors = Exclude<FavoriteColors, string>;
 ```
 
 - `Extract<T, U>` : returns all subtypes from `T` that extends `U`, meaning whatever subtypes in `T` that could be assignable to type `U` , those are what are going to get extracted.
@@ -785,32 +774,132 @@ type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
 // 4. If the generic type does extend a function, return the inferred return type, which is R
 ```
 
+### `Parameters<T>`
+
+The `Parameters<T>` utility type is used to fetch the types of parameters for a function. The type param should be a function.
+
+The implementation is as follows:
+
+```ts
+/**
+ * Obtain the parameters of a function type in a tuple
+ */
+type Parameters/**
+ * The typeParam passed in, must be some subtype of a call signature,
+ * which can take any number of arguments of any types, and can
+ * have any return type
+ */
+<T extends (...args: any) => any> =
+  /**
+   * As long as `T` matches a call signature, capture all of the args
+   * (as a ...rest) parameter in a new tuple typeParam `P`
+   */
+  T extends (...args: infer P) => any
+    ? P // and then return the tuple
+    : never; // or return never, if the condition is not matched
+```
+
+### `ConstructorParameters<T>`
+
+The `ConstructorParameters<T>` utility type is used to fetch the types of parameters for a constructor. The type param should be a construct signature.
+
+The implementation is as follows:
+
+```ts
+/**
+ * Obtain the parameters of a constructor function type in a tuple
+ */
+type ConstructorParameters/**
+ * The typeParam passed in, must be some subtype of a construct
+ * signature.
+ *
+ * The `abstract` keyword lets this also work with abstract classes,
+ * which can potentially have an `abstract` constructor
+ */
+<T extends abstract new (...args: any) => any> =
+  /**
+   * As long as `T` matches a construct signature, capture all of the
+   * args (as a ...rest) parameter in a new tuple typeParam `P`
+   */
+  T extends abstract new (...args: infer P) => any
+    ? P // and then return the tuple
+    : never; // or return never, if the condition is not matched
+```
+
+### `InstanceType<T>`
+
+The `InstanceType<T>` utility type is used to fetch the type of an instance of a class. The type param should be a class.
+
+The implementation is as follows:
+
+```ts
+/**
+ * Obtain the return type of a constructor function type
+ */
+type InstanceType/**
+ * The typeParam passed in must be some subtype of a construct signature
+ */
+<T extends abstract new (...args: any) => any> =
+  /**
+   * As long as `T` matches the construct signature, capture the return
+   * type in a new typeParam `R`
+   */
+  T extends abstract new (...args: any) => infer R
+    ? R // and then return it
+    : any; // otherwise return any
+```
+
+### `ThisParameterType<T>`
+
+The `ThisParameterType<T>` utility type is used to fetch the type of `this` in a function. The type param should be a function.
+
+The implementation is as follows:
+
+```ts
+/**
+ * Extracts the type of the 'this' parameter of a function type, or 'unknown'
+ * if the function type has no 'this' parameter.
+ */
+type ThisParameterType<T> = T extends (this: infer U, ...args: never) => any
+  ? U
+  : unknown;
+```
+
+## Other type things
+
+### `typeof`
+
+The `typeof` type operator infers the type of a variable. What's important to note is that this only works on a variable reference, not any variable value like when executing a function.
+
+:::warning
+Specifically, it’s only legal to use typeof on identifiers (i.e. variable names) or their properties. This helps avoid the confusing trap of writing code you think is executing, but isn’t:
+:::
+
 ### Satisfies
 
-The `satisfies` keyword allows you to adhere to some type annotation but while giving more flexibility in how your type is defined. 
+The `satisfies` keyword allows you to adhere to some type annotation but while giving more flexibility in how your type is defined.
 
 ```ts
 interface Color {
-    color?: string,
-    name?: string
+  color?: string;
+  name?: string;
 }
 
-const bruh = {color: "green"} satisfies Color
-bruh.color.repeat(3)
+const bruh = { color: "green" } satisfies Color;
+bruh.color.repeat(3);
 ```
 
 In the example above, `bruh.color` would be of type `string | undefined` if we simply type annotated it. By using `satisfies`, we turn it into a const declaration while satisfying the type simultaneously, allowing us to access the color type if we explicitly define it on the object.
 
 ### Template literal types
 
-
 You can use template literal types like so:
 
 ```ts
-type Size = "small" | "medium" | "large"
-type Color = "primary" | "secondary"
+type Size = "small" | "medium" | "large";
+type Color = "primary" | "secondary";
 
-type Style = `${Size}-${Color}`
+type Style = `${Size}-${Color}`;
 ```
 
 #### String manipulation utitilies
@@ -953,7 +1042,7 @@ You also have a bunch of mapped types that are built into typescript.
 
 #### `Pick<T>`
 
-The `Pick` utility type allows you to extract only the properties you want from an object. 
+The `Pick` utility type allows you to extract only the properties you want from an object.
 
 ```ts
 interface Person {
@@ -962,8 +1051,8 @@ interface Person {
   location?: string;
 }
 
-const bob: Pick<Person, 'name'> = {
-  name: 'Bob'
+const bob: Pick<Person, "name"> = {
+  name: "Bob",
 };
 ```
 
@@ -975,14 +1064,14 @@ Here we make the type from scratch:
 
 ```ts
 type ReadOnly<T> = {
-  readonly [key in keyof T] : T[key]
-}
+  readonly [key in keyof T]: T[key];
+};
 
 const obj = {
-  name: "john"
-}
+  name: "john",
+};
 
-type ReadOnlyIdentifier = ReadOnly<typeof obj>
+type ReadOnlyIdentifier = ReadOnly<typeof obj>;
 ```
 
 #### `Partial<>`
@@ -993,14 +1082,14 @@ Here we make the type from scratch:
 
 ```ts
 type Partial_<T> = {
-   [key in keyof T]? : T[key]
-}
+  [key in keyof T]?: T[key];
+};
 
 const obj = {
-  name: "john"
-}
+  name: "john",
+};
 
-type PartialIdentifier = Partial_<typeof obj>
+type PartialIdentifier = Partial_<typeof obj>;
 ```
 
 #### `Required<>`
@@ -1026,42 +1115,44 @@ type MappedTypeWithNewProperties<Type> = {
 
 Using the above syntax, we can retype (or most likely rename) keys to a new type using the `as` operator.
 
-This is extremely useful for creating getters and setters on the fly. 
+This is extremely useful for creating getters and setters on the fly.
 
 ```ts
 type Store = {
   name: string;
   age: number;
-}
+};
 
 type Setters<T> = {
-  [key in keyof T as `set${Capitalize<keyof T & string>}`]: (value: T[key]) => void
-}
+  [key in keyof T as `set${Capitalize<keyof T & string>}`]: (
+    value: T[key]
+  ) => void;
+};
 
 type Getters<T> = {
-  [key in keyof T as `get${Capitalize<keyof T & string>}`]: () => T[key]
-}
+  [key in keyof T as `get${Capitalize<keyof T & string>}`]: () => T[key];
+};
 
-type StoreGetters = Getters<Store>
-type StoreSetters = Setters<Store>
+type StoreGetters = Getters<Store>;
+type StoreSetters = Setters<Store>;
 ```
 
 #### Filtering keys
 
-You can carry this further to filtering keys before doing something with them by combining mapped types with conditionals. 
+You can carry this further to filtering keys before doing something with them by combining mapped types with conditionals.
 
 ```ts
 type KeysThatStartWithS<T> = {
-    [key in keyof T as key extends `s${string}` ? key : never]: T[key]
-}
+  [key in keyof T as key extends `s${string}` ? key : never]: T[key];
+};
 
 const store = {
-    saliva: true,
-    dog: false, 
-    cat: true
-}
+  saliva: true,
+  dog: false,
+  cat: true,
+};
 
-type OnlySaliva = KeysThatStartWithS<typeof store>
+type OnlySaliva = KeysThatStartWithS<typeof store>;
 ```
 
 ### Awaited
