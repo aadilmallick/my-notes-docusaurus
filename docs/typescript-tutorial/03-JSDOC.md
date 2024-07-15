@@ -14,6 +14,35 @@ function add(a, b) {
 }
 ```
 
+### Optional parameters
+
+Typing an `=` sign after the parameter name makes the parameter optional. You can also provide a default value for the parameter.
+
+```ts
+/**
+ * Greets a user with an optional greeting.
+ * @param {string} name - The name of the user.
+ * @param {string} [greeting='Hello'] - Optional greeting message.
+ * @returns {string} A greeting message.
+ */
+function greet(name, greeting = "Hello") {
+  return `${greeting}, ${name}!`;
+}
+```
+
+### Rest parameters
+
+```ts
+/**
+ * Sums any number of arguments.
+ * @param {...number} numbers - The numbers to sum.
+ * @returns {number} The total sum.
+ */
+function sum(...numbers) {
+  return numbers.reduce((total, num) => total + num, 0);
+}
+```
+
 ### examples
 
 You can provide examples of how to use a function using the `@example` annotation:
