@@ -38,6 +38,7 @@ These are my references:
 - https://10015.io/css-tools : CSS tools collection
 - https://www.cssportal.com/ : CSS tools collection
 - https://designjunction.xyz/ : Free design assets
+- https://www.fffuel.co/ : CSS tools collection
 
 ### **CSS tools**
 
@@ -144,6 +145,7 @@ These websites have all-in-one solutions to many problems:
 - [Learn HTML DOM](https://phuoc.ng/collection/html-dom/)
 - [Learn debugging](https://alan.norbauer.com/articles/browser-debugging-tricks)
 - [JS cheatsheet](https://zerotomastery.io/cheatsheets/javascript-cheatsheet-the-advanced-concepts)
+- [Learn CSS animations blog](https://emilkowal.ski/)
 
 ## References
 
