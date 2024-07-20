@@ -39,6 +39,9 @@ These are my references:
 - https://www.cssportal.com/ : CSS tools collection
 - https://designjunction.xyz/ : Free design assets
 - https://www.fffuel.co/ : CSS tools collection
+- https://uiverse.io/ : CSS and tailwind tools collection
+- https://github.com/goabstract/Awesome-Design-Tools : design tools repo
+- https://github.com/bradtraversy/design-resources-for-developers : design tools repo
 
 ### **CSS tools**
 
@@ -58,6 +61,7 @@ These are my references:
 - https://9elements.github.io/fancy-border-radius/ : CSS border radius generator
 - https://scrollbar.app/ : CSS scrollbar styling
 - https://uiverse.io/loaders : CSS loader generators
+- https://cssfx.netlify.app/ : free CSS animations and effects
 
 ### **SVG generator tools**
 
@@ -146,6 +150,26 @@ These websites have all-in-one solutions to many problems:
 - [Learn debugging](https://alan.norbauer.com/articles/browser-debugging-tricks)
 - [JS cheatsheet](https://zerotomastery.io/cheatsheets/javascript-cheatsheet-the-advanced-concepts)
 - [Learn CSS animations blog](https://emilkowal.ski/)
+- [Best roadmaps](https://roadmap.sh/)
+- [Free programming books](https://ebookfoundation.github.io/free-programming-books-search/?&sect=books&file=free-programming-books-langs.md#react-native)
+- [Learn software design pattern](https://github.com/kamranahmedse/design-patterns-for-humans)
+- [Learn through creating impressive projects](https://github.com/practical-tutorials/project-based-learning?tab=readme-ov-file)
+
+### AI learning
+
+- [build your own llm](https://github.com/karpathy/LLM101n)
+- [learn llms](https://github.com/mlabonne/llm-course)
+- [microsoft generative ai](https://github.com/microsoft/generative-ai-for-beginners)
+- [deep learning book](https://github.com/udlbook/udlbook)
+
+### Various collections of stuff
+
+- https://github.com/sdmg15/Best-websites-a-programmer-should-visit
+
+### Useful articles
+
+- https://www.joshwcomeau.com/blog/how-to-learn-stuff-quickly/
+- https://www.joshwcomeau.com/css/stacking-contexts/
 
 ## References
 

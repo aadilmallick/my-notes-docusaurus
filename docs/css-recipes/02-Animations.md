@@ -1,5 +1,78 @@
 # Animations
 
+## Intro animations
+
+### Timing functions
+
+- `ease-out` : starts fast, ends slow. Good for enter animations, like a modal appearing.
+- `ease-in` : starts slow, ends fast. Good for exit animations, like a modal disappearing.
+- `ease-in-out` : symmetrical easing animation
+- `ease` : default easing function, assymmetrical. Use this for most animations
+
+### will-change
+
+Use the `will-change` property to tell the browser that an element will change in the future. This will allow the browser to optimize the rendering of the element.
+
+Here are the numerous benefits:
+
+- Uses hardware-acceleration to optimize animations and make them smoother.
+
+```css
+.element {
+  /* says that the transform property will be animated, so optimize for it */
+  will-change: transform;
+}
+```
+
+### Transforms
+
+#### Translate
+
+The `transform: translate()` function is especially powerful because you can use percentages.
+
+100% is relative to an element's size, so `transform: translateX(100%)` will move an element to the right by its width in px.
+
+```css
+.element {
+  /* if an element is 500px wide, move it to right 500px */
+  transform: translateX(100%);
+}
+```
+
+### Animation accessibility
+
+Use the media query below for accessible animations
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
+```
+
+And here is a react hook to get the value in javascript
+
+```tsx
+const QUERY = "(prefers-reduced-motion: no-preference)";
+const getInitialState = () => !window.matchMedia(QUERY).matches;
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] =
+    React.useState(getInitialState);
+  React.useEffect(() => {
+    const mediaQueryList = window.matchMedia(QUERY);
+    const listener = (event) => {
+      setPrefersReducedMotion(!event.matches);
+    };
+    mediaQueryList.addEventListener("change", listener);
+    return () => {
+      mediaQueryList.removeEventListener("change", listener);
+    };
+  }, []);
+  return prefersReducedMotion;
+}
+```
+
 ## Practical Web Animations
 
 ### Button Background Swipe
@@ -315,7 +388,3 @@ Here are some events you can listen to on the animation using the `addEventListe
 There are some problems with the `animation-fill-mode` property, where it is not only inefficient and expensive to use, but also confusing because of CSS cascading.
 
 The `Animation.commitStyles()` method can be used to apply the styles of the animation to the element before the animation runs. This is useful for animations that have a `fill` value of `both` or `forwards`.
-
-```
-
-```

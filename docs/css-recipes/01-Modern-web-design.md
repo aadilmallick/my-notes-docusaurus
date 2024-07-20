@@ -354,6 +354,71 @@ window
   });
 ```
 
+## Gradients
+
+### Gradient theory
+
+When making a gradient of two highly saturated colors like blue and yellow, in the middle of the gradient you end up with a desaturated color like gray, which is the _gray dead zone_. We want to avoid this problem.
+
+Instead of using rgb colors, we can use HSL colors and keep the saturation and brightness constant. This way, we can avoid the gray dead zone.
+
+```css
+.gradient {
+  /* middle value will be hsl(125, 100%, 50%), which is not gray. It's green! */
+  background: linear-gradient(
+    to right,
+    hsl(200, 100%, 50%),
+    hsl(50, 100%, 50%)
+  );
+}
+```
+
+Just use this tool to generate gradients: [gradient generator](https://www.joshwcomeau.com/gradient-generator/)
+
+## Shadows
+
+### Theory
+
+We want to model our shadows from a ight source, and the shadows should be consistent across the site, as if they are all created from the same light source.
+
+More info: [https://tobiasahlin.com/blog/layered-smooth-box-shadows/](https://tobiasahlin.com/blog/layered-smooth-box-shadows/)
+
+Also use this [shadow generator tool](https://shadows.brumm.af/)
+
+![alt](https://www.webpagescreenshot.info/image-url/RERkp7oFw)
+
+Here is how you can layer box shadows:
+
+```css
+.layered.box {
+  box-shadow: 0 1px 1px hsl(0deg 0% 0% / 0.075), 0 2px 2px hsl(0deg 0% 0% /
+          0.075), 0 4px 4px hsl(0deg 0% 0% / 0.075), 0 8px 8px hsl(0deg 0% 0% /
+          0.075), 0 16px 16px hsl(0deg 0% 0% / 0.075);
+}
+```
+
+And here are the elevation levels you can use. In general, the closer an element should be to the user, the higher elevation it should have.
+
+```js
+const ELEVATIONS = {
+  small: `
+    0.5px 1px 1px hsl(var(--shadow-color) / 0.7)
+  `,
+  medium: `
+    1px 2px 2px hsl(var(--shadow-color) / 0.333),
+    2px 4px 4px hsl(var(--shadow-color) / 0.333),
+    3px 6px 6px hsl(var(--shadow-color) / 0.333)
+  `,
+  large: `
+    1px 2px 2px hsl(var(--shadow-color) / 0.2),
+    2px 4px 4px hsl(var(--shadow-color) / 0.2),
+    4px 8px 8px hsl(var(--shadow-color) / 0.2),
+    8px 16px 16px hsl(var(--shadow-color) / 0.2),
+    16px 32px 32px hsl(var(--shadow-color) / 0.2)
+  `,
+};
+```
+
 ## Images
 
 ### Fancy Images: before and after borders
