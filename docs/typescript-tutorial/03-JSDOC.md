@@ -164,6 +164,26 @@ This is how you annotate the type of a variable
 let name = "John Doe";
 ```
 
+### Objects
+
+Here is how we can type objects:
+
+```ts
+const obj = {
+  /**
+   * @type {string | null}
+   */
+  name: null,
+  age: 69,
+  bruh: true,
+  doSOmethinG() {
+    console.log(this.name);
+  },
+};
+
+obj.doSOmethinG();
+```
+
 ## Custom type defitions
 
 ```ts
@@ -179,3 +199,54 @@ let name = "John Doe";
  */
 const point = { x: 10, y: 20 };
 ```
+
+## Typing with this
+
+We can combine custom typedefs with teh `@this` annotation to give the type of `this` in any method or function.
+
+```js
+// 1. create typedef
+/**
+ * @typedef {Object} NewViewInput
+ * @property {string} name
+ * @property {errorMsg} name
+ * @property {string[]} names
+ * @property {string[]} views
+ * @property {(string) => void} validateText
+ */
+
+export default PxComponent.extend(ModalMixin, {
+  /**
+   * @this NewViewInput
+   * @param {string} text
+   */
+  validateText(text) {
+    const { names } = this;
+    const alphanumericRegex = /^([a-z]|[A-Z]|\d)+$/;
+
+    if (names?.includes(text)) {
+      this.set("errorMsg", "Name is currently in use, please choose another.");
+      this.setButtonClickability("confirm", false);
+    } else if (!alphanumericRegex.test(text)) {
+      this.set("errorMsg", "Only letters and numbers can be used");
+      this.setButtonClickability("confirm", false);
+    } else if (isBlank(text)) {
+      this.setButtonClickability("confirm", false);
+    } else {
+      this.setButtonClickability("confirm", true);
+    }
+  },
+});
+```
+
+## Super cool vscode tricks
+
+### Region
+
+You can have a super cool header in your minimap with a simple js comment like `// region <REGION_NAME>`, like so:
+
+```js
+// region REGION_NAME
+```
+
+This is great for organization.
