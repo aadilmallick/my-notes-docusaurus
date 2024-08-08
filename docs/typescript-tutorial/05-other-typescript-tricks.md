@@ -78,8 +78,6 @@ function useStatuses<const T extends string>(statuses: T[]): T[] {
 const statuses = useStatuses(["active", "inactive"]);
 ```
 
-## Complete generics
-
 ## Complete guide to infer
 
 You can add constraints to `infer` uses, making it even more usefel.
@@ -91,5 +89,3 @@ type GetReturnTypeString<T> = T extends ((
   ? `return type is ${R}`
   : never;
 ```
-
-## Complete guide to satisfies
