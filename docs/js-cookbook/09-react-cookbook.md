@@ -51,3 +51,5 @@ const Boop = ({ rotation = 20, timing = 150, children }) => {
   );
 };
 ```
+
+## Custom Hook Snippets

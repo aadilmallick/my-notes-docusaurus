@@ -884,6 +884,40 @@ store.addObserver(subtract);
 store.notify(5, 4); // 9, 20, 1
 ```
 
+You can also use it with objects instead like so: 
+
+```ts
+export class Subject<T> {
+  private observers: Observable<T>[] = [];
+  addObserver(observer: Observable<T>) {
+    this.observers.push(observer);
+  }
+  removeObserver(observer: Observable<T>) {
+    const index = this.observers.indexOf(observer);
+    if (index > -1) {
+      this.observers.splice(index, 1);
+    }
+  }
+  notify(data: T) {
+    this.observers.forEach((observer) => observer.update(data));
+  }
+}
+
+interface Observable<T> {
+  update(data: T): void;
+}
+
+export class ConcreteObserver<T> implements Observable<T> {
+	update(data: T) {
+		console.log(data)
+	}
+}
+
+const subject = new Subject<number>();
+const observer1 = new ConcreteObserver<number>();
+subject.addObserver(observer1);
+subject.notify(1); // 1
+```
 ### Registry Pattern
 
 The registry pattern is a design pattern that allows us to store objects in a central location. It is like a factory of objects that we can get objects out at any time. It is useful when we want to store objects that we want to access from anywhere in our code.

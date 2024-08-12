@@ -55,6 +55,67 @@ Outside of the compiler options, here are the different options you get access t
 - `exclude`: an array of glob patterns that match files to exclude from compilation. The default is `["node_modules", "bower_components", "jspm_packages"]`, which excludes all files in the `node_modules`, `bower_components`, and `jspm_packages` folders.
 - `files`: an array of files to include in compilation.
 
+## Namespaces
+
+Namespaces are ways to keep your code clean and modularized and prevent global autocompletion for some type.
+
+```ts
+// myNamespace.ts
+namespace MyNamespace {
+  export function doSomething() {
+    console.log("Doing something...");
+  }
+}
+
+// main.ts
+/// <reference path="myNamespace.ts" />
+MyNamespace.doSomething(); // Output: "Doing something..."
+```
+
+### Declaration merging
+
+Here is how we can augment namespaces, which is useful when we want to add methods and intellisense to some library:
+
+```ts
+// myModule.d.ts
+declare namespace MyModule {
+  export interface MyModule {
+    newFunction(): void;
+  }
+}
+
+// main.ts
+/// <reference path="myModule.d.ts" />
+namespace MyModule {
+  export class MyModule {
+    public newFunction() {
+      console.log("I am a new function in MyModule!");
+    }
+  }
+}
+
+const obj = new MyModule.MyModule();
+obj.newFunction(); // Output: "I am a new function in MyModule!"
+```
+
+Here is how you can globally augment something in NodeJS context:
+
+```ts
+// myModule.d.ts
+declare namespace NodeJS {
+  interface Global {
+    myGlobalFunction(): void;
+  }
+}
+
+// main.ts
+global.myGlobalFunction = function () {
+  console.log("I am a global function!");
+};
+
+myGlobalFunction(); // Output: "I am a global function!"
+```
+
 ## Create an NPM package with TYpeScript
 
 If we want to use typescript to create an NPM package, the basic flow will look like this:
