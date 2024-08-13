@@ -155,9 +155,9 @@ installAlarm.onTriggered(() => {
 
 The `commands` key in the manifest allows you to register global keyboard shortcuts for your extension. Keyboard shortcuts only work when the browser is in focus.
 
-:::tip
-Users can remap the command by going to [chrome extension shortcuts](chrome://extensions/shortcuts)
-:::
+
+> [!TIP] Title
+> Users can remap the command by going to [chrome extension shortcuts](chrome://extensions/shortcuts)
 
 ```json
   "commands": {
@@ -233,6 +233,8 @@ The `Command` instance has these properties:
 ## Context Menus
 
 You can create context menu items easily with the `chrome.contextMenus` API, which needs the `"contextMenus"` permission in the manifest.
+
+You should create context menus at the beginning of the application, on the `runtime.onInstalled` event. 
 
 - `chrome.contextMenus.create(options)` : creates a context menu
 - `chrome.contextMenus.remove(menuId)` : deletes the context menu with the specified menu id
@@ -350,4 +352,637 @@ menu2.onClicked((info) => {
 });
 ```
 
-##
+## declarativeContent
+
+The `declarativeContent` api, enabled with the `declarativeContent` manifest permission allows you to automatically enable/disable the extension action.
+
+This is the basic use: 
+
+```ts
+// 1. create a rule
+let rule2 = {
+  conditions: [
+    new chrome.declarativeContent.PageStateMatcher({
+      pageUrl: { hostSuffix: '.google.com', schemes: ['https'] },
+      css: ["input[type='password']"]
+    }),
+    new chrome.declarativeContent.PageStateMatcher({
+      css: ["video"]
+    })
+  ],
+  actions: [ new chrome.declarativeContent.ShowAction() ]
+};
+
+// 2. register the rules
+chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
+  chrome.declarativeContent.onPageChanged.addRules([rule2]);
+});
+```
+
+Here is the class: 
+
+```ts
+export class DeclarativeContent {
+  public readonly rules: chrome.events.Rule[] = [];
+
+  addRule(
+    pageMatchers: chrome.declarativeContent.PageStateMatcher[],
+    options: {
+      showAction?: boolean;
+    } = {}
+  ) {
+    const rule: chrome.events.Rule = {
+      conditions: pageMatchers,
+      actions: [
+        options.showAction && new chrome.declarativeContent.ShowAction(),
+      ].filter((thing) => Boolean(thing)),
+    };
+    this.rules.push(rule);
+  }
+
+  registerRules() {
+    const rules = this.rules;
+    chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
+      chrome.declarativeContent.onPageChanged.addRules(rules);
+    });
+  }
+}
+```
+
+## declarativeNetRequest
+
+The `declarativeNetRequest` api requires the `declarativeNetRequest` permission and can automatically block up to 300,000 web addresses based on their URL and the type of resource they are. 
+
+You can block either dynamically or statically: 
+### Static blocking
+
+### Dynamic blocking
+
+## Extension
+
+The `"extension"` permission and `extension` API provides info about the extension itself. Here are some async methods to use: 
+
+- `chrome.extension.isAllowedIncognitoAccess()` : returns whether or not the extension can run in incognito mode. 
+- `chrome.extension.isAllowedFileSchemeAccess()` : returns whether or not the extension can access `file` URI protocol files.
+
+## Identity
+
+Here are the async methods on the identity API: 
+- `chrome.identity.getProfileUserInfo({});` : returns an object with a `.id` and a `.email` property of the currently logged in google account. Needs the `"identity.email"` permission
+- `chrome.identity.getAuthToken(options)` : returns a token object, and takes in some options.
+	- `interactive` : whether or not the token acquiring process is done interactively.
+	- `scopes` : a string list of OAuth scopes to request.
+
+Here are the classes: 
+
+```ts
+/**
+ * requires permissions: "identity.email" in manifest.json
+ */
+export class IdentityEmail {
+  static async getProfile() {
+    return await chrome.identity.getProfileUserInfo({});
+  }
+}
+
+/**
+ * requires permissions: "identity" in manifest.json
+ */
+export class Identity {
+  static async getBasicAuthToken() {
+    return await chrome.identity.getAuthToken({ interactive: true });
+  }
+}
+```
+
+## Idle
+
+The `idle` API requires the `"idle"` permission and is used like so: 
+
+```ts
+type IdleStateCallback = (newState: "active" | "idle" | "locked") => void;
+
+export default class Idle {
+  /**
+   * triggered when the system changes idle state
+   */
+  static onStateChanged(cb: IdleStateCallback) {
+    chrome.idle.onStateChanged.addListener(cb);
+  }
+
+  /**
+   * Returns the idle state of the system.
+   * @param intervalSeconds must be greater than 15
+   * @param cb
+   */
+  static async queryState(intervalSeconds: number) {
+    await chrome.idle.queryState(Math.max(intervalSeconds, 15));
+  }
+}
+```
+
+- `chrome.idle.onStateChanged.addListener(state => {})` : triggered at least every 60 seconds, and only when idle state changes. The state can be either "active", "idle", or "locked"
+- `chrome.idle.queryState(numSeconds)` : returns the current state of the system. It's asynchronous.
+
+## Management
+
+The `chrome.management` API requires the `"management"` permission and is used to manage extensions, including other extensions. A simple use case is listening for when an extension is uninstalled, and then creating a tab to beg the user to reinstall.
+
+```ts
+interface ExtensionListeners {
+  enabledCb: (info: chrome.management.ExtensionInfo) => void;
+  disabledCb: (info: chrome.management.ExtensionInfo) => void;
+  installedCb: (info: chrome.management.ExtensionInfo) => void;
+  uninstalledCb: (extensionId: string) => void;
+}
+
+export default class Management {
+  /**
+   * Returns information about the extension. Does not need any permissions.
+   */
+  static async getExtensionInfo() {
+    return await chrome.management.getSelf();
+  }
+
+  listenForExtensionUpdates(cbs: Partial<ExtensionListeners>) {
+    cbs.enabledCb && chrome.management.onEnabled.addListener(cbs.enabledCb);
+    cbs.disabledCb && chrome.management.onDisabled.addListener(cbs.disabledCb);
+    cbs.installedCb &&
+      chrome.management.onInstalled.addListener(cbs.installedCb);
+    cbs.uninstalledCb &&
+      chrome.management.onUninstalled.addListener(cbs.uninstalledCb);
+  }
+}
+```
+
+Here are some basic methods: 
+
+- `chrome.management.getSelf()`: returns an `ExtensionInfo` object with information about the extension, with properties like these: 
+	- `extension.name` : the name of the extension
+	- `extension.id` : the extension id
+	- `extension.permissions` : the array of extension permissions. 
+
+## Notifications
+
+### Showing a basic notification
+
+### Events
+
+- `chrome.notifications.onClicked` : when some notification is clicked. Retrieves that notification in a callback.
+- `chrome.notifications.onClosed` : when some notification is closed. Retrieves that notification in a callback.
+
+### Class
+
+```ts
+export default class NotificationModel {
+  static showBasicNotification({
+    title,
+    message,
+    iconPath,
+  }: {
+    title: string;
+    message: string;
+    iconPath: string;
+  }) {
+    chrome.notifications.create({
+      message,
+      title: title,
+      type: "basic",
+      iconUrl: iconPath,
+    });
+  }
+
+  constructor(private notificationId: string) {}
+
+  showNotification(
+    options: chrome.notifications.NotificationOptions<true>,
+    cb?: (notificationId: string) => void
+  ) {
+    chrome.notifications.create(this.notificationId, options, cb);
+  }
+
+  clearNotification() {
+    chrome.notifications.clear(this.notificationId);
+  }
+}
+
+export class NotificationAPI {
+  static show = chrome.notifications.create.bind(chrome.notifications);
+
+  static onClick = chrome.notifications.onClicked.addListener.bind(
+    chrome.notifications.onClicked
+  );
+
+  static onClose = chrome.notifications.onClosed.addListener.bind(
+    chrome.notifications.onClosed
+  );
+
+  static onShowSettings = chrome.notifications.onShowSettings.addListener.bind(
+    chrome.notifications.onShowSettings
+  );
+}
+```
+
+## Permissions
+
+The `permissions` API does not need any manifest permissions. It allows you to programmatically define and request optional API permissions and host permissions.
+
+You can declare optional permissions in the manifest like so: 
+
+```ts
+{
+  "name": "My extension",
+  ...
+  "optional_permissions": ["tabs"],
+  "optional_host_permissions": ["https://www.google.com/"],
+  ...
+}
+```
+
+
+> [!NOTE] Runtime host permissions
+> If you want to request hosts that you only discover at runtime, include "https://*/*" in your extension's optional_host_permissions field. This lets you specify any origin in "Permissions.origins" as long as it has a matching scheme.
+
+
+### Docs
+
+Here is the basic use case: 
+
+```ts
+async function requestPermission() {
+	const isGranted = await chrome.permissions.request({
+	    permissions: ['tabs'],
+	    origins: ['https://www.google.com/']
+	})
+	return isGranted;
+}
+```
+
+The `permissions` object that you pass into these methods looks like this: 
+
+```ts
+interface Permissions {
+	permissions: string[]
+	origins: string[]
+}
+```
+
+- `chrome.permissions.request(permissions)` : requests the specified chrome API permissions and host permissions. You can only use this from a UI gesture like clicking a button. Returns a **boolean**.
+- `chrome.permissions.contains(permissions)` : returns true if the specified permissions are already granted.
+- `chrome.permissions.remove(permissions)` : removes the specified permissions. You should always remove permissions once you are done using them. They will be automatically granted next time.
+
+### Class
+
+Here is a class I made: 
+
+```ts
+export default class PermissionsModel {
+  constructor(public permissions: chrome.permissions.Permissions) {}
+
+  async request() {
+    return await chrome.permissions.request(this.permissions);
+  }
+
+  async permissionIsGranted() {
+    return await chrome.permissions.contains(this.permissions);
+  }
+
+  async remove() {
+    return await chrome.permissions.remove(this.permissions);
+  }
+
+  static async getAllOptionalPermissions() {
+    const permissions = await chrome.permissions.getAll();
+    return permissions.permissions;
+  }
+
+  static async getAllOptionalHostPermissions() {
+    const permissions = await chrome.permissions.getAll();
+    return permissions.origins;
+  }
+
+  static onPermissionsAdded = chrome.permissions.onAdded.addListener.bind(
+    chrome.permissions.onAdded
+  );
+  static onPermissionsRemoved = chrome.permissions.onRemoved.addListener.bind(
+    chrome.permissions.onRemoved
+  );
+}
+```
+
+## ReadingList
+
+### Types
+
+```ts
+declare namespace chrome.readingList {
+  export function query(
+    options: Partial<chrome.readingList.EntryOptions>
+  ): Promise<chrome.readingList.ReadingListEntry[]>;
+
+  export function addEntry(
+    options: chrome.readingList.EntryOptions
+  ): Promise<void>;
+
+  export function removeEntry(options: { url: string }): Promise<void>;
+
+  export function updateEntry(
+    options: Partial<chrome.readingList.EntryOptions>
+  ): Promise<void>;
+
+  // how you add, search, and update bookmarks
+  export interface EntryOptions {
+    hasBeenRead: boolean;
+    title: string;
+    url: string;
+  }
+
+  // what an article from the reading list looks like
+  export interface ReadingListEntry {
+    title: string;
+    url: string;
+    hasBeenRead: boolean;
+    creationTime: number;
+    lastUpdateTime: number;
+  }
+}
+```
+
+### API
+
+All methods are async. 
+
+- `chrome.readingList.query(entryOptions)` : gets back all matching articles
+- `chrome.readingList.addEntry(entryOptions)` : adds an article to the reading list
+- `chrome.readingList.removeEntry({url: string})` : removes an article from the reading list based on its URL
+- `chrome.readingList.updateEntry(entryOptions)` : updates an article from the reading list
+
+```ts
+export default class ReadingList {
+  static async getAll() {
+    return await chrome.readingList.query({});
+  }
+
+  static async getEntry(options: Partial<chrome.readingList.EntryOptions>) {
+    return await chrome.readingList.query(options);
+  }
+
+  static async addEntry(entry: chrome.readingList.EntryOptions) {
+    await chrome.readingList.addEntry(entry);
+  }
+
+  static async removeEntry(url: string) {
+    await chrome.readingList.removeEntry({ url });
+  }
+
+  static async updateEntry(
+    entry: Partial<chrome.readingList.EntryOptions> & { url: string }
+  ) {
+    await chrome.readingList.updateEntry(entry);
+  }
+}
+```
+
+## Runtime
+
+### Opening a uninstall page
+
+When the user uninstalls the extension, you can use this code to automatically open a new tab begging them to not uninstall your extension. 
+
+You do it with the `chrome.runtime.setUninstallURL(url)` method, which will open the specified URL you pass in once the user deletes your extension.
+
+```ts
+chrome.runtime.onInstalled.addListener(details => {
+  if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+    chrome.runtime.setUninstallURL('https://example.com/extension-survey');
+  }
+});
+```
+
+### API
+
+Here are the properties: 
+- `chrome.runtime.id` : the id of the extension
+
+Here are the methods: 
+- `chrome.runtime.getManifest()` : non-async. Returns the manifest as an object
+
+Here are the events: 
+- `chrome.runtime.onInstalled` : runs when the extension is first installed, refreshed, or chrome updates.
+
+## scripting
+
+The `scripting` API allows you to dynamically inject scripts and CSS into a web page. Scripting requires both the `scripting` permission, and some other permission that lets you gain sensitive access to a website, like `tabs`, `host_permissions`, or `activeTab`.
+
+When injecting javascript, you can do two thing: 
+1. Inject a JS file to run in context of webpage
+2. Inject a JS function to run in context of webpage.
+
+```javascript
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['content-script.js']
+  });
+```
+
+Here is a list of the options you pass in:
+
+- `target` : required. AN obejct where we specify the id of the tab to inject the content script into.
+- `files` : a list of content script files to inject into the target. Note that we shoudl refer to our compiled javascript here, not typescript if we're using it.
+- `func` : a function to inject into the target. In this function, we can use DOM code and anything the content script can access.
+- `args` : if injecting content scripts via the function route, this is a list of arguments to pass in to that function.
+
+### Injecting function example
+
+```js
+// needs one argument
+function injectedFunction(color) {
+  document.body.style.backgroundColor = color;
+}
+
+chrome.action.onClicked.addListener((tab) => {
+  chrome.scripting.executeScript({
+    target : {tabId : tab.id},
+    func : injectedFunction,
+    // specify the arguments with the args array
+    args : [ "orange" ],
+  });
+});
+```
+
+### Full API
+
+```ts
+chrome.scripting
+  .registerContentScripts([{
+    id: "session-script",
+    js: ["content.js"],
+    persistAcrossSessions: false,
+    matches: ["*://example.com/*"],
+    runAt: "document_start",
+  }])
+  .then(() => console.log("registration complete"))
+  .catch((err) => console.warn("unexpected error", err))
+
+// update the list of registered content scripts
+chrome.scripting
+  .updateContentScripts([{
+    id: "session-script",
+    excludeMatches: ["*://admin.example.com/*"],
+  }])
+  .then(() => console.log("registration updated"));
+
+// get back the list of registered content scripts
+chrome.scripting
+  .getRegisteredContentScripts()
+  .then(scripts => console.log("registered content scripts", scripts));
+
+// unregister the content scripts
+chrome.scripting
+  .unregisterContentScripts({ ids: ["session-script"] })
+  .then(() => console.log("un-registration complete"));
+```
+
+
+### Class
+
+```ts
+export default class Scripting {
+  private static getArray(scripts: string | string[]): string[] {
+    let scriptsArray: string[] = [];
+    if (typeof scripts === "string") {
+      scriptsArray = [scripts];
+    } else {
+      scriptsArray = scripts;
+    }
+    return scriptsArray;
+  }
+  async executeScripts(tabId: number, scripts: string | string[]) {
+    await chrome.scripting.executeScript({
+      files: Scripting.getArray(scripts),
+      target: { tabId },
+    });
+  }
+
+  async insertCss(tabId: number, cssFiles: string | string[]) {
+    await chrome.scripting.insertCSS({
+      files: Scripting.getArray(cssFiles),
+      target: { tabId },
+    });
+  }
+
+  async removeCss(tabId: number, cssFiles: string | string[]) {
+    await chrome.scripting.removeCSS({
+      files: Scripting.getArray(cssFiles),
+      target: { tabId },
+    });
+  }
+}
+
+```
+
+## Tabs
+
+### Permissions
+
+The `"tabs"` permission in the manifest allows devlopers to access these 4 sensitive properties of any tab: `url`, `pendingUrl`, `title`, and `favIconUrl`. Only use the `tabs` permission if you need these properties. Otherwise, you have full access to the API. 
+
+Host permissions go a bit further, allowing access to sensitive methods like [`tabs.captureVisibleTab()`](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-captureVisibleTab), [`tabs.executeScript()`](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-executeScript), [`tabs.insertCSS()`](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-insertCSS), and [`tabs.removeCSS()`](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-removeCSS) as well as the 4 sensitive tab properties.
+
+The `activeTab` permission provides temporary host permissions access but without any permission warnings.
+
+All in all, here are the pros and cons of each permission:
+
+| `tabs`                                                                | `hostPermissions`                                                                | `activeTab`                                                         |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Provides access to sensitive tab properties. Has permission warnings. | Provides access to sensitive tab properties and methods. Has permission warnings | Acts as having temporary host permissions. Has permission warnings. |
+### API
+
+- `chrome.tabs.create(options)` : creates a tab. You can specify the tab position, whether it's pinned, the URL, etc.
+- `chrome.tabs.query(options)` : gets back all matching tabs based on the criteria you specify
+- `chrome.tabs.getCurrent()` : returns the tab that the script is running from. Only works for things that use or have UI, like popups or content scripts - not service workers.
+- `chrome.tabs.get(tabId)` : gets back the tab with the matching tab id
+- `chrome.tabs.move(tabId, options)` : moves the tab to specified tab position and optionally window.
+- `chrome.tabs.update(tabId, options)` : updates the specified tab, doing stuff like pinning, moving, and muting.
+- `chrome.tabs.reload(tabId, options)` : refreshes the tab. You can also specify options to bypass the cache
+
+And here are the event listeners:
+- `chrome.tabs.onUpdated`: When the state of some tab is changed/updated
+- `chrome.tabs.onCreated`: When a new tab is created.
+- `chrome.tabs.onActivated`: When the active tab in a window changes. The `url` property might not be available yet
+- `chrome.tabs.onHighlighted`: When the user selects a different tab.
+- `chrome.tabs.onMoved` : When a tab is moved to a different permission.
+- `chrome.tabs.onAttached` : When a tab is moved to a different window.
+- `chrome.tabs.onDetached` : When a tab is moved out of a window.
+- `chrome.tabs.onRemoved` : When a tab is closed.
+- `chrome.tabs.onReplaced` : When a tab is closed.
+
+This is what a `chrome.tabs.Tab` instance looks like: 
+
+```ts
+interface Tab {
+	id? : number; 
+	
+	active: boolean 
+	audible: boolean 
+	discarded: boolean
+	incognito: boolean
+	pinned: boolean
+	highlighted: boolean
+	
+	index: number
+	windowId: number
+	
+	faviconUrl: string
+	title: string
+	url: string
+	
+}
+```
+
+| Properties        | Description                                                |
+| ----------------- | ---------------------------------------------------------- |
+| `tab.id`          | the tab's id                                               |
+| `tab.active`      | Whether or not the tab is active                           |
+| `tab.audible`     | Whether or not the tab has recently played audio           |
+| `tab.discarded`   | Whether or not the tab has been discarded from memory      |
+| `tab.faviconUrl`  | The favicon URL of the tab. Requires elevated permissions. |
+| `tab.incognito`   | Whether or not the tab is in an incognito window           |
+| `tab.index`       | the position of the tab                                    |
+| `tab.pinned`      | Whether or not the tab is pinned                           |
+| `tab.title`       | The tab's title. Requires elevated permissions.            |
+| `tab.url`         | The tab's URL. Requires elevated permissions.              |
+| `tab.windowId`    | The id of the tab's containing window                      |
+| `tab.highlighted` | Whether or not the tab is currently selected.              |
+### Use cases
+
+#### Creating a tab
+
+#### Querying tabs
+
+#### Screenshots
+
+#### Dealing with page zoom
+
+#### Grouping tabs
+
+## TabGroups
+
+## webNavigation
+
+Here are the events you can listen to in the `webNavigation` API. 
+
+- `chrome.webNavigation.onCompleted` : when the user finishes navigating to a new tab and the DOM is fully loaded.
+- `chrome.webNavigation.onBeforeNavigate` : when the user beings navigating to a new tab
+
+```ts
+chrome.webNavigation.onCompleted.addListener(({ url, tabId }) => {
+  console.log(`Tab ${tabId} has finished loading ${url}`);
+});
+
+chrome.webNavigation.onBeforeNavigate.addListener(({ url, tabId }) => {
+  console.log(`Before navigating to ${url} in tab ${tabId}`);
+});
+```
+
+## Windows

@@ -1,3 +1,11 @@
+
+## Resources
+
+[![GoogleChrome/chrome-extensions-samples - GitHub](https://gh-card.dev/repos/GoogleChrome/chrome-extensions-samples.svg)](https://github.com/GoogleChrome/chrome-extensions-samples)
+
+- Go here for [functional samples](https://github.com/GoogleChrome/chrome-extensions-samples/tree/main/functional-samples)
+- Go here for [basic API samples](https://github.com/GoogleChrome/chrome-extensions-samples/tree/main/api-samples)
+
 ## Manifest
 
 Here is an example of a basic manifest: 
@@ -206,13 +214,44 @@ let image = chrome.runtime.getURL("images/my_image.png")
 
 ## Core API
 
-### Content Filtering with declarativeNetRequest
+### Event filters
+
+[Go here](https://developer.chrome.com/docs/extensions/reference/api/events) for docs
 
 ### Messaging
+
+You can send messages between extension processes using these two methods:
+
+- `chrome.runtime.sendMessage(payload)` : an async method. Use this for when the content script wants to send a message to some other extension process, or an extension process wants to send a message to another extension process. 
+	- Returns the response you get back from the listener.
+- `chrome.tabs.sendMessage(tabId, payload)` : an async method. Use this for when an extension process wants to send a message to the content script.
+
+You can then listen for the message using the `chrome.runtime.onMessage.addListener()` method, available everywhere.
+
+
+```ts
+// send message
+const response = await chrome.runtime.sendMessage({ action: "greet" });
+
+// listen for message
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "greet") {
+    console.log("Hello from background");
+    sendResponse({ message: "Hello from background" });
+  }
+});
+
+// example for sending message to content script on current tab
+async function sendMessageToContentScript() {
+	const [tab] = chrome.tabs.query({active: true, currentWindow: true})
+	await chrome.tabs.sendMessage(tab.id, {action: "received"})
+}
+```
 
 ### Runtime Lifecycle
 
 - `chrome.runtime.onInstalled` : runs when the user installs the extension for the first time, the extension updates, or chrome updates. 
+- `chrome.runtime.onSuspended` : runs when the service worker goes to sleep. It is the perfect time for cleanup
 
 ```ts
 chrome.runtime.onInstalled.addListener((details) => {
@@ -227,4 +266,147 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 ### Storage
 
-### Permissions
+```ts
+abstract class Storage<T extends Record<string, any>> {
+  constructor(
+    protected defaultData: T,
+    protected storage:
+      | chrome.storage.SyncStorageArea
+      | chrome.storage.LocalStorageArea
+  ) {
+    this.storage = storage;
+    this.setup();
+  }
+
+  private async setup() {
+    const data = await this.storage.get(this.getKeys());
+    if (!data || Object.keys(data).length === 0) {
+      await this.storage.set(this.defaultData);
+    }
+  }
+
+  getKeys() {
+    return Object.keys(this.defaultData) as (keyof T)[];
+  }
+
+  async set<K extends keyof T>(key: K, value: T[K]) {
+    await this.storage.set({ [key]: value });
+  }
+
+  async setMultiple(data: Partial<T>) {
+    await this.storage.set(data);
+  }
+
+  async remove<K extends keyof T>(key: K) {
+    await this.storage.remove(key as string);
+  }
+
+  async removeMultiple<K extends keyof T>(keys: K[]) {
+    await this.storage.remove(keys as string[]);
+  }
+
+  async clear() {
+    await this.storage.clear();
+  }
+
+  async get<K extends keyof T>(key: K) {
+    return (await this.storage.get([key])) as T[K];
+  }
+
+  async getMultiple<K extends keyof T>(keys: K[]) {
+    return (await this.storage.get(keys)) as Extract<T, Record<K, any>>;
+  }
+
+  /**
+   * gets the storage percentage used
+   */
+  async getStoragePercentageUsed() {
+    const data = await this.storage.getBytesInUse(null);
+    return (data / this.storage.QUOTA_BYTES) * 100;
+  }
+
+  onChanged(
+    callback: (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      namespace: "sync" | "local" | "managed" | "session"
+    ) => void
+  ) {
+    chrome.storage.onChanged.addListener(callback);
+  }
+}
+
+export class SyncStorage<T extends Record<string, any>> extends Storage<T> {
+  constructor(defaultData: T) {
+    super(defaultData, chrome.storage.sync);
+  }
+}
+
+export class LocalStorage<T extends Record<string, any>> extends Storage<T> {
+  constructor(defaultData: T) {
+    super(defaultData, chrome.storage.local);
+  }
+}
+```
+
+### Offscreen
+
+If you want to do background work with a service worker and need access to DOM APIs like clipboard or canvas, you need to do it with **offscreen documents**. Offscreen documents don't need a webpage to run DOM API methods, which is ideal for extension service workers.
+
+Here is an example of registering an offscreen document, and you can only register one offscreen document per chrome extension. 
+
+```ts
+chrome.offscreen.createDocument({
+  url: 'off_screen.html',
+  reasons: ['CLIPBOARD'],
+  justification: 'reason for needing the document',
+});
+```
+
+Here are the properties you should pass to the `chrome.offscreen.createDocument(options)` method: 
+- `url` : the static extension page to act as the offscreen document
+- `reasons` : used to determine what the document is used for and the lifetime of the document.
+
+You can then deregister the document using the `chrome.offscreen.closeDocument()` async method. You can also close the document from the offscreen context itself by doing `window.close()`.
+
+```ts
+export default class Offscreen {
+  // A global promise to avoid concurrency issues
+  static creating: Promise<null | undefined | void> | null; 
+  static async setupOffscreenDocument({
+    url,
+    justification,
+    reasons,
+  }: chrome.offscreen.CreateParameters) {
+    // Check all windows controlled by the service worker to see if one
+    // of them is the offscreen document with the given path
+
+    if (await Offscreen.hasDocument(url)) return;
+
+    // create offscreen document
+    if (Offscreen.creating) {
+      await Offscreen.creating;
+    } else {
+      Offscreen.creating = chrome.offscreen.createDocument({
+        url,
+        justification,
+        reasons,
+      });
+      await Offscreen.creating;
+      Offscreen.creating = null;
+    }
+  }
+
+  static async closeDocument() {
+    await chrome.offscreen.closeDocument();
+  }
+
+  static async hasDocument(path: string) {
+    const offscreenUrl = chrome.runtime.getURL(path);
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+      documentUrls: [offscreenUrl],
+    });
+    return existingContexts.length > 0;
+  }
+}
+```
