@@ -1,5 +1,99 @@
 # Advanced JS: APIs
 
+## Eyedropper API
+
+The Eyedropper API in chrome is experimental and only works on chrome 95 and above. It allows the user to pick any color from a webscreen. 
+
+### Basic Use
+
+```ts
+// 1. create an abort controller
+const abortController = new AbortController();
+
+// 2. override default. On ESC press, stop color picker
+window.addEventListener("keydown", (event: KeyboardEvent) => {
+  if (event.key === "Escape") {
+	this.abortController.abort();
+  }
+})
+
+if (window.EyeDropper) {
+	// 3. create eyedropper instance
+	const eyeDropper = new window.EyeDropper();
+	// 4. get selected hex color code
+	const {sRGBHex} = await eyeDropper.open({
+          signal: this.abortController.signal,
+	});
+}
+```
+
+Keep in mind that the async call can fail and throw an error for two reasons: 
+
+1. Popup didn't close fast enough, so it gets mistaken for a user selection cancel. Solution is to close the popup window and use the abort controller.
+2. Eyedropper must be triggered by a user gesture, so you can only display it after a user press.
+
+### Class
+
+You need to provide your own type definitions for the API since type support is limited. 
+
+```ts
+interface ColorSelectionOptions {
+  signal?: AbortSignal;
+}
+
+interface ColorSelectionResult {
+  sRGBHex: string;
+}
+
+interface EyeDropper {
+  open: (options?: ColorSelectionOptions) => Promise<ColorSelectionResult>;
+}
+
+interface EyeDropperConstructor {
+  new (): EyeDropper;
+}
+
+interface Window {
+  EyeDropper?: EyeDropperConstructor | undefined;
+}
+```
+
+```ts
+export default class EyedropperManager {
+  private abortController = new AbortController();
+  private cb!: (event: KeyboardEvent) => void;
+
+  async getColor() {
+    this.cb = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        this.abortController.abort();
+      }
+    };
+    if (window.EyeDropper) {
+      const eyeDropper = new window.EyeDropper();
+      window.addEventListener("keydown", this.cb);
+      try {
+        const result = await eyeDropper.open({
+          signal: this.abortController.signal,
+        });
+        window.removeEventListener("keydown", this.cb);
+        return result.sRGBHex;
+      } catch (e) {
+        window.removeEventListener("keydown", this.cb);
+        console.warn("eyedropper error", e);
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  static hasAPI() {
+    return Boolean(window.EyeDropper);
+  }
+}
+```
+
 ## Notification
 
 The `Notification` class allows to us to create notifications and check the permissions. As soon as you instantiate an instance, a notification is created. We can create a notification like this:

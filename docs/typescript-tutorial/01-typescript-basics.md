@@ -1101,6 +1101,24 @@ type Options = MakeOptions<typeof setOptions>;
 
 You also have a bunch of mapped types that are built into typescript.
 
+#### Filtering with Mapped types
+
+```ts
+// T: an object you pass in
+// V: the keys you want to extract from the object
+type WithKeys<T, V extends keyof T> = {
+  [K in V]: T[K];
+}
+
+type WithoutKeys<T, V extends keyof T> = {
+  [K in Exclude<keyof T, V>]: T[K];
+};
+
+const thing: WithKeys<{a: number, b: number}, "a"> = {
+  a: 1,
+}
+```
+
 #### `Pick<T>`
 
 The `Pick` utility type allows you to extract only the properties you want from an object.

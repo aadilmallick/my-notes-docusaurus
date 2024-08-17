@@ -1,5 +1,7 @@
 ## Action
 
+- `chrome.action.onClicked.addListener(tab => {})` : this event fires when the user clicks on the action icon. This event will not fire if a popup is defined.
+
 ## Alarms
 
 The `alarms` API can be accessed through granting the `"alarms"` permission.
@@ -156,8 +158,9 @@ installAlarm.onTriggered(() => {
 The `commands` key in the manifest allows you to register global keyboard shortcuts for your extension. Keyboard shortcuts only work when the browser is in focus.
 
 
-> [!TIP] Title
-> Users can remap the command by going to [chrome extension shortcuts](chrome://extensions/shortcuts)
+:::tip
+Users can remap the command by going to [chrome extension shortcuts](chrome://extensions/shortcuts)
+:::
 
 ```json
   "commands": {
@@ -413,7 +416,47 @@ export class DeclarativeContent {
 
 The `declarativeNetRequest` api requires the `declarativeNetRequest` permission and can automatically block up to 300,000 web addresses based on their URL and the type of resource they are. 
 
-You can block either dynamically or statically: 
+You can block either dynamically or statically.
+
+### Static blocking
+
+1. Add the `"declarativeNetRequest"` permission to the manifest
+2. Add the `"declarativeNetRequest"` in the key and point to a JSON ruleset you want to enable
+```json
+"declarative_net_request": {
+"rule_resources": [
+  {
+	"id": "blocklist",
+	"enabled": true,
+	"path": "blocklist.json"
+  }
+]
+},
+```
+3. Write the JSON rules as follows. Each object must have a unique id starting at 1.
+
+```ts
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": { "urlFilter": "*://*doubleclick.net/*" }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": { "urlFilter": "*://googleadservices.com/*" }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": { "urlFilter": "*://googlesyndication.com/*" }
+  }
+]
+```
 ### Static blocking
 
 ### Dynamic blocking
@@ -600,8 +643,9 @@ You can declare optional permissions in the manifest like so:
 ```
 
 
-> [!NOTE] Runtime host permissions
-> If you want to request hosts that you only discover at runtime, include "https://*/*" in your extension's optional_host_permissions field. This lets you specify any origin in "Permissions.origins" as long as it has a matching scheme.
+:::tip
+If you want to request hosts that you only discover at runtime, include `https://*/*` in your extension's optional_host_permissions field. This lets you specify any origin in "Permissions.origins" as long as it has a matching scheme.
+:::
 
 
 ### Docs
@@ -794,6 +838,8 @@ Here is a list of the options you pass in:
 
 ### Injecting function example
 
+You can inject functions by specifying the `func` and `args` keys in the `chrome.scripting.executeScript()` method options.
+
 ```js
 // needs one argument
 function injectedFunction(color) {
@@ -808,6 +854,24 @@ chrome.action.onClicked.addListener((tab) => {
     args : [ "orange" ],
   });
 });
+```
+
+You can also handle a result by returning something from the injected function. 
+
+```ts
+function getTabId() { ... }
+function getTitle() { return document.title; }
+
+chrome.scripting
+    .executeScript({
+      target : {tabId : getTabId(), allFrames : true},
+      func : getTitle,
+    })
+    .then(injectionResults => {
+      for (const {frameId, result} of injectionResults) {
+        console.log(`Frame ${frameId} result:`, result);
+      }
+    });
 ```
 
 ### Full API
@@ -845,41 +909,6 @@ chrome.scripting
 
 
 ### Class
-
-```ts
-export default class Scripting {
-  private static getArray(scripts: string | string[]): string[] {
-    let scriptsArray: string[] = [];
-    if (typeof scripts === "string") {
-      scriptsArray = [scripts];
-    } else {
-      scriptsArray = scripts;
-    }
-    return scriptsArray;
-  }
-  async executeScripts(tabId: number, scripts: string | string[]) {
-    await chrome.scripting.executeScript({
-      files: Scripting.getArray(scripts),
-      target: { tabId },
-    });
-  }
-
-  async insertCss(tabId: number, cssFiles: string | string[]) {
-    await chrome.scripting.insertCSS({
-      files: Scripting.getArray(cssFiles),
-      target: { tabId },
-    });
-  }
-
-  async removeCss(tabId: number, cssFiles: string | string[]) {
-    await chrome.scripting.removeCSS({
-      files: Scripting.getArray(cssFiles),
-      target: { tabId },
-    });
-  }
-}
-
-```
 
 ## Tabs
 

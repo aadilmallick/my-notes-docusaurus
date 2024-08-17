@@ -103,6 +103,8 @@ To declare a popup file, set the `action` key in the manifest:
   - `default_title` : default title of the chrome extension
   - `default_popup` : file to render for the popup.
 
+A popup can access all chrome APIs and is just another extension process. However, as opposed to service workers, a popup can also access all standard browser APIs like LocalStorage as `window` is defined on it.
+
 ### Options Page
 
 You can specify an options page by going into the `manifest.json` and specifying a file in the `options_page` key.
@@ -174,6 +176,10 @@ Here are some examples:
 - `https://*.google.com/*` : matches all google related websites, like docs.google or slides.google
 ## Content Scripts
 
+Content scripts run in the context of the webpage a user is currently on. You are allowed only limited access to the chrome extension API, and you can't use local resources from your extension project as is. 
+
+### Creating a content script
+
 Here is how you can statically register a content script: 
 
 ```ts
@@ -187,12 +193,14 @@ Here is how you can statically register a content script:
 } ] 
 ```
 
+Statically registered content scripts are automatically run on any matching URLs. To dynamically run a content script, use the `scripting` API.
+
 Here are the keys you can pass for a content script config:
 - `"all_frames"` : a boolean value, where if `true`, the content script will run on all frames of the page, like `<iframes>` or blobs.
 
 ### Accessing images
 
-Content scripts run in an isolated world, so to access static resources in your extension project from your content script, you have to follow these steps: 
+Content scripts run in an isolated world, so to access static resources in your extension project from your content script or download them with `fetch()`, you have to follow these steps: 
 
 1. Specify which resources to make available for the content script through the `"web_accessible_resources"` key in the manifest
 ```json
