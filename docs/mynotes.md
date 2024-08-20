@@ -3,7 +3,7 @@ title: Docusaurus notes
 sidebar_position: 1
 ---
 
-# My notes
+# Learn Docusaurus
 
 ## Basics
 
@@ -355,7 +355,47 @@ You can have markdown specific alert blocks that work great in all types of mark
 
 [article](https://www.freecodecamp.org/news/how-to-create-notice-blocks-in-markdown/?ref=dailydev)
 
-### Note block
+### Toggle
+
+You can add toggle blocks by rendering HTML inside markdown like so: 
+
+<details>  
+<summary>Toggle me!</summary>  
+  
+This is the detailed content  
+  
+```js  
+console.log("Markdown features including the code block are available");  
+```  
+  
+You can use Markdown here including **bold** and _italic_ text, and [inline link](https://docusaurus.io)  
+<details>  
+<summary>Nested toggle! Some surprise inside...</summary>  
+  
+😲😲😲😲😲  
+</details>  
+</details>
+
+```ts
+<details>
+  <summary>Toggle me!</summary>
+
+  This is the detailed content!
+
+
+  You can use Markdown here including **bold** and _italic_ text, and [inline link](https://docusaurus.io)
+  <details>
+    <summary>Nested toggle! Some surprise inside...</summary>
+
+    😲😲😲😲😲
+  </details>
+</details>
+```
+### Callouts
+
+All markdown processors support the markdown callout syntax. Below are the different blocks you can have. 
+
+#### Note block
 
 ```md
 > [!NOTE]
@@ -365,7 +405,7 @@ You can have markdown specific alert blocks that work great in all types of mark
 > [!NOTE]
 > I want the readers to read it carefully as it contains many important docs.
 
-### Tip block
+#### Tip block
 
 ```md
 > [!TIP]
@@ -375,7 +415,7 @@ You can have markdown specific alert blocks that work great in all types of mark
 > [!TIP]
 > Use the command line to detect and resolve the errors!
 
-### Warning block
+#### Warning block
 
 ```md
 > [!WARNING]
@@ -385,7 +425,7 @@ You can have markdown specific alert blocks that work great in all types of mark
 > [!WARNING]
 > DON'T DELETE THE `package.json` file!
 
-### Caution block
+#### Caution block
 
 ```md
 > [!CAUTION]
@@ -395,9 +435,80 @@ You can have markdown specific alert blocks that work great in all types of mark
 > [!CAUTION]
 > Don't execute the code without commenting the test cases.
 
-### Important block
+#### Important block
 
 ```md
 > [!IMPORTANT]  
 > Read the contribution guideline before adding a pull request.
 ```
+
+## MDX
+
+Docusaurus markdown files have built in support for rendering React components and the like. 
+
+Here is how you can basically create your own MDX component: 
+
+1. Create a React component:
+
+```ts title="src/components/Highlight.tsx"
+import React from 'react';
+
+export default function Highlight({children, color}) {
+  return (
+    <span
+      style={{
+        backgroundColor: color,
+        borderRadius: '2px',
+        color: '#fff',
+        padding: '0.2rem',
+      }}>
+      {children}
+    </span>
+  );
+}
+```
+
+2. Import the component into your markdown file using the `@site` import alias for importing custom components
+
+```ts title="docs/tutorial.md"
+import Highlight from '@site/src/components/Highlight';
+
+<Highlight color="#25c2a0">Docusaurus green</Highlight>
+```
+
+### Built in components
+
+#### Tabs
+
+```ts
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+  <TabItem value="apple" label="Apple" default>
+    This is an apple 🍎
+  </TabItem>
+  <TabItem value="orange" label="Orange">
+    This is an orange 🍊
+  </TabItem>
+  <TabItem value="banana" label="Banana">
+    This is a banana 🍌
+  </TabItem>
+</Tabs>
+```
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+  <TabItem value="apple" label="Apple" default>
+    This is an apple 🍎
+  </TabItem>
+  <TabItem value="orange" label="Orange">
+    This is an orange 🍊
+  </TabItem>
+  <TabItem value="banana" label="Banana">
+    This is a banana 🍌
+  </TabItem>
+</Tabs>
+

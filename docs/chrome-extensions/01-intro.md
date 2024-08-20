@@ -105,6 +105,10 @@ To declare a popup file, set the `action` key in the manifest:
 
 A popup can access all chrome APIs and is just another extension process. However, as opposed to service workers, a popup can also access all standard browser APIs like LocalStorage as `window` is defined on it.
 
+:::warning
+Events in the popup are not long lived and are only listening for as long as the popup page is active. It is best register events in the background script.
+:::
+
 ### Options Page
 
 You can specify an options page by going into the `manifest.json` and specifying a file in the `options_page` key.
@@ -220,6 +224,22 @@ Content scripts run in an isolated world, so to access static resources in your 
 let image = chrome.runtime.getURL("images/my_image.png")
 ```
 
+### Dynamic scripting
+
+You can use the `chrome.scripting` to execute content scripts and normal scripts dynamically. However, you do not have access to any chrome APIs when dynamically doing so. 
+
+Here is an example of how you can import the raw path to a js file and then execute it:
+
+```ts
+import scriptPath from "../contentScript/dynamicscript?script"; // imports path
+
+function executeScript(tabId: number) {
+	chrome.scripting.executeScript({
+		target: {tabId},
+		files: [scriptPath]
+	})
+}
+```
 ## Core API
 
 ### Event filters
@@ -256,6 +276,69 @@ async function sendMessageToContentScript() {
 }
 ```
 
+#### A common error 
+
+:::danger
+You will eventually run into the nefarious "Unacuaght error: message listener does not exist" or something like that. This is common and can be solved easily
+:::
+
+Whenever you get this messaging error, it means one process sent a message without a listener being registered on the other side. It's okay to register a listener without someone sending, but never okay to send a message without someone listening. 
+
+This error crops up most commonly when a background script is sending a message to the content script. It can occur for two reasons: 
+
+- The content script was not injected onto the page the background script sent the message to.
+	- **Solution**: Check the `matches` key in the content script. Ensure you are only sending messages to pages where the content script is registered to run.
+- The content script has not loaded fully yet.
+	- **Solution**: Establish a pinging method with the background script, where you keep catching the `chrome.runtime.LastError` error and keep retrying sending messages to the content script until it responds back.
+
+Here is the pinging solution wrapped up in a reusable class: 
+
+```ts
+export class MessagesModel {
+
+	// for extension to keep repeatedly pinging content script until
+	// it loads
+  private static pingContentScript(
+    tabId: number,
+    maxRetries = 10,
+    interval = 500
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+
+      function sendPing() {
+        attempts++;
+        chrome.tabs.sendMessage(tabId, { type: "PING" }, (response) => {
+          if (chrome.runtime.lastError) {
+            if (attempts < maxRetries) {
+              setTimeout(sendPing, interval); // Retry after a delay
+            } else {
+              reject("Content script not responding.");
+            }
+          } else if (response && response.status === "PONG") {
+            resolve("Content script is ready.");
+          } else {
+            reject("Unexpected response from content script.");
+          }
+        });
+      }
+
+      sendPing();
+    });
+  }
+
+	// the listener to register on content script
+  static receivePingFromBackground() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === "PING") {
+        sendResponse({ status: "PONG" });
+      }
+    });
+  }
+}
+```
+
+
 ### Runtime Lifecycle
 
 - `chrome.runtime.onInstalled` : runs when the user installs the extension for the first time, the extension updates, or chrome updates. 
@@ -274,87 +357,65 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 ### Storage
 
+### Optional Permissions
+
+To avoid certain permission warnings, you can request optional permissions by specifying the `optional_permissions` key in the manifest. 
+
+You can then request them during runtime using the `chrome.permissions` API:
+
 ```ts
-abstract class Storage<T extends Record<string, any>> {
-  constructor(
-    protected defaultData: T,
-    protected storage:
-      | chrome.storage.SyncStorageArea
-      | chrome.storage.LocalStorageArea
-  ) {
-    this.storage = storage;
-    this.setup();
+export default class PermissionsModel {
+  constructor(public permissions: chrome.permissions.Permissions) {}
+
+  async request() : Promise<boolean> {
+    return await chrome.permissions.request(this.permissions);
   }
 
-  private async setup() {
-    const data = await this.storage.get(this.getKeys());
-    if (!data || Object.keys(data).length === 0) {
-      await this.storage.set(this.defaultData);
-    }
+  async requestAndExecuteCallback(cb: (granted: boolean) => void) {
+    const isGranted = await chrome.permissions.request(this.permissions);
+    cb(isGranted);
+  }
+	
+  async permissionIsGranted() : Promise<boolean> {
+    return await chrome.permissions.contains(this.permissions);
   }
 
-  getKeys() {
-    return Object.keys(this.defaultData) as (keyof T)[];
-  }
-
-  async set<K extends keyof T>(key: K, value: T[K]) {
-    await this.storage.set({ [key]: value });
-  }
-
-  async setMultiple(data: Partial<T>) {
-    await this.storage.set(data);
-  }
-
-  async remove<K extends keyof T>(key: K) {
-    await this.storage.remove(key as string);
-  }
-
-  async removeMultiple<K extends keyof T>(keys: K[]) {
-    await this.storage.remove(keys as string[]);
-  }
-
-  async clear() {
-    await this.storage.clear();
-  }
-
-  async get<K extends keyof T>(key: K) {
-    return (await this.storage.get([key])) as T[K];
-  }
-
-  async getMultiple<K extends keyof T>(keys: K[]) {
-    return (await this.storage.get(keys)) as Extract<T, Record<K, any>>;
-  }
-
-  /**
-   * gets the storage percentage used
-   */
-  async getStoragePercentageUsed() {
-    const data = await this.storage.getBytesInUse(null);
-    return (data / this.storage.QUOTA_BYTES) * 100;
-  }
-
-  onChanged(
-    callback: (
-      changes: { [key: string]: chrome.storage.StorageChange },
-      namespace: "sync" | "local" | "managed" | "session"
-    ) => void
-  ) {
-    chrome.storage.onChanged.addListener(callback);
-  }
-}
-
-export class SyncStorage<T extends Record<string, any>> extends Storage<T> {
-  constructor(defaultData: T) {
-    super(defaultData, chrome.storage.sync);
-  }
-}
-
-export class LocalStorage<T extends Record<string, any>> extends Storage<T> {
-  constructor(defaultData: T) {
-    super(defaultData, chrome.storage.local);
+  async remove() {
+    return await chrome.permissions.remove(this.permissions);
   }
 }
 ```
+
+:::warning
+Keep in mind that any optional permissions you request if not granted will be undefined. If `chrome.alarms` is requested as an optional permission, beware that 
+:::warning
+
+Here is an example of setting up optional permissions knowing that they could be undefined at runtime: 
+
+```ts
+chrome.permissions.onAdded.addListener((permissions) => {
+  console.log("Permissions added", permissions);
+  setupAlarmListener();
+});
+
+// Function to set up the alarm listener if the API is available
+function setupAlarmListener() {
+  if (chrome.alarms) {
+    console.log("chrome.alarms API is available.");
+    reminderAlarm.onTriggered(() => {
+      console.log("Alarm triggered");
+      NotificationModel.showBasicNotification({
+        title: "Daily Reminder",
+        message: "Don't forget to finish your todos for today!",
+        iconPath: "/icon.png",
+      });
+    });
+  } else {
+    console.warn("chrome.alarms API is not available.");
+  }
+}
+```
+
 
 ### Offscreen
 
