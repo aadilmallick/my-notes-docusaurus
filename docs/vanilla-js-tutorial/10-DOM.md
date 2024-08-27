@@ -70,6 +70,67 @@ document.addEventListener('keyup', () => console.log('pressed!'), { signal });
 controller.abort();
 ```
 
+
+## Elements
+
+### Focusing elements
+
+Go to [Phoc nguyen's HTML focus element article](https://phuoc.ng/collection/html-dom/prevent-the-page-from-scrolling-to-an-element-when-it-is-focused/)
+
+To focus on an element, you can set the `autofocus="true"` attribute on it, or call `element.focus()`. However, this always scrolls the element into view which may not be what you want. 
+
+An example where you do not want to scroll an element into view is with an autofocusing element in a modal - focusing on the element will scroll the user all the way back up the page unnecessarily, which we want to avoid. 
+
+There are two ways we can go about this: 
+
+**Method 1: prevent autoscrolling**
+
+**Method 2: scroll back to previous position**
+
+
+### Changing the Style of Elements
+
+You can get the modifiable style object of elements by using the `getComputedStyle(element)` function, and then passing in the element you want to get the style of.
+
+```ts
+const div = document.querySelector("div")
+const backgroundColor = getComputedStyle(div).backgroundColor
+```
+
+#### CSS Variables
+
+- `element.style.setProperty(name, value)`: sets the CSS variable with the specified value for the element.
+- `element.style.getPropertyValue(name)`: returns the current value of the specified CSS Variable the element has. 
+
+You can get and modify any global styles you set on the `:root` selector like so: 
+
+```ts
+const root = document.documentElement;
+
+const primaryColor = getComputedStyle(root).getPropertyValue('--primary-color');
+```
+
+```ts
+export class CSSVariablesManager<T = Record<string, string>> {
+  constructor(private element: HTMLElement) {}
+
+  private formatName(name: string) {
+    if (name.startsWith("--")) {
+      return name;
+    }
+    return `--${name}`;
+  }
+
+  set(name: keyof T, value: string) {
+    this.element.style.setProperty(this.formatName(name as string), value);
+  }
+
+  get(name: keyof T) {
+    return this.element.style.getPropertyValue(this.formatName(name as string));
+  }
+}
+```
+
 ### Custom Events
 
 You can even listen for custom events on any element and pass data when dispatching events. The basic flow is as follows: 

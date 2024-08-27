@@ -1,7 +1,5 @@
 # Workers
 
-Check out [worker example](/examples/workers) for a working example.
-
 ## Worker basics
 
 Workers are a way of multithreading in JavaScript, where you can delegate expensive tasks to be performed by a **worker**, which works in the background much like a service worker.

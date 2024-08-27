@@ -2,8 +2,6 @@
 
 Let's take a look at how you can use dates in JavaScript.
 
-Check out [date example](/examples/date) for a working example.
-
 ## Date getters
 
 Here are the various time units you can get from a date:
