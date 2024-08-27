@@ -2,7 +2,47 @@
 
 [more info](https://github.com/aadilmallick/30-days-of-javascript/blob/main/09%20-%20Dev%20Tools%20Domination/README.md)
 
+## 21 tips
+
+1. **Design mode**: you can edit text directly in the website by running this code in the console:
+
+   ```js
+   document.designMode = "on";
+   ```
+
+2. **$0**: The variable `$0` refers to the last element you selected in the elements tab.
+3. **Ctrl + shift + P**: opens up command pallete so you can find commands and options easier.
+4. **built-in JQUery** : The `$(selector)` function is built into chrome devtools, and is a much more concise way of doing `document.querySelector(selector)`.
+	- `$('h1')` : equivalent of `document.querySelector('h1')`
+	- `$$('h1')` : equivalent of `document.querySelectorAll('h1')`
+5. **vizbug extension** : allows you to visually design your website.
+6. **coverage**: Open up the coverage tab in devtools to see how much javascript and css is used and unused. You can optimize your bundle with the info from this page.
+7. **live expressions**: Use live expressions to keep track of a variable across the lifetime of a page. Click on the eye icon in the top to create a new live expression. 
+	- ![](https://www.webpagescreenshot.info/image-url/yQjT7dxu2)
+
+
 ## Console logs
+
+### Logging in NodeJS
+
+To see the entire object and not get the annoying `[Object object]` when console logging in nodejs, use the `console.dir(obj, {depth: null})` method.
+
+```ts
+console.dir(person, { depth: null });
+/*
+{
+    username: 'johndoe',
+    meta: {
+        firstName: 'John',
+        lastName: 'Doe',
+        profile: {
+            address: { street: '123 Main St', city: 'AnyTown' }
+        }
+    }
+}
+*/
+
+```
 
 ### Styling logs
 
@@ -14,6 +54,36 @@ The second argument to `console.log()` will then be the appropriate CSS styles i
 console.log("%c some text here", "font-size:2rem;color:blue");
 ```
 
+For this reason, I also built this class for logging colors in the browser: 
+
+```ts
+const defaultConsoleStyles = {
+  error: "color: red; font-weight: bold;",
+  info: "color: blue; font-weight: bold;",
+  success: "color: green; font-weight: bold;",
+};
+
+export const BasicColorLogger = createColorLogger(defaultConsoleStyles);
+
+export function createColorLogger<T extends Record<string, string>>(
+  consoleStyles: T
+) {
+  const temp: Partial<
+    Record<keyof typeof consoleStyles, (message: any) => void>
+  > = {};
+  for (const [key, value] of Object.entries(consoleStyles)) {
+    temp[key as keyof typeof consoleStyles] = (message: any) => {
+      console.log(`%c${message}`, value);
+    };
+  }
+
+  const ColorLogger = temp as Record<
+    keyof typeof consoleStyles,
+    (message: any) => void
+  >;
+  return ColorLogger;
+}
+```
 ### Log levels
 
 - `console.warn(string)` : displays a message as a warning
@@ -36,21 +106,21 @@ console.info("A message styled as information with console.info()");
 
 Console groups organize all log messages inside a group to be inside a collapsible toggle.
 
-- `console.groupCollapsed(groupname)` : begins a logging group with the specified group name.
+- `console.group(groupname)` : begins a logging group with the specified group name.
 - `console.groupEnd()` : ends the most recent logging group, closing the toggle.
-
-```js
-console.groupCollapsed("dictionary stuff");
-console.log(dogs[0].name);
-console.log(dogs[1].name);
-console.groupEnd("dictionary stuff");
-```
 
 Using console groups allows you neaten out console messages by grouping them together under a toggle. The way to do this is to position all related log messages inside a group, using this syntax:
 
 ```js
-console.groupCollapsed("groupname");
+console.group("groupname");
 // log messages here
+console.groupEnd();
+```
+
+```js
+console.group("dictionary stuff");
+console.log(dogs[0].name);
+console.log(dogs[1].name);
 console.groupEnd();
 ```
 
@@ -67,15 +137,34 @@ console.timeEnd("saying hello");
 
 the way to use this is to start time for a specific activity using `console.time()`, and then end print out the elapsed time using `console.timeEnd()` when the activity is finished.
 
-## 21 tips
 
-1. **Design mode**: you can edit text directly in the website by running this code in the console:
+### `console.table()`
 
-   ```js
-   document.designMode = "on";
-   ```
+The `console.table()` method takes in an array of objects all with the same structure and displays them in a table.
 
-2. **$0**: The variable `$0` refers to the last element you selected in the elements tab.
-3. **Ctrl + P**: opens up command pallete so you can find commands and options easier.
-4. **built-in JQUery** : The `$(selector)` function is built into chrome devtools, and is a much more concise way of doing `document.querySelector(selector)`.
-5. **vizbug extension** : allows you to visually design your website.
+### Console assertions
+
+Use `console.assert()` to assert a truthy value and print out an error message if not true
+
+```ts
+console.assert(condition: boolean, message: any)
+```
+## Devtools basics
+
+### Mastering the Context menu
+
+When you right click on an element, here all the different options you have available to you:
+
+- **copy element** : you can copy an element, it's selector, or xpath. You can then paste the element back in the elements panel
+- **hide element**: You can choose to visually hide an element or delete it from the page.
+- **scroll into view**: You can scroll to the selected element
+
+### Symbols
+
+These builtin variables can be used in the devtools console.
+
+- `$0` : the last selected element. You can continue this pattern with `$1` for the 2nd recently selected, and so on. Think of it exactly like a stack. Last in, first out.
+- `$_` : the last returned values
+- `$(selector : string)` : JQuery builtin for `document.querySelector()`
+- `$$(selector : string)` : JQuery builtin for `document.querySelectorAll()`
+- `copy(variable)`: Copies whatever value of the variable you pass in to the clipboard. Super helpful.  

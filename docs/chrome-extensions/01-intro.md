@@ -180,7 +180,20 @@ Here are some examples:
 - `https://*.google.com/*` : matches all google related websites, like docs.google or slides.google
 ## Content Scripts
 
-Content scripts run in the context of the webpage a user is currently on. You are allowed only limited access to the chrome extension API, and you can't use local resources from your extension project as is. 
+Content scripts run in the context of the webpage a user is currently on. You are allowed only limited access to the chrome extension API (runtime, storage), and you can't use local resources from your extension project as is. 
+
+There are two main processes you can run on: 
+
+- **MAIN**: As if adding another script tag to the webpage. You have access to all global variables from other scripts, and the webpage can do the same for you.
+	- You share the same window object.
+- **ISOLATED**: You have access to the same document, but different globals. Isolated worlds have different `window` objects.
+
+Content scripts run in an isolated world, meaning that they don't have any access to other scripts on the webpage. If you set a content script to run in the `MAIN` world, it will no longer have access to the extension APIs like `chrome.runtime` and `chrome.storage`.
+
+
+
+> [!NOTE] Content Security Policy
+> Content scripts are also subject to the CSP of a website, meaning that if a website disallows fetching resources from it using the `fetch()` API, you can get around it by telling the background script to do the fetching, which it has full access to do since it is not bound the CSP of a website. 
 
 ### Creating a content script
 
@@ -278,9 +291,9 @@ async function sendMessageToContentScript() {
 
 #### A common error 
 
-:::danger
-You will eventually run into the nefarious "Unacuaght error: message listener does not exist" or something like that. This is common and can be solved easily
-:::
+> [!DANGER] Message listeners not registering
+> You will eventually run into the nefarious "Uncaught error: message listener does not exist" or something like that. This is common and can be solved easily.
+
 
 Whenever you get this messaging error, it means one process sent a message without a listener being registered on the other side. It's okay to register a listener without someone sending, but never okay to send a message without someone listening. 
 
@@ -357,6 +370,95 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 ### Storage
 
+#### Intro
+
+Chrome storage is an API with key-value storage much like localstorage, where each key is independent from the other. You can modify certain values in storage without modifying others.
+
+There are 4 types of chrome storage. 
+
+- **sync storage**: Synced across devices. Each key can hold 8kb, and max storage is 100kb.
+- **local storage**: Local to the device. Max storage is 5mb.
+
+#### API
+
+Storage is completely asynchronous. All instances of storage extend from the `chrome.storage.StorageArea` abstract class.
+
+When setting and getting values, you can store anything as long as it is serializable.
+
+- `storage.set({[key: string] : any})` : sets the object in storage. You can specify as many key-value pairs as you want
+- `storage.get({[key: string] : any})` : gets the specified keys from storage. Returns as an object. If a key is not defined, the value returned is null.
+
+#### Storage listener
+
+The `chrome.storage.onChanged` listener can be used for realtime storage updates, like it is for this react hook.
+
+The function is as follows, with the following params.
+
+```ts
+   chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === "local") {
+        // do stuff pertaining to local storage canges
+      }
+    });
+```
+
+- `changes` : the dictionary of changes to storage. A `changes[key]` returns an object with the newValue and oldValue properties.
+- `areaName` : which storage the change is from.
+
+
+```ts
+export function useChromeStorage<
+  T extends Record<string, any>,
+  K extends keyof T
+>(storage: ChromeStorage<T>, key: K) {
+  const [value, setValue] = React.useState<T[K] | null>(null);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    async function getValue() {
+      setLoading(true);
+      const data = await storage.get(key);
+      setValue(data);
+      setLoading(false);
+    }
+
+    getValue();
+  }, []);
+
+  React.useEffect(() => {
+    const handleChange = async (changes: {
+      [key: string]: chrome.storage.StorageChange;
+    }) => {
+      let keys = storage.getKeys();
+      if (keys.length === 0) {
+        keys = await storage.getAllKeys();
+      }
+      if (keys.includes(key)) {
+        const thing = changes[key as string];
+        if (!thing) return;
+        setValue(thing.newValue);
+      }
+    };
+    // Set up listener for changes
+    chrome.storage.onChanged.addListener(handleChange);
+
+    // Clean up listener on unmount
+    return () => {
+      chrome.storage.onChanged.removeListener(handleChange);
+    };
+  }, []);
+
+  async function setValueAndStore(newValue: T[K]) {
+    setLoading(true);
+    await storage.set(key, newValue);
+    setValue(newValue);
+    setLoading(false);
+  }
+
+  return { data: value, loading, setValueAndStore };
+}
+```
+
 ### Optional Permissions
 
 To avoid certain permission warnings, you can request optional permissions by specifying the `optional_permissions` key in the manifest. 
@@ -386,9 +488,9 @@ export default class PermissionsModel {
 }
 ```
 
-:::warning
-Keep in mind that any optional permissions you request if not granted will be undefined. If `chrome.alarms` is requested as an optional permission, beware that 
-:::warning
+
+> [!WARNING] Title
+> Keep in mind that any optional permissions you request if not granted will be undefined. If `chrome.alarms` is requested as an optional permission, beware that 
 
 Here is an example of setting up optional permissions knowing that they could be undefined at runtime: 
 

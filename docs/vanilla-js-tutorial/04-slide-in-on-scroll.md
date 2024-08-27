@@ -1,12 +1,14 @@
 # 04: Intersection Observer: slide in on scroll
 
-The Intersection Observer API is used to observe elements, where we wee whether they are in the viewport or not.
+The Intersection Observer API is used to observe elements, where we see whether they are in the viewport or not.
 
 When observed elements enter and leave the viewport, we can do stuff like add classes, lazy load, and more.
 
 But with the intersection observer API, you can listen for when observed elements enter and exit the viewport.
 
-## Creating the Observer
+## Observer basics
+
+### Creating the Observer
 
 ```javascript
 const observer = new IntersectionObserver((entries) => {
@@ -17,10 +19,6 @@ const observer = new IntersectionObserver((entries) => {
 You create an observer by calling the `IntersectionObserver` constructor, and passing in a callback function.
 
 This callback function accepts an `entries` parameter, which is basically an array of objects called `IntersectionObserverEntry` that contain information about the observed elements.
-
-### Intersecting
-
-**Intersecting** is when an element is visible in the viewport.
 
 ### `IntersectionObserverEntry`
 
@@ -44,7 +42,7 @@ Similarly, you can stop listening for intersection by calling the `observer.unob
 observer.unobserve(element);
 ```
 
-## Basic observation
+### Basic example
 
 ```javascript
 const observer = new IntersectionObserver((entries) => {
@@ -60,7 +58,7 @@ cards.forEach((card) => {
 });
 ```
 
-## OBservation options
+## Observation options
 
 There are options we can tweak to make the animations better. By default, the observer triggers as soon as the first pixel of the observed element enters the viewport, which may not be what we want.
 
@@ -100,5 +98,28 @@ const cards = document.querySelectorAll < HTMLDivElement > ".card";
 
 cards.forEach((card) => {
   observer.observe(card);
+});
+```
+
+## Basic example
+
+```ts
+const boxes = document.querySelectorAll(".box");
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(
+    (entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("show");
+      } else {
+        entry.target.classList.remove("show");
+      }
+    },
+    { threshold: 0.5 }
+  );
+});
+
+boxes.forEach((box) => {
+  observer.observe(box);
 });
 ```

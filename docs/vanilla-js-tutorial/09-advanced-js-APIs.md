@@ -298,6 +298,31 @@ fetch(url, {
 
 ## Other APIs
 
+### Navigator share API
+
+The `navigator.share(options)` async method allows sharing media and urls like you can do on your phone. You pass in an object of options which configure the sharing behavior: 
+
+- `title` : the share title
+- `text` : the body text
+- `url` : the url to share
+- `files` : an optional property of `File[]` to share. You can share files this way.
+
+```jsx
+async function share() {
+
+  const file = new File(["Hello, world!"], "hello-world.txt", {
+    type: "text/plain",
+  });
+
+  await navigator.share({
+    title: "Web Share API",
+    text: "Hello World",
+    url: "https://developer.mozilla.org",
+    files: [file],
+  });
+}
+```
+
 ### Geolocation
 
 The `navigator.geolocation.getCurrentPosition()` method allows us to get the current position of the user. The `navigator.geolocation.watchPosition()` listens for a position change. They both take two arguments:
@@ -421,14 +446,233 @@ const observer = new IntersectionObserver(
 );
 ```
 
-### Proxy
 
-Proxies in javascript allow you to do reactive programming.
+### Navigation
 
+The navigation API is a new way to do navigation on the web instead of the history and popstate APIs.
+
+```ts
+function shouldNotIntercept(navigationEvent) {
+  return (
+    !navigationEvent.canIntercept ||
+    // If this is just a hashChange,
+    // just let the browser handle scrolling to the content.
+    navigationEvent.hashChange ||
+    // If this is a download,
+    // let the browser perform the download.
+    navigationEvent.downloadRequest ||
+    // If this is a form submission,
+    // let that go to the server.
+    navigationEvent.formData
+  );
+}
+
+function renderIndexPage() {}  // methods to render HTML for page
+function renderCatsPage() {}
+
+navigation.addEventListener('navigate', navigateEvent => {
+  // Exit early if this navigation shouldn't be intercepted.
+  if (shouldNotIntercept(navigateEvent)) return;
+
+  const url = new URL(navigateEvent.destination.url);
+
+  if (url.pathname === '/') {
+    navigateEvent.intercept({handler: renderIndexPage});
+  } else if (url.pathname === '/cats/') {
+    navigateEvent.intercept({handler: renderCatsPage});
+  }
+});
+```
+
+The `navigateEvent` has these properties: 
+- `navigateEvent.destination.url`: the url of where the navigation was trying to go
+- `navigateEvent.canIntercept`: whether or not the navigation can be intercepted
+
+And it has these methods: 
+- `navigateEvent.preventDefault()`: prevents the navigation from occurring. This will not work if the user prevents the forward or back buttons to escape the site. 
+- `navigateEvent.intercept({handler: async () => void})`: runs the specified async callback on page navigation. Basically use this to define your own code to replace the current page with a new page like how SPAs do it.
+
+#### Navigation methods
+
+Use the navigation methods to navigate while also setting state.
+
+- `navigation.navigate(url)`: navigates to the specified url
+- `navigation.reload()` : reloads the page
+
+#### Navigation current entry and state
+
+`navigation.currentEntry` provides access to the current entry. This is an object which describes where the user is right now. This entry includes the current URL, metadata that can be used to identify this entry over time, and developer-provided state.
+
+`navigation.currentEntry` is just a special type of **NavigationEntry**, just like how `navigation.destination` is also a navigation entry. They both have the same properties and methods.
+
+- `navigation.currentEntry.url`: the current url
+- `navigation.currentEntry.key`: A unique representation of the current state and url
+
+The most important thing about `navigation.currentEntry` is its ability to retrieve state. with the `navigation.currentEntry.getState()` method. However, this returned state is immutable and does not register changes to it. 
+
+To actually change state, you need to do so in the navigation methods.
+
+```ts
+navigation.navigate(url, {state: newState});
+// Or:
+navigation.reload({state: newState});
+
+const state = navigation.currentEntry.getState()
+```
+
+In the navigation event, you can also retrieve the state of the navigation's destination.
+
+```ts
+navigation.addEventListener('navigate', navigateEvent => {
+  console.log(navigateEvent.destination.getState());
+});
+```
+
+## Proxies
+
+Proxies in javascript allow you to do reactive programming. They give hooks into common operations concerning data, like getting or setting a property, and allow you to hook into that behavior and define it yourself. 
+
+The use cases are follows: 
+
+- **validating data**: throwing an error when a user tries to set something incorrectly
+- **protecting data**: preventing a user from accessing a property they shouldn't have access to.
+- **reactivity**: doing something each time a user accesses or sets the property.
+
+### Proxy Essentials
 #### Proxying objects
+
+```jsx
+const myObj = {
+    name: "sally",
+    age: 30
+}
+
+const handler = {
+    get(target, property) {
+        return `${target[property]} years old`
+    },
+    set(target, property, value) {
+        console.log(`you modified ${target[property]} to be ${value}`)
+    }
+}
+
+const myProxy = new Proxy(myObj, handler)
+console.log(myProxy.age)
+myProxy.age = 40;
+```
+
+The below function creates a proxy state that keeps track of one single property from an object.
+
+```ts
+export function createReactiveProxy<T extends string, V>(
+  key: T,
+  value: V,
+  onSet: (newValue: V) => void
+) {
+  const proxy = new Proxy({ [key]: value } as Record<T, V>, {
+    set(target, p, newValue, receiver) {
+      onSet(newValue);
+      return Reflect.set(target, p, newValue, receiver);
+    },
+  });
+  return proxy;
+}
+
+export function createReactiveProxyMultipleProps<T extends Record<string, any>>(
+  state: T,
+  onSet: (state: T, propertyChanged: keyof T, newValue: T[keyof T]) => void
+) {
+  const proxy = new Proxy(state, {
+    set(target, p, newValue, receiver) {
+      onSet(target, p as keyof T, newValue as T[keyof T]);
+      return Reflect.set(target, p, newValue, receiver);
+    },
+  });
+  return proxy;
+}
+
+const state = createReactiveProxy("name", "John", (newValue) => {
+  console.log("New value is", newValue);
+});
+```
 
 #### Proxying and dispatching custom events
 
+A common pattern is dispatching a custom event whenever a value changes in a proxy set hook.
+
+```jsx
+const reactiveStore = new Proxy(app.store, {
+  set: (target, key, value) => {
+    target[key] = value;
+    switch (key) {
+      case "menu":
+        window.dispatchEvent(new CustomEvent("menu-updated"));
+        break;
+      case "cart":
+        window.dispatchEvent(new CustomEvent("cart-updated"));
+        break;
+      default:
+        break;
+    }
+  },
+  get: (target, key) => {},
+});
+```
+
+Here is a function that does exactly that: 
+
+```ts
+export class CustomEventManager<T = any> extends EventTarget {
+  private listener?: EventListenerOrEventListenerObject;
+  constructor(private name: string) {
+    super();
+  }
+
+  onTriggered(callback: (event: Event & { detail: T }) => void) {
+    this.listener = (e) => {
+      callback(e as Event & { detail: T });
+    };
+    this.addEventListener(this.name, this.listener);
+  }
+
+  removeListener() {
+    if (this.listener) this.removeEventListener(this.name, this.listener);
+  }
+
+  dispatch(data: T, eventInitDict?: CustomEventInit<T>) {
+    this.dispatchEvent(
+      new CustomEvent(this.name, { ...eventInitDict, detail: data })
+    );
+  }
+}
+
+// whenever property is changed, dispatch custom event
+export function createReactiveProxyWithEvent<T extends string, V>(
+  key: T,
+  value: V,
+  eventName: string
+) {
+  const proxyEvent = new CustomEventManager<Record<T, V>>(eventName);
+  const proxy = new Proxy({ [key]: value } as Record<T, V>, {
+    set(target, p, newValue, receiver) {
+      proxyEvent.dispatch(target);
+      return Reflect.set(target, p, newValue, receiver);
+    },
+  });
+  return { proxy, proxyEvent };
+}
+
+const { proxy, proxyEvent } = createReactiveProxyWithEvent(
+  "age",
+  12,
+  "nameChanged"
+);
+proxyEvent.onTriggered((e) => {
+  alert(e.detail.age);
+});
+
+proxy.age = 20;
+```
 #### Proxying functions
 
 You can also proxy functions, meaning you can access their args list before they get called with the `apply` trap.
@@ -475,50 +719,491 @@ const multiply = ReactiveFunction.createFunction(
 console.log(multiply(5, 4));
 ```
 
-#### Reactive state
 
-I created this reactive state class that essentially implements a data binding callback for a single variable:
+### Proxies in depth
 
-```typescript
-export default class ReactiveState<T extends Record<keyof T, V>, V> {
-  private proxy: Record<keyof T, V>;
-  private key: keyof T;
-  private _value: V;
+#### Singleton pattern by proxying classes
 
-  get value() {
-    return this.proxy[this.key];
+You can create an automatic singleton pattern by proxying a class constructor to ensure there is only ever one instance of the class. You do this by hooking into the `construct()` handler.
+
+```ts
+class Database {
+    // ...
+}
+
+const DatabaseConnection = (() => {
+    let instance;
+
+    // Create a proxy for the class constructor
+    const handler = {
+        construct(target, args) {
+            if (!instance) {
+                instance = new Database();
+            }
+            return instance;
+        },
+    };
+
+    return new Proxy(function() {}, handler);
+})();
+
+const connection = new DatabaseConnection()
+```
+
+This is a typescript-friendly version: 
+
+```ts
+class Database {
+  constructor(public readonly name: string, private password: string) {
+    console.log(`Database created! ${this.name}`);
   }
+}
 
-  set value(newValue: V) {
-    this.proxy[this.key] = newValue;
-  }
+type ConstructorArgs<T extends new (...args: any[]) => any> = T extends new (
+  ...args: infer A
+) => any
+  ? A
+  : never;
 
-  constructor(state: T, onSet: (state: T) => void) {
-    const singleProperty = Object.keys(state)[0] as keyof T;
-    this.key = singleProperty;
-    this._value = state[singleProperty];
-    const proxy = new Proxy(state, {
-      set(target, p, newValue, receiver) {
-        if (p === singleProperty) {
-          // @ts-ignore
-          target[p] = newValue as V;
-          onSet(target);
+const DB = (() => {
+  let instance: Database | null = null;
+
+  return new Proxy(Database, {
+    construct(target, args) {
+      if (!instance) {
+        instance = new Database(...(args as ConstructorArgs<typeof Database>));
+      }
+      return instance;
+    },
+  });
+})();
+
+const db1 = new DB("db1", "password");
+const db2 = new DB("db1", "password");
+const db3 = new DB("db1", "password");
+```
+#### Hooking into has
+
+The `has()` proxy hook allows you to override the `in` keyword functionality related to a proxy. It's super useful for clever things you can do.
+
+```ts
+const range = (min: number, max: number) =>
+  new Proxy(Object.create(null), {
+    has: (target, key: string) => +key >= min && +key <= max,
+  });
+
+console.log(3 in range(2, 12)); // true
+```
+
+You can take this one step further: 
+
+```ts
+function arrayProxy<T extends string | number>(arr: T[]) {
+  return new Proxy(
+    {
+      array: arr,
+    },
+    {
+      has: (target, key: string) => {
+        if (typeof arr[0] === "number") {
+          return arr.includes(+key as T);
+        } else {
+          return arr.includes(key as T);
         }
-        return Reflect.set(target, p, newValue, receiver);
       },
-    });
-    this.proxy = proxy;
+    }
+  );
+}
+
+const animalsArr = arrayProxy(["dog", "cat", "mouse"]);
+console.log("dog" in animalsArr); // true
+```
+
+
+
+
+
+#### Cache proxies
+
+This cache proxy code works by proxying a function and caching the return values.
+
+```ts
+function createCacheProxy<T extends any[], V>(
+  func: (...args: T) => V,
+  expirationTime = 60 * 60 * 1000
+) {
+  const cache = new Map<
+    string,
+    {
+      data: V;
+      timestamp: number;
+    }
+  >();
+  return new Proxy(func, {
+    apply: async (target, thisArg, args) => {
+      const key = JSON.stringify(args);
+
+      if (
+        cache.get(key) &&
+        Date.now() - cache.get(key)!.timestamp < expirationTime
+      ) {
+        console.log("Loading data from cache...");
+        return cache.get(key)!.data;
+      }
+
+      const data = await target.apply(thisArg, args as T);
+      cache.set(key, {
+        data,
+        timestamp: Date.now(),
+      });
+      return data;
+    },
+  });
+}
+```
+
+## Web Components
+
+Web components are ways of creating custom HTML components that have their own HTML content, attributes, and styling that you can all change through javascript. 
+
+Each web component is represented as a class that extends from the `HTMLElement` class.
+
+### Basics
+
+Here are the steps to create a web component: 
+
+1. Create a class that extends from `HTMLElement`
+    
+    ```tsx
+    export default class Navbar extends HTMLElement {
+      constructor() {
+        super();
+      }
+    }
+    ```
+    
+2. Use the `customElements.define()` method to register the class as a custom component. It takes in two arguments: the element name and then the custom component class. 
+    
+    ```tsx
+    customElements.define("nav-bar", Navbar);
+    // will be rendered as <nav-bar>
+    ```
+    
+3. Render the custom element as HTML and pass in any required `data-` attributes. For the web component to actually render anything, it must be first registered with `customElements.define()` method, so make sure to include the javascript code that runs that method call somewhere in your app bundle.
+    
+    ```tsx
+    <nav-bar></nav-bar>
+    ```
+
+- `customElements.define(name: string, component: class)` : registers a component. If this is called more than once, you will get an error, so make sure to check if it's already registered.
+- `customElements.get(name: string)` : gets the component class from the specified name if the component is registered. Use this in a singleton pattern to check if the component is already registered or not.
+
+### Lifecycle Methods
+
+You can hook into specific methods in a web component class that get activated throughout the component's lifecycle.
+
+- `connectedCallback()` : triggered when element is added to document. Use this to create the element content and set up event listeners
+- `disconnectedCallback()` : triggered when element is removed from document. Use this to perform cleanup
+- `attributeChangedCallback()` : triggered whenever one of the attributes from the static getter `observedAttributes` changes. It helps give you realtime updates on the attributes changing.
+
+```ts
+class MyElement extends HTMLElement {
+	constructor() {
+		super()
+	}
+  connectedCallback() {}     // triggered when element is added to document 
+  disconnectedCallback() {}  // triggered when element is removed from document 
+  adoptedCallback() {}       // triggered when element is moved to new document
+
+  static get observedAttributes() : string[] {
+	  return ["checked"]
+  }
+
+  attributeChangedCallback(attrName, oldVal, newVal) {}
+}
+
+customElements.define("my-element", MyElement)
+```
+
+### Template
+
+We often use `<template>` elements to scaffold the content for the web component, since the DOM ignores those elements. 
+
+```html
+<template>
+	<!-- content here -->
+</template>
+```
+
+We can then clone the content from the template to get the content for the custom element: 
+
+```ts
+const template = document.getElementById("menu-page");
+const content = template.content.cloneNode(true);
+```
+
+
+### Shadow DOM 
+
+Although templates are great, they are affected by external CSS styling. To avoid this behavior, we need to use something called the **shadow DOM.**
+
+In the shadow DOM, all elements you create in there will have separate styling and context from the rest of the elements in your HTML document. 
+
+- The shadow DOM allows isolation for logic for your custom components.
+
+There are a few rules you have to follow when using a shadow DOM
+
+1. In the constructor, you may not add any children to your shadow DOM. 
+2. You can start DOM manipulation with your shadow in the `connectedCallback()` callback, which runs after the element is rendered in the DOM. 
+
+**Loading external CSS** 
+
+```jsx
+  async loadExternalCSS(file) {
+    const request = await fetch(file);
+    const css = await request.text();
+    this.styles.textContent = css;
+  }
+```
+
+There is a hacky way to load an external stylesheet as the styles for our template and the shadow DOM. All we have to do is to make a fetch request to our CSS file, get back the response as text, and inject the css text into a `<style>` tag. The steps are as follows: 
+
+1. Fetch the css file, like `fetch("../styles/main.css")` 
+2. Get the text using `request.text()` 
+3. Create a `<style>` tag, append it to the shadow root DOM, and make it’s `textContent` equal to the parsed css text. 
+
+```ts
+export class MenuPage extends HTMLElement {
+	// shadow setup
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+    this.styles = document.createElement("style");
+    this.loadExternalCSS("./components/MenuPage.css");
+  }
+  
+  // append DOM content to shadow
+  connectedCallback() {
+    const template = document.getElementById("menu-page");
+    const content = template.content.cloneNode(true);
+    this.shadow.appendChild(this.styles);
+    this.shadow.appendChild(content);
+  }
+	// fetch CSS logic
+  async loadExternalCSS(file) {
+    const request = await fetch(file);
+    const css = await request.text();
+    this.styles.textContent = css;
+  }
+}
+
+customElements.define("menu-page", MenuPage);
+```
+
+**Complete Shadow DOM setup**
+
+1. In the constructor, create a shadow DOM
+2. Fetch styles
+3. In the `connectedCallback()`, get the content from the `<template />` and the Css from the styles you fetched and append them both to the shadow DOM.
+
+### WebComponent Class
+
+```ts
+type Selector = {
+  <K extends keyof HTMLElementTagNameMap>(selectors: K):
+    | HTMLElementTagNameMap[K]
+    | null;
+  <K extends keyof SVGElementTagNameMap>(selectors: K):
+    | SVGElementTagNameMap[K]
+    | null;
+  <K extends keyof MathMLElementTagNameMap>(selectors: K):
+    | MathMLElementTagNameMap[K]
+    | null;
+  <K extends keyof HTMLElementDeprecatedTagNameMap>(selectors: K):
+    | HTMLElementDeprecatedTagNameMap[K]
+    | null;
+  <E extends Element = Element>(selectors: string): E | null;
+};
+
+export default abstract class WebComponent<
+  T extends readonly string[] = readonly string[]
+> extends HTMLElement {
+  protected shadow: ShadowRoot;
+  protected styles: HTMLStyleElement;
+  protected template: HTMLTemplateElement;
+  public $: Selector;
+
+	// creates <template> element with HTML content
+  static createTemplate(templateId: string, HTMLContent: string) {
+    const template = document.createElement("template");
+    template.id = templateId;
+    template.innerHTML = HTMLContent;
+    return template;
+  }
+
+	// loads css from file
+  async loadExternalCSS(filepath: string) {
+    const request = await fetch(filepath);
+    const css = await request.text();
+    this.styles.textContent = css;
+  }
+
+  static register(name: string, _class: CustomElementConstructor): void {
+    if (!customElements.get(name)) {
+      customElements.define(name, _class);
+    }
+  }
+
+
+  constructor(options: {
+    templateId: string; // template id
+    HTMLContent: string; // html content of template
+    cssFileName?: string; // filename of css to apply on template, if provided
+    cssContent?: string;  // css content to apply on template, if provided
+  }) {
+	// 1. always call super()
+    super();
+    // 2. create shadow DOM and create template
+    this.shadow = this.attachShadow({ mode: "open" });
+    this.styles = document.createElement("style");
+    this.template = WebComponent.createTemplate(
+      options.templateId,
+      options.HTMLContent
+    );
+    // create utility selector
+    this.$ = this.template.content.querySelector.bind(this.template.content);
+    // 3. attach styles
+    if (options.cssContent) this.styles.textContent = options.cssContent;
+    else if (options.cssFileName) this.loadExternalCSS(options.cssFileName);
+  }
+
+  // called when element is inserted to the DOM
+  connectedCallback() {
+    this.createComponent();
+  }
+  // create shadow DOM, add event listeners, etc.
+  createComponent() {
+    const content = this.template.content.cloneNode(true);
+    this.shadow.appendChild(this.styles);
+    this.shadow.appendChild(content);
+  }
+
+  // triggered when element is removed from document
+  disconnectedCallback() {
+    console.log("disconnected");
+  }
+
+  // triggered when element is moved to new document (only with iframes)
+  adoptedCallback() {
+    console.log("adopted");
+  }
+
+  // region ATTRIBUTES
+
+  // override this getter to specify which attributes to observe
+  //   static get observedAttributes() {
+  //     return [] as string[];
+  //   }
+
+  // gets an attribute from the observedAttributes
+  getObservableAttr(attrName: T[number]) {
+    const attr = this.attributes.getNamedItem(attrName);
+    return attr?.value;
+  }
+  
+  // sets an attribute from the observedAttributes
+  setObservableAttr(attrName: T[number], value: string) {
+    this.setAttribute(attrName, value);
+  }
+
+  // removes an attribute from the observedAttributes
+  removeObservableAttr(attrName: T[number]) {
+    this.removeAttribute(attrName);
+  }
+
+  // listens to changes fo attributes from the observedAttributes
+  attributeChangedCallback(
+    attrName: T[number],
+    oldVal: string,
+    newVal: string
+  ) {
+    console.log("observedAttributes changed");
   }
 }
 ```
 
-You can then use it like so:
+#### Constructor
 
-```typescript
-const commandsProxy = new ReactiveState(
-  { commands: [] as string[] },
-  (state) => {
-    // runs whenever the commandsProxy.commands property is modified
+The WebComponent class is abstract but takes in one type parameter. That type parameter is used to give type inference to the `observableAttributes` static getter for any child classes to take advantage of. 
+
+The constructor takes in these required properties: 
+- `templateId` : the id of the `<template>` element to create
+- `HTMLContent` : the HTML content of the template
+
+#### Example
+
+Here is a full example, where we appropriately type the `observedAttributes` static getter to provide good type inference.
+
+```ts
+import WebComponent from "../WebComponent";
+import HTMLContent from "./template.html?raw"; // import HTML string
+import CSSContent from "./template.css?raw";   // import CSS string
+
+const observedAttributes = ["dolphin"] as const;
+
+export default class ContentScriptUI extends WebComponent<
+  typeof observedAttributes
+> {
+  static {}
+  constructor() {
+    super({
+      HTMLContent,
+      templateId: "content-script-ui",
+      cssContent: CSSContent,
+    });
+    console.log("ContentScriptUI constructed");
   }
-);
+
+  static get observedAttributes() {
+    return observedAttributes;
+  }
+
+  static registerSelf() {
+    WebComponent.register("content-script-ui", ContentScriptUI);
+  }
+}
+```
+
+This is the HTML template and CSS for the web component: 
+
+```html
+<div class="container">
+  <slot></slot> // for inserting content
+</div>
+```
+
+```css
+.container {
+  position: fixed;
+  height: 2rem;
+  width: 2rem;
+  padding: 1rem;
+  color: white;
+  background-color: red;
+  z-index: 1000;
+  top: 0;
+  right: 0;
+}
+```
+
+Then this is how we render it in React:
+
+```ts
+import ContentScriptUI from "app/utils/vanillajs-utils/web-components/ContentScriptUI/ContentScriptUI";
+
+ContentScriptUI.registerSelf();
+
+export const App = () => {
+  return <content-script-ui>App</content-script-ui>;
+};
 ```

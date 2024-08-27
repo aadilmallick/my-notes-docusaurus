@@ -288,7 +288,8 @@ const myCounter = createCounter();
 myCounter.increment();
 ```
 
-### Factory functions
+### Applying closures
+#### Factory functions
 
 Factory functions are closures except that you memorize the parameter being passed into through the outer function, which could be useful sometimes.
 
@@ -308,7 +309,7 @@ console.log(cube(2)); // 8
 
 In the above function when we return the nested function, the value of `exponent` is saved as a snapshot for whatever we passed in. If we passed in 2, the function returned will always remember `exponent` as 2.
 
-### Closures and event listeners
+#### Closures and event listeners
 
 When we need to update some global variable in an event listener, we could instead refactor that to use closures like so:
 
@@ -328,6 +329,103 @@ withClosure();
 
 By just adding the event listener inside a function and then immediately invoking it, we get all the benefits of closures.
 
+#### Memoization
+
+We can memoize a function by caching its return value. This memoize function takes in a single argument: a callback to memoize. We then achieve memoization by following these steps: 
+
+1. Create a cache variable using closures. This should be a map where each key is the function's passed in arguments, and the value is the function's return value. 
+2. When the same exact arguments are passed in to the returned function, the map should have a key that exists for those arguments, and just short circuit and return the value.
+
+```ts
+function memoize<T extends any[], V>(cb: (...args: T) => V) {
+    const cache = new Map<string, V>()
+    return (...funcArgs: T) => {
+        const key = JSON.stringify(funcArgs)
+        if (cache.has(key)) {
+            console.log("returned from cache!")
+            return cache.get(key) as V
+        }
+
+        const value = cb(...funcArgs)
+        cache.set(key, value)
+        return value as V
+    }
+}
+
+const memoizedAdd = memoize((a : number, b: number) => a + b)
+console.log(memoizedAdd(5, 4))
+console.log(memoizedAdd(5, 10))
+console.log(memoizedAdd(5, 4))
+```
+
+Memoziation comes especially useful for instantly executing recursive functions like Fibonacci by memoizing each recursive call.
+
+
+> [!NOTE] The great thing
+> Executing `fibonacci(40)` takes 3 seconds. With memoization, `fibonacci(400)` executes instantly.
+
+
+```ts
+function memoizedFibonacci(n : number, prevValues = new Map<number, number>()) {
+    if (n <=2) return 1
+
+    let result : number;
+    if (prevValues.has(n)) {
+        result = prevValues.get(n)!;
+    }
+    else {
+        result = memoizedFibonacci(n-2, prevValues) + memoizedFibonacci(n-1, prevValues)
+        prevValues.set(n, result)
+    }
+    return result;
+}
+
+console.log(memoizedFibonacci(400))
+```
+
+You can even take memoization a step further by invalidating the cache based on time elapsed. 
+
+```ts
+export function memoizeWithInvalidation<T extends any[], V>(
+  cb: (...args: T) => V,
+  invalidationTimeInSeconds: number = 60 * 60
+) {
+  const cache = new Map<
+    string,
+    {
+      data: V;
+      lastExecuted: number;
+    }
+  >();
+  return (...funcArgs: T): V => {
+    const key = JSON.stringify(funcArgs);
+
+    // if cache has the key, check if the last execution time is greater than the invalidation time
+    // if so, remove the key from the cache. Else return cached value
+    if (cache.has(key)) {
+      const cachedData = cache.get(key);
+      if (
+        Date.now() - cachedData!.lastExecuted >
+        invalidationTimeInSeconds * 1000
+      ) {
+        cache.delete(key);
+      } else {
+        console.log("returned from cache!");
+        return cachedData!.data;
+      }
+    }
+
+    const value = cb(...funcArgs);
+    const lastExecuted = Date.now();
+    cache.set(key, {
+      data: value,
+      lastExecuted,
+    });
+    return value as V;
+  };
+}
+```
+
 ## Objects
 
 ### Sealing and freezing objects
@@ -337,6 +435,28 @@ Both these methods return the same object, but with different behavior.
 - `Object.seal(obj)` : seals an object, meaning you can't add or remove properties from it, but you can still modify the existing properties
 - `Object.freeze(obj)` : freezes an object, meaning you can't add, remove, or modify any properties on it
 
+### `Object.defineProperty()`
+
+The `Object.defineProperty()` method allows you to have more fine-grain controlled over object property access and writability. 
+
+The basic syntax is like so: 
+
+```ts
+Object.defineProperty(object, propertyname, {
+	value: any,
+	writable: boolean,
+	enumerable: boolean,
+	configurable: boolean
+});
+```
+
+- **first argument**: the object to pass in
+- **second argument**: the property to configure
+- **third argument**: the object of options, with these keys:
+	- `value`: the value to set for the property
+	- `writable`: if set to true, trying to reassign the property to a new value will throw an error. Basically makes the property readonly if true.
+	- `enumerable`: if set to false, the property will not show up in for loops. 
+	- `configurable`: if set to false, then trying to delete the property will throw an error.
 ## Functional Programming
 
 ### Pure functions
@@ -773,6 +893,33 @@ class DBConnection {
     DBConnection.instance = this;
     return DBConnection.instance;
   }
+}
+```
+
+Here we combine classes with closures to create a singleton-factory pattern for any class with type support. 
+
+```ts
+type ConstructorArgs<T extends new (...args: any[]) => any> = T extends new (
+  ...args: infer A
+) => any
+  ? A
+  : never;
+
+type ClassType = new (...args: any[]) => any;
+
+function createClassFactory<T extends ClassType>(
+  _class: T,
+  ...args: ConstructorArgs<T>
+) {
+  let instance: InstanceType<T> | null = null;
+
+  return {
+    getInstance: () => {
+      if (instance) return instance;
+      instance = new _class(...args);
+      return instance as InstanceType<T>;
+    },
+  };
 }
 ```
 

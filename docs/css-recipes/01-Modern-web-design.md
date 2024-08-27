@@ -1,5 +1,144 @@
 # Modern Web Design
 
+## Modern Web Design recipes
+
+### Hamburger button
+
+This is the basic HTML structure of creating a hamburger from scratch, we will animate the bars to get a nice effect.
+
+```html
+<div class="hamburger">
+  <div class="bar bar-1"></div>
+  <div class="bar bar-2"></div>
+  <div class="bar bar-3"></div>
+</div>
+```
+
+- `.bar` : create tiny horizontal lines that will each look like a bar.
+- `.hamburger` : give a defined height and width, separate the bars evenly using flexbox. We hide by default on large screens. But on small screens, we make it visible again by giving back its `flex` display.
+
+```css
+.bar {
+  height: 4px;
+  width: 100%;
+  background-color: black;
+  border-radius: 10px;
+}
+
+.hamburger {
+  height: 24px;
+  width: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  // hide by default
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: flex;
+  }
+}
+```
+
+#### Bar animations
+
+Using Javascript, we will toggle **"animation"** classes on each of our bars, which have these certain animations:
+
+- `.animate-bar-1` : The top bar will rotate down 45 degrees, using its top left corner as the pivot point.
+- `.animate-bar-2` : the middle bar will shrink and dissappear, animating to `transform: scaleX(0)` and `opacity(0)`
+- `.animate-bar-3` : The third bar will rotate 45 degrees up, using the bottom left corner as its pivot point.
+
+```css
+.animate-bar-1 {
+  transform-origin: top left;
+  animation: flip-bar-1 1s 1;
+  animation-fill-mode: forwards;
+}
+
+.animate-bar-2 {
+  animation: 1s fade-bar-2;
+  animation-fill-mode: forwards;
+}
+
+.animate-bar-3 {
+  transform-origin: bottom left;
+  animation: flip-bar-3 1s 1;
+  animation-fill-mode: forwards;
+}
+
+@keyframes flip-bar-1 {
+  to {
+    transform: rotate(45deg) translateY(7px) translateX(-3px);
+  }
+}
+
+@keyframes fade-bar-2 {
+  to {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}
+
+@keyframes flip-bar-3 {
+  to {
+    transform: rotate(-45deg) translateY(-5px) translateX(-3px);
+  }
+}
+```
+
+Then use javascript to add the animation classes on click: 
+
+```ts
+const hamburger = document.querySelector(".hamburger");
+const bars = hamburger.querySelectorAll(".bar");
+const sidebar = document.querySelector(".mobile-nav");
+
+hamburger.addEventListener("click", (e) => {
+  bars[0].classList.toggle("animate-bar-1");
+  bars[1].classList.toggle("animate-bar-2");
+  bars[2].classList.toggle("animate-bar-3");
+  sidebar.classList.toggle("show-sidebar");
+});
+```
+### getting icons
+
+Use this fontawesome link
+
+``` css
+<link
+      rel="stylesheet"
+      href="https://use.fontawesome.com/releases/v5.6.1/css/all.css"
+      integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP"
+      crossorigin="anonymous"
+    />
+```
+
+### Transparent Sticky Navbar
+
+On the background image, a transparent navbar effect is very attractive. However, we want to add the backgrounf to the navbar once we scroll past a certain point. Here's how we achieve this:
+
+1. Create a `.transparent` class that sets the background color to transparent. Set it on the navbar
+2. In a `<script>` tag, if scrolled past a certain point, remove the transparent class. Else, keep add the transparent class.
+
+```ts
+.transparent {
+    background-color: transparent;
+}
+```
+
+```js
+const nav = document.querySelector(".navbar");
+	window.addEventListener("scroll", (e) => {
+	if (window.pageYOffset > 100) {
+	  nav.classList.remove("transparent");
+	} else {
+	  nav.classList.add("transparent");
+	}
+});
+```
 ## HSL theming
 
 ```css
@@ -422,3 +561,41 @@ const ELEVATIONS = {
 ## Images
 
 ### Fancy Images: before and after borders
+
+## UI trends
+
+### Glassmorphism
+
+Glassmorphism is where you have an image or gradient background, and then you have a card that is mostly transparent and has a `backdrop-filter: blur()` set on it, blurring the background. 
+
+Here are the main elements of the style: 
+
+- **necessary** : Translucent/transparent background color
+- **necessary**: blur backdrop filter
+- Box shadow
+- high border radius
+- Translucent border
+
+```ts
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(7px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+```
+
+### Neumorphism
+
+Neumorphism design is based off of using realistic shadows. The top right corner of an element should have a light-colored shadow, while the bottom right corner of an element gets a dark-colored shadow. 
+
+This produces a soft, realistic look.
+
+```css
+.neumorphism {
+  --top-left-shadow: 12px 12px 12px rgba(0, 0, 0, 0.1);
+  --bottom-right-shadow: -10px -10px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--top-left-shadow), var(--bottom-right-shadow);
+}
+```

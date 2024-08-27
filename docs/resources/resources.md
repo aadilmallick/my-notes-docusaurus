@@ -2,6 +2,8 @@
 
 Here is a list of amazing resources.
 
+Also a cool markdown tip is here
+
 ## Javascript
 
 **Typescript**

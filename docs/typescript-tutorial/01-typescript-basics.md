@@ -1101,23 +1101,6 @@ type Options = MakeOptions<typeof setOptions>;
 
 You also have a bunch of mapped types that are built into typescript.
 
-#### Filtering with Mapped types
-
-```ts
-// T: an object you pass in
-// V: the keys you want to extract from the object
-type WithKeys<T, V extends keyof T> = {
-  [K in V]: T[K];
-}
-
-type WithoutKeys<T, V extends keyof T> = {
-  [K in Exclude<keyof T, V>]: T[K];
-};
-
-const thing: WithKeys<{a: number, b: number}, "a"> = {
-  a: 1,
-}
-```
 
 #### `Pick<T>`
 
@@ -1220,6 +1203,10 @@ type StoreSetters = Setters<Store>;
 
 You can carry this further to filtering keys before doing something with them by combining mapped types with conditionals.
 
+Whenever you are trying to filter types based on filtered keys, follow these rules: 
+
+1. **ALWAYS** filter by keys first. Get a subset of the keys you want, and then do the mapped type
+
 ```ts
 type KeysThatStartWithS<T> = {
   [key in keyof T as key extends `s${string}` ? key : never]: T[key];
@@ -1234,6 +1221,45 @@ const store = {
 type OnlySaliva = KeysThatStartWithS<typeof store>;
 ```
 
+Here are custom types that return new objects based on which keys you want to include or exclude: 
+
+```ts
+// T: an object you pass in
+// V: the keys you want to extract from the object
+type WithKeys<T, V extends keyof T> = {
+  [K in V]: T[K];
+}
+
+type WithoutKeys<T, V extends keyof T> = {
+  [K in Exclude<keyof T, V>]: T[K];
+};
+
+const thing: WithKeys<{a: number, b: number}, "a"> = {
+  a: 1,
+}
+```
+
+And here is how you can get only required properties out from an object: 
+
+```ts
+interface Obj  {
+    name: string;
+    age?: number;
+}
+
+type OmitOptional<T> = { 
+  [P in keyof Required<T> as Pick<T, P> extends Required<Pick<T, P>> ? P : never]: T[P] 
+}
+
+type OmitRequired<T> = {
+    [KEY in Exclude<keyof T, keyof OmitOptional<T>>]: T[KEY]
+}
+
+type bruh = OmitRequired<Obj>
+```
+
+- `OmitOptional<T>` : returns back only the required properties from an object
+- `OmitRequired<T>` : returns back only the optional properties from an object
 ### Awaited
 
 A quick thing to note is that using the `awaits` keyword to await a promise will actually wait for all the nested promises to unwrap and resolve before returning. So no matter how many levels deep, `await` avoids callback hell.

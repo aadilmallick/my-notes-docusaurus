@@ -936,7 +936,7 @@ All in all, here are the pros and cons of each permission:
 - `chrome.tabs.reload(tabId, options)` : refreshes the tab. You can also specify options to bypass the cache
 
 And here are the event listeners:
-- `chrome.tabs.onUpdated`: When the state of some tab is changed/updated
+- `chrome.tabs.onUpdated`: When the state of some tab is changed/updated. This runs after `onActivated`, when the URL is available
 - `chrome.tabs.onCreated`: When a new tab is created.
 - `chrome.tabs.onActivated`: When the active tab in a window changes. The `url` property might not be available yet
 - `chrome.tabs.onHighlighted`: When the user selects a different tab.
@@ -995,6 +995,16 @@ interface Tab {
 
 #### Grouping tabs
 
+#### Listening for tab changes
+
+```ts
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete") {
+    // tab navigation/reload is complete. do something
+  }
+});
+```
+
 ## TabGroups
 
 ## webNavigation
@@ -1015,3 +1025,18 @@ chrome.webNavigation.onBeforeNavigate.addListener(({ url, tabId }) => {
 ```
 
 ## Windows
+
+- `chrome.windows.create(options)` : an async function that creates a window given some options, which have the following keys: 
+	- `url?` : the array of urls to open as tabs in the new window
+
+```ts
+export default class Windows {
+  static async createBasicWindow(urls?: string[]) {
+    return await chrome.windows.create({
+      url: urls,
+      focused: true,
+      state: "fullscreen",
+    });
+  }
+}
+```

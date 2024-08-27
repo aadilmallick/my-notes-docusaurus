@@ -77,11 +77,10 @@ function usePrefersReducedMotion() {
 
 ### Button Background Swipe
 
+
 These animations involve using the `::before` psuedoselector to create an element that will slide over the button on hover.
 
 We variate how the overlay is shaped, and where it spawns.
-
-#### Normal
 
 1. Set `overflow: hidden` : this is essential to hide the before psuedoelement that we translate out of view with `transform: translateX(-100%)`
 2. Create psuedoelement: Create this pseudelement that is the same size as the button, and translate it out of view
@@ -89,7 +88,6 @@ We variate how the overlay is shaped, and where it spawns.
 **On Hover:**
 
 Create transition for `transform` and `color` properties
-
 - Translate psuedoelement back into view with `transform: translateX(0)`
 - Change text color of button
 
@@ -141,8 +139,6 @@ $button-text-color: white;
 }
 ```
 
-#### From center
-
 The important thing from when creating a bg swipe from center is to realize that we must horizontally center the psuedoelement and change transform origin.
 
 1. Center Element: this can be achieved by setting `left: 50%` and then keeping the `transform: translateX(-50%)`property. This will center the psuedoelement
@@ -165,8 +161,6 @@ Then we simply transition over the horizontal scale, from `scaleX(0)` to `scaleX
 }
 ```
 
-#### Skew from center
-
 Same exact idea as center but we also `skewX(-30deg)` for an even cooler animation.
 
 ```scss
@@ -185,8 +179,244 @@ Same exact idea as center but we also `skewX(-30deg)` for an even cooler animati
 }
 ```
 
-### Button Scroll
 
+### Border Gradients
+
+Using pseudoelements and a conic gradient, we can animate the border gradient going around an element by animating the angle of a conic gradient. 
+#### Basic glow
+
+1. Create a container element that has `position: relative` since we need that to absolutely position the pseudoelements.
+2. Create pseudoelements using `::before` and `::after` that are the same size as the container, add some padding so that they are slightly bigger, move them behind the container, and then center them on the container so they form a halo.
+```css
+.card::after, .card::before{
+  content: '';
+  /* 1. Make same size and center */
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  /* 2. Move behind container */
+  z-index: -1;
+  /* 3. Add padding to make bigger than container and poke out from behind */
+  padding: 3px;
+  border-radius: 10px;
+}
+```
+3. Apply a conic gradient on both pseudoelements. 
+```css
+.card::after, .card::before{
+  background-image: conic-gradient(from 0deg, #ff4545, #ff0095, #ff4545);
+}
+```
+4. On one of the pseudoelements, add a blur filter so that it produces more of a glow effect.
+```css
+.card::before{
+  filter: blur(1.5rem);
+  opacity: 1; /* decrease opacity if you want to reduce glow */
+}
+```
+
+```css
+/* 1. relative positioned container */
+.card{
+  margin: 0 auto;
+  padding: 2em;
+  width: 300px;
+  background: #1c1f2b;
+  text-align: center;
+  border-radius: 10px;
+  position: relative;
+}
+
+.card::after, .card::before{
+  content: '';
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-image: conic-gradient(from 0deg, #ff4545, #00ff99, #006aff, #ff0095, #ff4545);
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: -1;
+  padding: 3px;
+  border-radius: 10px;
+  animation: 3s spin linear infinite;
+}
+
+.card::before{
+  filter: blur(1.5rem);
+  opacity: 1; /* decrease opacity if you want to reduce glow */
+}
+```
+
+
+> [!NOTE] Color Stop Tip
+> The last color in the color stop should always be the same the same as the first color in order to ensure a smooth transition.
+
+#### Animating normally
+
+To animate the border going around the container, we need to animate the angle of the conic gradient. You might think to do this by animating a CSS variable, which you can do only through JavaScript, but a native CSS way of doing it is using the `@property` syntax.
+
+1. Declare that you want to create an animatable CSS property named `--angle`
+```css
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+```
+2. Use that degree as the starting angle in the conic gradient
+```css
+.card::after,
+.card::before {
+  background-image: conic-gradient(
+    from var(--angle),
+    #ff4545,
+    #00ff99,
+    #006aff,
+    #ff0095,
+    #ff4545
+  );
+}
+```
+3. Create a keyframes animation that animates the animatable property and apply that animation on the pseudoelements
+```css
+@keyframes spin {
+  from {
+    --angle: 0deg;
+  }
+  to {
+    --angle: 360deg;
+  }
+}
+
+.card::after,
+.card::before {
+  animation: 3s spin linear infinite;
+  background-image: conic-gradient(
+    from var(--angle),
+    #ff4545,
+    #00ff99,
+    #006aff,
+    #ff0095,
+    #ff4545
+  );
+}
+```
+
+```css
+.card {
+  margin: 0 auto;
+  padding: 2em;
+  width: 300px;
+  background: #1c1f2b;
+  text-align: center;
+  border-radius: 0.5rem;
+  position: relative;
+  transition: 0.3s background-color;
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.card::after,
+.card::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-image: conic-gradient(
+    from var(--angle),
+    #ff4545,
+    #00ff99,
+    #006aff,
+    #ff0095,
+    #ff4545
+  );
+
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.25rem;
+  z-index: -1;
+  border-radius: 0.5rem;
+  animation: 3s spin linear infinite;
+}
+.card::before {
+  filter: blur(1.5rem);
+  opacity: 0.5;
+}
+@keyframes spin {
+  from {
+    --angle: 0deg;
+  }
+  to {
+    --angle: 360deg;
+  }
+}
+```
+
+#### Animating with transparency
+
+For the illusion of a ray racing around the button, we can add the `transparent` color to the conic gradient and play around with color stops. 
+
+```ts
+  background-image: conic-gradient(
+    from var(--angle),
+    transparent 70%,
+    blue,
+    transparent
+  );
+```
+
+#### Full Solution
+
+Here is a pure CSS Solution, where we use the experimental `@property` syntax to animate CSS Variables since you can't do that by default.
+
+```css
+.card{
+  position: relative;
+}
+
+/* for animating CSS variables */
+@property --angle{
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.card::after, .card::before{
+  content: '';
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  z-index: -1;
+  padding: 3px;
+  background-image: conic-gradient(from var(--angle), #ff4545, #00ff99, #006aff, #ff0095, #ff4545);
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  border-radius: 10px;
+  animation: 3s spin linear infinite;
+}
+.card::before{
+  filter: blur(1.5rem);
+  opacity: 0.5;
+}
+@keyframes spin{
+  from{
+    --angle: 0deg;
+  }
+  to{
+    --angle: 360deg;
+  }
+}
+```
 ### Image Animations
 
 All of these image animation require an image container. What all of these effects have in common is setting `overflow: hidden` and animating opacity or transform.
@@ -253,7 +483,7 @@ We set overflow to hidden on image container, and on hover, we scale the image n
 }
 ```
 
-#### Image Tinit
+#### Image Tint
 
 1. Add a background color to the image container
 2. On hover, reduce image opacity so some the background color bleeds on top of image, creating tint effect.

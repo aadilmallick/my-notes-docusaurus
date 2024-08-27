@@ -157,3 +157,98 @@ export class CustomEventManager<T = any> extends EventTarget {
   }
 }
 ```
+
+
+## DOM APIs
+
+### Fullscreen
+
+An element can become fullscreen by doing the `element.requestFullscreen()` method every DOM element has
+
+You can get the current element in fullscreen with `document.fullscreenElement` , which returns that element
+
+You can exit fullscreen with `document.exitFullscreen()` method
+
+You can listen for changes by listening to the `"fullscreenchange"` event on the document, like so: 
+
+```jsx
+document.addEventListener("fullscreenchange", (e) => {
+
+})
+```
+
+### Picture in Picture
+
+The picture-in-picture API is a simple API that allows you to put any HTML video DOM element in picture in picture mode. 
+
+- `document.pictureInPictureElement` : returns the current element in your page that is in picture-in-picture mode. `null` if nothing.
+- `document.exitPictureInPicture()` : makes whatever video is playing picture in picture to exit it.
+- `videoEl.requestPictureInPicture()` : makes any video element play picture in picture.
+
+```jsx
+document.getElementById("btnPiP").addEventListener("click", (event) => {
+  // if we currently have a video playing in picture-in-picture, exit picture-in-picture
+  if (document.pictureInPictureElement) {
+    document.exitPictureInPicture();
+  } else {
+    // otherwise, let's request picture-in-picture
+    document.querySelector("video").requestPictureInPicture();
+  }
+});
+```
+
+There are also two events on the `<video>` element you can listen for concerning picture-in-picture events:
+
+- `enterpictureinpicture` : video enters pip mode
+- `leavepictureinpicture` : video exits pip mode
+
+### ResizeObserver
+
+The window resize event is slow and costly, while the `ResizeObserver` class lets you observe resizing on any element and is more performant. 
+
+Here is how to do it: 
+
+```jsx
+// 1. create an observer
+const observer = new ResizeObserver((entries) => {
+	entries.forEach(entry => {
+		const target = entry.target
+		const [box] = entry.borderBoxSize
+		if (box.blockSize < 150 && box.inlineSize < 150) {
+			// do something
+		}
+	})
+})
+
+// 2. observe elements
+observer.observe(document.querySelector(".rect"))
+```
+
+- `entries` : an array of entries
+- `entry.target` : the element being resized
+- `entry.borderBoxSize` : a one-element array that represents the element’s new dimensions. A single object from this array has these properties:
+    - `box.blockSize` : the vertical size in pixels of the element
+    - `box.inlineSize` : the horizontal size in pixels of the element
+
+### MutationObserver
+## DOM Tips
+
+### Waiting for page to load
+
+To prevent a flash of unstyled content, we can use the code below. Just follow these steps: 
+
+1. Set inline style of `visiblity: hidden` on the `body` tag.
+2. Use the code below to set up a dom loaded event listener and change the visiblity back to visible once ready.
+
+```ts
+let domReady = (cb: () => void) => {
+  document.readyState === "interactive" || document.readyState === "complete"
+    ? cb()
+    : document.addEventListener("DOMContentLoaded", cb);
+};
+
+domReady(() => {
+  // Display body when DOM is loaded
+  document.body.style.visibility = "visible";
+});
+```
