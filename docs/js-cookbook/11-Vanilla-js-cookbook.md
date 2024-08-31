@@ -367,6 +367,98 @@ textAnimationElements.forEach((element) => {
 
 
 ## Custom Classes
+
+### Image resizer class
+
+This class uses canvas to draw an image file, resize the canvas (effectively resizing the image), and then convert it to a blob so the newly resized image can be downloaded. 
+
+```ts
+export default class ImageResizer {
+  static resize(image: File, ratio: number): Promise<Blob | null> {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+
+      // Read the file
+      reader.readAsDataURL(image);
+
+      // Manage the `load` event
+      reader.addEventListener("load", function (e) {
+        // Create new image element
+        const ele = new Image();
+        ele.addEventListener("load", function () {
+          // Create new canvas
+          const canvas = document.createElement("canvas");
+
+          // Draw the image that is scaled to `ratio`
+          const context = canvas.getContext("2d")!;
+          const w = ele.width * ratio;
+          const h = ele.height * ratio;
+          canvas.width = w;
+          canvas.height = h;
+          context.drawImage(ele, 0, 0, w, h);
+
+          // Get the data of resized image
+          canvas.toBlob((blob) => {
+            resolve(blob);
+          }, image.type);
+        });
+
+        // Set the source
+        ele.src = e.target!.result as string;
+      });
+
+      reader.addEventListener("error", function (e) {
+        reject();
+      });
+    });
+  }
+
+  static downloadBlob(blob: Blob, name: string) {
+    // 1. create blob url
+    const blobUrl = URL.createObjectURL(blob);
+
+    // 2. create a download link and automatically click it
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.setAttribute("download", name);
+    link.click();
+
+	// 3. prevent memory leaks
+    URL.revokeObjectURL(blobUrl);
+  }
+
+  static async resizeAndDownload(image: File, ratio: number, name?: string) {
+    try {
+      const blob = await ImageResizer.resize(image, ratio);
+      if (!blob) {
+        throw new Error("Failed to resize the image");
+      }
+      ImageResizer.downloadBlob(blob, name || `resized-${image.name}`);
+      return { success: true };
+    } catch (e) {
+      return { success: false };
+    }
+  }
+}
+```
+
+Then you can use it like so with some file input: 
+
+```ts
+const resizeFileInput = document.getElementById("upload") as HTMLInputElement;
+
+resizeFileInput.addEventListener("change", async (e) => {
+  const input = e.currentTarget as unknown as {
+    files: FileList;
+  };
+  const image = input.files?.[0];
+
+  const { success } = await ImageResizer.resizeAndDownload(image!, 0.5);
+  if (!success) {
+    alert("Failed to resize the image");
+  }
+});
+```
 ### Toast class
 
 ### Page Loader class
@@ -1004,7 +1096,211 @@ const thing = usersTable
 console.log(thing); 
 ```
 
+
+### Gradient card hover overlay class
+
+Read this [frontend masters article](https://frontendmasters.com/blog/glowing-hover-effect/) for more info on how to achieve this effect.
+
+Here is what the basic HTML structure looks like: 
+
+```html
+<main id="main" class="overlay-container">
+  <div class="card">
+	<h2>Lorem ipsum dolor sit.</h2>
+	<p>
+	  Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit
+	  nobis veniam sit sint est temporibus eligendi neque ducimus doloribus
+	  facere doloremque, vel accusamus, eos ab iste. Eveniet atque alias
+	  consequatur.
+	</p>
+  </div>
+</main>
+```
+
+And here is what the CSS looks like: 
+
+```css
+/* overlay container must have position relative */
+.overlay-container {
+  position: relative;
+  max-width: 400px;
+}
+
+/* overlay container must have position absolute and cover entire container */
+.overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.overlay > * {
+  background: linear-gradient(
+    45deg,
+    hsl(0, 100%, 50%),
+    hsl(60, 100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  );
+  border-color: white;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+
+  /* visual only, don't steal clicks or interactions */
+  pointer-events: none;
+  user-select: none;
+
+  /* JavaScript will make this visible. This ensures progressive enhancement */
+  opacity: var(--opacity, 0);
+
+  -webkit-mask: radial-gradient(
+    25rem 25rem at var(--x) var(--y),
+    #000 1%,
+    transparent 50%
+  );
+  mask: radial-gradient(
+    25rem 25rem at var(--x) var(--y),
+    #000 1%,
+    transparent 50%
+  );
+
+  /* smooooooth */
+  transition: 400ms mask ease;
+  will-change: mask;
+}
+```
+
+```ts
+class CSSVariablesManager<T = Record<string, string>> {
+  constructor(private element: HTMLElement) {}
+
+  private formatName(name: string) {
+    if (name.startsWith("--")) {
+      return name;
+    }
+    return `--${name}`;
+  }
+
+  set(name: keyof T, value: string) {
+    this.element.style.setProperty(this.formatName(name as string), value);
+  }
+
+  get(name: keyof T) {
+    return this.element.style.getPropertyValue(this.formatName(name as string));
+  }
+}
+
+class CardGradientHoverCreator {
+  private overlay: HTMLElement;
+  private overlayVariablesManager: CSSVariablesManager<{
+    opacity: number;
+    x: number;
+    y: number;
+  }>;
+  private listener?: (e: MouseEvent) => void;
+  constructor(private element: HTMLElement, private fps: "60" | "30" = "30") {
+    const cloneText = this.element.innerHTML;
+    this.overlay = this.createDomElement(`
+      <div class="overlay" aria-hidden="true">
+      ${cloneText}
+      </div>
+      `);
+    this.element.insertAdjacentElement("beforeend", this.overlay);
+    this.overlayVariablesManager = new CSSVariablesManager<{
+      opacity: number;
+      x: number;
+      y: number;
+    }>(this.overlay);
+
+    this.initListener();
+  }
+
+  initListener() {
+    const throttledMouseMove = throttle(
+      this.onOverlayHover.bind(this),
+      1000 / +this.fps
+    );
+    if (this.listener) {
+      this.removeListener();
+    }
+    document.addEventListener("mousemove", throttledMouseMove);
+  }
+
+  removeListener() {
+    if (this.listener) {
+      document.removeEventListener("mousemove", this.listener);
+      this.listener = undefined;
+    }
+  }
+
+  private onOverlayHover = (e: MouseEvent) => {
+    const overlayEl = e.currentTarget as HTMLDivElement;
+    const x = e.clientX - this.element.offsetLeft;
+    const y = e.clientY - this.element.offsetTop;
+    const threshold = 5;
+    if (
+      x > this.element.offsetWidth - threshold ||
+      y > this.element.offsetHeight - threshold ||
+      x < threshold ||
+      y < threshold
+    ) {
+      this.overlayVariablesManager.set("opacity", "0");
+      return;
+    }
+    this.overlayVariablesManager.set("x", `${x}px`);
+    this.overlayVariablesManager.set("y", `${y}px`);
+    this.overlayVariablesManager.set("opacity", "1");
+  };
+
+  private createDomElement(html: string) {
+    const dom = new DOMParser().parseFromString(html, "text/html");
+    return dom.body.firstElementChild as HTMLElement;
+  }
+}
+
+function throttle<T extends (...args: any[]) => void>(
+  fn: T,
+  wait: number = 300
+) {
+  let inThrottle: boolean,
+    lastFn: ReturnType<typeof setTimeout>,
+    lastTime: number;
+  return function (this: any, ...args: any[]) {
+    const context = this;
+    if (!inThrottle) {
+      fn.apply(context, args);
+      lastTime = Date.now();
+      inThrottle = true;
+    } else {
+      clearTimeout(lastFn);
+      lastFn = setTimeout(() => {
+        if (Date.now() - lastTime >= wait) {
+          fn.apply(context, args);
+          lastTime = Date.now();
+        }
+      }, Math.max(wait - (Date.now() - lastTime), 0));
+    }
+  } as T;
+}
+
+const main = document.getElementById("main") as HTMLElement;
+const thing = new CardGradientHoverCreator(main);
+```
 ## One-liners
+
+### Formatting file size
+
+```ts
+const formatFileSize = function (bytes) {
+    const sufixes = ['B', 'kB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sufixes[i]}`;
+};
+```
 
 ### Formatting numbers as currency
 

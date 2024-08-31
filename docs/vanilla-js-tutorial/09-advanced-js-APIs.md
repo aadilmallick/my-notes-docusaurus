@@ -109,6 +109,10 @@ new Notification("title", options);
 - `data`: An object you set as a pyload of data to pass along with the notification
 
 ```javascript
+if (Notification.permission === "granted") { 
+	// permission was already granted to display notification 
+}
+
 async function displayNotification() {
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
@@ -275,6 +279,56 @@ setTimeout(() => {
 ```
 
 ## Fetch
+
+### Request and Response
+
+A basic `Request` is created like so: 
+
+```jsx
+const req = new Request(url, options)
+```
+
+Here are the important options you can pass in: 
+- `method` : the HTTP verb to use
+- `body` : the request body, working only for non-GET requests.
+- `headers` : any request headers
+- `mode` : controls the CORS behavior of your requests. Here are the different values you can provide:
+    - `"same-origin"` : only allows requests to the same origin, meaning you can only make local requests to your own app.
+    - `'cors"` : allow CORS requests. The default when you create a `Request()` with a header
+- `cache` : controls the cache behavior. Here are the different values you can provide
+    - `"default"` : default caching behavior, where if data is fresh, return from cache, and if data is stale, make a network request
+    - `"no-store"` : **Network first.** never use caching. Always do network requests
+    - `"reload"` : **Network first.** Serve network requests, but update cache each time so you can use it as fallback data in case of no internet.
+    - `"no-cache"` : **Network first.** always make network request, and only return from cache if network request and cached data are the same.
+    - `"force-cache"` : **Cache first.** always return from cache, and if there is nothing in the cache, make network request and add it to the cache.
+
+```jsx
+const request = new Request('https://api.example.com/data', {
+  method: 'GET',
+  headers: new Headers({
+    'Authorization': 'Bearer yourToken',
+  }),
+  body: JSON.stringify({ key: 'value' }), 
+});
+```
+
+Here are some useful properties of a request object: 
+
+- `request.m**ethod**`: The HTTP method for the request (e.g., GET, POST, PUT).
+- `request.u**rl**`: The URL of the request.
+- `request.h**eaders**`: An object representing the headers of the request.
+- `request.destination` : returns the content type of the data you are requesting, like `"audio"` , `"video"`, `"document"`, `"image"` and more.
+
+**response**
+
+Here are some useful things on the `Response` object: 
+
+- **`status`**: The HTTP status code of the response (e.g., 200 for a successful request).
+- **`headers`**: An object representing the headers of the response.
+- **`text()`**: A method to read the response body as text.
+- **`json()`**: A method to parse the response body as JSON.
+- **`blob()`**: A method to get the response body as a Blob.
+- **`clone()`**: A method to clone the response, allowing it to be used in multiple places.
 
 ### Fetch with Headers
 
@@ -689,27 +743,23 @@ const add = new Proxy((a, b) => a + b, handler);
 add(1, 2); // outputs "Function add called with args: [1,2]"
 ```
 
-Here is a class I made:
+Here is a function I made:
 
 ```typescript
-class ReactiveFunction {
-  static createFunction<T extends CallableFunction>(
-    func: T,
-    onCall: (argsList: any[]) => void
-  ) {
-    const proxy = new Proxy(func, {
-      apply(targetFunc, thisArg, argArray) {
-        // run the onCall function as prehook
-        onCall(argArray);
-        // necessary to return the function call
-        return Reflect.apply(targetFunc, thisArg, argArray);
-      },
-    });
-    return proxy;
-  }
+export function createReactiveFunction<T extends CallableFunction>(
+  func: T,
+  onCall: (argsList: any[]) => void
+) {
+  const proxy = new Proxy(func, {
+    apply(targetFunc, thisArg, argArray) {
+      onCall(argArray);
+      return Reflect.apply(targetFunc, thisArg, argArray);
+    },
+  });
+  return proxy;
 }
 
-const multiply = ReactiveFunction.createFunction(
+const multiply = createReactiveFunction(
   (a: number, b: number) => a * b,
   (args) => {
     console.log("here are my args", args);
@@ -1207,3 +1257,55 @@ export const App = () => {
   return <content-script-ui>App</content-script-ui>;
 };
 ```
+
+### Web components with Lit
+
+Lit is a 5kb framework meant to make working with web components easier. Here is a basic component example: 
+
+```ts
+import {LitElement, html} from 'lit';
+import {customElement, property} from 'lit/decorators.js';
+
+@customElement('name-tag')
+export class NameTag extends LitElement {
+
+	static styles = css`
+	  .completed {
+	    text-decoration-line: line-through;
+	    color: #777;
+	  }
+	`;
+	
+  @property()
+  name: string = 'Your name here';
+
+  render() {
+    return html`
+      <p>Hello, ${this.name}</p>
+      <input @input=${this.changeName} placeholder="Enter your name">
+      <button @click=${this.handleClick}>Click me</button>
+    `;
+  }
+  
+  handleClick(event: Event) {
+    alert("hello")
+  }
+
+  changeName(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.name = input.value;
+  }
+}
+```
+
+Let's go through the syntax one by one: 
+
+- `@customElement('name-tag')`: gives the custom element a name and registers it using this custom lit decorator.
+- `@property()`: whatever class properties are decorated with the `@property` decorator are reactive state, and whenever they change, the component will re-render.
+- `render() {}`: the function to render HTML
+- `static styles`: a static property you define to create shadow-DOM scoped styles for the element.
+
+Here are the rules all lit components must follow: 
+1. They must extend from the `LitElement` class
+2. They must have a `@customElement('name-tag')` decorator
+3. They must override the `render()` method that returns some HTML

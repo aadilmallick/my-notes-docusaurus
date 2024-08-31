@@ -1,9 +1,5 @@
 # Resources
 
-Here is a list of amazing resources.
-
-Also a cool markdown tip is here
-
 ## Javascript
 
 **Typescript**
@@ -64,6 +60,7 @@ These are my references:
 - https://scrollbar.app/ : CSS scrollbar styling
 - https://uiverse.io/loaders : CSS loader generators
 - https://cssfx.netlify.app/ : free CSS animations and effects
+- https://cubic-bezier.com/#.17,.67,.83,.67: CSS Cubic Bezier Tool
 
 ### **SVG generator tools**
 

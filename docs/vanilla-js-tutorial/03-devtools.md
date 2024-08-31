@@ -1,6 +1,6 @@
 # 03: Devtools
 
-[more info](https://github.com/aadilmallick/30-days-of-javascript/blob/main/09%20-%20Dev%20Tools%20Domination/README.md)
+[devtool tips](https://devtoolstips.org/)
 
 ## 21 tips
 
@@ -20,7 +20,23 @@
 7. **live expressions**: Use live expressions to keep track of a variable across the lifetime of a page. Click on the eye icon in the top to create a new live expression. 
 	- ![](https://www.webpagescreenshot.info/image-url/yQjT7dxu2)
 
+### Taking high quality screenshots
 
+1. In DevTools, click the **Toggle device toolbar** icon (`Cmd+Shift+M` or `Ctrl+Shift+M`) to enter the responsive design mode.
+2. In the device toolbar, click **More options** (`⋮`) > **Add device pixel ratio**. In the action bar at the top of the viewport, select a DPR value from the new DPR drop-down menu. Default is 2, but you can bump it upto 3!
+3. Click **More options** > select **Capture screenshot** for viewport or **Capture full size screenshot** for the entire page.
+
+By putting devtools in device mode and then increasing the device pixel ratio, you can take super high quality screenshots. 
+
+![devtools image](https://www.webpagescreenshot.info/image-url/oUNn0LU7t)
+
+
+## Firefox devtools
+
+### Taking screenshots
+
+1. Open the **Console** panel, run the command `:screenshot --dpr 3` to take a high definition screenshot of the page with the device pixel ratio set to 3.
+2. To capture a full page screenshot, just add `--fullpage` to the end and `--screenshot .header` to capture a screenshot of a node that can be identified by a selector.
 ## Console logs
 
 ### Logging in NodeJS

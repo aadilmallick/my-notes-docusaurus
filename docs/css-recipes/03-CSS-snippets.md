@@ -307,6 +307,50 @@ h1 {
 }
 ```
 
+#### Animated gradient Text
+
+We can animate the background position property to make our gradient move through the text: 
+
+```css
+.animated-text-gradient {
+  --color-one: hsl(15 90% 55%);
+  --color-two: hsl(40 95% 55%);
+  --bg-size: 400%;
+
+  background: linear-gradient(
+      90deg,
+      var(--color-one),
+      var(--color-two),
+      var(--color-one)
+    )
+    0 0 / 100% 100%;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: move-bg 8s infinite linear;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animated-text-gradient {
+    animation: move-bg 8s linear infinite;
+  }
+  @keyframes move-bg {
+    to {
+      background-position: var(--bg-size) 0;
+    }
+  }
+}
+
+@keyframes move-bg {
+  to {
+    background-position: var(--bg-size) 0;
+  }
+}
+```
+
+```html
+<h1 class="animated-text-gradient">Hello World</h1>
+```
 ### Changing Selection Color
 
 The below ode changes the selection color of text.  Use the `::selection` pseudoelement to style this

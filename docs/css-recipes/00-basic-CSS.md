@@ -2,6 +2,23 @@
 
 ## The basics you might not know
 
+### CSS Variables
+
+CSS variables cascade down like any other property, meaning all children have access to the same CSS variables their parent has set on it.
+
+When referencing the value of a CSS variable using `var()`, you can also provide a default value if the variable doesn't exist, like `var(--name, #ff0000)`.
+
+```css
+:root {
+  --light-gray: #ccc;
+}
+
+p {
+  color: var(--light-grey, #f0f0f0); /* No --light-grey, so #f0f0f0 is 
+  used as a fallback value */
+}
+```
+
 ### Emmet Crash Course
 
 Here is how to use emmet to quickly scaffold out HTML:
@@ -9,8 +26,16 @@ Here is how to use emmet to quickly scaffold out HTML:
 - `h1.className` : the `class` attribute shortcut. Creates `h1` tag with the specified class.
 - `>` : create child operator.
 - `+` : adjacent element operator
+- `$`: autoincrement, like 1,2,3 ...
 - `h1*8` : creates 8 `<h1>` tags.
 - `h1{someText}` : creates an `<h1>` tag and populates it with the provided text.
+
+And here are some examples: 
+
+- `ul>li`: creates an `<ul>` element with a child `<li>`
+- `ul>li*3`: creates an `<ul>` element with three children `<li>`
+- `ul>li{item$}*3`: creates an `<ul>` element with three children `<li>`, with text "item1", "item2", "item3".
+- `main>aside+nav`: creates a `<main>` element with an `<aside>` and `<nav>` as children.
 
 ### Images
 
@@ -69,6 +94,196 @@ In the example above, the resulting margin between the `<h1>` and `<h2>` is not 
 When using the keywords, they align the corners of the image with the corners of the container.
 
 A `background-position: top left` makes the top left corner of the image align with the top left corner of the container.
+
+
+### Z-index
+
+Z-index is dependent on stacking layers. If you have two containers, one with a `z-index: 2` and another like `z-index: 1`, all of the children of those containers are basically subject to that same stacking order. 
+
+Even if the container with `z-index: 1` has a child with `z-index: 9999`, it will not rise above the container with `z-index: 2` because it effectively has a max z-index = 1. This is the concept known as a **stacking context**.
+
+
+> [!NOTE] Obeying the stacking context
+> All children have the effective max z-index of their container, if it has a z-index. **z-index values are not global.**
+
+Any element container with a `z-index` set on it creates a stacking context that all of its children now obey. For any children, setting a high `z-index` only helps them rise above other children of the container. 
+
+This is how you can set a stacking context (just set non-static position and z-index):
+
+```css
+.some-element {
+  position: relative;
+  z-index: 1;
+}
+```
+
+To avoid stacking context issues, don't use z-indexes. By default, all elements in the document are in the same stacking context. 
+
+### blend modes
+
+[Blend Modes  |  web.dev](https://web.dev/learn/css/blend-modes?continue=https://web.dev/learn/css#article-https://web.dev/learn/css/blend-modes)
+
+`mix-blend-mode` applies blending to the whole element while `background-blend-mode` applies blending only to the background of an element, not affecting inner content. 
+
+Here are some values you can set for the blend modes:
+
+- `multiply` : lights get lighter, darks get darker. Results in darker image
+- `screen` : Results in lighter image
+- `overlay` : a mix between multiply and screen
+- `darken`: selects the darker of the multiple color for the luminosity color value of the resulting color.
+
+**background blend mode**
+
+The `background-blend-mode` property mixes together all the backgrounds of an element together in a way that you specify.
+
+The best use case for `background-blend-mode` is when you have both a `background-image` and a `background-color` set on the same element, and then you can blend them together for the color to bleed into the image.
+
+You can provide multiple background images to the `background` property, and you can blend them together with the `background-blend-mode` property. 
+
+```css
+body {
+    background-image: url('https://imgur.com/Fn9FQwT.jpg'), url('https://imgur.com/VfcgZZ9.jpg');
+  background-size: cover;
+  background-blend-mode: difference;
+}
+```
+### The `image-set()` function
+
+The `image-set()` function allows you to provide different versions of an image for different device resolutions. This can be useful if you want to use a higher resolution image for devices with high pixel densities, such as smartphones and tablets, while using a lower resolution image for devices with lower pixel densities.
+
+Here’s an example of how to use the `image-set()` function in a `background-image` declaration:
+
+```css
+body {
+  background-image: image-set(
+    '/path/to/image-lowres.jpg' 1x,
+    '/path/to/image-highres.jpg' 2x
+  );
+}
+```
+
+The `image-set()` function takes a series of image URLs and resolutions as arguments.
+
+In this example, we’re providing two versions of the same image: a low-resolution version for devices with a pixel density of `1x`, and a high-resolution version for devices with a pixel density of `2x`. The browser will choose the appropriate version of the image based on the device’s pixel density.
+
+### Filters
+
+The `filter` property applies filter functions to the selected elements. The `backdrop-filter` property applies filter functions only to the background of the element, so any text and inner content is unaffected. 
+
+- The `blur()` filter blurs an element
+    ```scss
+    .my-element {
+    	filter: blur(0.25rem);
+    }
+    ```
+    
+- The `brightness()` filter increases or decreases brightness
+    - Use values below `100%` to decrease brightness, and above to increase brightness
+    ```scss
+    .my-element {
+    	filter: brightness(80%); // set brightness to 80%
+    }
+    ```
+    
+- The `invert()` filter inverts the colors
+    ```scss
+    .my-element {
+    	filter: invert(1); // invert colors
+    }
+    ```
+    
+- The `opacity()` filter changes the opacity of the image
+    ```scss
+    .my-element {
+    	filter: opacity(0.3);
+    }
+    ```
+#### Drop shadow
+
+[codepen embed](https://codepen.io/web-dot-dev/pen/YzNrwae)
+
+When we want to add shadows to transparent images and have the shadow appear on the subject of photo rather than the container, we can use the `drop-shadow()` CSS filter
+
+```scss
+.my-image {
+  filter: drop-shadow(0px 0px 10px rgba(0 0 0 / 30%))
+}
+```
+
+- Use `drop-shadow()` filter on transparent image pngs.
+
+
+
+### Transitions
+
+You can set transitions on the normal selector to act as **exit transitions** and also add transitions on the psuedoselector states like hover for **enter transitions:** 
+
+```scss
+.my-element {
+  background: red;
+
+  /* This transition is applied on the "exit" transition, when mouse leaves */
+  transition: background 2000ms ease-in;
+}
+
+.my-element:hover {
+  background: blue;
+
+  /* This transition is applied on the "enter" transition, when you mouse over */
+  transition: background 150ms ease;
+}
+```
+
+It’s important to remember you have to accomodate for users who don’t want animations: 
+
+```scss
+/*
+  If the user has expressed their preference for
+  reduced motion, then don't use transitions.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .my-element {
+    transition: none;
+  }
+}
+```
+
+
+### Text Orientation
+
+The `writing-mode` property changes the flow of text
+- `writing-mode: vertical-lr` : text is displayed vertically as if it were turned 90 degrees.
+
+The `text-orientation` property changes whether text is horizontal or vertical in conjunction with `writing-mode`
+- `text-orentation: mixed` : text is horizontal
+- `text-orientation: upright`: text is vertical
+
+This is what happens when you have these properties:
+
+```scss
+.text {
+	writing-mode: vertical-rl
+	text-orientation: mixed
+}
+```
+
+![Mixed text orientation example](https://www.webpagescreenshot.info/image-url/b5OuSsSds)
+
+```scss
+.text {
+	writing-mode: vertical-rl
+	text-orientation: upright
+}
+```
+
+![upright text orientation](https://www.webpagescreenshot.info/image-url/rET06aYqQ)
+
+
+
+
+
+
+
 
 ## Flexbox Tutorial
 
@@ -444,7 +659,7 @@ Dark mode is a simple technique that only requires a few steps. It involves sett
 
 - `max(val1, val2)` : returns the maximum value from the two passed in.
 
-### CSS Tips
+### Quick Tips
 
 1. You can animate the `display` property now
 2. Use the `:focus-visible` pseudo-selector when styling focus for text inputs in forms. It results so that the style only applies when the user uses the keyboard to focus on the input, which is what you always want.
@@ -484,15 +699,30 @@ input:focus-visible {
    - `resize: both`: resizes both vertically and horizontally.
 9. Use the `scroll-padding-top` and `scroll-margin-top` properties to add scroll padding to prevent content at the top of a page being hidden by a fixed navbar. Just set these values to the height of your navbar.
 10. You can force yourself to hold good accessibility standards by making sure you notice any images that don't have an `alt` tag.
-
 ```css
 img:not([alt]),
 img[alt=""] {
   outline: 8px solid red;
 }
 ```
-
-### Advanced Selectors
+11. Use the `text-wrap: balance` property to make sure that the text in headings wraps normally and does not stretch across the page. It offers a nicer look. 
+```css
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+```
+12. Remove animations for those who don't want it by providing these styles in the prefers-reduced-motion media query: 
+```css
+@media (prefers-reduced-motion) {
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    /* additional recommendation */
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+```
+## Advanced Selectors
 
 #### has, is, not
 
@@ -514,6 +744,11 @@ These advanced CSS psuedoselectors are functions that take in multiple selectors
 .content:has(> h2) {
   background: green;
 }
+
+/* styles all images without an alt attribute set */
+img:not([alt]) {
+	border: 10px solid red;
+}
 ```
 
 In the above example, the `.container` elements will be styled with a green background only if they have an `<h2>` element as one of their children.
@@ -526,6 +761,13 @@ You can even nest these selectors inside each other:
 }
 ```
 
+You can use the `::is` psuedoselector to provide a list of elements and selectors to match. This reduces the amount of code you have to write.
+
+```scss
+.post :is(h2, li, img) {
+	// styles here
+}
+```
 #### nth child
 
 ```css
