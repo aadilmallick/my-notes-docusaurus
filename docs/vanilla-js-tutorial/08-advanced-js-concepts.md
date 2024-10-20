@@ -545,7 +545,7 @@ function upperCase(str: string) {
 }
 
 // infers type from return type
-composeWithTypes(repeatTwice, upperCase)("hello");
+composeWithTypes(repeatTwice, upperCase)("hello"); // returns HELLOHELLO
 ```
 
 ### Currying
@@ -768,6 +768,224 @@ All the below methods take in an array of promises and return a single promise a
 - `Promise.race()`: Given an array of promises, this returns the first promise in the array that gets fulfilled. It doesn't matter whether it resolves or rejects. All the promises race against each other to finish, hence the name.
 - `Promise.any()`: Given an array of promises, this returns the first promise in the array that resolves successfully. If all the promises reject, then the promise returned by `Promise.any()` rejects.
 
+## Decorators
+
+Decorators in javascript work just like they do in Python. They are syntactic sugar around functions that return wrapper functions and add some extra reusable functionality. 
+
+```ts
+function asyncLogger(fn) {
+  return async function (...args) {
+    console.log('Starting async function...');
+    const result = await fn(...args);
+    console.log('Async function completed.');
+    return result;
+  };
+}
+
+@asyncLogger
+async function main() {
+  const data = await makeRequest('http://example.com/');
+  console.log(data);
+}
+```
+
+
+## Generators
+
+Generators in JS follow the same exact concept as in python, where you can iterate through a data structure without there being an actual data structure. 
+
+Generators are created with generator functions, in which you use the special `yield` keyword.
+
+The `yield` statement in a generator essentially returns a value and **pauses the execution** of the function, and only resumes execution once the programmer forces the generator to go to the next yield statement using the `generator.next()` method.
+
+### Basic generators
+
+```ts
+// 1. create generator function
+function* nums() {
+	try {
+		 yield 1; 
+		 yield 2; 
+		 yield 3;
+	}
+	catch(e) {
+		console.error("gaah i hate the number 2 my grandpa died yesterday")
+	}
+}
+
+// 2. get generator
+var generator = nums(); 
+
+// 3. call generator.next() to get next yielded element.
+const {value, done} = generator.next()
+console.log(`yielded value is ${value}, generator is done: ${done}`)
+
+// 4. you can use generator.throw() to throw an error
+generator.throw(new Error("idk bro"))
+```
+
+Create a generator function in JS using the `function*` syntax. Then you can use the yield keyword to yield values. 
+
+Calling the generator function returns a `generator` object, which has these methods: 
+
+- `generator.next()`: gets the value next yield statement in the generator function. This always returns an object with the `value` and `done` properties:
+	- `value`: the yielded value
+	- `done`: returns a **boolean** of whether or not the generator has any more yield statements. If it does, then `done` is false, otherwise it's `true`
+- `generator.return(value)`: ends generator iteration and returns an object like so: 
+	- `value`: the return value you passed in
+	- `done`: true, since you stopped execution
+- `generator.throw(err)`: allows you to throw a custom error which you can handle in the generator function. 
+
+Whenever iteration stops, meaning you have no more yield statements or you purposely stop execution early, the `generator.next()` method will always return `{value: undefined, done: true}`
+
+### Delegating to other generators
+
+You can essentially reuse other generators inside generator functions for more modular and reusable code: 
+
+```ts
+function* g1() {
+ yield 2;
+ yield 3;
+ yield 4;
+}
+
+function* g2() {
+ yield 1;
+ yield* g1();
+ yield 5;
+}
+
+var it = g2();
+console.log(it.next()); // 1
+console.log(it.next()); // 2
+console.log(it.next()); // 3
+console.log(it.next()); // 4
+console.log(it.next()); // 5
+console.log(it.next()); // undefined
+```
+
+By using the `yield* generatorFunction()` syntax, it's essentially like copy pasting all the other generator function's code into the current generator function's body. 
+
+### The full power of `yield*`
+
+More generally, the `yield*` keyword allows us to break each element in an iterable to multiple yield statements, like so:
+
+```ts
+const nums = [1, 2, 3]
+
+function* myguy() {
+    yield* nums;
+}
+
+for (let num of myguy()) {
+    console.log(num) 
+}
+```
+
+You can also use it to create recursive generators: 
+
+```ts
+function* nTimes(n) {
+  if (n> 0) {
+    yield* nTimes(n - 1);
+    yield n - 1;
+  }
+}
+```
+
+### Iterating over a generator
+
+The main use case of a generator is to iterate over large datasets (like numbers from 1-100000) without actually using the memory to store a data structure that large. 
+
+You can also use the spread `...` operator on a generator to spread out all its yield statements at once. 
+
+```ts
+function* range(n) {
+ for (let i = 0; i < n; ++i) {
+	 yield i;
+ }
+}
+// looping
+for (let n of range(10)) {
+ // n takes on the values 0, 1, ... 9
+}
+
+// spread operator
+let nums = [...range(3)]; // [0, 1, 2]
+let max = Math.max(...range(100)); // 99
+```
+
+
+### Async Iterators
+
+```ts
+/**
+ * Returns a promise which resolves after time had passed.
+ */
+const delay = time => new Promise(resolve => setTimeout(resolve, time));
+async function* delayedRange(max) {
+	 for (let i = 0; i < max; i++) {
+		 await delay(1000);
+		 yield i;
+	 }
+}
+
+// takes 10 seconds total
+for await (let number of delayedRange(10)) {
+ console.log(number);
+}
+```
+
+### Generator use cases
+
+#### Iterating over object keys
+
+```ts
+let o = {
+    x: 1, y: 2, z: 3,
+    // A generator that yields each of the keys of this object
+    *g() {
+        for(let key of Object.keys(this)) {
+            yield key;
+        }
+    }
+};
+console.log([...o.g()])
+```
+
+## Super weird performance tips
+
+### Don't create objects in loops
+
+Instead of creating objects, which is very expensive, just modify existing objects. 
+
+```ts
+a = {x:0,y:0}
+
+function createObj() {
+	return {x: 1, y: 1}
+}
+
+function modifyObj(a) {
+	a.x = 1;
+	a.y = 1;
+	return a
+}
+
+for(i = 0; i < 100; i ++){ // Loop 1 is slow
+ const slow = createObj();
+}
+
+for(i = 0; i < 100; i ++){ // Loop 2 is 500% faster than loop 1
+ const fast = modifyObj(a);
+}
+```
+
+### Don't create private methods
+
+True private methods in JS prefixed with a `#` are memory-inefficient because they don't get stored on the prototype. Instead, each object instance of a class will carry along a copy of that private method instead of being able to access it on the prototype. 
+
+The best of both worlds is to just use typescript private methods, which aren't really private. 
 ## SOLID principles
 
 ### Single responsibility principle
@@ -1191,3 +1409,89 @@ class Dog {
 ```
 
 Now you don't have to worry about allocating memory for the bark method on an object.
+
+### Mixin Pattern
+
+The mixin pattern is a way to add reusable custom logic to different objects/classes by adding methods and properties on their prototype. 
+
+I found out about a cool way to apply the mixin pattern and get type intellisense at the same time. Follow these steps: 
+
+1. Create a function that accepts a class as an argument,
+2. In the function, create a subclass that extends that class and adds whatever methods you want.
+3. Return an instance of that subclass.
+
+And voila, there's your mixin with type intellisense. 
+
+```ts
+function MoveMixin<T extends new (...args: any[]) => any> (superclass: T) {
+    class MixinClass extends superclass {
+        moveUp() {
+            console.log('move up');
+        }
+        moveDown() {
+            console.log('move down');
+        }
+        stop() {
+            console.log('stop! in the name of love!');
+        }
+    };
+    return MixinClass 
+}
+
+class Dog {
+    bark() {
+        console.log("woof woof")
+    }
+}
+
+const MovingDog = MoveMixin(Dog)
+const movingDog = new MovingDog()
+movingDog.bark()
+movingDog.moveUp()
+```
+
+You can even use mixins with static properties:
+
+```ts
+function FactoryMixin<T extends new (...args: any[]) => any>(superclass: T) {
+  class MixinClass extends superclass {
+    static instances: InstanceType<T>[] = [];
+
+    static addInstance(instance: InstanceType<T>) {
+      this.instances.push(instance);
+    }
+
+    static removeInstance(instance: InstanceType<T>) {
+      this.instances = this.instances.filter((i) => i !== instance);
+    }
+  }
+  return MixinClass;
+}
+
+class ResizeObserverModelTemp {
+  observer: ResizeObserver;
+
+  constructor(
+    private element: HTMLElement,
+    cb: (height: number, width: number, element: HTMLElement) => void
+  ) {
+    this.observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        const [box] = entry.borderBoxSize;
+        cb(box.blockSize, box.inlineSize, this.element);
+      });
+    });
+    this.observer.observe(this.element);
+  }
+}
+
+class ResizeObserverModel extends FactoryMixin(ResizeObserverModelTemp) {
+  constructor(
+    element: HTMLElement,
+    cb: (height: number, width: number, element: HTMLElement) => void
+  ) {
+    super(element, cb);
+    ResizeObserverModel.instances.push(this);
+  }
+}
+```

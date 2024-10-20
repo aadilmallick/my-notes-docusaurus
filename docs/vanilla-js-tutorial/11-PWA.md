@@ -914,6 +914,33 @@ navigator.serviceWorker.addEventListener("message", (event) => {
   console.log(event.data.msg, event.data.url);
 });
 ```
+
+#### Updating service workers
+
+It's necessary to master updating service workers because otherwise your cached content will always be stale and users will always see the stale version of your website. Follow these steps for a general updating process. 
+
+> [!WARNING] 
+> Even if you update your service worker, the cached assets will not be automatically updated. You have to manually update the cache. 
+
+1. In the service worker, whenever you update the version of the service worker, write code to invalidate the previous cache. 
+2. Listen for service worker installation on the frontend
+```ts
+async function detectSWUpdate() {
+  const registration = await navigator.serviceWorker.ready;
+
+  registration.addEventListener("updatefound", event => {
+    const newSW = registration.installing;
+    newSW.addEventListener("statechange", event => {
+      if (newSW.state == "installed") {
+         // New service worker is installed, but waiting activation
+      }
+    });
+  })
+}
+```
+3. Display a toast message telling a user that a new version of the app can be installed. Then when the user allows the new version to be installed, send a message to the service worker to update the cache and then reload the user's page. 
+
+We can also
 #### Developing with service workers
 
 You can see all your registered service workers at the `chrome://serviceworker-internals/` link.
@@ -1362,6 +1389,32 @@ To create a maskable icon with enough padding, go to the site below:
 
 [Maskable.app](https://maskable.app/)
 
+While the default `"icons"` key will work for all platforms, you can override the icons for IPhone and provide your own custom ones with these `<link>` tags.
+
+```html
+<link rel="apple-touch-icon" href="/icons/ios.png">
+```
+
+**180 x 180** is the recommended size for the IPhone icon. 
+
+#### Splash screen
+
+Splash screens on Android use basic values from the manifest to create a default splash screen:
+
+- `theme_color`: the color of the status bar
+- `background_color`: the background color of the splash screen
+
+Getting a splash screen to show up on Apple is an entirely different beast. You need to provide a `<meta>` and `<link>` tag, and the splash screen image you use must be EXACTLY the size of the phone screen. 
+
+```html
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-startup-image" href="splash.png">
+```
+
+This leads to over 20 different versions of these meta tags just to accommodate for all the different IPhone sizes, so instead use one of these two solutions: 
+
+- [PWCompat](https://github.com/GoogleChromeLabs/pwacompat): a library that automatically generates all splash screens and icons from manifest using JavaScript
+- [PWA Assets Generator](https://github.com/elegantapp/pwa-asset-generator): A CLI tool that generates all the different versions of the splash screens.  
 #### Shortcuts
 
 Shortcuts are a way to allow deep links into your app from a user friendly prompt. Define them like so, under the `"shortcuts"` key: 
@@ -1402,6 +1455,16 @@ Here are also some standard UX design tips for PWAs:
 - Don't use a big footer area like websites do for more links and information.
 - Use the `system-ui` font to make your content feel more native and load faster.
 
+#### Targeting displays 
+
+You can style different PWA experiences depending on their `"display_mode"` manifest key. Do it using media queries: 
+
+```css
+@media (display-mode: standalone) {
+	/* code for standalone PWAs here */
+}
+```
+
 #### Detecting whether user has installed app as PWA
 
 Below is some code for how to detect whether the user is using your PWA as a web app or if they installed it: 
@@ -1421,7 +1484,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
 Disable user text selection on UI elements like buttons by using the CSS property `user-select: none`
 
-#### Covering the IPhone notch
+```css
+.elements {
+	user-select: none;
+}
+```
+
+#### Covering the IPhone notch: SafeAreaView
 
 On phones with notches and safe areas like the iPhone 13, you need to request full screen access so that your content can show under the notch. This is how you do it in your HTML:
 

@@ -1302,7 +1302,9 @@ const formatFileSize = function (bytes) {
 };
 ```
 
-### Formatting numbers as currency
+### Formatting Tips
+
+#### Formatting currency
 
 ```ts
 const formatter = new Intl.NumberFormat('en-US', {
@@ -1314,6 +1316,31 @@ const formatter = new Intl.NumberFormat('en-US', {
 formatter.format(2345); // '$2,345.00'
 formatter.format('2345'); // '$2,345.00'
 formatter.format('10000000'); // '$10,000,000.00'
+```
+
+```ts
+const usCurrencyFormat = new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'})
+const esCurrencyFormat = new Intl.NumberFormat('es-ES', {style: 'currency', currency: 'EUR'})
+const usCurrency = usCurrencyFormat.format(100.10); // "$100.10"
+const esCurrency = esCurrencyFormat.format(100.10); // "100.10 €"
+```
+
+#### Formatting numbers with commas
+
+```ts
+const usNumberFormat = new Intl.NumberFormat('en-US');
+const esNumberFormat = new Intl.NumberFormat('es-ES');
+const usNumber = usNumberFormat.format(99999999.99); // "99,999,999.99"
+const esNumber = esNumberFormat.format(99999999.99); // "99.999.999,99"
+```
+
+#### Formatting dates
+
+```ts
+const usDateTimeFormatting = new Intl.DateTimeFormat('en-US');
+const esDateTimeFormatting = new Intl.DateTimeFormat('es-ES');
+const usDate = usDateTimeFormatting.format(new Date('2016-07-21')); // "7/21/2016"
+const esDate = esDateTimeFormatting.format(new Date('2016-07-21')); // "21/7/2016"
 ```
 
 ### Random Color

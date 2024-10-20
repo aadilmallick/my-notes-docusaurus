@@ -134,6 +134,10 @@ displayNotification();
   - `"denied"`: The user has denied permission.
   - `"default"`: The user has not yet made a decision.
 
+### Methods
+
+- `notification.close()`: closes the notification.
+
 ### Events
 
 We can listen for events that happen to the notification using the `addEventListener()` syntax:
@@ -312,12 +316,14 @@ const request = new Request('https://api.example.com/data', {
 });
 ```
 
-Here are some useful properties of a request object: 
+Here are some useful properties and methods of a request object: 
 
-- `request.m**ethod**`: The HTTP method for the request (e.g., GET, POST, PUT).
-- `request.u**rl**`: The URL of the request.
-- `request.h**eaders**`: An object representing the headers of the request.
+- `request.method`: The HTTP method for the request (e.g., GET, POST, PUT).
+- `request.url`: The URL of the request.
+- `request.headers`: An object representing the headers of the request.
 - `request.destination` : returns the content type of the data you are requesting, like `"audio"` , `"video"`, `"document"`, `"image"` and more.
+- `request.clone()`: clones the request and returns that request
+- `request.bodyUsed`: whether or not the response body was already read. If this is `true`, then attempting to clone the response with `response.clone()` will throw an error. 
 
 **response**
 
@@ -325,6 +331,7 @@ Here are some useful things on the `Response` object:
 
 - **`status`**: The HTTP status code of the response (e.g., 200 for a successful request).
 - **`headers`**: An object representing the headers of the response.
+- `bodyUsed`: whether or not the response body was already read. If this is `true`, then attempting to clone the response with `response.clone()` will throw an error. 
 - **`text()`**: A method to read the response body as text.
 - **`json()`**: A method to parse the response body as JSON.
 - **`blob()`**: A method to get the response body as a Blob.
@@ -350,6 +357,18 @@ fetch(url, {
 });
 ```
 
+
+### Aborting inflight fetch requests
+
+```ts
+let abortController = new AbortController();
+ 
+fetch('wikipedia.zip', { signal: abortController.signal })
+  .catch(() => console.log('aborted!'));
+ 
+// Abort the fetch after 10ms
+setTimeout(() => abortController.abort(), 10);
+```
 ## Other APIs
 
 ### Navigator share API
@@ -375,6 +394,18 @@ async function share() {
     files: [file],
   });
 }
+```
+
+Before you share with `navigator.share()`, you can see if content is shareable in the first place and prevent errors with `navigator.canShare()`: 
+
+```ts
+const data = {
+  title: 'Item 1',
+  text: 'This is the first item',
+  url: 'https://example.com/item1',
+};
+const canShare = navigator.canShare(data);
+canShare && navigator.share(data)
 ```
 
 ### Geolocation

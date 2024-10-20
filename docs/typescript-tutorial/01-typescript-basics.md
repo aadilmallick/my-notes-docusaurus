@@ -55,7 +55,88 @@ Outside of the compiler options, here are the different options you get access t
 - `exclude`: an array of glob patterns that match files to exclude from compilation. The default is `["node_modules", "bower_components", "jspm_packages"]`, which excludes all files in the `node_modules`, `bower_components`, and `jspm_packages` folders.
 - `files`: an array of files to include in compilation.
 
-## Namespaces
+## TS Theory
+
+### Structural vs nominal typing
+
+Typescript is **structurally typed** instead of being **nominally typed**, meaning that TS will treat two objects as the same even if they implement different interfaces or extend from different classes if they have the exact same properties and methods. 
+
+The code example below demonstrates the structurally typed behavior of TS:
+
+```ts
+class Zebra {
+  trot() {
+    // ...
+  }
+}
+
+class Poodle {
+  trot() {
+    // ...
+  }
+}
+
+function ambleAround(animal: Zebra) {
+  animal.trot()
+}
+
+let zebra = new Zebra()
+let poodle = new Poodle()
+
+ambleAround(zebra)   // OK
+ambleAround(poodle)  // OK
+```
+
+The `ambleAround()` function is only supposed to take in a Zebra, but instead we can pass in a Poodle instance because they both have the exact same structure. 
+
+> [!NOTE]
+> The only exception to this is with private and protected fields, since those live on the object itself instead of on the prototype. 
+
+
+### Temporal callback issue
+
+Let's look at the following code:
+
+```ts
+let count: number | null = 0;
+
+function doCount() {
+  if (count !== null) {
+    // typescript thinks count may be null here
+    [1, 2, 3].map((val) => count + val);
+  }
+}
+```
+
+Why does TypeScript think that the `count` variable may be null in the map callback, even when it's inside a type guard? The reason is because TypeScript assumes all callbacks can be asynchronous by default.
+
+Here is another example where this is a concern because of an async operation with `setTimeout()`:
+
+```ts
+let count: number | null = 0;
+
+if (count !== null) {
+  // valid point where count could actually be null, even though timeout gets executed
+  setTimeout(() => count + 1, 1000);
+}
+count = null;
+```
+
+So any time we're accessing a global variable inside of a callback, we need to make a local copy of it so that Typescript knows that it has a value.
+
+```ts
+let count: number | null = 0;
+
+if (count !== null) {
+  // make a local copy of count
+  let localCount = count;
+  setTimeout(() => localCount + 1, 1000);
+}
+count = null;
+```
+
+
+### Namespaces
 
 Namespaces are ways to keep your code clean and modularized and prevent global autocompletion for some type.
 
@@ -73,6 +154,27 @@ MyNamespace.doSomething(); // Output: "Doing something..."
 ```
 
 ### Declaration merging
+
+Declaration merging refers to how you can redeclare certain things like interfaces, and their type definitions will merge together to form some larger type rather than throwing an error. 
+
+For example, the below code will work, but if we had used the `Type` keyword instead, it would have thrown an error. 
+
+```ts
+// User has a single field, name
+interface User {
+  name: string
+}
+
+// User now has two fields, name and age
+interface User {
+  age: number
+}
+
+let a: User = {
+  name: 'Ashley',
+  age: 30
+}
+```
 
 Here is how we can augment namespaces, which is useful when we want to add methods and intellisense to some library:
 
@@ -379,17 +481,6 @@ const lion = createInstance(Lion);
 const tiger = createInstance(Tiger);
 ```
 
-## Recursive types
-
-we can have recursive types by using the type itself when defining the type.
-
-```ts
-type JSONObject = {
-  [key: string]: JSONValue | number | string;
-};
-type JSONArray = JSONObject[] | JSONValue[];
-type JSONValue = false | true | null | JSONObject | JSONArray | string | number;
-```
 
 ### Function overloads
 
@@ -415,6 +506,42 @@ function fn(x: string | number): string {
   }
 }
 ```
+
+You can also use a combination of types and arrow functions to have a more scalable approach:
+
+```ts
+// 1. create a type that has all the function overloads
+type FN = {
+    (x: string): string;
+    (x: number): string;
+}
+
+
+// 2. create a function of that type, and handle all the branching possibilities
+const fn : FN = (x : string | number) => {
+  if (typeof x === "string") {
+    return x;
+  } else {
+    return x.toString();
+  }
+}
+
+fn(12)
+fn("12")
+```
+
+## Recursive types
+
+we can have recursive types by using the type itself when defining the type.
+
+```ts
+type JSONObject = {
+  [key: string]: JSONValue | number | string;
+};
+type JSONArray = JSONObject[] | JSONValue[];
+type JSONValue = false | true | null | JSONObject | JSONArray | string | number;
+```
+
 
 ## Object types
 
@@ -647,47 +774,6 @@ function printFileOrDirectory(obj: FileSystemObject) {
 }
 ```
 
-## Temporal callback issue
-
-Let's look at the following code:
-
-```ts
-let count: number | null = 0;
-
-function doCount() {
-  if (count !== null) {
-    // typescript thinks count may be null here
-    [1, 2, 3].map((val) => count + val);
-  }
-}
-```
-
-Why does TypeScript think that the `count` variable may be null in the map callback, even when it's inside a type guard? The reason is because TypeScript assumes all callbacks can be asynchronous by default.
-
-Here is another example where this is a concern because of an async operation with `setTimeout()`:
-
-```ts
-let count: number | null = 0;
-
-if (count !== null) {
-  // valid point where count could actually be null, even though timeout gets executed
-  setTimeout(() => count + 1, 1000);
-}
-count = null;
-```
-
-So any time we're accessing a global variable inside of a callback, we need to make a local copy of it so that Typescript knows that it has a value.
-
-```ts
-let count: number | null = 0;
-
-if (count !== null) {
-  // make a local copy of count
-  let localCount = count;
-  setTimeout(() => localCount + 1, 1000);
-}
-count = null;
-```
 
 ## Conditional types
 
@@ -757,7 +843,7 @@ type EmailSurname<T> = T extends `${infer S extends string}@${string}`
 type Test = EmailSurname<"waadlingaadil@gmail.com">;
 ```
 
-### TYpe Distributivity
+### Type Distributivity
 
 When using conditional generic types with union types, they have a **distributive effect**, where all the types in the union type are evaluated separately in the conditional types, and then joined back together in a union.
 
@@ -926,15 +1012,58 @@ type ThisParameterType<T> = T extends (this: infer U, ...args: never) => any
   : unknown;
 ```
 
+### `NonNullable<T>`
+
+The `NonNullable<T>` type basically returns the same type but excluding null and undefined. 
+
+```ts
+type A = {a?: number | null}
+type B = NonNullable<A['a']>  // number
+```
+
 ## Other type things
+
+### Companion Objects
+
+Companion objects are a pattern in typescript you can use that take advantage of declaration merging, where you name any object and then create a type alias that annotates that object, but has the same name. 
+
+This has the same effect as declaration merging, and allows for more concise code and only having to refer to one name for both a type and value. 
+
+```ts
+type Currency = {
+  unit: 'EUR' | 'GBP' | 'JPY' | 'USD'
+  value: number
+}
+
+let Currency = {
+  DEFAULT: 'USD',
+  from(value: number, unit = Currency.DEFAULT): Currency {
+    return {unit, value}
+  }
+}
+```
+
+You can then use it like so: 
+
+```ts
+import {Currency} from './Currency'
+
+let amountDue: Currency = { 
+  unit: 'JPY',
+  value: 83733.10
+}
+
+let otherAmountDue = Currency.from(330, 'EUR')
+```
 
 ### `typeof`
 
 The `typeof` type operator infers the type of a variable. What's important to note is that this only works on a variable reference, not any variable value like when executing a function.
 
-:::warning
-Specifically, it’s only legal to use typeof on identifiers (i.e. variable names) or their properties. This helps avoid the confusing trap of writing code you think is executing, but isn’t:
-:::
+
+> [!WARNING]
+> Specifically, it’s only legal to use typeof on identifiers (i.e. variable names) or their properties. This helps avoid the confusing trap of writing code you think is executing, but isn’t.
+
 
 ### Satisfies
 

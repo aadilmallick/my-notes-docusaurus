@@ -36,7 +36,7 @@ These are my references:
 - https://10015.io/css-tools : CSS tools collection
 - https://www.cssportal.com/ : CSS tools collection
 - https://designjunction.xyz/ : Free design assets
-- https://www.fffuel.co/ : CSS tools collection
+- https://www.fffuel.co/ : CSS tools collection **Use this! it's great**
 - https://uiverse.io/ : CSS and tailwind tools collection
 - https://github.com/goabstract/Awesome-Design-Tools : design tools repo
 - https://github.com/bradtraversy/design-resources-for-developers : design tools repo
@@ -153,6 +153,7 @@ These websites have all-in-one solutions to many problems:
 - [Free programming books](https://ebookfoundation.github.io/free-programming-books-search/?&sect=books&file=free-programming-books-langs.md#react-native)
 - [Learn software design pattern](https://github.com/kamranahmedse/design-patterns-for-humans)
 - [Learn through creating impressive projects](https://github.com/practical-tutorials/project-based-learning?tab=readme-ov-file)
+- [Learn animations Emil Kolwaski](https://emilkowal.ski/) 
 
 ### AI learning
 

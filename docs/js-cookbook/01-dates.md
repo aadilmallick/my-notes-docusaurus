@@ -66,3 +66,8 @@ function twoWeeksFromNow(date: Date) {
   futureDate.setDate(date.getDate() + 14);
 }
 ```
+
+## Printing dates
+
+- `date.toLocaleDateString()`: prints out something like "9/12/2024"
+- `date.toDateString()`: prints out something like "Thu Apr 14 2016"

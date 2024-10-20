@@ -1,6 +1,13 @@
 # Workers
 
-## Worker basics
+Workers are ways of offloading JavaScript tasks onto a separate thread. There are three different types of workers:
+
+- **dedicated workers**: Heavy-set workers that work in a separate JS thread, meant for doing work that shouldn't run on main thread
+- **shared workers**: Like dedicated workers but can be shared across different contexts
+- **service workers**: act as a proxy for all network requests for the app
+
+## Dedicated workers
+### Dedicated Worker basics
 
 Workers are a way of multithreading in JavaScript, where you can delegate expensive tasks to be performed by a **worker**, which works in the background much like a service worker.
 
@@ -25,41 +32,73 @@ If you want to prevent the error in a worker from propagating and crashing your 
 
 Now let's talk about sending messages between the worker and main thread.
 
-## Sending messages
+### TypeScript
 
-### From main thread to worker
+The `self` object in a dedicated worker file is of type `DedicatedWorkerGlobalScope`.
 
-```ts
+You can enable the type intellisense for a dedicated worker in the tsconfig: 
+
+```json
+{
+  "compilerOptions": {
+    "lib": ["webworker", "es2015"]
+  }
+}
+```
+
+### Worker lifecycle
+
+The worker lifecycle goes through three stages:
+
+- **initializing**:
+- **active**
+- **terminated**
+
+Here are the different methods a worker has to deal with the lifecycle: 
+
+- `worker.terminate()`: terminates the worker
+- `worker.close()`: discards all worker tasks in the event loop
+
+
+> [!TIP] 
+> Both `worker.terminate()` and `worker.close()` are idempotent operations, meaning you can call them multiple times without any harm.
+
+
+### Sending messages
+
+#### From main thread to worker
+
+```ts title="main.ts"
 worker.postMessage(payload);
 ```
 
 The `worker.postMessage()` method takes a single argument of any type, which is the payload to be sent to the worker.
 
-You can then listen to messages sent by the main thread in the worker using the `self.onmessage` event listener, which passes in an `event` object with the `data` property, where `event.data` is the payload that the message posted in the first place.
+You can then listen to messages sent by the main thread in the worker by listening to the `"message"` event listener, which passes in an `event` object with the `data` property, where `event.data` is the payload that the message posted in the first place.
 
-```ts
-self.onmessage = function (event) {
+```ts title="worker.ts"
+self.addEventListener("message", (event) {
   const data = event.data;
-};
+});
 ```
 
-### From worker to main thread
+#### From worker to main thread
 
 It's pretty much the same API to post messages and listen to them, except we use `self.postMessage()` in the worker thread and `worker.onmessage` in the main thread.
 
-```ts
+```ts title="worker.ts"
 self.postMessage(payload);
 ```
 
 Whatever you pass into the `postMessage()` method gets sent as the `event.data` property in the message listener.
 
-```ts
-worker.onmessage = function (event) {
+```ts title="main.ts"
+worker.addEventListener("message", (event) =>{
   const data = event.data;
-};
+});
 ```
 
-## Worker class
+### Worker class
 
 Here is an implementation of a worker class that makes it easier to work with workers.
 

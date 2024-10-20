@@ -186,6 +186,29 @@ export class CustomEventManager<T = any> extends EventTarget {
 }
 ```
 
+
+### Type of events
+
+#### window
+
+The window object has these event listeners on it:
+
+- `"load"`: fired when the entire page has been loaded, which includes all javascript files, images, and CSS. 
+- `"scroll"`: fired when user scrolls the page
+
+#### Focus
+
+These are the events related to focusing on elements: 
+
+- `"focus"`: fired when the element receives focus
+- `"blur"`: fired when the element loses focus
+
+#### Mouse events
+
+For all mouse events, the `e.clientX` and `e.clientY` give the coordinates of the current location of the mouse cursor. 
+
+
+
 ## Elements
 
 ### Basic dom manipulation
@@ -460,8 +483,8 @@ You can get the element of a coordinate with the `getBoundingClientRect()` eleme
 
 You also have inherent properties on the element that let you get the dimensions of the element.
 
-- `element.clientHeight` : the height of the element including padding
-- `element.clientWidth` : the width of the element including padding
+- `element.clientHeight` : the height of the element including padding, excluding border
+- `element.clientWidth` : the width of the element including padding, excluding border
 - `element.offsetWidth` : the width of the element including padding and border
 - `element.offsetHeight` : the height of the element including padding and border
 
@@ -583,6 +606,16 @@ calculateSize('/path/to/image.png').then((data) => {
 ```
 ## DOM APIs
 
+### Window methods
+
+- `window.blur()`: removes focus from the window
+- `window.close()`: closes the current window
+- `window.open(url)`: opens a new window and creates a tab with the specified URL
+
+
+### Navigator
+
+- `navigator.platform`: returns the OS the user is running on, which is either `"Win32"` or `"MacIntel"`.
 ### Match media
 
 The `window.matchMedia()` function lets us harness the power of CSS media queries in JavaScript and lets us execute code accordingly. The method takes in a string representing the media query to query.
@@ -703,11 +736,80 @@ const observer = new ResizeObserver((entries) => {
 observer.observe(document.querySelector(".rect"))
 ```
 
-- `entries` : an array of entries
+The `entries` parameter is an array of entries, where each `entry` object has the following properties:
+
 - `entry.target` : the element being resized
+- `entry.contentRect` : returns the dimensions of the element which is the **bounding box** you would get from the `element.getBoundingBox()` method. 
 - `entry.borderBoxSize` : a one-element array that represents the element’s new dimensions. A single object from this array has these properties:
     - `box.blockSize` : the vertical size in pixels of the element
     - `box.inlineSize` : the horizontal size in pixels of the element
+
+And here are the methods you have on the `observer` object:
+
+- `observer.observe(element)`: adds an element to its list of observers
+- `observer.unobserve(element)`: removes an element from its list of observers
+- `observer.disconnect()`: stops the observations and removes all observers
+
+Here is a wrapper for the API:
+
+```ts
+class ResizeObserverAPI {
+  observer?: ResizeObserver;
+  createObserver(
+    cb: (height: number, width: number, element: HTMLElement) => void
+  ) {
+    this.observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        const target = entry.target;
+        const [box] = entry.borderBoxSize;
+        cb(box.blockSize, box.inlineSize, target as HTMLElement);
+      });
+    });
+  }
+
+  observe(element: HTMLElement) {
+    this.observer?.observe(element);
+  }
+
+  unobserve(element: HTMLElement) {
+    this.observer?.unobserve(element);
+  }
+
+  disconnect() {
+    this.observer?.disconnect();
+  }
+}
+
+class ResizeObserverModel {
+  observer: ResizeObserver;
+  static instanceStore: ResizeObserverModel[] = [];
+
+  static handleSingleton() {
+    if (ResizeObserverModel.instanceStore.length) {
+      ResizeObserverModel.instanceStore.forEach((instance) => {
+        instance.observer.unobserve(instance.element);
+        instance.observer.disconnect();
+      });
+      ResizeObserverModel.instanceStore = [];
+    }
+  }
+
+  constructor(
+    private element: HTMLElement,
+    cb: (height: number, width: number, element: HTMLElement) => void
+  ) {
+    ResizeObserverModel.handleSingleton();
+    this.observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        const [box] = entry.borderBoxSize;
+        cb(box.blockSize, box.inlineSize, this.element);
+      });
+    });
+    this.observer.observe(this.element);
+    ResizeObserverModel.instanceStore.push(this);
+  }
+}
+```
 
 ### MutationObserver
 
@@ -720,7 +822,7 @@ We can use the `MutationObserver` class to continuously check for the existence 
 3. If the queried element is defined, you can stop tracking for changes by calling `observer.disconnect()`, and now you can do stuff with the element.
 
 
-```ts
+```js
 const observer = new MutationObserver((mutations) => {
     const targetElement = document.getElementById('my-element');
 
@@ -739,6 +841,40 @@ observer.observe(document.body, {
     subtree: true,
 });
 ```
+
+#### Basics
+
+Here are the methods you have on the `observer` object:
+
+- `observer.observe(element, options)`: adds an element to its list of observers. You must specify at least one of these properties in the options object:
+	- `childList`: if true, observes changes to the element's direct children (getting added or removed)
+	- `subtree`: if true, observes changes to all descendants of the element.
+	- `attributes`: if true, observes changes to attributes being set or removed on the element
+	- `attributeOldValue`: if true, also gives the old attribute value info whenever the attributes of the element change. 
+	- `attributeFilter`: the list of attributes to observe. This should be of type `string[]`.
+	- `characterData`: if true, observes changes to the text content of the element
+	- `characterDataOldValue`: if true, also gives the old text content value whenever the text content of the element changes.
+- `observer.unobserve(element)`: removes an element from its list of observers
+- `observer.disconnect()`: stops the observations and removes all observers
+#### using with character data
+
+To observe changes to element text content with the `"characterData"` attribute, you have to observe the child node of the text element, since text is a node in HTML. 
+### URL
+
+```ts
+let url = new URL("https://example.com:8000/path/name?q=term#fragment")
+
+console.log(url.href);        // => "https://example.com:8000/path/name?q=term#fragment"
+console.log(url.origin);      // => "https://example.com:8000"
+url.protocol    // => "https:"
+url.host        // => "example.com:8000"
+url.hostname    // => "example.com"
+url.port        // => "8000"
+url.pathname    // => "/path/name"
+url.search      // => "?q=term"
+url.hash        // => "#fragment"
+```
+
 
 ### Clipboard
 
@@ -943,7 +1079,46 @@ export default class ClipboardModel {
 }
 ```
 
-## DOM Tips
+
+#### Managing clipboard permission
+
+The clipboard API is sensitive, so the user needs to grant permission first. 
+
+Clipboard permissions are split into two:
+
+- `clipboard-read` allows for a page to read the contents of the clipboard. This permission must be explicitly granted by the user.
+- `clipboard-write` allows for a page to write content _into_ the clipboard. This write permission is granted automatically to pages when they are the active tab.
+
+Use the `navigator.permissions` API to query these permissions: 
+
+```ts
+async function isClipboardWriteAllowed() {
+	const result = await navigator.permissions.query({name: "clipboard-write"})
+	return result.state === "granted"
+}
+
+async function isClipboardReadAllowed() {
+	const result = await navigator.permissions.query({name: "clipboard-read"})
+	return result.state === "granted"
+}
+```
+
+> [!WARNING]
+> However, it's not possible to do anything with the clipboard while the page is out of focus, so keep that in mind. 
+
+#### Clipboard events
+
+There are the `"cut"`, `"copy"`, and `"paste"` events you can listen for on the `document` object.
+
+```ts
+document.addEventListener("copy", async () => {
+	const data = e.clipboardData
+  console.log("Copied text:", await navigator.clipboard.readText());
+});
+```
+
+The clipboard data from all these events is stored in `e.clipboardData` property on the event object. 
+## Various DOM Tips
 
 ### Enable spellcheck
 
@@ -1088,3 +1263,9 @@ async function main() {
 
 main();
 ```
+
+## Content editable
+
+The `contentEditable` attribute is extremely versatile and allows us to modify the content of elements in the page. 
+
+You can visit the [`data:text/html, <html contenteditable>`](data:text/html, <html contenteditable>) url, which turns the entire webpage into a editable content surface. 

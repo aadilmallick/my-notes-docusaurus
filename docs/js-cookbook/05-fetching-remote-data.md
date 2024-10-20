@@ -1,6 +1,6 @@
 # Fetching remote data
 
-## Fetching binary data
+## Fetching binary data with fetch
 
 ### Blobs
 
@@ -122,7 +122,7 @@ async function fetchBlobNode(url: string) {
 3. Convert array buffer to fs-usable buffer with `Buffer.from(arrayBuffer)`
 4. Write buffer to file.
 
-## FileReader
+## FileReader and Files
 
 If we want to read raw data from files in the browser, we can use the `File` and `FileReader` APIs.
 
@@ -134,10 +134,9 @@ If we want to read raw data from files in the browser, we can use the `File` and
    ```
 
 2. Create a `File` object from the blob.
-
-   1. The first argument of the constructor is an array of data to put in as the file contents.
-   2. The second argument is the file name.
-   3. The third argument is the options object, which has a `type` property that determines the MIME type of the file.
+   - The first argument of the constructor is an array of data to put in as the file contents.
+   - The second argument is the file name.
+   - The third argument is the options object, which has a `type` property that determines the MIME type of the file.
 
    ```javascript
    const file = new File([blob], "image.png", { type: blob.type });
@@ -148,10 +147,10 @@ If we want to read raw data from files in the browser, we can use the `File` and
    ```javascript
    const fileReader = new FileReader();
 
+   fileReader.readAsDataURL(file); // tells reader to read file as base 64 string
    fileReader.addEventListener("load", (e) => {
      const fileContent = e.target.result; // file content is stored here
    });
-   fileReader.readAsDataURL(file); // read file as base64 url
    ```
 
 ```ts
@@ -162,10 +161,10 @@ async function fetchBlobBrowser(url: string) {
 
   const fileReader = new FileReader();
 
+  fileReader.readAsDataURL(file); // tells reader to read file as base 64 string
   fileReader.addEventListener("load", (e) => {
     const fileContent = e.target.result;
   });
-  fileReader.readAsDataURL(file);
 }
 ```
 
@@ -180,6 +179,11 @@ const file = new File(fileContentArray, filename, options);
 - `fileContentArray` : an array of data to put into the file. This can be a list of strings, or a list of blobs.
 - `filename` : the name of the file
 - `options` : the options object, which has a `type` property that determines the MIME type of the file.
+
+And here are the properties on a `File` object instance: 
+- `file.name`: the file name
+- `file.size`: the file size
+- `file.type`: the mimetype of the file
 
 ### File reader API
 
@@ -205,6 +209,26 @@ fileReader.addEventListener("load", (e) => {
 ```
 
 If I used `fileReader.readAsDataURL(file)`, then the `fileContent` variable would be a base64 encoded string.
+
+#### FileReader events
+
+The FileReader API has three events you can listen for: 
+
+- `"load"`: when the file fully loads and is ready to be used
+- `"progress"`: fired every 50 ms while the file is loading, giving updates on the progress
+- `"error"`: fired if an error occurred during the loading process. 
+
+```ts
+fileReader.addEventListener("progress", (e) => {
+	if (e.lengthComputable) {
+      progress.innerHTML = `${e.loaded}/${e.total}`;
+    }
+})
+
+fileReader.addEventListener("error", (e) => {
+	alert(reader.error.code)
+})
+```
 
 ## Aborting fetch requests
 
@@ -241,4 +265,38 @@ async function fetchWithTimeout(
 
 // fetches google with a timeout of 1 second, aborting the request if it takes any longer
 fetchWithTimeout("https://google.com", {}, 1000);
+```
+
+Here is a simpler example: 
+
+```ts
+let abortController = new AbortController();
+ 
+fetch('wikipedia.zip', { signal: abortController.signal })
+  .catch(() => console.log('aborted!'));
+ 
+// Abort the fetch after 10ms
+setTimeout(() => abortController.abort(), 10);
+```
+
+## Everything you need to know about CORS
+
+CORS is a way around the SOP (same origin policy) that allows frontend webpages to request different origins in a fetch request in a secure way. 
+
+The basic idea behind CORS is to use custom HTTP headers to allow both the browser and the server to know enough about each other to determine if the request or response should succeed or fail.
+
+To establish a CORS policy so that a webpage can request a server, the server should send back these 4 headers on every response (easily accomplished with express middleware):
+
+- `Access-Control-Allow-Origin`—Same as in simple requests.
+- `Access-Control-Allow-Methods`—A comma-separated list of allowed methods.
+- `Access-Control-Allow-Headers`—A comma-separated list of headers that the server will allow.
+- `Access-Control-Max-Age`—The amount of time in seconds that this preflight request should be cached for.
+
+Here is an example:
+
+```ts
+Access-Control-Allow-Origin: https://www.mattfriz.com
+Access-Control-Allow-Methods: POST, GET
+Access-Control-Allow-Headers: FRIZ
+Access-Control-Max-Age: 1728000
 ```

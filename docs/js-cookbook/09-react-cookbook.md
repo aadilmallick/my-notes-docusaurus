@@ -9,6 +9,8 @@ import BoopExample from "@site/src/components/examples/Boop";
 
 #### Lazy Loading/Code splitting
 
+##### Basic Code Splitting
+
 **Code splitting** refers to the practice of requesting JavaScript only when you need it or the user interacts with it. It prevents a large JS bundle from slowing down initial page load.
 
 Here is how you can asynchronously load React components and code split them: 
@@ -35,6 +37,16 @@ Here is how you can asynchronously load React components and code split them:
 
 > [!NOTE] Is code splitting worth it?
 > You need to splitting at least dozens of kilobytes for code-splitting to be actually worth it.
+
+##### Lazy loading only when component is visible
+
+For the best performance gains, you could load a component only when it is about to visible in the DOM. 
+
+There are two methods you could use for this: 
+- Use the `react-intersection-observer` library
+- Use the `react-loadable-visibility` library
+
+**react-intersection-observer**
 
 We can combine the intersection observer along with `<Suspense>` and `React.lazy()` to lazy load components and show them only when they are in view, boosting our performance. 
 
@@ -85,6 +97,83 @@ ReactDOM.render(
   </Router>,
   document.getElementById("root")
 );
+```
+
+**react-loadable-visibility**
+
+```ts
+import LoadableVisibility from "react-loadable-visibility/react-loadable";
+import Loading from "./my-loading-component";
+ 
+const LoadableComponent = LoadableVisibility({
+  loader: () => import("./my-component"),
+  loading: Loading
+});
+ 
+export default function App() {
+  return <LoadableComponent />;
+}
+```
+
+#### Context
+
+Understanding how to use context is important for improving performance in React applications: 
+
+When a component uses some value from context, and the context value changes, the component will re-render.
+- A good rule of thumb is to wrap the component you directly nest inside the context provider with `React.memo()`.
+- Put your context values that your provide to the `value` prop in the `<Context.Provider>` component in a `useMemo()` hook, to prevent unnecessary recreations.
+
+### React design patterns
+
+#### HOC
+
+A higher order component transforms a component into a better version of itself, adding additional functionality to it. It is a function that takes in a component and returns a new component
+
+HOC are named with the `with` convention, as prefixed function started with “with” as a way of saying that HOCs enhance components with some funcitonality. 
+
+Here are some rules for creating a good higher order component
+
+1. Don’t mutate the passed-in component
+2. Don’t destroy the structure of props for the passed-in component 
+    - Spread across all the props, and then you can add new ones. 
+3. Don’t instantiate HOCs inside other components
+    - Instantiating an enhanced component inside another component makes it vulnerable to re-renders. 
+    - Only instantiate HOCs outside components. 
+    ```jsx
+    const Component = (props) => {
+      // This is wrong. Never do this
+      const EnhancedComponent = HOC(WrappedComponent);
+      return <EnhancedComponent />;
+    };
+    
+    // This is the correct way
+    const EnhancedComponent = HOC(WrappedComponent);
+    const Component = (props) => {
+      return <EnhancedComponent />;
+    };
+    ```
+
+Here is an example of an HOC: 
+
+```jsx
+function withMousePosition(WrappedComponent) {
+	return (props) => {
+		const [mouseX, setMouseX] = useState(0); 
+		const [mouseY, setMouseY] = useState(0); 
+
+		useEffect(() => {
+			const handleMouseMove = (e) => {
+				setMouseX(e.clientX)
+				setMouseY(e.clientY)
+			}
+
+			window.addEventListener("mousemove", handleMouseMove)
+			return () => window.removeEventListener("mousemove", handleMouseMove)
+		}, [])
+
+		return <WrappedComponent {...props} mouseX={mouseX}, mouseY={mouseY} />
+	}
+}
 ```
 ## Boop
 
