@@ -1,4 +1,3 @@
-
 ## Performant DOM
 
 ### Efficient DOM querying
@@ -11,27 +10,29 @@ Here are several tips for making DOM querying more efficient:
 
 ### Efficient DOM manipulation
 
-But besides that, you have to understand the performance difference between different DOM insertion methods: 
+But besides that, you have to understand the performance difference between different DOM insertion methods:
 
 - `element.innerHTML` : bad performance
 - `element.insertAdjacentHTML()` : bad performance
 - `element.insertAdjacentHTML()` : good performance
 - `element.appendChild()` : good performance
 
-When inserting multiple elements at once like a list of elements, create a wrapper Document Fragment and then insert them. 
+When inserting multiple elements at once like a list of elements, create a wrapper Document Fragment and then insert them.
 
 ```ts
 const fragment = document.createDocumentFragment();
 for (let i = 0; i < 1000; i++) {
-  const li = document.createElement('li');
+  const li = document.createElement("li");
   li.textContent = `Item ${i}`;
   fragment.appendChild(li);
 }
-document.getElementById('myList').appendChild(fragment);
+document.getElementById("myList").appendChild(fragment);
 ```
+
 ### Other Performance Tips
 
 - Use `element.textContent` over `element.innerText`
+
 ## Events
 
 ### Event Basics
@@ -42,94 +43,93 @@ As a third argument, you can specify options to configure the event listener.
 
 ```jsx
 element.addEventListener("click", (e) => {}, {
-	once: true, 
-	passive: true
-})
+  once: true,
+  passive: true,
+});
 ```
+
 - `once` : if true, the event will only execute once and then unbind itself. The event handler will be removed automatically after executing once.
 - `passive` : if true, executes event listener passively, like async and not blocking the thread
 
-Here are the important properties on the event object. 
+Here are the important properties on the event object.
 
 - `e.target`: the element the event happened to, like clicking on a button
 - `e.currentTarget` : the element the event handler is attached to, like a form with an onSubmit handler.
 
 #### Event Capturing, Bubbling, and Progagation
 
-First, an event is generated at the root element, the `document`. Then it travels down to the target element, which is called **event capturing**. 
+First, an event is generated at the root element, the `document`. Then it travels down to the target element, which is called **event capturing**.
 
 After activating on the target element, it bubbles up through all the parent elements, and activates the event handler on each of those ones, called **event bubbling**.
 
 #### Event Delegation
 
-Event delegation is an optimization that is about attaching an event handler to the parent and handling specific children clicks with `e.target` instead of attaching event handlers to each children. 
-
+Event delegation is an optimization that is about attaching an event handler to the parent and handling specific children clicks with `e.target` instead of attaching event handlers to each children.
 
 > [!NOTE] A sidenote on efficiency
-> Imagine if each list item in a list thousands of items long had its own event listener. That would take up a lot of memory and resources, so event delegation *delegates* the event to list, and then inside the event listener, the you can find out which list item was clicked on by using `e.target`.
+> Imagine if each list item in a list thousands of items long had its own event listener. That would take up a lot of memory and resources, so event delegation _delegates_ the event to list, and then inside the event listener, the you can find out which list item was clicked on by using `e.target`.
 
-The advantage of event delegation is that we can attach a single event listener to a parent instead of an event listener on every child. 
+The advantage of event delegation is that we can attach a single event listener to a parent instead of an event listener on every child.
 
 ```ts
-document.querySelector("ul").addEventListener("click" , (e) => {
-  const target = e.target; 
+document.querySelector("ul").addEventListener("click", (e) => {
+  const target = e.target;
   // see if e.target is a <li> element
   if (target.matches("li")) {
-    alert("you clicked the list item")
+    alert("you clicked the list item");
   }
-})
+});
 ```
 
 #### Removing events
 
-You can also use an abort controller to remove events. 
+You can also use an abort controller to remove events.
 
 ```ts
 let controller = new AbortController();
 const { signal } = controller;
 
-button.addEventListener('click', () => console.log('clicked!'), { signal });
-window.addEventListener('resize', () => console.log('resized!'), { signal });
-document.addEventListener('keyup', () => console.log('pressed!'), { signal });
+button.addEventListener("click", () => console.log("clicked!"), { signal });
+window.addEventListener("resize", () => console.log("resized!"), { signal });
+document.addEventListener("keyup", () => console.log("pressed!"), { signal });
 
 // Remove all listeners at once:
 controller.abort();
 ```
 
-
-
 ### Custom Events
 
-You can even listen for custom events on any element and pass data when dispatching events. The basic flow is as follows: 
+You can even listen for custom events on any element and pass data when dispatching events. The basic flow is as follows:
 
 1. Create a `CustomEvent` instance
 2. Use an element to dispatch the custom event
 3. With the same element, listen for the custom event using `addEventListener()`.
 
 ```ts
-const myEvent = new CustomEvent('myevent', {
+const myEvent = new CustomEvent("myevent", {
   bubbles: true,
   cancelable: true,
   composed: false,
-  detail : {
-	  order: "pizza"
-  }
-})
+  detail: {
+    order: "pizza",
+  },
+});
 
-window.dispatch(myEvent) // dispatch event
+window.dispatch(myEvent); // dispatch event
 
 window.addEventListener("myevent", (e) => {
-	console.log(e.detail.order) // "pizza"
-})
+  console.log(e.detail.order); // "pizza"
+});
 ```
 
-The first argument to the constructor is the event name, and the second is a list of options with the following properties: 
-- `bubbles`: whether or not the event should propagate to the parent element, meaning they can also listen for the same event. `false` by default. 
+The first argument to the constructor is the event name, and the second is a list of options with the following properties:
+
+- `bubbles`: whether or not the event should propagate to the parent element, meaning they can also listen for the same event. `false` by default.
 - `cancelable` : whether or not you can call `e.preventDefault()` on it
 - `composed`: Some shadow DOM shit. doesn't matter.
 - `detail` : an object of data you want to pass through the event
 
-Here is a class I made that provides such type support: 
+Here is a class I made that provides such type support:
 
 ```ts
 export class CustomEventElementClass<T> {
@@ -158,7 +158,7 @@ export class CustomEventElementClass<T> {
 
 #### Scoped to classes
 
-You can scope custom events to classes by just creating a class that extends from `EventTarget`. Useful if you don't want to deal with elements, but instead just the logic. 
+You can scope custom events to classes by just creating a class that extends from `EventTarget`. Useful if you don't want to deal with elements, but instead just the logic.
 
 ```ts
 export class CustomEventManager<T = any> extends EventTarget {
@@ -186,28 +186,25 @@ export class CustomEventManager<T = any> extends EventTarget {
 }
 ```
 
-
 ### Type of events
 
 #### window
 
 The window object has these event listeners on it:
 
-- `"load"`: fired when the entire page has been loaded, which includes all javascript files, images, and CSS. 
+- `"load"`: fired when the entire page has been loaded, which includes all javascript files, images, and CSS.
 - `"scroll"`: fired when user scrolls the page
 
 #### Focus
 
-These are the events related to focusing on elements: 
+These are the events related to focusing on elements:
 
 - `"focus"`: fired when the element receives focus
 - `"blur"`: fired when the element loses focus
 
 #### Mouse events
 
-For all mouse events, the `e.clientX` and `e.clientY` give the coordinates of the current location of the mouse cursor. 
-
-
+For all mouse events, the `e.clientX` and `e.clientY` give the coordinates of the current location of the mouse cursor.
 
 ## Elements
 
@@ -215,25 +212,28 @@ For all mouse events, the `e.clientX` and `e.clientY` give the coordinates of th
 
 #### DOM Traversal
 
-Here are all the DOM traversal properties an element has: 
+Here are all the DOM traversal properties an element has:
+
 - `element.nextSibling`: returns the adjacent next sibling of the element
 - `element.previousSibling`: returns the adjacent previous sibling of the element
 - `element.parentNode`: returns the direct parent of the element
 - `element.children`: returns all the children of the element
--  `element.firstElementChild` : gets first child of the element
--  `element.lastElementChild` : gets last child of the element
+- `element.firstElementChild` : gets first child of the element
+- `element.lastElementChild` : gets last child of the element
 - `element.previousElementSibling` : gets the immediate previous sibling of the element.
 - `element.nextElementSibling` : gets the immediate next sibling of the element.
 
-Here are all the methods that an element has on it: 
-- `parentElement.contains(childElement)`: returns true if the parent element contains the child element as a descendant. 
+Here are all the methods that an element has on it:
+
+- `parentElement.contains(childElement)`: returns true if the parent element contains the child element as a descendant.
+
 ```ts
 const isDescendant = parent.contains(child);
 ```
 
 #### DOM Manipulation methods
 
-Basic methods: 
+Basic methods:
 
 - `element.prepend(element)` : the element that calls this method will prepend the passed-in element as its first child.
 - `element.append(element)` : the element that calls this method will appendthe passed-in element as its last child.
@@ -243,6 +243,7 @@ Basic methods:
 ##### Replacing children elements with `element.replaceChild()`
 
 `element.replaceChild(newEle, oldEle)`: for the child of an element, replaces the old child with the specified new child
+
 ##### Adding elements with `element.insertAdjacentHTML()`
 
 ```ts
@@ -250,26 +251,26 @@ element.insertAdjacentHTML(position, text);
 ```
 
 - **`position`**: A string representing where to insert the HTML. It can be one of the following values:
-    - `"beforebegin"`: Before the element itself (adds new content as a sibling).
-    - `"afterbegin"`: Just inside the element, before its first child (adds new content as a first child).
-    - `"beforeend"`: Just inside the element, after its last child (appends new content as the last child).
-    - `"afterend"`: After the element itself (adds new content as a sibling).
+  - `"beforebegin"`: Before the element itself (adds new content as a sibling).
+  - `"afterbegin"`: Just inside the element, before its first child (adds new content as a first child).
+  - `"beforeend"`: Just inside the element, after its last child (appends new content as the last child).
+  - `"afterend"`: After the element itself (adds new content as a sibling).
 - **`text`**: The HTML string you want to insert.
 
 ```ts
 const myDiv = document.getElementById("myDiv");
 
 // Insert HTML before the opening tag of #myDiv
-myDiv.insertAdjacentHTML('beforebegin', '<p>Before the div</p>');
+myDiv.insertAdjacentHTML("beforebegin", "<p>Before the div</p>");
 
 // Insert HTML at the start of #myDiv (before "Hello, ")
-myDiv.insertAdjacentHTML('afterbegin', '<span>World! </span>');
+myDiv.insertAdjacentHTML("afterbegin", "<span>World! </span>");
 
 // Insert HTML at the end of #myDiv (after "Hello, ")
-myDiv.insertAdjacentHTML('beforeend', '<span>Goodbye! </span>');
+myDiv.insertAdjacentHTML("beforeend", "<span>Goodbye! </span>");
 
 // Insert HTML after the closing tag of #myDiv
-myDiv.insertAdjacentHTML('afterend', '<p>After the div</p>');
+myDiv.insertAdjacentHTML("afterend", "<p>After the div</p>");
 ```
 
 ##### Adding elements with `element.insertBefore()`
@@ -286,24 +287,25 @@ parentNode.insertBefore(newNode, referenceNode);
 
 ##### Removing children with `element.removeChild()`
 
-The `parentNode.removeChild(childNode)` method removes the specified child element from the parent element. 
+The `parentNode.removeChild(childNode)` method removes the specified child element from the parent element.
 
-When removing children of some sort of container element, it's not advisable to use the classic `element.innerHTML = ""` because that also removes all the event listeners of the children, which will cause memory leaks. 
+When removing children of some sort of container element, it's not advisable to use the classic `element.innerHTML = ""` because that also removes all the event listeners of the children, which will cause memory leaks.
 
-Instead, opt for a more manual yet safe approach: 
+Instead, opt for a more manual yet safe approach:
 
 ```ts
 while (node.firstChild) {
-    node.removeChild(node.firstChild);
-    // remove any event listeners here
+  node.removeChild(node.firstChild);
+  // remove any event listeners here
 }
 ```
 
 ##### Cloning nodes with `element.cloneNode()`
 
 The `element.cloneNode(copyAll: boolean)` method returns a copy of the element that calls the method. The method takes in one boolean parameter:
-- `true`: if the value is true, the entire subtree is cloned meaning the element is copied along with all of its children. 
-- `false`: if the value is false, only the element is cloned, and it's children don't come along for the ride. 
+
+- `true`: if the value is true, the entire subtree is cloned meaning the element is copied along with all of its children.
+- `false`: if the value is false, only the element is cloned, and it's children don't come along for the ride.
 
 ```ts
 const original = document.getElementById("original");
@@ -314,46 +316,48 @@ const shallowClone = original.cloneNode(false);
 // Clone the node with all its children
 const deepClone = original.cloneNode(true);
 ```
+
 #### Setting attributes
 
-- `element.getAttribute(name)`: returns the value of the specified attribute on the element 
-- `element.setAttribute(name, value)`: sets the value of the specified attribute on the element 
-- `element.removeAttribute(name)`: removes the specified attribute on the element 
+- `element.getAttribute(name)`: returns the value of the specified attribute on the element
+- `element.setAttribute(name, value)`: sets the value of the specified attribute on the element
+- `element.removeAttribute(name)`: removes the specified attribute on the element
 
 ```ts
 // Get the `title` attribute of a link element
-const title = link.getAttribute('title');
+const title = link.getAttribute("title");
 
 // Set the width and height of an image
-image.setAttribute('width', '100px');
-image.setAttribute('height', '120px');
+image.setAttribute("width", "100px");
+image.setAttribute("height", "120px");
 
 // Remove the `title` attribute
-ele.removeAttribute('title');
+ele.removeAttribute("title");
 ```
+
 ### Focusing elements
 
-You can make any element focusable by either setting `autofocus="true"` or setting a `tabindex` attribute on it to make it tabbable. 
+You can make any element focusable by either setting `autofocus="true"` or setting a `tabindex` attribute on it to make it tabbable.
 
 - The `tabindex` attribute specifies which element will be focused next when the user hits tab. It accepts a number value, which is the tab order.
-	- `tabindex="0"` : first to get tabbed
-	- Any negative tab index will not be tabbable, but it can be focused on.
+  - `tabindex="0"` : first to get tabbed
+  - Any negative tab index will not be tabbable, but it can be focused on.
 
 #### Preventing scrolling to focused element
 
 Go to [Phoc nguyen's HTML focus element article](https://phuoc.ng/collection/html-dom/prevent-the-page-from-scrolling-to-an-element-when-it-is-focused/)
 
-To focus on an element, you can set the `autofocus="true"` attribute on it, or call `element.focus()`. However, this always scrolls the element into view which may not be what you want. 
+To focus on an element, you can set the `autofocus="true"` attribute on it, or call `element.focus()`. However, this always scrolls the element into view which may not be what you want.
 
-An example where you do not want to scroll an element into view is with an autofocusing element in a modal - focusing on the element will scroll the user all the way back up the page unnecessarily, which we want to avoid. 
+An example where you do not want to scroll an element into view is with an autofocusing element in a modal - focusing on the element will scroll the user all the way back up the page unnecessarily, which we want to avoid.
 
-There are two ways we can go about this: 
+There are two ways we can go about this:
 
 **Method 1: prevent autoscrolling**
 
 ```ts
 element.focus({
-    preventScroll: true,
+  preventScroll: true,
 });
 ```
 
@@ -372,31 +376,29 @@ function scrollToElement(element: HTMLElement, shouldScroll = false) {
 
 #### Getting element with focus
 
-The `document.activeElement` property returns the element that currently has focus. 
+The `document.activeElement` property returns the element that currently has focus.
 
 ```ts
 const hasFocus = ele === document.activeElement;
 ```
 
-
-
-### Scrolling 
+### Scrolling
 
 #### Basic scrolling
 
-You can use the `window.scrollTo(x, y)` to scroll to a specific coordinate on the page. 
+You can use the `window.scrollTo(x, y)` to scroll to a specific coordinate on the page.
 
 - `window.scrollTo(0, 0)`: scrolls to the top of the page
 
 #### Scrolling elements into view
 
-Use the `element.scrollIntoView()` to scroll the element into view. You can also enable smooth scrolling. 
+Use the `element.scrollIntoView()` to scroll the element into view. You can also enable smooth scrolling.
 
 ```ts
 element.scrollIntoView();
 
 element.scrollIntoView({
-	behavior: "smooth"
+  behavior: "smooth",
 });
 ```
 
@@ -406,31 +408,32 @@ You can get the modifiable style object of elements by using the `getComputedSty
 
 ```ts
 // getting styles
-const div = document.querySelector("div")
-const backgroundColor = getComputedStyle(div).backgroundColor
+const div = document.querySelector("div");
+const backgroundColor = getComputedStyle(div).backgroundColor;
 
 // setting styles
-div.style.backgroundColor = "red"
+div.style.backgroundColor = "red";
 ```
 
 #### ClassList
 
--  `element.classlist` : returns list of classes of elements
--  `element.classlist.add("class_name")`    : adds a class
--  `element.classlist.remove("class_name")` : removes a class
--  `element.classlist.toggle("class_name")` : toggles a class. It will remove the class if the element currently has the class, and will add the class if it is not there.
--  `element.classlist.contains("class_name")` : returns a boolean value based on whether the specified class is in the element or note.
+- `element.classlist` : returns list of classes of elements
+- `element.classlist.add("class_name")` : adds a class
+- `element.classlist.remove("class_name")` : removes a class
+- `element.classlist.toggle("class_name")` : toggles a class. It will remove the class if the element currently has the class, and will add the class if it is not there.
+- `element.classlist.contains("class_name")` : returns a boolean value based on whether the specified class is in the element or note.
+
 #### CSS Variables
 
 - `element.style.setProperty(name, value)`: sets the CSS variable with the specified value for the element.
-- `element.style.getPropertyValue(name)`: returns the current value of the specified CSS Variable the element has. 
+- `element.style.getPropertyValue(name)`: returns the current value of the specified CSS Variable the element has.
 
-You can get and modify any global styles you set on the `:root` selector like so: 
+You can get and modify any global styles you set on the `:root` selector like so:
 
 ```ts
 const root = document.documentElement;
 
-const primaryColor = getComputedStyle(root).getPropertyValue('--primary-color');
+const primaryColor = getComputedStyle(root).getPropertyValue("--primary-color");
 ```
 
 ```ts
@@ -454,21 +457,20 @@ export class CSSVariablesManager<T = Record<string, string>> {
 }
 ```
 
-
 ### Element bounding box
 
 You can get the element of a coordinate with the `getBoundingClientRect()` element method. This method call returns an obejct like this:
 
 ```json
 {
-  "x":8,
-  "y":21.4375,
-  "width":1520,
-  "height":37.60000228881836,
-  "top":21.4375,
-  "right":1528,
-  "bottom":59.03750228881836,
-  "left":8
+  "x": 8,
+  "y": 21.4375,
+  "width": 1520,
+  "height": 37.60000228881836,
+  "top": 21.4375,
+  "right": 1528,
+  "bottom": 59.03750228881836,
+  "left": 8
 }
 ```
 
@@ -501,16 +503,16 @@ const offsetWidth = ele.offsetWidth;
 #### Getting mouse position relative to element
 
 ```ts
-ele.addEventListener('mousedown', function (e) {
-    // Get the target
-    const target = e.target;
+ele.addEventListener("mousedown", function (e) {
+  // Get the target
+  const target = e.target;
 
-    // Get the bounding rectangle of target
-    const rect = target.getBoundingClientRect();
+  // Get the bounding rectangle of target
+  const rect = target.getBoundingClientRect();
 
-    // Mouse position
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  // Mouse position
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
 });
 ```
 
@@ -520,47 +522,45 @@ We compare the bounds of the scrollable container and its child element to see i
 
 ```ts
 const isVisible = function (ele, container) {
-    const eleTop = ele.offsetTop;
-    const eleBottom = eleTop + ele.clientHeight;
+  const eleTop = ele.offsetTop;
+  const eleBottom = eleTop + ele.clientHeight;
 
-    const containerTop = container.scrollTop;
-    const containerBottom = containerTop + container.clientHeight;
+  const containerTop = container.scrollTop;
+  const containerBottom = containerTop + container.clientHeight;
 
-    // The element is fully visible in the container
-    return (
-        (eleTop >= containerTop && eleBottom <= containerBottom) ||
-        // Some part of the element is visible in the container
-        (eleTop < containerTop && containerTop < eleBottom) ||
-        (eleTop < containerBottom && containerBottom < eleBottom)
-    );
+  // The element is fully visible in the container
+  return (
+    (eleTop >= containerTop && eleBottom <= containerBottom) ||
+    // Some part of the element is visible in the container
+    (eleTop < containerTop && containerTop < eleBottom) ||
+    (eleTop < containerBottom && containerBottom < eleBottom)
+  );
 };
 ```
-
-
-
 
 #### Checking whether element is scrollable
 
 ```ts
 const isScrollable = function (ele) {
-    // Compare the height to see if the element has scrollable content
-    const hasScrollableContent = ele.scrollHeight > ele.clientHeight;
+  // Compare the height to see if the element has scrollable content
+  const hasScrollableContent = ele.scrollHeight > ele.clientHeight;
 
-    // It's not enough because the element's `overflow-y` style can be set as
-    // * `hidden`
-    // * `hidden !important`
-    // In those cases, the scrollbar isn't shown
-    const overflowYStyle = window.getComputedStyle(ele).overflowY;
-    const isOverflowHidden = overflowYStyle.indexOf('hidden') !== -1;
+  // It's not enough because the element's `overflow-y` style can be set as
+  // * `hidden`
+  // * `hidden !important`
+  // In those cases, the scrollbar isn't shown
+  const overflowYStyle = window.getComputedStyle(ele).overflowY;
+  const isOverflowHidden = overflowYStyle.indexOf("hidden") !== -1;
 
-    return hasScrollableContent && !isOverflowHidden;
+  return hasScrollableContent && !isOverflowHidden;
 };
 ```
+
 ### Images
 
 #### Getting an image's dimensions
 
-We have two different methods of fetching an image's dimensions. We can do one when the image is already loaded, and we have to do the other one if the image is not yet loaded. 
+We have two different methods of fetching an image's dimensions. We can do one when the image is already loaded, and we have to do the other one if the image is not yet loaded.
 
 **method 1: image already loaded**
 
@@ -582,28 +582,29 @@ Here we promisify loading for the image by listening for the `"load"` event.
 
 ```ts
 const calculateSize = function (url) {
-    return new Promise(function (resolve, reject) {
-        const image = document.createElement('img');
-        image.addEventListener('load', function (e) {
-            resolve({
-                width: e.target.width,
-                height: e.target.height,
-            });
-        });
-
-        image.addEventListener('error', function () {
-            reject();
-        });
-
-        image.src = url;
+  return new Promise(function (resolve, reject) {
+    const image = document.createElement("img");
+    image.addEventListener("load", function (e) {
+      resolve({
+        width: e.target.width,
+        height: e.target.height,
+      });
     });
+
+    image.addEventListener("error", function () {
+      reject();
+    });
+
+    image.src = url;
+  });
 };
 
-calculateSize('/path/to/image.png').then((data) => {
-    const width = data.width;
-    const height = data.height;
+calculateSize("/path/to/image.png").then((data) => {
+  const width = data.width;
+  const height = data.height;
 });
 ```
+
 ## DOM APIs
 
 ### Window methods
@@ -612,10 +613,10 @@ calculateSize('/path/to/image.png').then((data) => {
 - `window.close()`: closes the current window
 - `window.open(url)`: opens a new window and creates a tab with the specified URL
 
-
 ### Navigator
 
 - `navigator.platform`: returns the OS the user is running on, which is either `"Win32"` or `"MacIntel"`.
+
 ### Match media
 
 The `window.matchMedia()` function lets us harness the power of CSS media queries in JavaScript and lets us execute code accordingly. The method takes in a string representing the media query to query.
@@ -624,15 +625,17 @@ The `window.matchMedia()` function lets us harness the power of CSS media querie
 
 ```ts
 const isMobile = function () {
-    const match = window.matchMedia('(pointer:coarse)');
-    return match && match.matches;
+  const match = window.matchMedia("(pointer:coarse)");
+  return match && match.matches;
 };
 ```
 
 #### Check if user has system dark mode
 
 ```ts
-const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+const isDarkMode =
+  window.matchMedia &&
+  window.matchMedia("(prefers-color-scheme: dark)").matches;
 ```
 
 ### Fullscreen
@@ -643,19 +646,19 @@ You can get the current element in fullscreen with `document.fullscreenElement` 
 
 You can exit fullscreen with `document.exitFullscreen()` method
 
-You can listen for changes by listening to the `"fullscreenchange"` event on the document, like so: 
+You can listen for changes by listening to the `"fullscreenchange"` event on the document, like so:
 
 ```jsx
 document.addEventListener("fullscreenchange", (e) => {
-	if (document.fullscreenElement) {
-		// in fullscreen
-	} else {
-		// not in fullscreen
-	}
-})
+  if (document.fullscreenElement) {
+    // in fullscreen
+  } else {
+    // not in fullscreen
+  }
+});
 ```
 
-Here is a class I made: 
+Here is a class I made:
 
 ```ts
 export default class FullscreenModel {
@@ -691,7 +694,7 @@ export default class FullscreenModel {
 
 ### Picture in Picture
 
-The picture-in-picture API is a simple API that allows you to put any HTML video DOM element in picture in picture mode. 
+The picture-in-picture API is a simple API that allows you to put any HTML video DOM element in picture in picture mode.
 
 - `document.pictureInPictureElement` : returns the current element in your page that is in picture-in-picture mode. `null` if nothing.
 - `document.exitPictureInPicture()` : makes whatever video is playing picture in picture to exit it.
@@ -716,33 +719,33 @@ There are also two events on the `<video>` element you can listen for concerning
 
 ### ResizeObserver
 
-The window resize event is slow and costly, while the `ResizeObserver` class lets you observe resizing on any element and is more performant. 
+The window resize event is slow and costly, while the `ResizeObserver` class lets you observe resizing on any element and is more performant.
 
-Here is how to do it: 
+Here is how to do it:
 
 ```jsx
 // 1. create an observer
 const observer = new ResizeObserver((entries) => {
-	entries.forEach(entry => {
-		const target = entry.target
-		const [box] = entry.borderBoxSize
-		if (box.blockSize < 150 && box.inlineSize < 150) {
-			// do something
-		}
-	})
-})
+  entries.forEach((entry) => {
+    const target = entry.target;
+    const [box] = entry.borderBoxSize;
+    if (box.blockSize < 150 && box.inlineSize < 150) {
+      // do something
+    }
+  });
+});
 
 // 2. observe elements
-observer.observe(document.querySelector(".rect"))
+observer.observe(document.querySelector(".rect"));
 ```
 
 The `entries` parameter is an array of entries, where each `entry` object has the following properties:
 
 - `entry.target` : the element being resized
-- `entry.contentRect` : returns the dimensions of the element which is the **bounding box** you would get from the `element.getBoundingBox()` method. 
+- `entry.contentRect` : returns the dimensions of the element which is the **bounding box** you would get from the `element.getBoundingBox()` method.
 - `entry.borderBoxSize` : a one-element array that represents the element’s new dimensions. A single object from this array has these properties:
-    - `box.blockSize` : the vertical size in pixels of the element
-    - `box.inlineSize` : the horizontal size in pixels of the element
+  - `box.blockSize` : the vertical size in pixels of the element
+  - `box.inlineSize` : the horizontal size in pixels of the element
 
 And here are the methods you have on the `observer` object:
 
@@ -815,12 +818,11 @@ class ResizeObserverModel {
 
 #### Executing code once an element is mounted
 
-We can use the `MutationObserver` class to continuously check for the existence of an element, and if that element is defined, we can then execute some code. 
+We can use the `MutationObserver` class to continuously check for the existence of an element, and if that element is defined, we can then execute some code.
 
-1. We create an observer on the `document.body`, and make sure we listen for all changes in the DOM by including the `childList: true` to listen for mutations on direct children of the `<body>` tag and `subtree: true` to listen for mutations on any descendants of the `<body>` tag. 
+1. We create an observer on the `document.body`, and make sure we listen for all changes in the DOM by including the `childList: true` to listen for mutations on direct children of the `<body>` tag and `subtree: true` to listen for mutations on any descendants of the `<body>` tag.
 2. Keep querying for the target element by using something like `document.querySelector`
 3. If the queried element is defined, you can stop tracking for changes by calling `observer.disconnect()`, and now you can do stuff with the element.
-
 
 ```js
 const observer = new MutationObserver((mutations) => {
@@ -847,34 +849,35 @@ observer.observe(document.body, {
 Here are the methods you have on the `observer` object:
 
 - `observer.observe(element, options)`: adds an element to its list of observers. You must specify at least one of these properties in the options object:
-	- `childList`: if true, observes changes to the element's direct children (getting added or removed)
-	- `subtree`: if true, observes changes to all descendants of the element.
-	- `attributes`: if true, observes changes to attributes being set or removed on the element
-	- `attributeOldValue`: if true, also gives the old attribute value info whenever the attributes of the element change. 
-	- `attributeFilter`: the list of attributes to observe. This should be of type `string[]`.
-	- `characterData`: if true, observes changes to the text content of the element
-	- `characterDataOldValue`: if true, also gives the old text content value whenever the text content of the element changes.
+  - `childList`: if true, observes changes to the element's direct children (getting added or removed)
+  - `subtree`: if true, observes changes to all descendants of the element.
+  - `attributes`: if true, observes changes to attributes being set or removed on the element
+  - `attributeOldValue`: if true, also gives the old attribute value info whenever the attributes of the element change.
+  - `attributeFilter`: the list of attributes to observe. This should be of type `string[]`.
+  - `characterData`: if true, observes changes to the text content of the element
+  - `characterDataOldValue`: if true, also gives the old text content value whenever the text content of the element changes.
 - `observer.unobserve(element)`: removes an element from its list of observers
 - `observer.disconnect()`: stops the observations and removes all observers
+
 #### using with character data
 
-To observe changes to element text content with the `"characterData"` attribute, you have to observe the child node of the text element, since text is a node in HTML. 
+To observe changes to element text content with the `"characterData"` attribute, you have to observe the child node of the text element, since text is a node in HTML.
+
 ### URL
 
 ```ts
-let url = new URL("https://example.com:8000/path/name?q=term#fragment")
+let url = new URL("https://example.com:8000/path/name?q=term#fragment");
 
-console.log(url.href);        // => "https://example.com:8000/path/name?q=term#fragment"
-console.log(url.origin);      // => "https://example.com:8000"
-url.protocol    // => "https:"
-url.host        // => "example.com:8000"
-url.hostname    // => "example.com"
-url.port        // => "8000"
-url.pathname    // => "/path/name"
-url.search      // => "?q=term"
-url.hash        // => "#fragment"
+console.log(url.href); // => "https://example.com:8000/path/name?q=term#fragment"
+console.log(url.origin); // => "https://example.com:8000"
+url.protocol; // => "https:"
+url.host; // => "example.com:8000"
+url.hostname; // => "example.com"
+url.port; // => "8000"
+url.pathname; // => "/path/name"
+url.search; // => "?q=term"
+url.hash; // => "#fragment"
 ```
-
 
 ### Clipboard
 
@@ -886,12 +889,12 @@ Reading text requires permission that the user grants at runtime. If this permis
 
 ```ts
 async function readText() {
-    try {
-      return await navigator.clipboard.readText();
-    } catch (err) {
-      return null;
-    }
+  try {
+    return await navigator.clipboard.readText();
+  } catch (err) {
+    return null;
   }
+}
 ```
 
 #### Writing text
@@ -904,16 +907,16 @@ await navigator.clipboard.writeText("bruh copied");
 
 #### Reading any type of data from clipboard
 
-Use the async `navigator.clipboard.read()` method that reads any type of clipboard data from the user. This returns an array of one element, which is a `ClipboardItem`. 
+Use the async `navigator.clipboard.read()` method that reads any type of clipboard data from the user. This returns an array of one element, which is a `ClipboardItem`.
 
 ```ts
 const [clipboardItem] = await navigator.clipboard.read();
 ```
 
-Instances of this class have these properties and methods: 
+Instances of this class have these properties and methods:
 
 - `clipboardItem.types`: returns the array of mimetypes that describes the clipboard data. Clipboard data can have multiple mime types, so it's often beneficial to just act on one.
-- `clipboardItem.getType(mimeType: string)`: returns the blob of clipboard data for the given mimetype. 
+- `clipboardItem.getType(mimeType: string)`: returns the blob of clipboard data for the given mimetype.
 
 Here is a full example of doing something different for different mime types of clipboard data.
 
@@ -921,21 +924,21 @@ Here is a full example of doing something different for different mime types of 
 copyTextBtn.addEventListener("click", async () => {
   const [clipboardItem] = await navigator.clipboard.read();
 
-	// if HTML, parse as HTML
+  // if HTML, parse as HTML
   if (clipboardItem.types.includes("text/html")) {
     let blob = await clipboardItem.getType("text/html");
     let html = await blob.text();
     document.body.innerHTML = html;
   }
 
-	// If plain text, parse as plain text
+  // If plain text, parse as plain text
   if (clipboardItem.types.includes("text/plain")) {
     let blob = await clipboardItem.getType("text/plain");
     let text = await blob.text();
-    alert(text)
+    alert(text);
   }
 
-	// If image, create URL from blob to display image
+  // If image, create URL from blob to display image
   if (clipboardItem.types.includes("image/png")) {
     const pngImage = new Image();
     pngImage.alt = "PNG image from clipboard";
@@ -950,19 +953,24 @@ copyTextBtn.addEventListener("click", async () => {
 
 #### Writing any data to clipboard
 
-Use the async `navigator.clipboard.write()` method, which takes in an array of `ClipboardItem` instances to write to the clipboard. Follow these steps in general: 
+Use the async `navigator.clipboard.write()` method, which takes in an array of `ClipboardItem` instances to write to the clipboard. Follow these steps in general:
 
 1. Create a blob
+
 ```ts
 const blob = new Blob(["hello world"], { type: "text/plain" });
 ```
+
 2. Create a `ClipboardItem` instance from the blob
+
 ```ts
-const clipboardItem = new ClipboardItem({ "text/plain": blob })
+const clipboardItem = new ClipboardItem({ "text/plain": blob });
 ```
+
 3. Write to the clipboard
+
 ```ts
-await navigator.clipboard.write([clipboardItem])
+await navigator.clipboard.write([clipboardItem]);
 ```
 
 Below is a complete example of creating a blob, creating a clipboard item from the blob, and then writing it to the clipboard.
@@ -977,7 +985,6 @@ copyImagebutton.addEventListener("click", async () => {
   await navigator.clipboard.write(data);
 });
 ```
-
 
 > [!WARNING] Limited Mime Types to write
 > When writing and reading to and from the clipboard, you only are allowed to use clipboard data with these three mime types: `text/html`, `text/plain`, and `image/png`
@@ -1028,9 +1035,9 @@ export default class ClipboardModel {
     return typeMapping.includes("text");
   }
 
-	static async copyText(text: string) {
-	    await navigator.clipboard.writeText(text);
-	}
+  static async copyText(text: string) {
+    await navigator.clipboard.writeText(text);
+  }
 
   static async hasImageCopied() {
     const [clipboardItem] = await navigator.clipboard.read();
@@ -1079,32 +1086,31 @@ export default class ClipboardModel {
 }
 ```
 
-
 #### Managing clipboard permission
 
-The clipboard API is sensitive, so the user needs to grant permission first. 
+The clipboard API is sensitive, so the user needs to grant permission first.
 
 Clipboard permissions are split into two:
 
 - `clipboard-read` allows for a page to read the contents of the clipboard. This permission must be explicitly granted by the user.
-- `clipboard-write` allows for a page to write content _into_ the clipboard. This write permission is granted automatically to pages when they are the active tab.
+- `clipboard-write` allows for a page to write content *into* the clipboard. This write permission is granted automatically to pages when they are the active tab.
 
-Use the `navigator.permissions` API to query these permissions: 
+Use the `navigator.permissions` API to query these permissions:
 
 ```ts
 async function isClipboardWriteAllowed() {
-	const result = await navigator.permissions.query({name: "clipboard-write"})
-	return result.state === "granted"
+  const result = await navigator.permissions.query({ name: "clipboard-write" });
+  return result.state === "granted";
 }
 
 async function isClipboardReadAllowed() {
-	const result = await navigator.permissions.query({name: "clipboard-read"})
-	return result.state === "granted"
+  const result = await navigator.permissions.query({ name: "clipboard-read" });
+  return result.state === "granted";
 }
 ```
 
 > [!WARNING]
-> However, it's not possible to do anything with the clipboard while the page is out of focus, so keep that in mind. 
+> However, it's not possible to do anything with the clipboard while the page is out of focus, so keep that in mind.
 
 #### Clipboard events
 
@@ -1112,35 +1118,36 @@ There are the `"cut"`, `"copy"`, and `"paste"` events you can listen for on the 
 
 ```ts
 document.addEventListener("copy", async () => {
-	const data = e.clipboardData
+  const data = e.clipboardData;
   console.log("Copied text:", await navigator.clipboard.readText());
 });
 ```
 
-The clipboard data from all these events is stored in `e.clipboardData` property on the event object. 
+The clipboard data from all these events is stored in `e.clipboardData` property on the event object.
+
 ## Various DOM Tips
 
 ### Enable spellcheck
 
-You can use the `spellcheck` attribute with `<input>` elements, content-editable elements, and `<textarea>` elements to enable or disable spell-checking by the browser.  
+You can use the `spellcheck` attribute with `<input>` elements, content-editable elements, and `<textarea>` elements to enable or disable spell-checking by the browser.
 
 ```html
-<input type="text" spellcheck="true"/>
+<input type="text" spellcheck="true" />
 ```
 
 ### Downloading files
 
-The easy way to initiate a file download is by setting the `download=` attribute on the `<a>` tag. Whatever `href=` attribute you set should point to the desired filepath to download. 
+The easy way to initiate a file download is by setting the `download=` attribute on the `<a>` tag. Whatever `href=` attribute you set should point to the desired filepath to download.
 
 - The `href=` can be either a filepath, online resource, or blob URL
 
-You can also initiate downloads programmatically by using this hacky way of creating a download link, clicking on it, and then immediately removing it. 
+You can also initiate downloads programmatically by using this hacky way of creating a download link, clicking on it, and then immediately removing it.
 
 ```ts
 // Create a new link
-const link = document.createElement('a');
-link.download = 'file name';
-link.href = '/path/to/file';
+const link = document.createElement("a");
+link.download = "file name";
+link.href = "/path/to/file";
 
 // Append to the document
 document.body.appendChild(link);
@@ -1154,39 +1161,38 @@ document.body.removeChild(link);
 
 ### Hide or show password
 
-The basic theory between a hide and show password toggle is simply changing the `input` type attribute from `type="text"` and `type="password"`, and toggling that whenever the eye button is clicked. 
+The basic theory between a hide and show password toggle is simply changing the `input` type attribute from `type="text"` and `type="password"`, and toggling that whenever the eye button is clicked.
 
 ```ts
 function showPassword(element) {
-	element.setAttribute("type", "text")
+  element.setAttribute("type", "text");
 }
 
 function hidePassword(element) {
-	element.setAttribute("type", "password")
+  element.setAttribute("type", "password");
 }
 ```
 
 ```ts
 // Query the elements
-const passwordEle = document.getElementById('password');
-const toggleEle = document.getElementById('toggle');
+const passwordEle = document.getElementById("password");
+const toggleEle = document.getElementById("toggle");
 
-toggleEle.addEventListener('click', function () {
-    const type = passwordEle.getAttribute('type');
+toggleEle.addEventListener("click", function () {
+  const type = passwordEle.getAttribute("type");
 
-    passwordEle.setAttribute(
-        'type',
-        // Switch it to a text field if it's a password field
-        // currently, and vice versa
-        type === 'password' ? 'text' : 'password'
-    );
+  passwordEle.setAttribute(
+    "type",
+    // Switch it to a text field if it's a password field
+    // currently, and vice versa
+    type === "password" ? "text" : "password"
+  );
 });
-
 ```
 
 ### Replace broken images with a default image
 
-The `"error"` event for an image is triggered if its src is invalid. You can use this at the beginning of your JS code to listen for broken images and replace them with a different default image. 
+The `"error"` event for an image is triggered if its src is invalid. You can use this at the beginning of your JS code to listen for broken images and replace them with a different default image.
 
 ```ts
 function replaceBrokenImages(defaultPath: string) {
@@ -1199,33 +1205,34 @@ function replaceBrokenImages(defaultPath: string) {
   });
 }
 ```
+
 ### Sanitize HTML
 
-We can sanitize HTML by following these steps: 
+We can sanitize HTML by following these steps:
 
 1. Create an element that does not immediately run HTML, like `<textarea>` or `<template>`
-2. Set the innerHTML of the newly created element to HTML string you want to sanitize. 
+2. Set the innerHTML of the newly created element to HTML string you want to sanitize.
 3. Return the text content of the newly created element, which should just be the HTML except sanitized.
 
 ```ts
 function sanitizeHTML(html: string) {
-    const ele = document.createElement('template');
-    ele.innerHTML = html;
-    return ele.content.textContent || '';
-};
+  const ele = document.createElement("template");
+  ele.innerHTML = html;
+  return ele.content.textContent || "";
+}
 ```
 
-You can also use the `DOMParser()` class: 
+You can also use the `DOMParser()` class:
 
 ```ts
 const htmlString = '<script>alert("Hello, world!");</script><p>Some text</p>';
 const parser = new DOMParser();
-const doc = parser.parseFromString(htmlString, 'text/html');
+const doc = parser.parseFromString(htmlString, "text/html");
 ```
 
 ### Waiting for page to load
 
-To prevent a flash of unstyled content, we can use the code below. Just follow these steps: 
+To prevent a flash of unstyled content, we can use the code below. Just follow these steps:
 
 1. Set inline style of `visiblity: hidden` on the `body` tag.
 2. Use the code below to set up a dom loaded event listener and change the visiblity back to visible once ready.
@@ -1243,7 +1250,7 @@ domReady(() => {
 });
 ```
 
-We can also promisify this: 
+We can also promisify this:
 
 ```ts
 function documentIsReady() {
@@ -1266,6 +1273,6 @@ main();
 
 ## Content editable
 
-The `contentEditable` attribute is extremely versatile and allows us to modify the content of elements in the page. 
+The `contentEditable` attribute is extremely versatile and allows us to modify the content of elements in the page.
 
-You can visit the [`data:text/html, <html contenteditable>`](data:text/html, <html contenteditable>) url, which turns the entire webpage into a editable content surface. 
+You can visit the `data:text/html, <html contenteditable>` url, which turns the entire webpage into a editable content surface.
