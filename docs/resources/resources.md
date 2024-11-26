@@ -11,6 +11,10 @@
 - https://videojs.com/ : HTML5 video player library
 - https://tempo.formkit.com/ : date library
 - [vanilla js libraries](https://vanillalist.top/)
+- [Animate on scroll](https://michalsnik.github.io/aos/) and its [github](https://github.com/michalsnik/aos/tree/v2)
+- https://roughnotation.com/: Hand drawn annotation animations. Great for blogs. 
+- https://atroposjs.com/docs: Parallax in JS
+
 
 ### React libraries
 
@@ -61,6 +65,9 @@ These are my references:
 - https://uiverse.io/loaders : CSS loader generators
 - https://cssfx.netlify.app/ : free CSS animations and effects
 - https://cubic-bezier.com/#.17,.67,.83,.67: CSS Cubic Bezier Tool
+- https://www.vantajs.com/: Animated background tool
+- https://cssloaders.github.io/: CSS Loaders collector
+- https://www.minimamente.com/project/magic/: Copy and paste animations
 
 ### **SVG generator tools**
 
@@ -84,6 +91,7 @@ These are my references:
 - https://3dicons.co/ : 3d icons
 - https://storyset.com/ : SVG illustrations
 - https://shapefest.com/ : 3d SVG illustrations
+- https://marvelapp.github.io/devices.css/: Phone mockup
 
 ## Utilities
 
@@ -95,6 +103,7 @@ These websites have all-in-one solutions to many problems:
 - https://it-tools.tech/ : open graph, decoding, etc.
 - https://app.lazyweb.rocks/ : search for tools
 - https://cheatography.com/ : cheatsheets for everything
+- https://tinywow.com/tools: tools for pdfs, images, videos
 
 ### Images
 
@@ -111,6 +120,7 @@ These websites have all-in-one solutions to many problems:
 ### Video
 
 - [FFmpeg online tool](https://ffmpeg-online.vercel.app/?inputOptions=-i&output=output.mp4&outputOptions=)
+- [remove video from background](https://www.unscreen.com/)
 
 ### APIs
 
@@ -142,6 +152,7 @@ These websites have all-in-one solutions to many problems:
 ## Learning
 
 - [CSS cheatsheets](https://dev.to/devshefali/the-top-6-css-cheatsheets-that-will-save-you-hours-2lp1) : CSS cheatsheets
+- [Collection of cheatsheets](https://devhints.io/)
 - [learn typescript from this repo](https://gibbok.github.io/typescript-book/book/the-concise-typescript-book/)
 - [functional programming js guide](https://jrsinclair.com/articles/2024/how-to-compose-functions-that-take-multiple-parameters-epic-guide/)
 - [you don't know JS github series](https://github.com/getify/You-Dont-Know-JS)

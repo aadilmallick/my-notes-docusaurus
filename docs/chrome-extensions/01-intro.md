@@ -521,6 +521,8 @@ function setupAlarmListener() {
 
 ### Offscreen
 
+You need the `"offscreen"` manifest permission to use offscreen documents. 
+
 If you want to do background work with a service worker and need access to DOM APIs like clipboard or canvas, you need to do it with **offscreen documents**. Offscreen documents don't need a webpage to run DOM API methods, which is ideal for extension service workers.
 
 Here is an example of registering an offscreen document, and you can only register one offscreen document per chrome extension. 
@@ -536,6 +538,8 @@ chrome.offscreen.createDocument({
 Here are the properties you should pass to the `chrome.offscreen.createDocument(options)` method: 
 - `url` : the static extension page to act as the offscreen document
 - `reasons` : used to determine what the document is used for and the lifetime of the document.
+
+Once you create an offscreen document, you can use basic chrome runtime messaging to communicate with it and send data to it so it can perform DOM tasks with that data. 
 
 You can then deregister the document using the `chrome.offscreen.closeDocument()` async method. You can also close the document from the offscreen context itself by doing `window.close()`.
 

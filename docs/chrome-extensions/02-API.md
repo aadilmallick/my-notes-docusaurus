@@ -1007,6 +1007,175 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 ## TabGroups
 
+## userScripts
+
+user scripts are a way to automatically run javascript code on a webpage whenever the user navigates to it. Users can define their own javascript code they want to run that will get around the content security policy.
+
+Each user script has three parts to it: 
+
+- **id**: the unique identifier for the script
+- **url matches**: the url blob patterns to match, meaning the script will run on any urls that match one from the list of patterns
+- **code**: the script code. This can be a string or a reference to a file.
+
+### Setup
+
+For user scripts to work, host permissions for select match patterns have to be enabled and the user must have their chrome extensions page in developer mode. 
+
+1. Add the `"userScripts"` permission to the manifest
+2. Add host permissions for whichever match patterns you are going to have user scripts running on. This can also be optional host permissions you can request at runtime.
+3. Check if user scripts exist
+```ts
+function isUserScriptsAvailable() {
+    try {
+      // Property access which throws if developer mode is not enabled.
+      const thing = chrome.userScripts === undefined;
+      if (thing) {
+        return false;
+      }
+      return true;
+    } catch {
+      // Not available.
+      return false;
+    }
+  }
+```
+4. Configure user script CSP
+```ts
+function setWorld() {
+    chrome.userScripts.configureWorld({
+      csp: "script-src 'self'",
+    });
+  }
+```
+
+For the optional host permissions, any url match you request for the user script must be a subset of the match patterns from the optional host permissions, so it's better to just go as broad as possible: 
+
+```json
+{
+  "permissions": ["storage", "userScripts", "unlimitedStorage"],
+  "optional_host_permissions": ["<all_urls>"],
+}
+```
+
+You can then ask for permission and then register like so: 
+
+```typescript
+    async function registerScript (url: string, code: string) => {
+	    // create new script representation
+      const currentScript = new UserScripts(crypto.randomUUID());
+      const domainUrl = new URL(url).origin;
+      // create glob match pattern
+      const urlMatch = `${domainUrl}/*`;
+
+		// request glob pattern as optional host permission
+      const permissions = new PermissionsModel({
+        origins: [urlMatch],
+      });
+	    // request permission
+      const isGranted = await permissions.request();
+      if (!isGranted) {
+        return;
+      }
+
+      await currentScript.registerScript([urlMatch], code);
+    }
+```
+### API
+
+All of these methods are asynchronous. 
+
+- `chrome.userScripts.register(options)`: registers a user script. Throws an error if you try to register an existing script with the same id. Here are the keys of options object:
+	- `id`: the script id
+	- `matches`: a string array of glob patterns that the script will run on if the current tab url matches one of those patterns
+	- `js`: the pieces of code to run. This can be strings or files. 
+- `chrome.userScripts.unregister(options)`: unregisters the specified user scripts based on their ids.
+- `chrome.userScripts.update(scripts)`: updates the specified user scripts. `scripts` is an array of objects, which each have these keys:
+	- `id`: the script id
+	- `matches`: a string array of glob patterns that the script will run on if the current tab url matches one of those patterns
+	- `js`: the pieces of code to run. This can be strings or files. 
+
+To get a script, use `chrome.userScripts.getScript()` method, which if you pass in nothing, it returns all user scripts, but you can also pass in a filter to filter off all ids. 
+
+```ts
+export class UserScripts {
+  static isUserScriptsAvailable() {
+    try {
+      // Property access which throws if developer mode is not enabled.
+      const thing = chrome.userScripts === undefined;
+      if (thing) {
+        return false;
+      }
+      return true;
+    } catch {
+      // Not available.
+      return false;
+    }
+  }
+
+  static async getAllScripts() {
+    const scripts = await chrome.userScripts.getScripts();
+    return scripts;
+  }
+
+  static setWorld() {
+    chrome.userScripts.configureWorld({
+      csp: "script-src 'self'",
+    });
+  }
+
+  constructor(public readonly id: string) {}
+
+  async registerScript(matchPatterns: string[], js: string) {
+    if (await this.getScript()) {
+      return;
+    }
+    console.log("registering script...");
+    await chrome.userScripts.register([
+      {
+        id: this.id,
+        matches: matchPatterns,
+        js: [{ code: js }],
+        world: "USER_SCRIPT",
+      },
+    ]);
+  }
+
+  async getScript() {
+    const [script] = await chrome.userScripts.getScripts({
+      ids: [this.id],
+    });
+    if (!script) {
+      return null;
+    }
+    return script;
+  }
+
+  async unregisterScript() {
+    const script = await this.getScript();
+    if (!script) {
+      return;
+    }
+    await chrome.userScripts.unregister({
+      ids: [this.id],
+    });
+  }
+
+  async updateScript(js: string) {
+    await chrome.userScripts.update([
+      {
+        id: this.id,
+        js: [{ code: js }],
+      },
+    ]);
+  }
+}
+```
+
+### The major caveat
+
+User Scripts are all automatically deregistered whenever the extension updates, so it's best to store representations of your user scripts somehow in storage and then re-register them all when the extension updates. 
+
+
 ## webNavigation
 
 Here are the events you can listen to in the `webNavigation` API. 

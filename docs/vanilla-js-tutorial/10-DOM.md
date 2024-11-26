@@ -194,6 +194,17 @@ The window object has these event listeners on it:
 
 - `"load"`: fired when the entire page has been loaded, which includes all javascript files, images, and CSS.
 - `"scroll"`: fired when user scrolls the page
+- `"unload"`: when the user closes the page. The main use case for this is to send beacons with `navigator.sendBeacon()`.
+- `"onbeforeunload"`: just when before the user tries to exit the page. The main use case for this is to intervene and prevent the user from leaving. 
+
+This is how you can prevent a user from leaving with the `"onbeforeunload"` event:
+
+```ts
+window.onbeforeunload = function() {
+  // prompts the user with this message with popup alert confirmation
+  event.returnValue = "There are unsaved changes. Leave now?";
+};
+```
 
 #### Focus
 
@@ -389,6 +400,7 @@ const hasFocus = ele === document.activeElement;
 You can use the `window.scrollTo(x, y)` to scroll to a specific coordinate on the page.
 
 - `window.scrollTo(0, 0)`: scrolls to the top of the page
+- `window.scrollBy(0, 10)`: scrolls down by 10px relative to current position.
 
 #### Scrolling elements into view
 
@@ -400,6 +412,59 @@ element.scrollIntoView();
 element.scrollIntoView({
   behavior: "smooth",
 });
+```
+
+#### Scroll class
+
+```ts
+export class ScrollManager {
+  public get totalWindowHeight(): number {
+    const scrollHeight = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight,
+      document.body.clientHeight,
+      document.documentElement.clientHeight
+    );
+    return scrollHeight;
+  }
+  public get totalWindowWidth(): number {
+    const scrollWidth = Math.max(
+      document.body.scrollWidth,
+      document.documentElement.scrollWidth,
+      document.body.offsetWidth,
+      document.documentElement.offsetWidth,
+      document.body.clientWidth,
+      document.documentElement.clientWidth
+    );
+    return scrollWidth;
+  }
+  public get windowHeight(): number {
+    return document.documentElement.clientHeight;
+  }
+  public get scrollY(): number {
+    return window.scrollY;
+  }
+  public get scrollX(): number {
+    return window.scrollX;
+  }
+  public scrollToTop() {
+    window.scrollTo(0, 0);
+  }
+  public scrollToBottom() {
+    window.scrollTo(0, this.totalWindowHeight);
+  }
+  public scrollToElement(element: HTMLElement) {
+    element.scrollIntoView({ behavior: "smooth" });
+  }
+  public scrollToPosition(position: number) {
+    window.scrollTo(0, position);
+  }
+  public scrollDownBy(position: number) {
+    window.scrollBy(0, position);
+  }
+}
 ```
 
 ### Changing the Style of Elements
@@ -498,6 +563,16 @@ const clientWidth = ele.clientWidth;
 // The size include padding and border
 const offsetHeight = ele.offsetHeight;
 const offsetWidth = ele.offsetWidth;
+```
+
+### Finding element from a point
+
+If you have a set of `(x, y)` coordinates, you can find the element that has that point within its bounding box using the `document.elementFromPoint(x, y)` method.
+
+```javascript
+// finds the element that has the point (120, 16) within its bounding box
+const el = document.elementFromPoint(120, 16);
+console.log(el);
 ```
 
 #### Getting mouse position relative to element
@@ -607,6 +682,132 @@ calculateSize("/path/to/image.png").then((data) => {
 
 ## DOM APIs
 
+### Cookies
+
+Cookies are origin-specific, just like local storage. 
+
+```ts
+class CookieManager {
+  private cookies : Record<string, string>
+  constructor() {
+    this.cookies = this.getCurrentCookies()
+  }
+
+  fetchLatestCookies() {
+    this.cookies = this.getCurrentCookies()
+    return { ...this.cookies }
+  }
+
+  private getCurrentCookies() : Record<string, string> {
+    if (document.cookie === "") {
+      return {}
+    }
+    const cookiePairs = document.cookie.split('; ')
+    return cookiePairs.reduce((accumulator, pair) => {
+      const [key, value] = pair.split('=')
+      return {
+        ...accumulator,
+        [key]: value
+      }
+    }, {})
+  }
+
+  private createExpiration(days: number) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days*24*60*60*1000));
+      let expires = "expires="+ d.toUTCString();
+  }
+
+  toJSON() {
+    return JSON.stringify(this.cookies)
+  }
+
+  setCookie(key : string, value: string, exdays : number = 30) {
+    const d = new Date();
+    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    let expires = "expires="+ d.toUTCString();
+    document.cookie = encodeURIComponent(key) + "=" + encodeURIComponent(value) + "; " + expires + "; " + "path=/;"
+    this.cookies[key] = value
+  }
+
+  static getCookie(cname : string) {
+    let name = encodeURIComponent(cname) + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for(let i = 0; i <ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return "";
+  }
+
+  deleteCookie(key : string) {
+    let expires = "max-age=0"
+    document.cookie = encodeURIComponent(key) + "=" + "; " + expires + "; " + "path=/;"
+    if (CookieManager.getCookie(key)) {
+      return false
+    }
+    delete this.cookies[key]
+    return true
+  }
+}
+
+const manager = new CookieManager()
+manager.setCookie("dog", "rufus")
+const deletedCookie = manager.deleteCookie("dog")
+console.log(deletedCookie)
+console.log(manager.fetchLatestCookies())
+```
+
+The `document.cookie` is a special string that allows you read, update, add, and delete cookies. Here are the rules: 
+
+1. When using `document.cookie` as a getter, it returns all the cookies as a string, where each cookie is a key-value pair in the syntax of `key=value`, and each cookie is separated with a `; `.
+2. To add or update a cookie, just use `document.cookie` as a setter and specify the cookie name and value. It won't override the other cookies. 
+3. To delete a cookie just use `document.cookie` as a setter and specify the cookie name without the value. Set the expiration date to some date in the past using `max-age=` or `expires=`.
+
+#### Setting cookies
+
+We set cookies by setting the `document.cookie = "key=value"` syntax. Here are the caveats: 
+
+1. We can only set one cookie at a time. 
+2. We need to use `encodeURIComponent()` for the cookie name and value if they have spaces in them. 
+3. The total number of cookies per domain is limited to 20. 
+
+**Special cookies values**
+
+When setting cookies, we have access to add these special cookie values that define the behavior of the cookie when we set it, but when we try to fetch the cookies, we only get back the key and value. 
+
+- `domain=`: the defines the domain where the cookie is accessible. The default is the same domain from which the cookie was set. 
+- `path=`: the absolute path for which cookies are allowed to be accessed by. By default, it's the current route from which the cookie was set, but a better one is to do `path=/` so that all routes on the site can access the cookie. 
+- `max-age=`: the semi-equivalent of `expires=`. This value is set in number of seconds, after which the cookie will expire. 
+	- `max-age=3600`: cookie will expire in an hour.
+	- `max-age=0`: cookie expires now. 
+- `expires=`: the `Date` string for which the cookie should expire. 
+- `secure`: If set to true, then the cookie is only accessible via HTTPS. By default, if this is not set, then cookies are accessible on both HTTP and HTTPS. 
+	- So if a cookie has sensitive content that should never be sent over unencrypted HTTP, the `secure` flag is the right thing.
+- `samesite=`: used to prevent XSRF attacks by allowing cookies to be accessible only when actions are initiated from the domain the cookies were created from.
+	- `samesite=strict`: this cookie cannot be sent if a request was initiated from a site other than the domain this cookie was created from. 
+	- `samesite=lax`: follows the strict behavior but allows cookies to be sent if the url requested is requested with a GET method.
+
+```ts
+const expires = "expires=Tue, 19 Jan 2038 03:14:07 GMT"
+const path = `path=/`
+const domain = "google.com"
+```
+
+#### Third party cookies
+
+**third party cookies** are cookies that are placed by a domain other than the page the user is visiting. They are used by ad services to track you. 
+
+> [!NOTE]
+> When a remote script sets a cookie on a webpage, the cookie will belong to that site and under that domain. 
+
+The GDPR org requires that companies make sure users verbally agree to allowing them to set third-party cookies that track how users visit different websites, either by accepting a privacy policy or by clicking 'allow all cookies'.
 ### Window methods
 
 - `window.blur()`: removes focus from the window
@@ -616,6 +817,59 @@ calculateSize("/path/to/image.png").then((data) => {
 ### Navigator
 
 - `navigator.platform`: returns the OS the user is running on, which is either `"Win32"` or `"MacIntel"`.
+
+#### Screen Recording
+
+The `navigator.mediaDevices.getDisplayMedia()` method prompts the user to record either tab, window, or desktop. 
+
+```ts
+const startRecordingButton = document.getElementById(
+  "record-start"
+) as HTMLButtonElement;
+const stopRecordingButton = document.getElementById(
+  "record-stop"
+) as HTMLButtonElement;
+
+let stream: MediaStream;
+let recorder: MediaRecorder;
+
+async function startRecording() {
+  // has audio and video default enabled. 
+  stream = await navigator.mediaDevices.getDisplayMedia({
+    audio: true,
+    video: true,
+  });
+  recorder = new MediaRecorder(stream);
+
+  // Start recording.
+  recorder.start();
+  recorder.addEventListener("dataavailable", async (event) => {
+    let recordedBlob = event.data;
+    let url = URL.createObjectURL(recordedBlob);
+
+    let a = document.createElement("a");
+
+    a.style.display = "none";
+    a.href = url;
+    a.download = "screen-recording.webm";
+
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+  });
+}
+
+async function stopRecording() {
+  stream.getTracks().forEach((track) => track.stop());
+  recorder.stop();
+}
+
+startRecordingButton.addEventListener("click", startRecording);
+stopRecordingButton.addEventListener("click", stopRecording);
+```
 
 ### Match media
 
@@ -878,6 +1132,134 @@ url.pathname; // => "/path/name"
 url.search; // => "?q=term"
 url.hash; // => "#fragment"
 ```
+
+
+### View Transitions
+
+You can do a view transitions between changing pages (frontend version) by using the `document.startViewTransition(cb)` method.
+
+```tsx
+function changePage() {
+	// render new page...
+}
+
+document.startViewTransition(() => changePage());
+```
+
+You can customize the animations with CSS:
+
+- `::view-transition-old(name)` : CSS selector for the beginning view transition for a specific view transition name. `root` means entire page.
+- `::view-transition-new(name)` : CSS selector for the end view transition for a specific view transition name. `root` means entire page.
+
+```tsx
+// makes animation take 1 second long
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 1s;
+}
+```
+
+You can further customize like so:
+
+```tsx
+@keyframes fade-in {
+    from { opacity: 0; }
+  }
+  
+  @keyframes fade-out {
+    to { opacity: 0; }
+  }
+  
+  @keyframes slide-from-right {
+    from { transform: translateX(60px); }
+  }
+  
+  @keyframes slide-to-left {
+    to { transform: translateX(-60px); }
+  }
+  
+  ::view-transition-old(root) {
+    animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+      300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+  }
+  
+  ::view-transition-new(root) {
+    animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+      300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+  }
+```
+
+#### View Transitions for anything
+
+We can take advantage of view transitions to morph elements across page transitions for cool effects.
+
+We do this by giving the same elements on different pages the same _view transition name_, and we can then style them accordingly.
+
+```css
+.image-1-page1 {
+	view-transition-name: image
+}
+
+.image-1-page2 {
+	view-transition-name: image
+}
+```
+
+**`view-transition-name`** must be unique. If two rendered elements have the same **`view-transition-name`** at the same time, the transition will be skipped, which is what you want for morphing elements into each other.
+
+You then style those elements using the `::view-transition(name)` pseudoselector.
+
+```css
+::view-transition-old(full-embed),
+::view-transition-new(full-embed) {
+  /* Prevent the default animation,
+  so both views remain opacity:1 throughout the transition */
+  animation: none;
+  /* Use normal blending,
+  so the new view sits on top and obscures the old view */
+  mix-blend-mode: normal;
+  /* Make the height the same as the group,
+  meaning the view size might not match its aspect-ratio. */
+  height: 100%;
+  /* Clip any overflow of the view */
+  overflow: clip;
+}
+
+/* The old view is the thumbnail */
+::view-transition-old(full-embed) {
+  /* Maintain the aspect ratio of the view,
+  by shrinking it to fit within the bounds of the element */
+  object-fit: contain;
+}
+
+/* The new view is the full image */
+::view-transition-new(full-embed) {
+  /* Maintain the aspect ratio of the view,
+  by growing it to cover the bounds of the element */
+  object-fit: cover;
+}
+
+```
+
+#### Animating anything
+
+You can actually animate any element using view transitions since the animation is just extrapolating between snapshots of a document. 
+
+```ts
+if (document.startViewTransition) {
+  // (check for browser support)
+  document.addEventListener("click", function (event) {
+    if (event.target.matches("summary")) {
+      event.preventDefault(); // (we'll toggle the element ourselves)
+      const details = event.target.closest("details");
+      document.startViewTransition(() => details.toggleAttribute("open"));
+    }
+  });
+```
+
+<video src="https://res.cloudinary.com/ddxwdqwkr/video/upload/v1678488008/patterns.dev/toggle-demo.mp4" style="aspect-ratio: 16/9; max-width: 100%" controls autoplay muted></video>
+
+
 
 ### Clipboard
 
@@ -1271,6 +1653,62 @@ async function main() {
 main();
 ```
 
+The `DOMContentLoaded` event will wait for any non-async `<script>` tags to run before finally executing. 
+
+
+### HTML String code coloring
+
+To get HTML or CSS string code coloring, you have to follow these steps:
+
+1. Install the es6-html-string and es6-css-string extensions.
+2. Create tagged template `html()` and `css()` methods. 
+
+```ts
+export function html(strings: TemplateStringsArray, ...values: any[]) {
+  let str = "";
+  strings.forEach((string, i) => {
+    str += string + (values[i] || "");
+  });
+  return str;
+}
+
+export function css(strings: TemplateStringsArray, ...values: any[]) {
+  let str = "";
+  strings.forEach((string, i) => {
+    str += string + (values[i] || "");
+  });
+  return str;
+}
+```
+
+```ts
+const HTMLContent = html`
+  <section>
+    <h1 class="text-2xl font-bold">Screen Recorder</h1>
+    <button class="bg-black text-white px-4 py-2 rounded-lg" id="start">
+      Start Recording
+    </button>
+    <button class="bg-black text-white px-4 py-2 rounded-lg" id="stop">
+      Stop Recording
+    </button>
+  </section>
+`;
+```
+
+### Get window size
+
+- `document.documentElement.clientHeight`: the available height of the window viewport (excluding scrollbar)
+- `document.documentElement.clientWidth`: the available width of the window viewport (excluding scrollbar)
+
+We can get the full window height and width that you can get via scrolling with these calculations:
+
+```ts
+let scrollHeight = Math.max(
+  document.body.scrollHeight, document.documentElement.scrollHeight,
+  document.body.offsetHeight, document.documentElement.offsetHeight,
+  document.body.clientHeight, document.documentElement.clientHeight
+);
+```
 ## Content editable
 
 The `contentEditable` attribute is extremely versatile and allows us to modify the content of elements in the page.

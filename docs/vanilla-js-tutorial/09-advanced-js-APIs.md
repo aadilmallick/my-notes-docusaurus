@@ -979,6 +979,39 @@ Here are the steps to create a web component:
 - `customElements.define(name: string, component: class)` : registers a component. If this is called more than once, you will get an error, so make sure to check if it's already registered.
 - `customElements.get(name: string)` : gets the component class from the specified name if the component is registered. Use this in a singleton pattern to check if the component is already registered or not.
 
+There are two types of web components: 
+
+- **autonomous**: inheriting straight from `HTMLElement`
+- **customized elements**: Inheriting from a preexisting element like `HTMLButtonElement`.
+
+This is how you render and register an autonomous element: you render it by using its name.
+
+```ts
+class MyElement extends HTMLElement {
+  constructor() { super(); /* ... */ }
+  connectedCallback() { /* ... */ }
+  disconnectedCallback() { /* ... */  }
+  static get observedAttributes() { return [/* ... */]; }
+  attributeChangedCallback(name, oldValue, newValue) { /* ... */ }
+  adoptedCallback() { /* ... */ }
+ }
+customElements.define('my-element', MyElement);
+```
+
+```html
+<my-element></my-element>
+```
+
+This is how you render and register a customized element: you render it by supplying the custom element name to the `is=` attribute on the element you're extending from.
+
+```ts
+class MyButton extends HTMLButtonElement { /*...*/ }
+customElements.define('my-button', MyElement, {extends: 'button'});
+```
+
+```html
+<button is="my-button">Click Me</button>
+```
 ### Lifecycle Methods
 
 You can hook into specific methods in a web component class that get activated throughout the component's lifecycle.
@@ -1022,6 +1055,40 @@ We can then clone the content from the template to get the content for the custo
 const template = document.getElementById("menu-page");
 const content = template.content.cloneNode(true);
 ```
+
+**Slots**
+
+We can use the `<slot>` element to isnert nested content into the custom element, like children in React. The slot can have fallback content nested inside it. 
+
+- You can have a default slot by just using `<slot>`
+- You can have named slots by adding a `name=` to the `<slot>` element.
+
+```html
+<script>
+customElements.define('user-card', class extends HTMLElement {
+  connectedCallback() {
+    this.attachShadow({mode: 'open'});
+    this.shadowRoot.innerHTML = `
+      <div>Name:
+        <slot name="username"></slot>
+      </div>
+      <div>Birthday:
+        <slot name="birthday">January 1st 2018<slot>
+      </div>
+    `;
+  }
+});
+</script>
+
+<user-card>
+  <span slot="username">John Smith</span>
+  <span slot="birthday">01.01.2001</span>
+</user-card>
+```
+
+
+> [!WARNING] 
+> Only top level children nested in a custom element can use the `slot=` attribute. 
 
 
 ### Shadow DOM 
@@ -1080,6 +1147,10 @@ export class MenuPage extends HTMLElement {
 
 customElements.define("menu-page", MenuPage);
 ```
+
+**Using CSS Variables**
+
+CSS Variables pierce the shadow DOM, meaning custom elements can access global CSS Variables. 
 
 **Complete Shadow DOM setup**
 

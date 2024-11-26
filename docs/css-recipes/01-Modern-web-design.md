@@ -562,6 +562,83 @@ const ELEVATIONS = {
 
 ### Fancy Images: before and after borders
 
+
+## Forms
+
+### Styling inputs
+
+A good way to style inputs based on a valid and invalid state is to use these pseudoselectors:
+
+- `:user-valid` : applies styles smartly when the input has valid text inside it 
+- `:user-invalid` : applies styles smartly when the input does not have valid text inside it 
+- `:focus:invalid`: applies styles when the input is invalid and the user is currently focused on the input. 
+
+```css
+input {
+  outline: 3px solid hsl(203, 30%, 26%);
+}
+
+input:user-valid {
+  outline-color: var(--clr-success);
+}
+
+input:user-invalid {
+  outline-color: var(--clr-error);
+}
+
+input:focus:invalid {
+  outline-color: var(--clr-warning)
+}
+```
+
+## CSS Layouts
+
+### Centering
+
+We can center items relative to their parent container with a grid display and `place-items: center`.
+
+```css
+.centering-parent {
+	display: grid;
+	place-items: center;
+}
+```
+
+### Flex wrap equal size boxes
+
+We give the flex parent a `flex: wrap` property and all the flex children these three properties:
+1. `flex-basis`: to set the minimum width for each child
+2. `flex-shrink: 0`: prevents children from shrinking
+2. `flex-grow: 1`: lets children grow to fill container and all take up equal width.
+
+### Auto size header and footer
+
+![pancake stack](https://www.webpagescreenshot.info/image-url/bZT08-D5C)
+
+You can have a full screen dashboard type layout by using the `grid-template-rows` property like so: 
+
+```css
+.dashboard {
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	height: 100vh;
+}
+```
+
+### RAM (repeat, auto-fill, minmax)
+
+```css
+.ram {
+	display: grid;
+	--basis-width: 350px;
+	grid-template-columns: repeat(auto-fill, minmax(var(--basis-width), 1fr));
+	place-items: center; 
+}
+```
+
+### aspect ratio
+
+The `aspect-ratio` property is great for maintaining the aspect ratio of an element. 
 ## UI trends
 
 ### Glassmorphism
@@ -599,3 +676,23 @@ This produces a soft, realistic look.
   box-shadow: var(--top-left-shadow), var(--bottom-right-shadow);
 }
 ```
+
+## Scrolling
+
+### Scroll snap
+
+```css
+.parent {
+	/* aggressive scroll snap */
+	scroll-snap-type: y mandatory;
+}
+
+.child {
+	/* align with start of element */
+	scroll-snap-align: start;
+}
+```
+
+- `scroll-snap-type`: the property you set on the parent, which is the scroll container. 
+	- **first value**: the axis to which to scroll on, `x` for horizontal and `y` for vertical.
+	- **second value**: the behavior. `mandatory` to force always scroll snapping, and `proximity` only snaps if close to the `scroll-snap-align` of the child.

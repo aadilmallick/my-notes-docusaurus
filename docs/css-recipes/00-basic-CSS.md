@@ -561,6 +561,101 @@ Let's dive into an example:
 
 ## New CSS Features
 
+
+### `content-visibility`
+
+The `content-visibility` CSS property helps hide below-the-fold content and lazy load it instead, which can help improve rendering speed. 
+
+```css
+.render-me-later {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1000px; /* estimate 1000px height to prevent jitters. */
+}
+```
+### `@property`
+
+CSS introduced `@property` variables, which are typed CSS variables you can animate. Here is the basic syntax for creating them: 
+
+```css
+@property --property-name {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: red;
+}
+```
+
+- `syntax`: the variable type. Here are the different types you have access to: 
+	- `"<color>"`: color type
+	- `"<number>"`: number type
+	- `"<percentage>"`: percentage type
+	- `"<angle>"`: angle type
+- `inherits`: whether or not this variable should inherit from another variable. 
+- `initial-value`: the initial value for the variable. 
+
+You can then use the property variable as a normal CSS variable:
+
+```css
+@property --brand {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: red;
+}
+
+.container {
+	--brand: orange;
+	background-color: var(--brand);
+}
+```
+
+The main use case of property variables is using them in animations: 
+
+```css
+@property --shine-1 {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #ffbbc0;
+}
+
+@property --shine-2 {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #c0aecb;
+}
+
+@keyframes animate-color-1 {
+  from {
+    --shine-1: initial;
+  }
+  to {
+    --shine-1: orange;
+  }
+}
+
+@keyframes animate-color-2 {
+  from {
+    --shine-2: initial;
+  }
+  to {
+    --shine-2: hotpink;
+  }
+}
+```
+
+### `light-dark()`
+
+The `light-dark(light_val, dark_val)` function returns the first parameter if the current color scheme is in light mode, and returns the second parameter if the current color scheme is in dark mode. 
+
+```css
+:root {
+	color-scheme: light dark;
+}
+
+.omni-theme {
+	/* If in light mode, return black. Else return white. */
+	color: light-dark(black, white);
+}
+```
+
 ### Container queries
 
 Container queries are a way of responsively styling containers based on their width, not the width of the window. This helps ensure more reusable code and reliable responsiveness.

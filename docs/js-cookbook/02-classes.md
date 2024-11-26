@@ -55,7 +55,7 @@ You can specify a regex data type by typing in two forward slashes  and putting 
 - Regular expression flags goes after the slash forward slash.
 
 ```javascript
-const r1 = /^big.*titties$/ig
+const r1 = /^big.*cheese$/ig
 ```
 
 **string methods**

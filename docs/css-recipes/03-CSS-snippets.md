@@ -4,6 +4,32 @@
 
 - **soft shadow**: `box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);`
 
+### Gradient Shadow
+
+Gradient shadows involve using a before psuedoelement with a `conic-gradient` background and an `inset` with a positive number of pixels. 
+
+```css
+button::before {
+	content: "";
+	/* 1. set position absolute */
+	position: absolute;
+	/* 2. set positive inset */
+	inset: 5px;
+	/* 3. set conic gradient rainbow background */
+	background: conic-gradient(
+	  red 6deg,
+	  orange 6deg 18deg,
+	  yellow 18deg 45deg,
+	  green 45deg 110deg,
+	  blue 110deg 200deg,
+	  purple 200deg,
+	  white 200deg 240deg,
+	  rgb(114, 24, 39) 240deg 300deg,
+	  rgb(248, 33, 33) 300deg 360deg
+	);
+	/* 4. add blur */
+	filter: blur(15px);
+```
 ## CSS Reset
 
 ```css

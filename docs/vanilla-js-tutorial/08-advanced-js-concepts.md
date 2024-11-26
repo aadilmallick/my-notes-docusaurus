@@ -1495,3 +1495,13 @@ class ResizeObserverModel extends FactoryMixin(ResizeObserverModelTemp) {
   }
 }
 ```
+
+## ES6
+
+### Script lazy loading
+
+There are three important attributes that you should know when dealing with script tags: `async`, `defer`, and `type`.
+
+- `async` : the script will be downloaded asynchronously, and executed as soon as it is available. The HTML parsing will not wait for the script to be downloaded and executed.
+- `defer` : the script will be downloaded asynchronously, and executed only after the entire web page has loaded
+- `type: "module"`: makes this script a module type, allowing you to import and export variables, but also makes the script behave as if it had a `defer` attribute, downloading script asynchronously and executing it after the entire web page has loaded.
