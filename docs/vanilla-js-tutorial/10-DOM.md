@@ -1,3 +1,5 @@
+# 10: DOM
+
 ## Performant DOM
 
 ### Efficient DOM querying
@@ -195,12 +197,12 @@ The window object has these event listeners on it:
 - `"load"`: fired when the entire page has been loaded, which includes all javascript files, images, and CSS.
 - `"scroll"`: fired when user scrolls the page
 - `"unload"`: when the user closes the page. The main use case for this is to send beacons with `navigator.sendBeacon()`.
-- `"onbeforeunload"`: just when before the user tries to exit the page. The main use case for this is to intervene and prevent the user from leaving. 
+- `"onbeforeunload"`: just when before the user tries to exit the page. The main use case for this is to intervene and prevent the user from leaving.
 
 This is how you can prevent a user from leaving with the `"onbeforeunload"` event:
 
 ```ts
-window.onbeforeunload = function() {
+window.onbeforeunload = function () {
   // prompts the user with this message with popup alert confirmation
   event.returnValue = "There are unsaved changes. Leave now?";
 };
@@ -684,59 +686,66 @@ calculateSize("/path/to/image.png").then((data) => {
 
 ### Cookies
 
-Cookies are origin-specific, just like local storage. 
+Cookies are origin-specific, just like local storage.
 
 ```ts
 class CookieManager {
-  private cookies : Record<string, string>
+  private cookies: Record<string, string>;
   constructor() {
-    this.cookies = this.getCurrentCookies()
+    this.cookies = this.getCurrentCookies();
   }
 
   fetchLatestCookies() {
-    this.cookies = this.getCurrentCookies()
-    return { ...this.cookies }
+    this.cookies = this.getCurrentCookies();
+    return { ...this.cookies };
   }
 
-  private getCurrentCookies() : Record<string, string> {
+  private getCurrentCookies(): Record<string, string> {
     if (document.cookie === "") {
-      return {}
+      return {};
     }
-    const cookiePairs = document.cookie.split('; ')
+    const cookiePairs = document.cookie.split("; ");
     return cookiePairs.reduce((accumulator, pair) => {
-      const [key, value] = pair.split('=')
+      const [key, value] = pair.split("=");
       return {
         ...accumulator,
-        [key]: value
-      }
-    }, {})
+        [key]: value,
+      };
+    }, {});
   }
 
   private createExpiration(days: number) {
-      const d = new Date();
-      d.setTime(d.getTime() + (days*24*60*60*1000));
-      let expires = "expires="+ d.toUTCString();
+    const d = new Date();
+    d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+    let expires = "expires=" + d.toUTCString();
   }
 
   toJSON() {
-    return JSON.stringify(this.cookies)
+    return JSON.stringify(this.cookies);
   }
 
-  setCookie(key : string, value: string, exdays : number = 30) {
+  setCookie(key: string, value: string, exdays: number = 30) {
     const d = new Date();
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
-    let expires = "expires="+ d.toUTCString();
-    document.cookie = encodeURIComponent(key) + "=" + encodeURIComponent(value) + "; " + expires + "; " + "path=/;"
-    this.cookies[key] = value
+    d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+    let expires = "expires=" + d.toUTCString();
+    document.cookie =
+      encodeURIComponent(key) +
+      "=" +
+      encodeURIComponent(value) +
+      "; " +
+      expires +
+      "; " +
+      "path=/;";
+    this.cookies[key] = value;
   }
 
-  static getCookie(cname : string) {
+  static getCookie(cname: string) {
     let name = encodeURIComponent(cname) + "=";
     let decodedCookie = decodeURIComponent(document.cookie);
-    let ca = decodedCookie.split(';');
-    for(let i = 0; i <ca.length; i++) {
+    let ca = decodedCookie.split(";");
+    for (let i = 0; i < ca.length; i++) {
       let c = ca[i];
-      while (c.charAt(0) == ' ') {
+      while (c.charAt(0) == " ") {
         c = c.substring(1);
       }
       if (c.indexOf(name) == 0) {
@@ -746,68 +755,70 @@ class CookieManager {
     return "";
   }
 
-  deleteCookie(key : string) {
-    let expires = "max-age=0"
-    document.cookie = encodeURIComponent(key) + "=" + "; " + expires + "; " + "path=/;"
+  deleteCookie(key: string) {
+    let expires = "max-age=0";
+    document.cookie =
+      encodeURIComponent(key) + "=" + "; " + expires + "; " + "path=/;";
     if (CookieManager.getCookie(key)) {
-      return false
+      return false;
     }
-    delete this.cookies[key]
-    return true
+    delete this.cookies[key];
+    return true;
   }
 }
 
-const manager = new CookieManager()
-manager.setCookie("dog", "rufus")
-const deletedCookie = manager.deleteCookie("dog")
-console.log(deletedCookie)
-console.log(manager.fetchLatestCookies())
+const manager = new CookieManager();
+manager.setCookie("dog", "rufus");
+const deletedCookie = manager.deleteCookie("dog");
+console.log(deletedCookie);
+console.log(manager.fetchLatestCookies());
 ```
 
-The `document.cookie` is a special string that allows you read, update, add, and delete cookies. Here are the rules: 
+The `document.cookie` is a special string that allows you read, update, add, and delete cookies. Here are the rules:
 
 1. When using `document.cookie` as a getter, it returns all the cookies as a string, where each cookie is a key-value pair in the syntax of `key=value`, and each cookie is separated with a `; `.
-2. To add or update a cookie, just use `document.cookie` as a setter and specify the cookie name and value. It won't override the other cookies. 
+2. To add or update a cookie, just use `document.cookie` as a setter and specify the cookie name and value. It won't override the other cookies.
 3. To delete a cookie just use `document.cookie` as a setter and specify the cookie name without the value. Set the expiration date to some date in the past using `max-age=` or `expires=`.
 
 #### Setting cookies
 
-We set cookies by setting the `document.cookie = "key=value"` syntax. Here are the caveats: 
+We set cookies by setting the `document.cookie = "key=value"` syntax. Here are the caveats:
 
-1. We can only set one cookie at a time. 
-2. We need to use `encodeURIComponent()` for the cookie name and value if they have spaces in them. 
-3. The total number of cookies per domain is limited to 20. 
+1. We can only set one cookie at a time.
+2. We need to use `encodeURIComponent()` for the cookie name and value if they have spaces in them.
+3. The total number of cookies per domain is limited to 20.
 
 **Special cookies values**
 
-When setting cookies, we have access to add these special cookie values that define the behavior of the cookie when we set it, but when we try to fetch the cookies, we only get back the key and value. 
+When setting cookies, we have access to add these special cookie values that define the behavior of the cookie when we set it, but when we try to fetch the cookies, we only get back the key and value.
 
-- `domain=`: the defines the domain where the cookie is accessible. The default is the same domain from which the cookie was set. 
-- `path=`: the absolute path for which cookies are allowed to be accessed by. By default, it's the current route from which the cookie was set, but a better one is to do `path=/` so that all routes on the site can access the cookie. 
-- `max-age=`: the semi-equivalent of `expires=`. This value is set in number of seconds, after which the cookie will expire. 
-	- `max-age=3600`: cookie will expire in an hour.
-	- `max-age=0`: cookie expires now. 
-- `expires=`: the `Date` string for which the cookie should expire. 
-- `secure`: If set to true, then the cookie is only accessible via HTTPS. By default, if this is not set, then cookies are accessible on both HTTP and HTTPS. 
-	- So if a cookie has sensitive content that should never be sent over unencrypted HTTP, the `secure` flag is the right thing.
+- `domain=`: the defines the domain where the cookie is accessible. The default is the same domain from which the cookie was set.
+- `path=`: the absolute path for which cookies are allowed to be accessed by. By default, it's the current route from which the cookie was set, but a better one is to do `path=/` so that all routes on the site can access the cookie.
+- `max-age=`: the semi-equivalent of `expires=`. This value is set in number of seconds, after which the cookie will expire.
+  - `max-age=3600`: cookie will expire in an hour.
+  - `max-age=0`: cookie expires now.
+- `expires=`: the `Date` string for which the cookie should expire.
+- `secure`: If set to true, then the cookie is only accessible via HTTPS. By default, if this is not set, then cookies are accessible on both HTTP and HTTPS.
+  - So if a cookie has sensitive content that should never be sent over unencrypted HTTP, the `secure` flag is the right thing.
 - `samesite=`: used to prevent XSRF attacks by allowing cookies to be accessible only when actions are initiated from the domain the cookies were created from.
-	- `samesite=strict`: this cookie cannot be sent if a request was initiated from a site other than the domain this cookie was created from. 
-	- `samesite=lax`: follows the strict behavior but allows cookies to be sent if the url requested is requested with a GET method.
+  - `samesite=strict`: this cookie cannot be sent if a request was initiated from a site other than the domain this cookie was created from.
+  - `samesite=lax`: follows the strict behavior but allows cookies to be sent if the url requested is requested with a GET method.
 
 ```ts
-const expires = "expires=Tue, 19 Jan 2038 03:14:07 GMT"
-const path = `path=/`
-const domain = "google.com"
+const expires = "expires=Tue, 19 Jan 2038 03:14:07 GMT";
+const path = `path=/`;
+const domain = "google.com";
 ```
 
 #### Third party cookies
 
-**third party cookies** are cookies that are placed by a domain other than the page the user is visiting. They are used by ad services to track you. 
+**third party cookies** are cookies that are placed by a domain other than the page the user is visiting. They are used by ad services to track you.
 
 > [!NOTE]
-> When a remote script sets a cookie on a webpage, the cookie will belong to that site and under that domain. 
+> When a remote script sets a cookie on a webpage, the cookie will belong to that site and under that domain.
 
 The GDPR org requires that companies make sure users verbally agree to allowing them to set third-party cookies that track how users visit different websites, either by accepting a privacy policy or by clicking 'allow all cookies'.
+
 ### Window methods
 
 - `window.blur()`: removes focus from the window
@@ -820,7 +831,7 @@ The GDPR org requires that companies make sure users verbally agree to allowing 
 
 #### Screen Recording
 
-The `navigator.mediaDevices.getDisplayMedia()` method prompts the user to record either tab, window, or desktop. 
+The `navigator.mediaDevices.getDisplayMedia()` method prompts the user to record either tab, window, or desktop.
 
 ```ts
 const startRecordingButton = document.getElementById(
@@ -834,7 +845,7 @@ let stream: MediaStream;
 let recorder: MediaRecorder;
 
 async function startRecording() {
-  // has audio and video default enabled. 
+  // has audio and video default enabled.
   stream = await navigator.mediaDevices.getDisplayMedia({
     audio: true,
     video: true,
@@ -1133,14 +1144,13 @@ url.search; // => "?q=term"
 url.hash; // => "#fragment"
 ```
 
-
 ### View Transitions
 
 You can do a view transitions between changing pages (frontend version) by using the `document.startViewTransition(cb)` method.
 
 ```tsx
 function changePage() {
-	// render new page...
+  // render new page...
 }
 
 document.startViewTransition(() => changePage());
@@ -1165,24 +1175,24 @@ You can further customize like so:
 @keyframes fade-in {
     from { opacity: 0; }
   }
-  
+
   @keyframes fade-out {
     to { opacity: 0; }
   }
-  
+
   @keyframes slide-from-right {
     from { transform: translateX(60px); }
   }
-  
+
   @keyframes slide-to-left {
     to { transform: translateX(-60px); }
   }
-  
+
   ::view-transition-old(root) {
     animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
       300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
   }
-  
+
   ::view-transition-new(root) {
     animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
       300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
@@ -1197,11 +1207,11 @@ We do this by giving the same elements on different pages the same _view transit
 
 ```css
 .image-1-page1 {
-	view-transition-name: image
+  view-transition-name: image;
 }
 
 .image-1-page2 {
-	view-transition-name: image
+  view-transition-name: image;
 }
 ```
 
@@ -1238,12 +1248,11 @@ You then style those elements using the `::view-transition(name)` pseudoselector
   by growing it to cover the bounds of the element */
   object-fit: cover;
 }
-
 ```
 
 #### Animating anything
 
-You can actually animate any element using view transitions since the animation is just extrapolating between snapshots of a document. 
+You can actually animate any element using view transitions since the animation is just extrapolating between snapshots of a document.
 
 ```ts
 if (document.startViewTransition) {
@@ -1257,9 +1266,7 @@ if (document.startViewTransition) {
   });
 ```
 
-<video src="https://res.cloudinary.com/ddxwdqwkr/video/upload/v1678488008/patterns.dev/toggle-demo.mp4" style="aspect-ratio: 16/9; max-width: 100%" controls autoplay muted></video>
-
-
+<video src="https://res.cloudinary.com/ddxwdqwkr/video/upload/v1678488008/patterns.dev/toggle-demo.mp4" className="markdown-video" controls autoplay muted></video>
 
 ### Clipboard
 
@@ -1653,15 +1660,14 @@ async function main() {
 main();
 ```
 
-The `DOMContentLoaded` event will wait for any non-async `<script>` tags to run before finally executing. 
-
+The `DOMContentLoaded` event will wait for any non-async `<script>` tags to run before finally executing.
 
 ### HTML String code coloring
 
 To get HTML or CSS string code coloring, you have to follow these steps:
 
 1. Install the es6-html-string and es6-css-string extensions.
-2. Create tagged template `html()` and `css()` methods. 
+2. Create tagged template `html()` and `css()` methods.
 
 ```ts
 export function html(strings: TemplateStringsArray, ...values: any[]) {
@@ -1704,11 +1710,15 @@ We can get the full window height and width that you can get via scrolling with 
 
 ```ts
 let scrollHeight = Math.max(
-  document.body.scrollHeight, document.documentElement.scrollHeight,
-  document.body.offsetHeight, document.documentElement.offsetHeight,
-  document.body.clientHeight, document.documentElement.clientHeight
+  document.body.scrollHeight,
+  document.documentElement.scrollHeight,
+  document.body.offsetHeight,
+  document.documentElement.offsetHeight,
+  document.body.clientHeight,
+  document.documentElement.clientHeight
 );
 ```
+
 ## Content editable
 
 The `contentEditable` attribute is extremely versatile and allows us to modify the content of elements in the page.

@@ -134,6 +134,11 @@
   color: var(--fgColor-danger, var(--color-danger-fg));
 }
 
+.markdown-video {
+  aspect-ratio: 16/9;
+  max-width: 100%;
+}
+
 #loading {
   min-height: 10rem;
   display: grid;
