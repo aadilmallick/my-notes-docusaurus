@@ -59,6 +59,7 @@ A page can fall into these states:
 	- `"hidden"`: in the background
 	- `"visible"`: in the foreground
 - `document.hasFocus()`: returns whether or not the page is in the active state.
+- `document.hidden`: whether or not the document is hidden
 
 
 ```ts
@@ -1454,6 +1455,15 @@ Here are also some standard UX design tips for PWAs:
 - Don't use a big header area like websites do for navigation to other pages. Use a menu metaphor instead.
 - Don't use a big footer area like websites do for more links and information.
 - Use the `system-ui` font to make your content feel more native and load faster.
+
+#### Badging
+
+You can use the `navigator.setAppBadge(count)` method to set the badge for the app, which is useful for alerting the user for unread notifications and stuff like that. 
+
+```ts
+const badgeNumber = 10
+navigator.setAppBadge(badgeNumber);
+```
 
 #### Targeting displays 
 

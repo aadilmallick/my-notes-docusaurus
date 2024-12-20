@@ -561,7 +561,41 @@ Let's dive into an example:
 
 ## New CSS Features
 
+### Entry and Exit Animations
 
+```css
+dialog {
+  --duration: 0.34s;
+
+  transition: 
+    translate var(--duration) ease-in-out, 
+    scale     var(--duration) ease-in-out,
+    filter    var(--duration) ease-in-out,
+    display   var(--duration) ease-in-out allow-discrete;
+
+  &[open] {
+
+    /* Post-Entry (Normal) State */
+    translate: 0 0;
+    scale: 1;
+    filter: blur(0);
+
+    /* Pre-Entry State */
+    @starting-style {
+      translate: 0 8vh;
+      scale: 1.15;
+      filter: blur(8px);
+    }
+  }
+
+  /* Exiting State */
+  &:not([open]) {
+    translate: 0 -8vh;
+    scale: 1.15;
+    filter: blur(8px);
+  }
+}
+```
 ### `content-visibility`
 
 The `content-visibility` CSS property helps hide below-the-fold content and lazy load it instead, which can help improve rendering speed. 
@@ -673,13 +707,18 @@ To use container queries, follow these steps:
 }
 ```
 
-2. Create a container query to style the container
+2. Create a container query to style the container based on a breakpoint.
 
 ```css
 @container containerName (max-width: 800px) {
   /* something... */
 }
 ```
+
+
+> [!TIP] 
+> Container queries are really useful whenever you have a resizable element that you want to style differently when its size changes.
+
 
 ### Layers
 

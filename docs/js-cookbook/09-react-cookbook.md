@@ -55,6 +55,231 @@ function withMousePosition(WrappedComponent) {
 }
 ```
 
+
+### 2. Dealing with Form state
+
+The best way to deal with form state is to use object state and then create handler that sets state using `event.target.value`.
+
+```ts
+function Form() {
+  const [{ name, email }, setFormState] = useState({
+    name: "",
+    email: "",
+  });
+
+  const createFormValueChangeHandler = (field) => {
+    return (event) => {
+      setFormState((formState) => ({
+        ...formState,
+        [field]: event.target.value,
+      }));
+    };
+  };
+
+  return (
+    <>
+      <h1>Class Registration Form</h1>
+      <form>
+        <label>
+          Name:{" "}
+          <input
+            type="text"
+            value={name}
+            onChange={createFormValueChangeHandler("name")}
+          />
+        </label>
+        <label>
+          Email:{" "}
+          <input
+            type="email"
+            value={email}
+            onChange={createFormValueChangeHandler("email")}
+          />
+        </label>
+      </form>
+    </>
+  );
+}
+```
+
+And here is the custom hook version of that: 
+
+```ts
+import React, { useState } from "react";
+
+export function useFormObjectState<T extends Record<string, any>>(
+  initialData: T
+) {
+  const [formState, setFormState] = useState(initialData);
+
+  const createFormValueChangeHandler = (field: keyof T) => {
+    return (event: React.ChangeEvent<HTMLInputElement>) => {
+      setFormState((formState) => ({
+        ...formState,
+        [field]: event.target.value,
+      }));
+    };
+  };
+
+  return { formState, createFormValueChangeHandler };
+}
+```
+
+### 3. Master `useRef`
+
+You can use `useRef` hook to keep a reference to pretty much anything, and then pass that around. 
+
+Here is how we can use refs with a function call, where we pass in a function to the `ref` prop. The function will take in the DOM element.
+
+This pattern is useful to prevent us from doing a `useEffect` to access and do stuff on the ref - instead the function is called whenever the ref is available or null. 
+
+```ts
+function App() {
+  // executes the function with HTMLInputElement as soon as mounted or unmounted
+  // inputNode can be defined or null.
+  const ref = useCallback((inputNode) => {
+    inputNode?.focus();
+  }, []);
+
+  return <input ref={ref} type="text" />;
+}
+```
+
+You can also use `useRef` as a way to keep the value of a variable persisting across re-renders. 
+
+```ts
+function Timer() {
+  const [time, setTime] = useState(new Date());
+  const intervalIdRef = useRef();
+  const intervalId = intervalIdRef.current;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(new Date());
+    }, 1_000);
+    intervalIdRef.current = interval;
+    return () => clearInterval(interval);
+  }, []);
+
+  const stopTimer = () => {
+    intervalId && clearInterval(intervalId);
+  };
+
+  return (
+    <>
+      <>Current time: {time.toLocaleTimeString()} </>
+      <button onClick={stopTimer}>Stop timer</button>
+    </>
+  );
+}
+```
+
+You can also use **forward refs** to allow passing a ref to a custom component you made. 
+
+```ts
+import React from 'react'
+
+const LabelledInput = (props, ref) => {
+  const { id, label, value, onChange } = props
+
+  return (
+    <div class="labelled--input">
+      <label for={id}>{label}</label>
+      <input id={id} onChange={onChange} value={value} ref={ref}/>
+    </div>
+  )
+}
+
+export default React.forwardRef(LabelledInput)
+```
+
+The last thing you need to understand is that to prevent memory leaks, you need to clean up refs in the useEffect cleanup. 
+
+```ts
+import React, { useRef, useEffect } from 'react';
+
+function MyComponent() {
+  const myRef = useRef();
+
+  useEffect(() => {
+    // Cleanup when the component unmounts
+    return () => {
+      myRef.current = null;
+    };
+  }, []);
+
+  return (
+    <div>
+      <h1>My Component</h1>
+      <div ref={myRef}>This is a DOM element.</div>
+    </div>
+  );
+}
+
+export default MyComponent;
+```
+
+
+
+### 4. Don't create state unnecessarily
+
+If you can derive a value from state already set up in your component, then just do that. Don't create another state - just use `useMemo`.
+
+## React + Typescript
+
+### `ComponentProps`
+
+The `ComponentProps<>` generic type allows you to get the props of a component easily. You can do this with HTML elements or other components: 
+
+- `ComponentProps<"button">`: returns the prop types of a `<button>` element
+- `ComponentProps<typeof MyComponent>`: returns the prop types of a custom component you have. 
+
+```ts
+const ButtonWithLogging = (props: ComponentProps<"button">) => {
+  const handleClick: MouseEventHandler<HTMLButtonElement> = (e) => {
+    console.log("Button clicked"); //TODO: Better logging
+    props.onClick?.(e);
+  };
+  return <button {...props} onClick={handleClick} />;
+};
+```
+
+### Events
+
+Here are the types for events and event handlers: 
+
+**event object `e` typing**
+
+- `MouseEvent<T>`: for "click" event
+- `FocusEvent<T>`: for "focus" event
+- `ChangeEvent<T>`: for "change" event
+
+```ts
+const MyComponent = ({ onClick, onFocus, onChange }: {
+  onClick: (e: MouseEvent<HTMLButtonElement>) => void;
+  onFocus: (e: FocusEvent<HTMLButtonElement>) => void;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  //   …
+};
+```
+
+**event handler**
+
+- `MouseEventHandler<T>`: event handler for click event
+- `FocusEventHandler<T>`: event handler for "focus" event
+- `ChangeEventHandler<T>`: event handler for change event
+
+```ts
+const MyComponent = ({ onClick, onFocus, onChange }: {
+  onClick: MouseEventHandler<HTMLButtonElement>;
+  onFocus: FocusEventHandler<HTMLButtonElement>;
+  onChange: ChangeEventHandler<HTMLInputElement>;
+}) => {
+  //   …
+};
+```
+
 ## Performance
 
 ### Lazy Loading/Code splitting
@@ -228,4 +453,3 @@ const Boop = ({ rotation = 20, timing = 150, children }) => {
 };
 ```
 
-## Custom Hook Snippets

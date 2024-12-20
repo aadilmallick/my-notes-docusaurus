@@ -7,6 +7,8 @@ Workers are ways of offloading JavaScript tasks onto a separate thread. There ar
 - **service workers**: act as a proxy for all network requests for the app
 
 ## Dedicated workers
+
+Dedicated workers are how you multithread in javascript, where each worker can get its own core. If you have 8 cores on your machine, then you can run 8 workers in parallel at a time. 
 ### Dedicated Worker basics
 
 Workers are a way of multithreading in JavaScript, where you can delegate expensive tasks to be performed by a **worker**, which works in the background much like a service worker.
@@ -152,7 +154,7 @@ export class WorkerClass {
 }
 ```
 
-We can then use it like this:
+We can then use it like this in the main thread:
 
 ```ts
 // main thread

@@ -819,17 +819,37 @@ const domain = "google.com";
 
 The GDPR org requires that companies make sure users verbally agree to allowing them to set third-party cookies that track how users visit different websites, either by accepting a privacy policy or by clicking 'allow all cookies'.
 
+#### `CookieStore`
+
+A new [CookieStore](https://developer.mozilla.org/en-US/docs/Web/API/CookieStore) API makes working with cookies easier and asynchronous, and prevents having to access `document.cookie`. The `cookieStore` object is globally available on `window.cookieStore`.
+
+All these methods are async:
+
+- `cookieStore.set(options)`: sets a cookie
+- `cookieStore.delete(options)`: deletes a cookie
+- `cookieStore.get(options)`: gets a cookie
+- `cookieStore.getAll(options)`: gets all matching cookies
+- 
+
+```ts
+async function setCookie() {
+  const day = 24 * 60 * 60 * 1000;
+
+  await cookieStore.set({
+        name: "cookie1",
+        value: "cookie1-value",
+        expires: Date.now() + day,
+        domain: "example.com",
+      })
+}
+```
 ### Window methods
 
 - `window.blur()`: removes focus from the window
 - `window.close()`: closes the current window
 - `window.open(url)`: opens a new window and creates a tab with the specified URL
 
-### Navigator
-
-- `navigator.platform`: returns the OS the user is running on, which is either `"Win32"` or `"MacIntel"`.
-
-#### Screen Recording
+### Screen Recording
 
 The `navigator.mediaDevices.getDisplayMedia()` method prompts the user to record either tab, window, or desktop.
 
@@ -1514,6 +1534,307 @@ document.addEventListener("copy", async () => {
 
 The clipboard data from all these events is stored in `e.clipboardData` property on the event object.
 
+
+
+### All about navigator
+
+Here are some useful basic instance properties on the `navigator` object:
+
+- `navigator.platform`: returns the OS the user is running on, which is either `"Win32"` or `"MacIntel"`.
+- `navigator.userAgent`: returns the current user agent as a string
+- `navigator.userAgentData`: returns the user agent as an object with three properties: 
+	- `brands`: an array of currently used browsers
+	- `mobile`: whether or not the user is on a phone right now
+	- `platform`: which OS is currently being used. 
+- `navigator.cookieEnabled`: returns whether or not the user has cookies enabled 
+- `navigator.hardwareConcurrency`: returns the number of CPU cores on the user's laptop
+- `navigator.language`: returns the user's preferred language
+
+#### Internet Connection
+
+The `navigator.connection` property returns a [NetworkInformation](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation) object with these properties:
+
+- `navigator.connection.downlink`: returns the bandwidth in mb/s
+- `navigator.connection.effectiveType`: returns the network type, like 4g
+
+You can detect a network change like from 4g to 3g like so, by listening to the `"change"` event on the `navigator.connection` object.
+
+```ts
+let type = navigator.connection.effectiveType;
+
+function updateConnectionStatus() {
+  console.log(
+    `Connection type changed from ${type} to ${navigator.connection.effectiveType}`
+  );
+  type = navigator.connection.effectiveType;
+}
+
+navigator.connection.addEventListener("change", updateConnectionStatus);
+```
+
+You can also check if the user is online by using the `navigator.onLine` property, which returns true if yes, false if no.
+
+```ts
+export class NavigatorConnection {
+  static get isOnline() {
+    return navigator.onLine;
+  }
+
+  static get bandwidth() {
+    return navigator.connection.downlink;
+  }
+
+  onNetworkChange(callback: (type: "4g" | "3g" | "2g" | "slow-2g") => void) {
+    navigator.connection.addEventListener("change", () => {
+      callback(navigator.connection.effectiveType);
+    });
+  }
+
+  onConnectivityChange(callback: (isOnline: boolean) => void) {
+    const offlineCb = () => callback(false);
+    const onlineCb = () => callback(true);
+    window.addEventListener("offline", offlineCb);
+    window.addEventListener("online", onlineCb);
+    return {
+      unsubscribe() {
+        window.removeEventListener("offline", offlineCb);
+        window.removeEventListener("online", onlineCb);
+      },
+    };
+  }
+}
+```
+
+### Screen orientation
+
+The `window.screen` object offers a bunch of information about the laptop display. 
+
+Here are a few basic properties: 
+
+- `window.screen.height`: the height of the display
+- `window.screen.width`: the width of the display
+- `window.screen.colorDepth`: the number of bits used for color. 24 for laptops, 8 for phones.
+- `window.screen.isExtended`: whether or not the display is extended, like an external monitor. 
+
+But you can also find the orientation (type, angle, add event listeners) of the screen using `windows.screen.orientation` object:
+
+```ts
+export class NavigatorScreenOrientation {
+  static get orientation() {
+    return window.screen.orientation.type;
+  }
+
+  static get isLandscape() {
+    return this.orientation.includes("landscape");
+  }
+
+  static get isPortrait() {
+    return this.orientation.includes("portrait");
+  }
+
+  static get angle() {
+    return window.screen.orientation.angle;
+  }
+
+  static onOrientationChange(callback: (orientation: string) => void) {
+    window.screen.orientation.addEventListener("change", () => {
+      callback(this.orientation);
+    });
+  }
+}
+```
+### Dialog and Popover API
+
+#### Dialog
+
+The `<dialog>` element is a basic modal implementation, but it requires javascript to open and close the modal. 
+
+
+> [!TIP] 
+> Dialog works best for **focus trapping** modals where you want users to focus on the modal and prevent them from accessing the underlying page.
+
+
+```html
+<dialog open>
+  <form method="dialog">
+    <button type="submit" autofocus>close</button>
+  </form>
+</dialog>
+```
+
+Open a `<dialog>` element by setting the `open="true"` attribute on it. Once a dialog is open, there are three ways to close it: 
+
+1. User submits a `<form>` with a `method="dialog"` attribute
+2. User presses `esc` key
+3. Use javascript to call the `dialog.close()` method, where the dialog element is an instance of the `HTMLDialogElement`.
+
+**Dialog methods**
+
+You have three methods available on the dialog in javascript.
+
+```tsx
+dialog.show() /* opens the dialog */
+dialog.showModal() /* opens the dialog as a modal */
+dialog.close() /* closes the dialog */
+```
+
+- `dialog.show()` : opens up the dialog, but without a darkened backdrop.
+- `dialog.showModal()` : opens up the dialog with a darkened backdrop which you can style with the `::backdrop` pseudoelement.
+- `dialog.close()` : closes the dialog
+
+You also have these properties available on a dialog:
+
+- `dialog.open`: returns whether or not the dialog is currently open
+
+**Closing a dialog**
+
+You can pass in payload values to the `dialog.close(some_string)` method, which you can then access in the `"close"` event listener of a dialog through `event.target.returnValue`.
+
+```ts
+dialog.close(123)
+
+dialog.addEventListener("close", (e) => {
+	console.log(e.target.returnValue) // 123
+})
+```
+
+**dialog class**
+
+```ts
+class DialogManager {
+  constructor(private dialog: HTMLDialogElement) {}
+
+  onClose(cb: (returnValue?: string) => void) {
+    this.dialog.addEventListener("close", (e) => {
+      const d = e.target as HTMLDialogElement;
+      e.target && cb(d.returnValue);
+    });
+  }
+
+  public get isOpen() {
+    return this.dialog.open;
+  }
+
+  open() {
+    this.dialog.showModal();
+  }
+
+  close() {
+    this.dialog.close();
+  }
+}
+```
+
+#### Popover
+
+The popover is 1) simpler and 2) more user friendly. It shows a modal but doesn't prevent interacting with the rest of the page below, as opposed to the dialog API. 
+
+
+> [!TIP] 
+> Popovers are **soft-dismissible** and work best when you don't want to focus trap the user - you just want to show them a simple notification. This can be used for tooltips and non-essential alerts.
+
+
+
+The popover api has two simple steps: 
+
+1. Create some content that will act as a modal by putting the `popover` attribute on the modal. Also give that modal an id.
+
+```html
+<div id="modal" popover>I am a free Modal</div>
+```
+
+2. Create a button with a `popovertarget=` attribute and set it to the id of the popover modal you want to display when the button gets clicked. 
+
+```html
+<button popovertarget="modal">open popover</button>
+```
+
+Once you finish those two steps, the button will be hooked up to display the modal when it gets clicked. 
+
+```html
+    <button popovertarget="modal">open popover</button>
+    <div id="modal" popover>I am a free Modal</div>
+```
+
+Now a modal with backdrop will be displayed, but if you click on the backdrop, it will close the modal, which makes for the best user experience. 
+
+You can also add the `popovertargetaction="close"` attribute on a connected popover button that specifically closes the modal:
+
+```html
+<button popovertarget="modal">open popover</button>
+<div id="modal" popover>
+  I am a free Modal
+  <button popovertarget="modal" popovertargetaction="close">close</button>
+</div>
+```
+
+Popovers also have JavaScript APIs:
+
+- `popover.showPopover()`: opens the popover
+- `popover.closePopover()`: closes the popover
+
+**Make popovers like dialogs**
+
+Popovers are **soft-dismissible** by default, but you can prevent that by setting the `popover="manual"` attribute on your popover modal. 
+
+```html
+<!-- Soft Dismissible -->
+<div popover id="myPopover"></div>
+
+<!-- Soft Dismissible -->
+<div popover="auto" id="myPopover"></div>
+
+<!-- NOT Soft Dismissible -->
+<div popover="manual" id="myPopover"></div>
+```
+
+**Popover styling**
+
+By default, popovers use the same backdrop styling as modals, but you can change that like so:
+
+```css
+[popover]::backdrop {
+  /* unique styling for popover backdrop */
+}
+```
+
+#### Dialog and Popover animations
+
+Using the new `@starting-style` rule in CSS, we can add exit and entry animations and animate the `display` property of an element:
+
+```css
+dialog {
+  --duration: 0.34s;
+
+  transition: 
+    translate var(--duration) ease-in-out, 
+    scale     var(--duration) ease-in-out,
+    filter    var(--duration) ease-in-out,
+    display   var(--duration) ease-in-out allow-discrete;
+
+  &[open] {
+
+    /* Post-Entry (Normal) State */
+    translate: 0 0;
+    scale: 1;
+    filter: blur(0);
+
+    /* Pre-Entry State */
+    @starting-style {
+      translate: 0 8vh;
+      scale: 1.15;
+      filter: blur(8px);
+    }
+  }
+
+  /* Exiting State */
+  &:not([open]) {
+    translate: 0 -8vh;
+    scale: 1.15;
+    filter: blur(8px);
+  }
+}
+```
 ## Various DOM Tips
 
 ### Enable spellcheck

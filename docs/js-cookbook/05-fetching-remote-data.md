@@ -230,6 +230,223 @@ fileReader.addEventListener("error", (e) => {
 })
 ```
 
+
+## Streams
+
+#### Readable Streams
+
+Readable streams stream data in chunks as to avoid large file overhead. You can only read a stream once, but there is a concept called **teeing** that allows you to copy a stream and therefore read it twice. 
+
+The `response.body` from a `fetch()` call is a `ReadableStream` object, which allows us to do some stuff.
+
+```ts
+fetch("./tortoise.png")
+  // Retrieve its body as ReadableStream
+  .then((response) => {
+    const reader = response.body.getReader();
+    return new ReadableStream({
+      start(controller) {
+        return pump();
+        function pump() {
+          return reader.read().then(({ done, value }) => {
+            // When no more data needs to be consumed, close the stream
+            if (done) {
+              controller.close();
+              return;
+            }
+            // Enqueue the next data chunk into our target stream
+            controller.enqueue(value);
+            return pump();
+          });
+        }
+      },
+    });
+  })
+  // Create a new response out of the stream
+  .then((stream) => new Response(stream))
+  // Create an object URL for the response
+  .then((response) => response.blob())
+  .then((blob) => URL.createObjectURL(blob))
+  // Update image
+  .then((url) => console.log((image.src = url)))
+  .catch((err) => console.error(err));
+```
+
+You can also use asynchronous iteration using the `for ... await` syntax to asynchronously consume each chunk:
+
+```ts
+async function readData(url) {
+  const response = await fetch(url);
+  for await (const chunk of response.body) {
+    // Do something with each "chunk"
+  }
+  // Exit when done
+}
+
+```
+
+You can also craft a response from a readable stream, by passing it into the constructor like `Response(readableStream)` which is useful for accessing response methods to get usable data like `response.blob()`, `response.arrayBuffer()`, etc.
+
+```ts
+async function streamToResponse(stream: ReadableStream) {
+    return new Response(stream);
+}
+```
+
+Here are some useful methods on a stream: 
+
+- `stream1.pipeThrough(stream2)`: basically writes the contents from stream1 to stream2, copying stream1 to stream2.
+#### Stream Compression API
+
+The `CompressionStream` and `DecompressionStream` classes are used to create compressed and decompressed streams respectively.
+
+```ts
+const compressionStream = new CompressionStream("gzip")
+compressionStream.readable // readable stream
+compressionStream.writable // writable stream
+```
+
+
+```ts
+const decompressionStream = new DecompressionStream("gzip")
+decompressionStream.readable // readable stream
+decompressionStream.writable // writable stream
+```
+
+Here are both ways to respectively compress and decompress the same readable stream:
+
+```ts
+  async function getCompressedStream(stream: ReadableStream) {
+    const compressedReadableStream = stream.pipeThrough(
+      new CompressionStream("gzip")
+    );
+    return compressedReadableStream;
+  }
+
+  async function getDecompressedStream(stream: ReadableStream) {
+    const ds = new DecompressionStream("gzip");
+    const decompressedStream = stream.pipeThrough(ds);
+    return decompressedStream;
+  }
+
+const response = await fetch("bruh.png")
+// get back readable stream that is compressed
+const compressedStream = await getCompressedStream(response.body)
+// get back decompressed readable stream
+const decompressedStream = await getDecompressedStream(compressedStream)
+```
+
+Here's an entire ass class:
+
+```ts
+class ReadableStreamManager<T extends Uint8Array<ArrayBufferLike>> {
+  constructor(public stream: ReadableStream<T>) {}
+
+  // consuming stream methods with async for loop
+  async consumeStream() {
+    const chunks = [] as T[];
+    for await (const chunk of this.stream) {
+      chunks.push(chunk);
+    }
+    return chunks;
+  }
+
+  async consumeStreamAsBlob(type: string) {
+    const chunks = await this.consumeStream();
+    return this.typedArrayToBlob(chunks, type);
+  }
+
+  async onConsumeStream(cb: (chunk: T) => Promise<void>) {
+    for await (const chunk of this.stream) {
+      await cb(chunk);
+    }
+  }
+
+  typedArrayToBlob(typedArrayData: T[], type: string) {
+    return new Blob(typedArrayData, { type });
+  }
+
+  // dealing with compression and decompression
+  async getCompressedStream() {
+    return await ReadableStreamManager.getCompressedStream(this.stream);
+  }
+
+  static async getCompressedTextStream(text: string) {
+    const encoder = new TextEncodingManager();
+    const encodedText = encoder.encodeText(text);
+    const compressedStream = new CompressionStream("gzip");
+    const writer = compressedStream.writable.getWriter();
+
+    // Write data to the compression stream
+    await writer.write(encodedText);
+    await writer.close();
+    return compressedStream.readable;
+  }
+
+  static async getCompressedStream(stream: ReadableStream) {
+    const compressedReadableStream = stream.pipeThrough(
+      new CompressionStream("gzip")
+    );
+    return compressedReadableStream;
+  }
+
+  static async getDecompressedStream(stream: ReadableStream) {
+    const ds = new DecompressionStream("gzip");
+    const decompressedStream = stream.pipeThrough(ds);
+    return decompressedStream;
+  }
+
+  async decompressStream() {
+    return await ReadableStreamManager.decompressStream(this.stream);
+  }
+
+  static async decompressStream(stream: ReadableStream) {
+    const ds = new DecompressionStream("gzip");
+    const decompressedStream = stream.pipeThrough(ds);
+    return await new Response(decompressedStream).blob();
+  }
+
+  static async decompressBlob(blob: Blob) {
+    const ds = new DecompressionStream("gzip");
+    const decompressedStream = blob.stream().pipeThrough(ds);
+    return await new Response(decompressedStream).blob();
+  }
+
+  static async streamToResponse(stream: ReadableStream) {
+    return new Response(stream);
+  }
+}
+
+export class TextEncodingManager {
+  encoder = new TextEncoder();
+  decoder = new TextDecoder();
+
+  encodeText(text: string) {
+    return this.encoder.encode(text);
+  }
+
+  decodeText(data: Uint8Array) {
+    return this.decoder.decode(data);
+  }
+}
+```
+#### Text encoding
+
+Binary data is easy to work with, but text needs encoding and decoding. 
+
+Here is how to use the `TextEncoder()` and `TextDecoder()` classes:
+
+```ts
+async function encodeText (text: string) {
+	const encoder = new TextEncoder();
+	return encoder.encode(text); // returns UINTARRAy
+}
+
+async function decodeText (data: Uint8Array) {
+	const decoer = new TextDecoder();
+	return decoder.decode(data); // returns string
+}
+```
 ## Aborting fetch requests
 
 We can use the `AbortController` class to abort fetch requests if they are taking too long.

@@ -282,6 +282,96 @@ setTimeout(() => {
 }, 1000);
 ```
 
+
+### Audio Visualization Project
+
+```ts
+class AudioContextManager {
+  public audioContext: AudioContext;
+  private analyzerNode?: AnalyserNode;
+  constructor() {
+    this.audioContext = new AudioContext();
+  }
+  static async getStream(options?: { clean: boolean }) {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: options?.clean
+        ? true
+        : {
+            autoGainControl: false,
+            noiseSuppression: false,
+            echoCancellation: false,
+            sampleRate: 44100,
+          },
+    });
+    return stream;
+  }
+
+  async initAudioContext(options?: { clean: boolean }) {
+    const stream = await AudioContextManager.getStream(options);
+    if (this.audioContext.state === "suspended") {
+      await this.audioContext.resume();
+    }
+    const source = this.audioContext.createMediaStreamSource(stream);
+    this.analyzerNode = new AnalyserNode(this.audioContext, {
+      fftSize: 256,
+    });
+    source.connect(this.audioContext.destination);
+    source.connect(this.analyzerNode);
+  }
+
+  drawVisualizer(canvas: HTMLCanvasElement) {
+    const canvasCtx = canvas.getContext("2d");
+    if (!canvasCtx) {
+      throw new Error("Canvas context not found");
+    }
+    const draw = () => {
+      if (this.analyzerNode) {
+        const bufferLength = this.analyzerNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        this.analyzerNode.getByteFrequencyData(dataArray);
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let x = 0;
+        dataArray.forEach((data) => {
+          const barHeight = data / 2;
+          canvasCtx.fillStyle = `rgb(${barHeight + 100},50,50)`;
+          canvasCtx.fillRect(
+            x,
+            canvas.height - barHeight / 2,
+            barWidth,
+            barHeight
+          );
+          x += barWidth + 1;
+        });
+      }
+      requestAnimationFrame(draw);
+    };
+    draw();
+  }
+}
+
+function createCanvas() {
+  const canvas = document.createElement("canvas");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight * 0.75;
+  document.body.appendChild(canvas);
+  return canvas;
+}
+
+const canvas = createCanvas();
+const audioContextManager = new AudioContextManager();
+const btn = document.querySelector("button");
+
+btn?.addEventListener("click", async () => {
+  await audioContextManager.initAudioContext();
+  audioContextManager.drawVisualizer(canvas);
+});
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight * 0.75;
+});
+```
 ## Fetch
 
 ### Request and Response
@@ -371,6 +461,131 @@ setTimeout(() => abortController.abort(), 10);
 ```
 ## Other APIs
 
+### FileSystem API
+
+The new filesystem API allows you to open and directly write to the file system. 
+
+```ts
+document.querySelector("#open-file").addEventListener("click", async () => {
+  const [fileHandle] = await window.showOpenFilePicker({
+    types: [
+      {
+        description: "Text files",
+        accept: {
+          "text/*": [".txt", ".md", ".html", ".css", ".json", ".csv"],
+        },
+      },
+    ],
+    excludeAcceptAllOption: true,
+    multiple: false,
+  });
+  const file = await fileHandle.getFile();
+  console.log(file);
+
+  document.querySelector("textarea")!.textContent = await file.text();
+});
+
+document.querySelector("#open-dir").addEventListener("click", async () => {
+  const dirHandle = await window.showDirectoryPicker();
+  console.log(dirHandle);
+  for await (const entry of dirHandle.values()) {
+    console.log(entry);
+  }
+});
+
+document.querySelector("#save-as").addEventListener("click", async () => {
+  const fileHandle = await window.showSaveFilePicker({
+    types: [
+      {
+        description: "Text files",
+        accept: {
+          "text/*": [".txt", ".md", ".html", ".css", ".js", ".json"],
+        },
+      },
+    ],
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(document.querySelector("textarea")!.textContent);
+  await writable.close();
+});
+```
+
+- `window.showOpenFilePicker(options)`: for opening a file and retrieving info about it
+- `window.showDirectoryPicker(options)`: for opening a folder and retrieving info about it
+
+Here's a basic class:
+
+```ts
+type FileAcceptType = {
+  description: string;
+  accept: Record<string, string[]>; // MIME type to file extension
+};
+
+export class FileSystemManager {
+  static async openSingleFile(types: FileAcceptType[]) {
+    const [fileHandle] = await window.showOpenFilePicker({
+      types,
+      excludeAcceptAllOption: true,
+      multiple: false,
+    });
+    return fileHandle;
+  }
+
+  static async openMultipleFiles(types: FileAcceptType[]) {
+    const fileHandles = await window.showOpenFilePicker({
+      types,
+      excludeAcceptAllOption: true,
+      multiple: true,
+    });
+    return fileHandles;
+  }
+
+  static async openDirectory() {
+    const dirHandle = await window.showDirectoryPicker();
+    return await dirHandle.values();
+  }
+
+  static async saveTextFile(text: string) {
+    const fileHandle = await window.showSaveFilePicker({
+      types: [
+        {
+          description: "Text files",
+          accept: {
+            "text/*": [".txt", ".md", ".html", ".css", ".js", ".json"],
+          },
+        },
+      ],
+    });
+    await this.writeData(fileHandle, text);
+  }
+
+  static async saveFile(options: {
+    data: any;
+    types?: FileAcceptType[];
+    name?: string;
+    startIn?:
+      | "desktop"
+      | "documents"
+      | "downloads"
+      | "pictures"
+      | "videos"
+      | "music";
+  }) {
+    const fileHandle = await window.showSaveFilePicker({
+      types: options.types,
+      suggestedName: options.name,
+      startIn: options.startIn,
+    });
+    await this.writeData(fileHandle, data);
+  }
+
+  private static async writeData(fileHandle: any, data: any) {
+    const writable = await fileHandle.createWritable();
+    await writable.write(data);
+    await writable.close();
+  }
+}
+```
 ### Navigator share API
 
 The `navigator.share(options)` async method allows sharing media and urls like you can do on your phone. You pass in an object of options which configure the sharing behavior: 
@@ -408,6 +623,36 @@ const canShare = navigator.canShare(data);
 canShare && navigator.share(data)
 ```
 
+Anyway here's a class:
+
+```ts
+export class NavigatorShare {
+  static async share(data: {
+    title: string;
+    text: string;
+    url: string;
+    files?: File[];
+  }) {
+    try {
+      if (!this.canShare(data)) return false;
+      await navigator.share(data);
+      return true;
+    } catch (error) {
+      console.error("Error sharing", error);
+      return false;
+    }
+  }
+
+  static canShare(data: {
+    title: string;
+    text: string;
+    url: string;
+    files?: File[];
+  }) {
+    return navigator.canShare(data);
+  }
+}
+```
 ### Geolocation
 
 The `navigator.geolocation.getCurrentPosition()` method allows us to get the current position of the user. The `navigator.geolocation.watchPosition()` listens for a position change. They both take two arguments:
@@ -613,6 +858,63 @@ navigation.addEventListener('navigate', navigateEvent => {
 });
 ```
 
+
+### Local Fonts
+
+You can query for a user's local fonts like so, where you can get the fonts with the `window.queryLocalFonts()` async method. 
+
+```ts
+interface FontData {
+  postscriptName: string;
+  fullName: string;
+  family: string;
+  style: string;
+}
+
+type ChromePermissionName =
+  | PermissionName
+  | "microphone"
+  | "camera"
+  | "local-fonts"
+  | "clipboard-read"
+  | "clipboard-write";
+export class NavigatorPermissions {
+  static async checkPermission(permissionName: ChromePermissionName) {
+    const result = await navigator.permissions.query({
+      name: permissionName as PermissionName,
+    });
+    return result.state;
+  }
+}
+
+class LocalFontManager {
+  public availableFonts: FontData[] = [];
+
+  async requestFonts() {
+    try {
+      const availableFonts = await window.queryLocalFonts();
+      this.availableFonts = [...availableFonts];
+    } catch (err) {
+      console.error(err.name, err.message);
+    }
+  }
+
+  async getLocalFontsPermission() {
+    return await NavigatorPermissions.checkPermission("local-fonts");
+  }
+}
+```
+
+You can the load fonts locally in CSS by using the `@font-face` CSS rule, which would be associated with `font.family` value in javascript 
+
+```css
+@font-face {
+  font-family: 'FlamboyantSansSerif';
+  src: local('FlamboyantSansSerif');
+}
+```
+
+You can also set fonts styling dynamically using javascript. 
 ## Proxies
 
 Proxies in javascript allow you to do reactive programming. They give hooks into common operations concerning data, like getting or setting a property, and allow you to hook into that behavior and define it yourself. 
@@ -1016,7 +1318,8 @@ customElements.define('my-button', MyElement, {extends: 'button'});
 
 You can hook into specific methods in a web component class that get activated throughout the component's lifecycle.
 
-- `connectedCallback()` : triggered when element is added to document. Use this to create the element content and set up event listeners
+- `connectedCallback()` : triggered when element is added to document. Use only this whenever you need to deal with the DOM. 
+- `constructor()`: an unimportant method for instantiating the element, but you CANNOT access any DOM stuff here, like attributes, content, etc. The only thing you can access are `data-` attributes, which can be accessed from `this.dataset`.
 - `disconnectedCallback()` : triggered when element is removed from document. Use this to perform cleanup
 - `attributeChangedCallback()` : triggered whenever one of the attributes from the static getter `observedAttributes` changes. It helps give you realtime updates on the attributes changing.
 
@@ -1177,6 +1480,13 @@ type Selector = {
   <E extends Element = Element>(selectors: string): E | null;
 };
 
+/**
+ * Tips for using this class:
+ *
+ * 1. Always call connectedCallback() and always do super.connectedCallback() in the child class.
+ * Always do DOM stuff in connectedCallback() and not in the constructor.
+ */
+
 export default abstract class WebComponent<
   T extends readonly string[] = readonly string[]
 > extends HTMLElement {
@@ -1185,7 +1495,24 @@ export default abstract class WebComponent<
   protected template: HTMLTemplateElement;
   public $: Selector;
 
-	// creates <template> element with HTML content
+  static register(name: string, _class: CustomElementConstructor): void {
+    if (!customElements.get(name)) {
+      customElements.define(name, _class);
+    }
+  }
+
+  /**
+   * Might be blocked depending on CSP
+   * @param str the string to interpolate
+   * @param params  the object with the values to interpolate
+   * @returns
+   */
+  static interpolate<V extends Record<string, any>>(str: string, params: V) {
+    const names = Object.keys(params);
+    const values = Object.values(params);
+    return new Function(...names, `return \`${str}\`;`)(...values) as string;
+  }
+
   static createTemplate(templateId: string, HTMLContent: string) {
     const template = document.createElement("template");
     template.id = templateId;
@@ -1193,51 +1520,61 @@ export default abstract class WebComponent<
     return template;
   }
 
-	// loads css from file
   async loadExternalCSS(filepath: string) {
     const request = await fetch(filepath);
     const css = await request.text();
     this.styles.textContent = css;
   }
 
-  static register(name: string, _class: CustomElementConstructor): void {
-    if (!customElements.get(name)) {
-      customElements.define(name, _class);
-    }
-  }
-
-
+  private templateId: string;
   constructor(options: {
     templateId: string; // template id
-    HTMLContent: string; // html content of template
+    HTMLContent?: string; // html content of template
     cssFileName?: string; // filename of css to apply on template, if provided
-    cssContent?: string;  // css content to apply on template, if provided
+    cssContent?: string; // css content to apply on template, if provided
   }) {
-	// 1. always call super()
+    // 1. always call super()
     super();
+    this.templateId = options.templateId;
     // 2. create shadow DOM and create template
     this.shadow = this.attachShadow({ mode: "open" });
+    this.$ = this.shadow.querySelector.bind(this.shadow);
+
     this.styles = document.createElement("style");
     this.template = WebComponent.createTemplate(
       options.templateId,
-      options.HTMLContent
+      options.HTMLContent ??
+        (this.constructor as typeof WebComponent).HTMLContent
     );
-    // create utility selector
-    this.$ = this.template.content.querySelector.bind(this.template.content);
+
     // 3. attach styles
     if (options.cssContent) this.styles.textContent = options.cssContent;
     else if (options.cssFileName) this.loadExternalCSS(options.cssFileName);
+    else
+      this.styles.textContent = (
+        this.constructor as typeof WebComponent
+      ).CSSContent;
+  }
+
+  static get HTMLContent() {
+    return "";
+  }
+
+  static get CSSContent() {
+    return "";
   }
 
   // called when element is inserted to the DOM
   connectedCallback() {
     this.createComponent();
+    console.log(`${this.templateId}: connectedCallback finished executing`);
   }
-  // create shadow DOM, add event listeners, etc.
-  createComponent() {
+
+  private createComponent() {
     const content = this.template.content.cloneNode(true);
     this.shadow.appendChild(this.styles);
     this.shadow.appendChild(content);
+    // create utility selector
   }
 
   // triggered when element is removed from document
@@ -1253,16 +1590,16 @@ export default abstract class WebComponent<
   // region ATTRIBUTES
 
   // override this getter to specify which attributes to observe
-  //   static get observedAttributes() {
-  //     return [] as string[];
-  //   }
+  static get observedAttributes() {
+    return [] as readonly string[];
+  }
 
   // gets an attribute from the observedAttributes
   getObservableAttr(attrName: T[number]) {
     const attr = this.attributes.getNamedItem(attrName);
     return attr?.value;
   }
-  
+
   // sets an attribute from the observedAttributes
   setObservableAttr(attrName: T[number], value: string) {
     this.setAttribute(attrName, value);
@@ -1273,13 +1610,13 @@ export default abstract class WebComponent<
     this.removeAttribute(attrName);
   }
 
-  // listens to changes fo attributes from the observedAttributes
+  // listens to changes of attributes from the observedAttributes
   attributeChangedCallback(
     attrName: T[number],
     oldVal: string,
     newVal: string
   ) {
-    console.log("observedAttributes changed");
+    console.log("attributeChangedCallback run", attrName, oldVal, newVal);
   }
 }
 ```
@@ -1290,7 +1627,8 @@ The WebComponent class is abstract but takes in one type parameter. That type pa
 
 The constructor takes in these required properties: 
 - `templateId` : the id of the `<template>` element to create
-- `HTMLContent` : the HTML content of the template
+
+You can automatically provide the CSS and HTML for the template by overriding the static getters `HTMLContent` and `CSSContent`.
 
 #### Example
 
@@ -1371,13 +1709,15 @@ import {customElement, property} from 'lit/decorators.js';
 @customElement('name-tag')
 export class NameTag extends LitElement {
 
-	static styles = css`
+  // css styles
+  static styles = css`
 	  .completed {
 	    text-decoration-line: line-through;
 	    color: #777;
 	  }
 	`;
-	
+
+  // reactive property
   @property()
   name: string = 'Your name here';
 
