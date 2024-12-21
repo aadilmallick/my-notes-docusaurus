@@ -594,19 +594,20 @@ The `Element.animate()` method returns an `Animation` object instance, which can
 
 Here are useful methods:
 
-- `Animation.play()` : Starts or resumes the animation sequence playback
-- `Animation.pause()` : Pauses the animation sequence playback
-- `Animation.reverse()` : Reverses the animation sequence playback
-- `Animation.finish()` : Jumps to the end of the animation sequence
-- `Animation.cancel()` : Cancels the animation sequence
-- `Animation.updatePlaybackRate(n)` : Updates the playback rate of the animation sequence to the passed in number, where 1 is normal speed. Negative numbers will reverse the animation.
+- `animation.play()` : Starts or resumes the animation sequence playback
+- `animation.pause()` : Pauses the animation sequence playback
+- `animation.reverse()` : Reverses the animation sequence playback
+- `animation.finish()` : Jumps to the end of the animation sequence
+- `animation.cancel()` : Cancels the animation sequence
+- `animation.updatePlaybackRate(n)` : Updates the playback rate of the animation sequence to the passed in number, where 1 is normal speed. Negative numbers will reverse the animation.
 
 And here are some useful properties:
 
-- `Animation.playState` : Returns the current playback state of an animation
-- `Animation.currentTime` : Gets or sets the current time value of an animation
-- `Animation.startTime` : Gets or sets the start time value of an animation
-- `Animation.playbackRate` : Gets or sets the playback rate of an animation. 1 is normal speed. Negative numbers will reverse the animation.
+- `animation.playState` : Returns the current playback state of an animation
+- `animation.currentTime` : Gets or sets the current time value of an animation
+- `animation.startTime` : Gets or sets the start time value of an animation
+- `animation.playbackRate` : Gets or sets the playback rate of an animation. 1 is normal speed. Negative numbers will reverse the animation.
+- `animation.effect?.getComputedTiming()`: returns an object that has useful information about the animation timing, including duration. 
 
 Here are some events you can listen to on the animation using the `addEventListener()` method:
 
@@ -615,6 +616,76 @@ Here are some events you can listen to on the animation using the `addEventListe
 
 ### Better fill mode
 
-There are some problems with the `animation-fill-mode` property, where it is not only inefficient and expensive to use, but also confusing because of CSS cascading.
+There are some problems with the `animation-fill-mode` property, where it is not only inefficient and expensive to use, but can also lead to memory leaks for a `fill: forwards` property.
 
-The `Animation.commitStyles()` method can be used to apply the styles of the animation to the element before the animation runs. This is useful for animations that have a `fill` value of `both` or `forwards`.
+The `Animation.commitStyles()` method can be used to apply the styles of the animation to the element before and after the animation runs. This is useful for animations that have a `fill` value of `both` or `forwards`.
+
+You would run this method right after an animation finishes. 
+
+### Web animation classes
+
+```ts
+// for animating an element simply
+export class WebAnimationModel {
+  constructor(private element: HTMLElement) {}
+
+  animate(keyframes: Keyframe[], animationOptions: KeyframeAnimationOptions) {
+    return this.element.animate(keyframes, animationOptions);
+  }
+
+  animateEvenly(
+    keyframes: PropertyIndexedKeyframes,
+    animationOptions: KeyframeAnimationOptions
+  ) {
+    return this.element.animate(keyframes, animationOptions);
+  }
+
+  animateTo(keyframe: Keyframe, animationOptions: KeyframeAnimationOptions) {
+    return this.element.animate([keyframe], animationOptions);
+  }
+}
+
+// for wrapping an Animation object instance
+export class AnimationModel {
+  public pause: () => void;
+  public play: () => void;
+  public reverse: () => void;
+  public finish: () => void;
+  public cancel: () => void;
+  public updatePlaybackRate: (rate: number) => void;
+  public commitStyles: () => void;
+  constructor(public animation: Animation) {
+    this.pause = this.animation.pause.bind(this.animation);
+    this.play = this.animation.play.bind(this.animation);
+    this.reverse = this.animation.reverse.bind(this.animation);
+    this.finish = this.animation.finish.bind(this.animation);
+    this.cancel = this.animation.cancel.bind(this.animation);
+    this.updatePlaybackRate = this.animation.updatePlaybackRate.bind(
+      this.animation
+    );
+    this.commitStyles = this.animation.commitStyles.bind(this.animation);
+  }
+
+  public get duration() {
+    return this.animation.effect?.getComputedTiming().duration;
+  }
+
+  public async getStatus() {
+    const ready = await this.animation.ready;
+    const finished = await this.animation.finished;
+    return { ready, finished };
+  }
+
+  seekTo(time: number) {
+    this.animation.currentTime = time;
+  }
+
+  onFinish(callback: () => void) {
+    this.animation.onfinish = callback;
+  }
+
+  onCancel(callback: () => void) {
+    this.animation.oncancel = callback;
+  }
+}
+```

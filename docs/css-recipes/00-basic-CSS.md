@@ -561,6 +561,25 @@ Let's dive into an example:
 
 ## New CSS Features
 
+### `interpolate-size`
+
+Adding the `interpolate-size: allow-keywords` on the `:root` pseudoselector allows you to animate height and width to keywords like `auto` or `none`, which is pretty useful. 
+
+```css
+/* 1) always add this */
+:root {
+	interpolate-size: allow-keywords;
+}
+
+nav a {
+	width: 80px;
+	transition: width 0.3s;
+	&:hover {
+	  width: auto;
+	}
+}
+```
+
 ### Entry and Exit Animations
 
 ```css
@@ -675,6 +694,16 @@ The main use case of property variables is using them in animations:
 }
 ```
 
+You can also register them in JavaScript:
+
+```ts
+CSS.registerProperty({
+  name: "--my-color",
+  syntax: "<color>",
+  inherits: false,
+  initialValue: "#c0ffee",
+});
+```
 ### `light-dark()`
 
 The `light-dark(light_val, dark_val)` function returns the first parameter if the current color scheme is in light mode, and returns the second parameter if the current color scheme is in dark mode. 

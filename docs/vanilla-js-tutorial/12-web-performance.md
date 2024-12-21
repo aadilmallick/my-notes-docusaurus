@@ -192,8 +192,6 @@ await imagemin(['public/assets/img/min/**/*.png', 'public/assets/img/*.png'], {
 ### Performance tools
 
 Do an audit of your site at https://pagespeed.web.dev/. 
-
-
 ### Improve time to first byte
 
 You can improve time to first byte via these three methods: 
@@ -207,6 +205,30 @@ You can improve time to first byte via these three methods:
 HTTP 2 uses TCP connections, which is a redundant way of communicating ensuring lossless transfer of data. 
 
 HTTP3 uses UDP connections, which is just the server rapid-firing sending data to the user in a lossy manner, resending packets where they were lost. 
+
+
+> [!NOTE] 
+> Try to use HTTP3 over HTTP2 whenever possible
+
+#### Speculative loading
+
+Speculative loading comes in two flavors: 
+
+- **prefetching or prerendering**: prefetch or prerender pages in your app using the speculation rules api
+- **preconnect**: preconnect to websites that you will fetch from in your app
+
+Here is how you can you make a preconnect link:
+
+```html
+<link rel="preconnect" href="https://example.com" />
+```
+
+However, preconnecting is pretty expensive and should only be used for absolutely critical connections. For less critical connections, you should use the `rel="dns-prefetch"` to perform an inexpensive DNS lookup:
+
+```html
+<link rel="dns-prefetch" href="https://example.com" />
+```
+
 
 #### GZIP and Brotli
 
@@ -266,10 +288,23 @@ Here are the attributes you should put on a `<link>` tag to make it preload a re
 <link rel="preload" href="lcp.png" as="image" />
 ```
 
+The `as=` can have these values:
+
+- `fetch`: Resource to be accessed by a fetch or XHR request, such as an ArrayBuffer, WebAssembly binary, or JSON file.
+- `font`: Font file.
+- `image`: Image file.
+- `script`: JavaScript file.
+- `style`: CSS stylesheet.
+
+If you are trying to preload a javascript file, it's better to use think link below, which handles loading javascript modules well:
+
+```html
+<link rel="modulepreload" href="main.js" />
+```
+
 Preload rules:
 
-1. Do not preload anything that is visible in your HTML file. The browser already knows about it.
-2. When everything is important, nothing is important. Only use preload to improve LCP, like preloading the hero image
+1. When everything is important, nothing is important. Only use preload to improve LCP, like preloading the hero image
 
 
 > [!TIP] 
@@ -315,3 +350,178 @@ You nest `<source>` and `<img>` elements in a picture element.
 
 - `<source>` : a conditional image that will render an image based on the media query provided in `media` and the filepath provided in `srcset`.
 - `<img>` : the default fallback for when none of the media queries match the source tags.
+
+### yield back to main thread
+
+Use `await scheduler.yield()` to break up long tasks, even if async, and yield back to the main thread. This helps keep the website responsive even as a long-running task is going on. 
+
+![diagram example](https://www.webpagescreenshot.info/image-url/FRHJUMmwG)
+
+```ts
+async function this_func_takes_10_secs() {
+	// do some work
+	await scheduler.yield()
+	// do some work
+	await scheduler.yield()
+	// do some more work
+}
+```
+
+Here is a way to batch jobs and run them one at a time, yielding every 50ms:
+
+```ts
+async function runJobs(jobQueue : Function[], deadline=50) {
+  let lastYield = performance.now();
+
+  for (const job of jobQueue) {
+    // Run the job:
+    job();
+
+    // If it's been longer than the deadline, yield to the main thread:
+    if (performance.now() - lastYield > deadline) {
+      await scheduler.yield()
+      lastYield = performance.now();
+    }
+  }
+}
+```
+
+### use speculation rules
+
+#### Intro
+
+Speculation rules can prerender or prefetch pages in a MPA like so:
+
+```html
+<script type="speculationrules">
+  {
+    "prerender": [
+      {
+        "where": {
+          "and": [
+            { "href_matches": "/*" },
+            { "not": { "href_matches": "/logout" } },
+            { "not": { "href_matches": "/*\\?*(^|&)add-to-cart=*" } },
+            { "not": { "selector_matches": ".no-prerender" } },
+            { "not": { "selector_matches": "[rel~=nofollow]" } }
+          ]
+        }
+      }
+    ],
+    "prefetch": [
+      {
+        "urls": ["next.html", "next2.html"],
+        "requires": ["anonymous-client-ip-when-cross-origin"],
+        "referrer_policy": "no-referrer"
+      }
+    ]
+  }
+</script>
+```
+
+- **prefetching**: downloads the html of the page, but none of the subresources in that page
+- **prerendering**: loads an invisible tab and basically invisibly renders that entire page, putting it in the cache. Navigation to that page and page load will be instant. 
+
+#### In depth
+
+The speculation rules API tries to prerender an entire page before a user navigates to it leading to instant navigation times. 
+
+It only works with multipage apps since you can only prerender multipage apps, and it only works with prefetching links from the same origin. 
+
+```html
+ <script type="speculationrules">
+  {
+    "prerender": [
+	      {
+	          "urls": ["fish.html", "vegetatian-pho.html"]
+	      }
+      ]
+  }
+</script>
+```
+
+You can also specify matches to URLs based on regex patterns or css selectors with the `"where"` key
+
+```html
+ <script type="speculationrules">
+  {
+    "prerender": [
+	      {
+	          "where": {
+		          "href_matches": "/*"
+	          }
+	      }
+      ]
+  }
+</script>
+```
+
+```html
+ <script type="speculationrules">
+  {
+    "prerender": [
+	      {
+	          "where": {
+		          "selector_matches": ".prerender"
+	          }
+	      }
+      ]
+  }
+</script>
+```
+
+You can also combine multiple conditions into one with the `where.and` key
+
+```html
+<script type="speculationrules">
+{
+  "prerender": [{
+    "where": {
+      "and": [
+        { "href_matches": "/*" },
+        { "not": {"href_matches": "/wp-admin"}},
+        { "not": {"href_matches": "/*\\?*(^|&)add-to-cart=*"}},
+        { "not": {"selector_matches": ".do-not-prerender"}},
+        { "not": {"selector_matches": "[rel~=nofollow]"}}
+      ]
+    }
+  }]
+}
+</script>
+```
+
+**Eagerness settings**
+
+You can dial in how fast speculation rules apply to your website. There are 4 settings, which you can set with the `"eagnerness"` key:
+
+- **immediate:** Speculation rules immediately apply
+- **eager:** a little less than immediate
+- **moderate:** Speculation rules apply only after a user hovers over a link for 200 ms.
+- **convservative:** Speculation rules apply only after the user clicks on a link
+
+
+> [!WARNING] 
+> There is an obvious tradeoff between a higher level of eagerness and page performance. Only do immediate eagerness on lightweight static sites where there is little to no overhead, and go for lower levels of eagerness on bigger, complex sites.
+
+
+There is a limit on the number of rules you can have: 10 for prerender, 50 for prefetch. 
+
+**Dynamically adding speculation rules with javascript**
+
+```jsx
+if (HTMLScriptElement.supports &&
+    HTMLScriptElement.supports('speculationrules')) {
+  const specScript = document.createElement('script');
+  specScript.type = 'speculationrules';
+  specRules = { 
+    prerender: [
+      {
+        urls: ['/next.html'],
+      },
+    ],
+  };
+  specScript.textContent = JSON.stringify(specRules);
+  console.log('added speculation rules to: next.html');
+  document.body.append(specScript);
+}
+```

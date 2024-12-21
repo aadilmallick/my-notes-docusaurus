@@ -231,7 +231,7 @@ fileReader.addEventListener("error", (e) => {
 ```
 
 
-## Streams
+## Streams and binary data
 
 #### Readable Streams
 
@@ -447,6 +447,35 @@ async function decodeText (data: Uint8Array) {
 	return decoder.decode(data); // returns string
 }
 ```
+
+#### ArrayBuffers
+
+ArrayBuffers are references to fixed-length arrays of contiguous memory. You can't modify or read from an array buffer. Instead we use **Typed arrays** to access and modify ArrayBuffer data.
+
+```ts
+// create array buffer of 16 bytes
+let arrayBuffer = new ArrayBuffer(16);
+```
+
+You can create a new array buffer using the `ArrayBuffer()` constructor, and the only argument it takes in is the size in bytes of the buffer. 
+
+Here are some properties you can access on it: 
+
+- `arrayBuffer.byteLength`: the size in bytes of the array buffer
+
+To manipulate a buffer, we can use these *view* objects, which we can iterate over and modify (but we can't remove or add elements).
+
+- **`Uint8Array`** – treats each byte in `ArrayBuffer` as a separate number, with possible values from 0 to 255 (a byte is 8-bit, so it can hold only that much). Such value is called a “8-bit unsigned integer”.
+- **`Uint16Array`** – treats every 2 bytes as an integer, with possible values from 0 to 65535. That’s called a “16-bit unsigned integer”.
+- **`Uint32Array`** – treats every 4 bytes as an integer, with possible values from 0 to 4294967295. That’s called a “32-bit unsigned integer”.
+- **`Float64Array`** – treats every 8 bytes as a floating point number with possible values from `5.0x10-324` to `1.8x10308`.
+
+Each typed array has these properties:
+
+- `typedArray.buffer`: returns the underlying arraybuffer
+- `typedArray.byteLength`: returns the size in bytes of the arraybuffer.
+
+
 ## Aborting fetch requests
 
 We can use the `AbortController` class to abort fetch requests if they are taking too long.

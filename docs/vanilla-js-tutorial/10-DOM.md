@@ -1837,6 +1837,61 @@ dialog {
 ```
 ## Various DOM Tips
 
+### Text Fragments
+
+Text fragments are a way of linking on a page to some specific text, and is supported everywhere. It's much better than linking a heading with some id. 
+
+The basic syntax is as follows, where the text fragments starts with a `#:~:text=` prefix before supplying the text you want to link to. 
+
+```
+https://example.com#:~:text=[prefix-,]textStart[,textEnd][,-suffix]
+```
+
+Anyway, here's a class to make those URLs:
+
+```ts
+export class TextFragmentURLManager {
+  static createFragmentURL(url: string, text: string) {
+    return `${url}#:~:text=${encodeURIComponent(text)}`;
+  }
+
+  static createFragmentURLWithStartAndEnd(
+    url: string,
+    startText: string,
+    endText: string
+  ) {
+    return `${url}#:~:text=${encodeURIComponent(
+      startText
+    )},${encodeURIComponent(endText)}`;
+  }
+
+  constructor(private url: string) {}
+
+  createFragmentURL(text: string) {
+    return TextFragmentURLManager.createFragmentURL(this.url, text);
+  }
+
+  createFragmentURLWithStartAndEnd(startText: string, endText: string) {
+    return TextFragmentURLManager.createFragmentURLWithStartAndEnd(
+      this.url,
+      startText,
+      endText
+    );
+  }
+
+  createFragmentLink(text: string) {
+    const a = document.createElement("a");
+    a.href = this.createFragmentURL(text);
+    return a;
+  }
+
+  createFragmentLinkWithStartAndEnd(startText: string, endText: string) {
+    const a = document.createElement("a");
+    a.href = this.createFragmentURLWithStartAndEnd(startText, endText);
+    return a;
+  }
+}
+```
 ### Enable spellcheck
 
 You can use the `spellcheck` attribute with `<input>` elements, content-editable elements, and `<textarea>` elements to enable or disable spell-checking by the browser.
@@ -2040,8 +2095,248 @@ let scrollHeight = Math.max(
 );
 ```
 
+## Random HTML Elements
+
+- `<abbr>`: inline element used for abbreviations. No inherent structure.
+- `<address>`: block element used for addresses. No inherent structure.
+- `<hgroup>`: block element container used to nest heading elements and other content inside it. No inherent structure. 
+- `<mark>`: inline element that highlights text
+- `<samp>`: inline element that styles text like keyboard monospace font
+- `<menu>`: semantically same as `<ul>
+- `<sub>`: inline element that styles text as a subscript
+- `<sup>`: inline element that styles text as a superscript
+- `<meter>`: used to show a progress bar that can change color depending on its current value:
+
+```html
+<label for="fuel">Fuel level:</label>
+
+<!-- if value is above 80 then meter turns green, else yellow, below low is red -->
+<meter id="fuel" min="0" max="100" low="33" high="66" optimum="80" value="90">at 50/100</meter>
+```
+
+![](https://www.webpagescreenshot.info/image-url/ATHmXSTBD)
+- `<object>`: element used for embedding data like images, pdfs, etc., and then styling it.
+
+```html
+<object type="application/pdf" data="/media/examples/In-CC0.pdf" width="250" height="200"></object>
+```
 ## Content editable
 
 The `contentEditable` attribute is extremely versatile and allows us to modify the content of elements in the page.
 
 You can visit the `data:text/html, <html contenteditable>` url, which turns the entire webpage into a editable content surface.
+
+## Selections
+
+### Basic Selections
+
+You can get the current selection using `document.getSelection()`, which will return a `Selection` object with a lot of properties, or `null` if there is nothing currently selected.
+
+- To get the text from a selection, just call `selection.toString()`.
+- You can listen for text selection by cheating a little and listening for the `"mouseup"` event on the document, and then query for a potentially null `document.getSelection()`.
+
+
+```ts
+export class SelectionManager {
+  static getSelection() {
+    const selection = document.getSelection();
+    if (!selection) return "";
+    return selection.toString();
+  }
+
+  static clearSelection() {
+    document.getSelection()?.removeAllRanges();
+  }
+
+  static onSelect(
+    callback: (selection: string, selectObject: Selection) => void
+  ) {
+    document.addEventListener("mouseup", () => {
+      const selection = document.getSelection();
+      if (!selection) return;
+      callback(selection?.toString() || "", selection);
+    });
+  }
+}
+```
+
+### Selections and ranges
+
+#### Range basics
+
+A `Range` object is a way of describing a range of the start position of the selection in some element and the end position of the selection in some element. 
+
+The start and end positions are determined by the number of elements in the node, also described as **offsets**. 
+
+![](https://javascript.info/article/selection-range/range-example-p-0-1.svg)
+
+
+Ranges can range within the same element or across multiple different elements. Here is the most basic way to create a range:
+
+```ts
+const textNode = document.querySelector("p").firstChild
+// 1. create range
+const range = new Range()
+// 2. set start
+range.setStart(textNode, 0);
+// 3. set end
+range.setEnd(textNode, 1);
+```
+
+- You can get the text or html content from a range with `range.toString()`.
+- If you want to create a range over actual text content, you'll need to create a range over a text node, like using `element.firstChild` to access the text content if the element has text in it.
+
+Here are the range methods that allows you to deal with content in the range:
+
+- **`deleteContents()`**: Deletes the content within the range
+- **`cloneContents()`**: Copies the content and returns them as a `DocumentFragment`
+- **`insertNode(node)`**: Inserts a node at the range's start point.
+
+Here are the the range properties: 
+
+- `range.commonAncestorContainer`: returns the common ancestor of the start container and end container nodes
+- `range.startContainer`: returns the node in which the range starts
+- `range.endContainer`: returns the node in which the range begins
+
+Here are other useful range methods:
+
+- `range.cloneRange()`: returns a copy of the range
+- `range.isPointInRange(node, offset)`: returns a boolean whether or not the specified point is in the range. 
+- `range.selectNode(node)`: selects/highlights the entire node 
+- `range.selectNodContents(node)`: selects/highlights the entire contents of the node 
+
+#### Selection basics
+
+Selections are composed of ranges and highlight/select all ranges associated with it. You can get the current selection with `document.getSelection()`.
+
+Here are the instance properties you have on the `Selection` object:
+
+- **`selection.anchorNode`**: The node where the selection starts.
+- **`selection.focusNode`**: The node where the selection ends.
+- **`selection.anchorOffset`**: The offset in the `anchorNode` where the selection starts.
+- **`selection.focusOffset`**: The offset in the `focusNode` where the selection ends.
+- **`selection.isCollapsed`**: Boolean indicating whether the selection is collapsed (i.e., no content is selected).
+- `selection.direction`: returns the direct of the selection, which can either be let to right or right to left. This changes the focus nodes and anchor nodes. 
+- `selection.rangeCount`: returns the number of ranges in the selection
+
+Here are the methods:
+
+- **`selection.toString()`**: Returns the text of the current selection.
+- **`selection.removeAllRanges()`**: Clears all selections.
+	- You can also do `selection.empty()` to do the same thing
+- **`selection.addRange(range)`**: Adds a `Range` object to the selection.
+- **`selection.getRangeAt(index)`**: Retrieves a `Range` object from the selection.
+- `selection.collapse()`: removes the selection, collapsing to just the caret
+
+#### All together
+
+```ts
+export class SelectionManager {
+  static getSelection() {
+    const selection = document.getSelection();
+    if (!selection) return "";
+    return selection.toString();
+  }
+
+  static onSelect(
+    callback: (selection: string, selectObject: Selection) => void
+  ) {
+    document.addEventListener("mouseup", () => {
+      const selection = document.getSelection();
+      if (!selection) return;
+      callback(selection?.toString() || "", selection);
+    });
+  }
+
+  static clearSelection() {
+    document.getSelection()?.removeAllRanges();
+  }
+
+  static selectRange(range: Range) {
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    return range.toString();
+  }
+
+  static createBasicRange(element: HTMLElement, start: number, end: number) {
+    const range = new Range();
+    range.setStart(element, start);
+    range.setEnd(element, end);
+    return range;
+  }
+}
+
+export class RangeModel {
+  range = new Range();
+
+  selectElement(element: HTMLElement) {
+    this.range.selectNodeContents(element);
+  }
+
+  setStart(node: Node, offset: number) {
+    this.range.setStart(node, offset);
+  }
+
+  setEnd(node: Node, offset: number) {
+    this.range.setEnd(node, offset);
+  }
+
+  getText() {
+    return this.range.toString();
+  }
+
+  getContents() {
+    return this.range.cloneContents();
+  }
+
+  deleteContents() {
+    this.range.deleteContents();
+  }
+}
+```
+### Highlights
+
+Highlights are a way of adding custom CSS styling to ranges of text and having that persist. It prevents having to manually add spans everywhere. 
+
+The main workflow of highlights is as follows: 
+
+1. Create ranges you want your highlight to highlight. 
+2. Create a `Highlight` object that takes in those ranges.
+3. Register the highlight to the CSS highlight registry under a specific highlight name.
+4. In your CSS, add specific styling for the `::highlight(highlight-name)` pseudoselector.
+
+```ts
+export class HighlightManager {
+  static createHighlight(ranges: Range[], highlightName: string) {
+    if (CSS.highlights.has(highlightName)) return;
+    const highlight = new Highlight(...ranges);
+    CSS.highlights.set(highlightName, highlight);
+    return highlight;
+  }
+
+  static clearAllHighlights() {
+    CSS.highlights.clear();
+  }
+
+  static deleteHighlight(highlightName: string) {
+    return CSS.highlights.delete(highlightName);
+  }
+}
+```
+
+`CSS.highlights` is a map of type `<string, Highlight>` that stores all the information about the currently registered highlights in your app. Simply adding a highlight to this map will register your highlight in the highlight registry.
+
+You create a new highlight like so - just pass in a bunch of range objects: 
+
+```ts
+const highlight = new Highlight(...ranges)
+```
+
+Here is an example of highlight styling for the highlight with the name `"search-results"`. Keep in mind that the highlight will become active once registered. 
+
+```css
+::highlight(search-results) {
+  background-color: purple;
+  color: white;
+}
+```
