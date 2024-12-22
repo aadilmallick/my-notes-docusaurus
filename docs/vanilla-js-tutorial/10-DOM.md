@@ -829,20 +829,21 @@ All these methods are async:
 - `cookieStore.delete(options)`: deletes a cookie
 - `cookieStore.get(options)`: gets a cookie
 - `cookieStore.getAll(options)`: gets all matching cookies
-- 
+-
 
 ```ts
 async function setCookie() {
   const day = 24 * 60 * 60 * 1000;
 
   await cookieStore.set({
-        name: "cookie1",
-        value: "cookie1-value",
-        expires: Date.now() + day,
-        domain: "example.com",
-      })
+    name: "cookie1",
+    value: "cookie1-value",
+    expires: Date.now() + day,
+    domain: "example.com",
+  });
 }
 ```
+
 ### Window methods
 
 - `window.blur()`: removes focus from the window
@@ -1534,19 +1535,17 @@ document.addEventListener("copy", async () => {
 
 The clipboard data from all these events is stored in `e.clipboardData` property on the event object.
 
-
-
 ### All about navigator
 
 Here are some useful basic instance properties on the `navigator` object:
 
 - `navigator.platform`: returns the OS the user is running on, which is either `"Win32"` or `"MacIntel"`.
 - `navigator.userAgent`: returns the current user agent as a string
-- `navigator.userAgentData`: returns the user agent as an object with three properties: 
-	- `brands`: an array of currently used browsers
-	- `mobile`: whether or not the user is on a phone right now
-	- `platform`: which OS is currently being used. 
-- `navigator.cookieEnabled`: returns whether or not the user has cookies enabled 
+- `navigator.userAgentData`: returns the user agent as an object with three properties:
+  - `brands`: an array of currently used browsers
+  - `mobile`: whether or not the user is on a phone right now
+  - `platform`: which OS is currently being used.
+- `navigator.cookieEnabled`: returns whether or not the user has cookies enabled
 - `navigator.hardwareConcurrency`: returns the number of CPU cores on the user's laptop
 - `navigator.language`: returns the user's preferred language
 
@@ -1607,14 +1606,14 @@ export class NavigatorConnection {
 
 ### Screen orientation
 
-The `window.screen` object offers a bunch of information about the laptop display. 
+The `window.screen` object offers a bunch of information about the laptop display.
 
-Here are a few basic properties: 
+Here are a few basic properties:
 
 - `window.screen.height`: the height of the display
 - `window.screen.width`: the width of the display
 - `window.screen.colorDepth`: the number of bits used for color. 24 for laptops, 8 for phones.
-- `window.screen.isExtended`: whether or not the display is extended, like an external monitor. 
+- `window.screen.isExtended`: whether or not the display is extended, like an external monitor.
 
 But you can also find the orientation (type, angle, add event listeners) of the screen using `windows.screen.orientation` object:
 
@@ -1643,16 +1642,15 @@ export class NavigatorScreenOrientation {
   }
 }
 ```
+
 ### Dialog and Popover API
 
 #### Dialog
 
-The `<dialog>` element is a basic modal implementation, but it requires javascript to open and close the modal. 
+The `<dialog>` element is a basic modal implementation, but it requires javascript to open and close the modal.
 
-
-> [!TIP] 
+> [!TIP]
 > Dialog works best for **focus trapping** modals where you want users to focus on the modal and prevent them from accessing the underlying page.
-
 
 ```html
 <dialog open>
@@ -1662,7 +1660,7 @@ The `<dialog>` element is a basic modal implementation, but it requires javascri
 </dialog>
 ```
 
-Open a `<dialog>` element by setting the `open="true"` attribute on it. Once a dialog is open, there are three ways to close it: 
+Open a `<dialog>` element by setting the `open="true"` attribute on it. Once a dialog is open, there are three ways to close it:
 
 1. User submits a `<form>` with a `method="dialog"` attribute
 2. User presses `esc` key
@@ -1673,9 +1671,9 @@ Open a `<dialog>` element by setting the `open="true"` attribute on it. Once a d
 You have three methods available on the dialog in javascript.
 
 ```tsx
-dialog.show() /* opens the dialog */
-dialog.showModal() /* opens the dialog as a modal */
-dialog.close() /* closes the dialog */
+dialog.show(); /* opens the dialog */
+dialog.showModal(); /* opens the dialog as a modal */
+dialog.close(); /* closes the dialog */
 ```
 
 - `dialog.show()` : opens up the dialog, but without a darkened backdrop.
@@ -1691,11 +1689,11 @@ You also have these properties available on a dialog:
 You can pass in payload values to the `dialog.close(some_string)` method, which you can then access in the `"close"` event listener of a dialog through `event.target.returnValue`.
 
 ```ts
-dialog.close(123)
+dialog.close(123);
 
 dialog.addEventListener("close", (e) => {
-	console.log(e.target.returnValue) // 123
-})
+  console.log(e.target.returnValue); // 123
+});
 ```
 
 **dialog class**
@@ -1727,15 +1725,12 @@ class DialogManager {
 
 #### Popover
 
-The popover is 1) simpler and 2) more user friendly. It shows a modal but doesn't prevent interacting with the rest of the page below, as opposed to the dialog API. 
+The popover is 1) simpler and 2) more user friendly. It shows a modal but doesn't prevent interacting with the rest of the page below, as opposed to the dialog API.
 
-
-> [!TIP] 
+> [!TIP]
 > Popovers are **soft-dismissible** and work best when you don't want to focus trap the user - you just want to show them a simple notification. This can be used for tooltips and non-essential alerts.
 
-
-
-The popover api has two simple steps: 
+The popover api has two simple steps:
 
 1. Create some content that will act as a modal by putting the `popover` attribute on the modal. Also give that modal an id.
 
@@ -1743,20 +1738,20 @@ The popover api has two simple steps:
 <div id="modal" popover>I am a free Modal</div>
 ```
 
-2. Create a button with a `popovertarget=` attribute and set it to the id of the popover modal you want to display when the button gets clicked. 
+2. Create a button with a `popovertarget=` attribute and set it to the id of the popover modal you want to display when the button gets clicked.
 
 ```html
 <button popovertarget="modal">open popover</button>
 ```
 
-Once you finish those two steps, the button will be hooked up to display the modal when it gets clicked. 
+Once you finish those two steps, the button will be hooked up to display the modal when it gets clicked.
 
 ```html
-    <button popovertarget="modal">open popover</button>
-    <div id="modal" popover>I am a free Modal</div>
+<button popovertarget="modal">open popover</button>
+<div id="modal" popover>I am a free Modal</div>
 ```
 
-Now a modal with backdrop will be displayed, but if you click on the backdrop, it will close the modal, which makes for the best user experience. 
+Now a modal with backdrop will be displayed, but if you click on the backdrop, it will close the modal, which makes for the best user experience.
 
 You can also add the `popovertargetaction="close"` attribute on a connected popover button that specifically closes the modal:
 
@@ -1775,7 +1770,7 @@ Popovers also have JavaScript APIs:
 
 **Make popovers like dialogs**
 
-Popovers are **soft-dismissible** by default, but you can prevent that by setting the `popover="manual"` attribute on your popover modal. 
+Popovers are **soft-dismissible** by default, but you can prevent that by setting the `popover="manual"` attribute on your popover modal.
 
 ```html
 <!-- Soft Dismissible -->
@@ -1806,14 +1801,10 @@ Using the new `@starting-style` rule in CSS, we can add exit and entry animation
 dialog {
   --duration: 0.34s;
 
-  transition: 
-    translate var(--duration) ease-in-out, 
-    scale     var(--duration) ease-in-out,
-    filter    var(--duration) ease-in-out,
-    display   var(--duration) ease-in-out allow-discrete;
+  transition: translate var(--duration) ease-in-out, scale var(--duration) ease-in-out,
+    filter var(--duration) ease-in-out, display var(--duration) ease-in-out allow-discrete;
 
   &[open] {
-
     /* Post-Entry (Normal) State */
     translate: 0 0;
     scale: 1;
@@ -1835,13 +1826,14 @@ dialog {
   }
 }
 ```
+
 ## Various DOM Tips
 
 ### Text Fragments
 
-Text fragments are a way of linking on a page to some specific text, and is supported everywhere. It's much better than linking a heading with some id. 
+Text fragments are a way of linking on a page to some specific text, and is supported everywhere. It's much better than linking a heading with some id.
 
-The basic syntax is as follows, where the text fragments starts with a `#:~:text=` prefix before supplying the text you want to link to. 
+The basic syntax is as follows, where the text fragments starts with a `#:~:text=` prefix before supplying the text you want to link to.
 
 ```
 https://example.com#:~:text=[prefix-,]textStart[,textEnd][,-suffix]
@@ -1892,6 +1884,7 @@ export class TextFragmentURLManager {
   }
 }
 ```
+
 ### Enable spellcheck
 
 You can use the `spellcheck` attribute with `<input>` elements, content-editable elements, and `<textarea>` elements to enable or disable spell-checking by the browser.
@@ -2099,10 +2092,10 @@ let scrollHeight = Math.max(
 
 - `<abbr>`: inline element used for abbreviations. No inherent structure.
 - `<address>`: block element used for addresses. No inherent structure.
-- `<hgroup>`: block element container used to nest heading elements and other content inside it. No inherent structure. 
+- `<hgroup>`: block element container used to nest heading elements and other content inside it. No inherent structure.
 - `<mark>`: inline element that highlights text
 - `<samp>`: inline element that styles text like keyboard monospace font
-- `<menu>`: semantically same as `<ul>
+- `<menu>`: semantically same as `<ul>`
 - `<sub>`: inline element that styles text as a subscript
 - `<sup>`: inline element that styles text as a superscript
 - `<meter>`: used to show a progress bar that can change color depending on its current value:
@@ -2111,15 +2104,24 @@ let scrollHeight = Math.max(
 <label for="fuel">Fuel level:</label>
 
 <!-- if value is above 80 then meter turns green, else yellow, below low is red -->
-<meter id="fuel" min="0" max="100" low="33" high="66" optimum="80" value="90">at 50/100</meter>
+<meter id="fuel" min="0" max="100" low="33" high="66" optimum="80" value="90">
+  at 50/100
+</meter>
 ```
 
 ![](https://www.webpagescreenshot.info/image-url/ATHmXSTBD)
+
 - `<object>`: element used for embedding data like images, pdfs, etc., and then styling it.
 
 ```html
-<object type="application/pdf" data="/media/examples/In-CC0.pdf" width="250" height="200"></object>
+<object
+  type="application/pdf"
+  data="/media/examples/In-CC0.pdf"
+  width="250"
+  height="200"
+></object>
 ```
+
 ## Content editable
 
 The `contentEditable` attribute is extremely versatile and allows us to modify the content of elements in the page.
@@ -2134,7 +2136,6 @@ You can get the current selection using `document.getSelection()`, which will re
 
 - To get the text from a selection, just call `selection.toString()`.
 - You can listen for text selection by cheating a little and listening for the `"mouseup"` event on the document, and then query for a potentially null `document.getSelection()`.
-
 
 ```ts
 export class SelectionManager {
@@ -2164,19 +2165,18 @@ export class SelectionManager {
 
 #### Range basics
 
-A `Range` object is a way of describing a range of the start position of the selection in some element and the end position of the selection in some element. 
+A `Range` object is a way of describing a range of the start position of the selection in some element and the end position of the selection in some element.
 
-The start and end positions are determined by the number of elements in the node, also described as **offsets**. 
+The start and end positions are determined by the number of elements in the node, also described as **offsets**.
 
 ![](https://javascript.info/article/selection-range/range-example-p-0-1.svg)
-
 
 Ranges can range within the same element or across multiple different elements. Here is the most basic way to create a range:
 
 ```ts
-const textNode = document.querySelector("p").firstChild
+const textNode = document.querySelector("p").firstChild;
 // 1. create range
-const range = new Range()
+const range = new Range();
 // 2. set start
 range.setStart(textNode, 0);
 // 3. set end
@@ -2192,7 +2192,7 @@ Here are the range methods that allows you to deal with content in the range:
 - **`cloneContents()`**: Copies the content and returns them as a `DocumentFragment`
 - **`insertNode(node)`**: Inserts a node at the range's start point.
 
-Here are the the range properties: 
+Here are the the range properties:
 
 - `range.commonAncestorContainer`: returns the common ancestor of the start container and end container nodes
 - `range.startContainer`: returns the node in which the range starts
@@ -2201,9 +2201,9 @@ Here are the the range properties:
 Here are other useful range methods:
 
 - `range.cloneRange()`: returns a copy of the range
-- `range.isPointInRange(node, offset)`: returns a boolean whether or not the specified point is in the range. 
-- `range.selectNode(node)`: selects/highlights the entire node 
-- `range.selectNodContents(node)`: selects/highlights the entire contents of the node 
+- `range.isPointInRange(node, offset)`: returns a boolean whether or not the specified point is in the range.
+- `range.selectNode(node)`: selects/highlights the entire node
+- `range.selectNodContents(node)`: selects/highlights the entire contents of the node
 
 #### Selection basics
 
@@ -2216,14 +2216,14 @@ Here are the instance properties you have on the `Selection` object:
 - **`selection.anchorOffset`**: The offset in the `anchorNode` where the selection starts.
 - **`selection.focusOffset`**: The offset in the `focusNode` where the selection ends.
 - **`selection.isCollapsed`**: Boolean indicating whether the selection is collapsed (i.e., no content is selected).
-- `selection.direction`: returns the direct of the selection, which can either be let to right or right to left. This changes the focus nodes and anchor nodes. 
+- `selection.direction`: returns the direct of the selection, which can either be let to right or right to left. This changes the focus nodes and anchor nodes.
 - `selection.rangeCount`: returns the number of ranges in the selection
 
 Here are the methods:
 
 - **`selection.toString()`**: Returns the text of the current selection.
 - **`selection.removeAllRanges()`**: Clears all selections.
-	- You can also do `selection.empty()` to do the same thing
+  - You can also do `selection.empty()` to do the same thing
 - **`selection.addRange(range)`**: Adds a `Range` object to the selection.
 - **`selection.getRangeAt(index)`**: Retrieves a `Range` object from the selection.
 - `selection.collapse()`: removes the selection, collapsing to just the caret
@@ -2294,13 +2294,14 @@ export class RangeModel {
   }
 }
 ```
+
 ### Highlights
 
-Highlights are a way of adding custom CSS styling to ranges of text and having that persist. It prevents having to manually add spans everywhere. 
+Highlights are a way of adding custom CSS styling to ranges of text and having that persist. It prevents having to manually add spans everywhere.
 
-The main workflow of highlights is as follows: 
+The main workflow of highlights is as follows:
 
-1. Create ranges you want your highlight to highlight. 
+1. Create ranges you want your highlight to highlight.
 2. Create a `Highlight` object that takes in those ranges.
 3. Register the highlight to the CSS highlight registry under a specific highlight name.
 4. In your CSS, add specific styling for the `::highlight(highlight-name)` pseudoselector.
@@ -2326,13 +2327,13 @@ export class HighlightManager {
 
 `CSS.highlights` is a map of type `<string, Highlight>` that stores all the information about the currently registered highlights in your app. Simply adding a highlight to this map will register your highlight in the highlight registry.
 
-You create a new highlight like so - just pass in a bunch of range objects: 
+You create a new highlight like so - just pass in a bunch of range objects:
 
 ```ts
-const highlight = new Highlight(...ranges)
+const highlight = new Highlight(...ranges);
 ```
 
-Here is an example of highlight styling for the highlight with the name `"search-results"`. Keep in mind that the highlight will become active once registered. 
+Here is an example of highlight styling for the highlight with the name `"search-results"`. Keep in mind that the highlight will become active once registered.
 
 ```css
 ::highlight(search-results) {
