@@ -24,6 +24,19 @@ Here are the numerous benefits:
 }
 ```
 
+### Animations accessibility
+
+Remove animations for those who don't want it by providing these styles in the prefers-reduced-motion media query: 
+```css
+@media (prefers-reduced-motion) {
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    /* additional recommendation */
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+```
 ### Transforms
 
 #### Translate

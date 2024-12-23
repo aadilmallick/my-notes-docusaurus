@@ -824,8 +824,9 @@ Dark mode is a simple technique that only requires a few steps. It involves sett
 
 ### Quick Tips
 
-1. You can animate the `display` property now
-2. Use the `:focus-visible` pseudo-selector when styling focus for text inputs in forms. It results so that the style only applies when the user uses the keyboard to focus on the input, which is what you always want.
+#### `:focus-visible`
+
+Use the `:focus-visible` pseudo-selector when styling focus for text inputs in forms. It results so that the style only applies when the user uses the keyboard to focus on the input, which is what you always want.
 
 ```css
 input:focus {
@@ -837,9 +838,11 @@ input:focus-visible {
 }
 ```
 
-3. The `accent-color` property styles the inside color of form elements. The `caret-color` property styles the cursor color for text input and text area elements.
-4. The `:any-link` selector selects all anchor tags that have valid href link values, and does not style any invalid links.
-5. You can now use comparison operators in media queries.
+#### `:any-link`
+
+The `:any-link` selector selects all anchor tags that have valid href link values, and does not style any invalid links.
+
+#### Comparison operator in media queries
 
 ```css
 @media (width <= 768px) {
@@ -847,7 +850,9 @@ input:focus-visible {
 }
 ```
 
-6. You can use the `writing-mode` property to display text vertically.
+#### Writing mode to change text direction
+
+You can use the `writing-mode` property to display text vertically.
 
 ```css
 .vertical-text {
@@ -855,36 +860,31 @@ input:focus-visible {
 }
 ```
 
-7. You can flip an image or any element by using `transform: translateX(-1)`.
-8. Resize an element using the `resize` property. This property only works on elements where the overflow is **not** set to visible.
-   - `resize: horizontal` : resizes only horizontally
-   - `resize: vertical`: resizes only vertically
-   - `resize: both`: resizes both vertically and horizontally.
-9. Use the `scroll-padding-top` and `scroll-margin-top` properties to add scroll padding to prevent content at the top of a page being hidden by a fixed navbar. Just set these values to the height of your navbar.
-10. You can force yourself to hold good accessibility standards by making sure you notice any images that don't have an `alt` tag.
-```css
-img:not([alt]),
-img[alt=""] {
-  outline: 8px solid red;
-}
-```
+#### Flip horizontally
+
+You can flip an image or any element by using `transform: translateX(-1)`.
+
+#### Resize with `resize`
+
+Resize an element using the `resize` property. This property only works on elements where the overflow is **not** set to visible.
+- `resize: horizontal` : resizes only horizontally
+- `resize: vertical`: resizes only vertically
+- `resize: both`: resizes both vertically and horizontally.
+
+
+#### Scroll padding
+
+Use the `scroll-padding-top` and `scroll-margin-top` properties to add scroll padding to prevent content at the top of a page being hidden by a fixed navbar.
+
+#### `text-wrap` for headings
+
 11. Use the `text-wrap: balance` property to make sure that the text in headings wraps normally and does not stretch across the page. It offers a nicer look. 
 ```css
 h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 ```
-12. Remove animations for those who don't want it by providing these styles in the prefers-reduced-motion media query: 
-```css
-@media (prefers-reduced-motion) {
-  *, *::before, *::after {
-    animation-duration: 0s !important;
-    /* additional recommendation */
-    transition: none !important;
-    scroll-behavior: auto !important;
-  }
-}
-```
+
 ## Advanced Selectors
 
 #### has, is, not

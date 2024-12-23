@@ -2088,7 +2088,7 @@ let scrollHeight = Math.max(
 );
 ```
 
-## Random HTML Elements
+### Random HTML Elements
 
 - `<abbr>`: inline element used for abbreviations. No inherent structure.
 - `<address>`: block element used for addresses. No inherent structure.
@@ -2121,6 +2121,118 @@ let scrollHeight = Math.max(
   height="200"
 ></object>
 ```
+
+
+## iFrames
+
+This is how iframes look like in html:
+
+```html
+        <iframe
+          title="fretboard-guesser"
+          loading="lazy"
+          sandbox="allow-scripts allow-same-origin allow-presentation"
+          width="100%"
+          height="254"
+          class="object-contain w-full h-full"
+          style="zoom: 0.8"
+          id="fretboard-guesser"
+          src="https://www.musictheory.net/exercises/fretboard"
+        >
+        </iframe>
+```
+
+- `loading=`: how to load the iframe
+- `sandbox=`: security settings for iframe. 
+	- `allow-scripts`: allows the embedded page to run scripts
+	- `allow-same-origin`: allows the embedded page to have iframes that are of its same origin.
+- `src=`: the source for the iframe
+
+You can also access iframes through javascript:
+
+```ts
+class IFrameManager {
+  constructor(public iFrame: HTMLIFrameElement) {}
+
+  init() {
+    return new Promise<void>((resolve, _) => {
+      this.iFrame.onload = () => {
+        resolve();
+      };
+    });
+  }
+
+  public get document() {
+    return this.iFrame.contentDocument ?? this.window?.document;
+  }
+
+  public get window() {
+    return this.iFrame.contentWindow;
+  }
+
+  sendToMainPage(message: any) {
+    console.log("sending message to main page", this.window?.postMessage);
+    this.window?.parent.postMessage(message, "*");
+  }
+
+  static onIframeMessage(cb: (event: MessageEvent) => void) {
+    window.addEventListener("message", (event) => {
+      cb(event);
+    });
+  }
+
+  static onIframeMessageFromOrigin(origin: string, cb: (data: any) => void) {
+    window.addEventListener("message", (event) => {
+      if (event.origin === origin) {
+        cb(event.data);
+      }
+    });
+  }
+
+ // only works if same origin iframe
+  public silenceConsole() {
+    if (!this.window) return;
+    try {
+      this.window.console.log = () => {};
+      this.window.console.warn = () => {};
+      this.window.console.error = () => {};
+      const iframes = Array.from(
+        this.window.document.getElementsByTagName("iframe")
+      );
+      for (const item of iframes) {
+        if (!item.contentWindow) continue;
+        item.contentWindow.console.log = () => {
+          /* nop */
+        };
+        item.contentWindow.console.warn = () => {
+          /* nop */
+        };
+        item.contentWindow.console.error = () => {
+          /* nop */
+        };
+      }
+    } catch (e) {
+      console.error("security error");
+      console.error(e);
+    }
+  }
+}
+```
+
+You can access the content of iframes if they are the same origin, otherwise websites will set special headers to prevent XSS attacks. 
+
+- `iframe.contentWindow`: returns the window of the iframe. Always accessible
+- `iframe.contentDocument`: returns the document of the iframe, which allows you to access the DOM of the embedded site. 
+
+
+> [!CAUTION] 
+> The `iframe.contentDocument` property is only available if the iframe you are serving is from the same origin as your site. Otherwise you will get a `SecurityError` to prevent XSS attacks. Doing any DOM stuff with an embedded site is prohibited if not served from the same origin.
+
+The only thing you can do is post messages:
+
+- `window.postMessage(data, origin)`: main page sends a message to the origin (iframe)
+- `iframe.contentWindow.postMessage(data, origin)`: iframe sends message to specified origin
+- `window.addEventListener('message' , e)`: listens to messages from iframes
 
 ## Content editable
 

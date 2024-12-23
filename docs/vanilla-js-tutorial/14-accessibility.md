@@ -32,6 +32,16 @@ Here are the properties alt text should have:
 
 Here is an example of some good alt text: “rubber duck in batman costume.”
 
+### Neat alt text trick
+
+You can force yourself to hold good accessibility standards by making sure you notice any images that don't have an `alt` tag.
+```css
+img:not([alt]),
+img[alt=""] {
+  outline: 8px solid red;
+}
+```
+
 ## Links
 
 ### Link text
@@ -188,5 +198,19 @@ To make a skip link, don’t hide it. Instead translate it off screen so that it
 
 .skip-link:focus {
 	transform: translate(0px);
+}
+```
+
+## Animations accessibility
+
+Remove animations for those who don't want it by providing these styles in the prefers-reduced-motion media query: 
+```css
+@media (prefers-reduced-motion) {
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    /* additional recommendation */
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
 ```

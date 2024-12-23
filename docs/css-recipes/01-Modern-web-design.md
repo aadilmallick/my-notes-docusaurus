@@ -565,7 +565,7 @@ const ELEVATIONS = {
 
 ## Forms
 
-### Styling inputs
+### CSS-only form validation styling
 
 A good way to style inputs based on a valid and invalid state is to use these pseudoselectors:
 
@@ -590,6 +590,10 @@ input:focus:invalid {
   outline-color: var(--clr-warning)
 }
 ```
+
+### Styling form fields
+
+The `accent-color` property styles the inside color of form elements. The `caret-color` property styles the cursor color for text input and text area elements.
 
 ## CSS Layouts
 
@@ -696,3 +700,9 @@ This produces a soft, realistic look.
 - `scroll-snap-type`: the property you set on the parent, which is the scroll container. 
 	- **first value**: the axis to which to scroll on, `x` for horizontal and `y` for vertical.
 	- **second value**: the behavior. `mandatory` to force always scroll snapping, and `proximity` only snaps if close to the `scroll-snap-align` of the child.
+
+
+> [!NOTE] 
+> In most cases you should set the `scroll-snap-type` property on the `html` element.
+
+
