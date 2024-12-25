@@ -191,7 +191,7 @@ await imagemin(['public/assets/img/min/**/*.png', 'public/assets/img/*.png'], {
 
 ### Performance tools
 
-Do an audit of your site at https://pagespeed.web.dev/. 
+Do an audit of your site at https://pagespeed.web.dev/. Also go here: https://speedvitals.com/
 ### Improve time to first byte
 
 You can improve time to first byte via these three methods: 

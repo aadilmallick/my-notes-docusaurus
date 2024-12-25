@@ -1,5 +1,94 @@
 # Fetching remote data
 
+## Fetch basics
+
+### Request and Response
+
+A basic `Request` is created like so: 
+
+```jsx
+const req = new Request(url, options)
+```
+
+Here are the important options you can pass in: 
+- `method` : the HTTP verb to use
+- `body` : the request body, working only for non-GET requests.
+- `headers` : any request headers
+- `mode` : controls the CORS behavior of your requests. Here are the different values you can provide:
+    - `"same-origin"` : only allows requests to the same origin, meaning you can only make local requests to your own app.
+    - `'cors"` : allow CORS requests. The default when you create a `Request()` with a header
+- `cache` : controls the cache behavior. Here are the different values you can provide
+    - `"default"` : default caching behavior, where if data is fresh, return from cache, and if data is stale, make a network request
+    - `"no-store"` : **Network first.** never use caching. Always do network requests
+    - `"reload"` : **Network first.** Serve network requests, but update cache each time so you can use it as fallback data in case of no internet.
+    - `"no-cache"` : **Network first.** always make network request, and only return from cache if network request and cached data are the same.
+    - `"force-cache"` : **Cache first.** always return from cache, and if there is nothing in the cache, make network request and add it to the cache.
+
+```jsx
+const request = new Request('https://api.example.com/data', {
+  method: 'GET',
+  headers: new Headers({
+    'Authorization': 'Bearer yourToken',
+  }),
+  body: JSON.stringify({ key: 'value' }), 
+});
+```
+
+Here are some useful properties and methods of a request object: 
+
+- `request.method`: The HTTP method for the request (e.g., GET, POST, PUT).
+- `request.url`: The URL of the request.
+- `request.headers`: An object representing the headers of the request.
+- `request.destination` : returns the content type of the data you are requesting, like `"audio"` , `"video"`, `"document"`, `"image"` and more.
+- `request.clone()`: clones the request and returns that request
+- `request.bodyUsed`: whether or not the response body was already read. If this is `true`, then attempting to clone the response with `response.clone()` will throw an error. 
+
+**response**
+
+Here are some useful things on the `Response` object: 
+
+- **`status`**: The HTTP status code of the response (e.g., 200 for a successful request).
+- **`headers`**: An object representing the headers of the response.
+- `bodyUsed`: whether or not the response body was already read. If this is `true`, then attempting to clone the response with `response.clone()` will throw an error. 
+- **`text()`**: A method to read the response body as text.
+- **`json()`**: A method to parse the response body as JSON.
+- **`blob()`**: A method to get the response body as a Blob.
+- **`clone()`**: A method to clone the response, allowing it to be used in multiple places.
+
+### Fetch with Headers
+
+Instead of passing the headers straight in, we can create a `Headers` object and pass that in instead. We can create a `Headers` object like this:
+
+```javascript
+const headers = new Headers({
+  "Content-Type": "application/json",
+});
+```
+
+Then we can pass this into the `fetch()` method like this:
+
+```javascript
+fetch(url, {
+  method: "POST",
+  headers,
+  body: JSON.stringify(data),
+});
+```
+
+
+### Aborting inflight fetch requests
+
+```ts
+let abortController = new AbortController();
+ 
+fetch('wikipedia.zip', { signal: abortController.signal })
+  .catch(() => console.log('aborted!'));
+ 
+// Abort the fetch after 10ms
+setTimeout(() => abortController.abort(), 10);
+```
+
+
 ## Fetching binary data with fetch
 
 ### Blobs
@@ -233,7 +322,9 @@ fileReader.addEventListener("error", (e) => {
 
 ## Streams and binary data
 
-#### Readable Streams
+
+
+### Readable Streams
 
 Readable streams stream data in chunks as to avoid large file overhead. You can only read a stream once, but there is a concept called **teeing** that allows you to copy a stream and therefore read it twice. 
 
@@ -296,7 +387,42 @@ async function streamToResponse(stream: ReadableStream) {
 Here are some useful methods on a stream: 
 
 - `stream1.pipeThrough(stream2)`: basically writes the contents from stream1 to stream2, copying stream1 to stream2.
-#### Stream Compression API
+- `stream.tee()`: returns a two copies of the same unconsumed stream.
+
+Teeing a stream is especially useful if you need multiple consumers of the same stream. A stream can only be consumed once, so `stream.tee()` makes copies of the unconsumed stream.
+
+```ts
+const [stream1, stream2] = this.stream.tee();
+```
+
+When reading from streams, keep in mind to support canceling fetch requests and backpressure:
+
+
+> [!NOTE] 
+> **Backpressure**, a commonly overlooked aspect of streams, refers to the phenomenon where data is produced at a faster rate than it can be consumed. Ignoring backpressure can result in high memory consumption leading to decreased application performance.
+
+
+
+### Writable streams
+
+```ts
+class WritableStreamManager<T extends Uint8Array<ArrayBufferLike>> {
+  writer: WritableStreamDefaultWriter<T>;
+  constructor(public stream: WritableStream<T>) {
+    this.writer = stream.getWriter();
+  }
+
+  async writeChunk(data: T) {
+    await this.writer.write(data);
+  }
+
+  async writeTextChunk(text: string) {
+    const dataChunk = new TextEncoder().encode(text);
+    await this.writer.write(dataChunk as T);
+  }
+}
+```
+### Stream Compression API
 
 The `CompressionStream` and `DecompressionStream` classes are used to create compressed and decompressed streams respectively.
 
@@ -335,8 +461,54 @@ const compressedStream = await getCompressedStream(response.body)
 // get back decompressed readable stream
 const decompressedStream = await getDecompressedStream(compressedStream)
 ```
+### Text encoding
 
-Here's an entire ass class:
+Binary data is easy to work with, but text needs encoding and decoding. 
+
+Here is how to use the `TextEncoder()` and `TextDecoder()` classes:
+
+```ts
+async function encodeText (text: string) {
+	const encoder = new TextEncoder();
+	return encoder.encode(text); // returns UINTARRAy
+}
+
+async function decodeText (data: Uint8Array) {
+	const decoer = new TextDecoder();
+	return decoder.decode(data); // returns string
+}
+```
+
+### ArrayBuffers
+
+ArrayBuffers are references to fixed-length arrays of contiguous memory. You can't modify or read from an array buffer. Instead we use **Typed arrays** to access and modify ArrayBuffer data.
+
+```ts
+// create array buffer of 16 bytes
+let arrayBuffer = new ArrayBuffer(16);
+```
+
+You can create a new array buffer using the `ArrayBuffer()` constructor, and the only argument it takes in is the size in bytes of the buffer. 
+
+Here are some properties you can access on it: 
+
+- `arrayBuffer.byteLength`: the size in bytes of the array buffer
+
+To manipulate a buffer, we can use these *view* objects, which we can iterate over and modify (but we can't remove or add elements).
+
+- **`Uint8Array`** – treats each byte in `ArrayBuffer` as a separate number, with possible values from 0 to 255 (a byte is 8-bit, so it can hold only that much). Such value is called a “8-bit unsigned integer”.
+- **`Uint16Array`** – treats every 2 bytes as an integer, with possible values from 0 to 65535. That’s called a “16-bit unsigned integer”.
+- **`Uint32Array`** – treats every 4 bytes as an integer, with possible values from 0 to 4294967295. That’s called a “32-bit unsigned integer”.
+- **`Float64Array`** – treats every 8 bytes as a floating point number with possible values from `5.0x10-324` to `1.8x10308`.
+
+Each typed array has these properties:
+
+- `typedArray.buffer`: returns the underlying arraybuffer
+- `typedArray.byteLength`: returns the size in bytes of the arraybuffer.
+
+
+
+### All together
 
 ```ts
 class ReadableStreamManager<T extends Uint8Array<ArrayBufferLike>> {
@@ -430,52 +602,6 @@ export class TextEncodingManager {
   }
 }
 ```
-#### Text encoding
-
-Binary data is easy to work with, but text needs encoding and decoding. 
-
-Here is how to use the `TextEncoder()` and `TextDecoder()` classes:
-
-```ts
-async function encodeText (text: string) {
-	const encoder = new TextEncoder();
-	return encoder.encode(text); // returns UINTARRAy
-}
-
-async function decodeText (data: Uint8Array) {
-	const decoer = new TextDecoder();
-	return decoder.decode(data); // returns string
-}
-```
-
-#### ArrayBuffers
-
-ArrayBuffers are references to fixed-length arrays of contiguous memory. You can't modify or read from an array buffer. Instead we use **Typed arrays** to access and modify ArrayBuffer data.
-
-```ts
-// create array buffer of 16 bytes
-let arrayBuffer = new ArrayBuffer(16);
-```
-
-You can create a new array buffer using the `ArrayBuffer()` constructor, and the only argument it takes in is the size in bytes of the buffer. 
-
-Here are some properties you can access on it: 
-
-- `arrayBuffer.byteLength`: the size in bytes of the array buffer
-
-To manipulate a buffer, we can use these *view* objects, which we can iterate over and modify (but we can't remove or add elements).
-
-- **`Uint8Array`** – treats each byte in `ArrayBuffer` as a separate number, with possible values from 0 to 255 (a byte is 8-bit, so it can hold only that much). Such value is called a “8-bit unsigned integer”.
-- **`Uint16Array`** – treats every 2 bytes as an integer, with possible values from 0 to 65535. That’s called a “16-bit unsigned integer”.
-- **`Uint32Array`** – treats every 4 bytes as an integer, with possible values from 0 to 4294967295. That’s called a “32-bit unsigned integer”.
-- **`Float64Array`** – treats every 8 bytes as a floating point number with possible values from `5.0x10-324` to `1.8x10308`.
-
-Each typed array has these properties:
-
-- `typedArray.buffer`: returns the underlying arraybuffer
-- `typedArray.byteLength`: returns the size in bytes of the arraybuffer.
-
-
 ## Aborting fetch requests
 
 We can use the `AbortController` class to abort fetch requests if they are taking too long.

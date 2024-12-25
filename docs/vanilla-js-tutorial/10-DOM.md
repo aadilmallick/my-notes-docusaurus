@@ -1753,6 +1753,8 @@ Once you finish those two steps, the button will be hooked up to display the mod
 
 Now a modal with backdrop will be displayed, but if you click on the backdrop, it will close the modal, which makes for the best user experience.
 
+**Adding close modal button**
+
 You can also add the `popovertargetaction="close"` attribute on a connected popover button that specifically closes the modal:
 
 ```html
@@ -1765,8 +1767,8 @@ You can also add the `popovertargetaction="close"` attribute on a connected popo
 
 Popovers also have JavaScript APIs:
 
-- `popover.showPopover()`: opens the popover
-- `popover.closePopover()`: closes the popover
+- `popoverElement.showPopover()`: opens the popover
+- `popoverElement.closePopover()`: closes the popover
 
 **Make popovers like dialogs**
 

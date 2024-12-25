@@ -372,93 +372,7 @@ window.addEventListener("resize", () => {
   canvas.height = window.innerHeight * 0.75;
 });
 ```
-## Fetch
 
-### Request and Response
-
-A basic `Request` is created like so: 
-
-```jsx
-const req = new Request(url, options)
-```
-
-Here are the important options you can pass in: 
-- `method` : the HTTP verb to use
-- `body` : the request body, working only for non-GET requests.
-- `headers` : any request headers
-- `mode` : controls the CORS behavior of your requests. Here are the different values you can provide:
-    - `"same-origin"` : only allows requests to the same origin, meaning you can only make local requests to your own app.
-    - `'cors"` : allow CORS requests. The default when you create a `Request()` with a header
-- `cache` : controls the cache behavior. Here are the different values you can provide
-    - `"default"` : default caching behavior, where if data is fresh, return from cache, and if data is stale, make a network request
-    - `"no-store"` : **Network first.** never use caching. Always do network requests
-    - `"reload"` : **Network first.** Serve network requests, but update cache each time so you can use it as fallback data in case of no internet.
-    - `"no-cache"` : **Network first.** always make network request, and only return from cache if network request and cached data are the same.
-    - `"force-cache"` : **Cache first.** always return from cache, and if there is nothing in the cache, make network request and add it to the cache.
-
-```jsx
-const request = new Request('https://api.example.com/data', {
-  method: 'GET',
-  headers: new Headers({
-    'Authorization': 'Bearer yourToken',
-  }),
-  body: JSON.stringify({ key: 'value' }), 
-});
-```
-
-Here are some useful properties and methods of a request object: 
-
-- `request.method`: The HTTP method for the request (e.g., GET, POST, PUT).
-- `request.url`: The URL of the request.
-- `request.headers`: An object representing the headers of the request.
-- `request.destination` : returns the content type of the data you are requesting, like `"audio"` , `"video"`, `"document"`, `"image"` and more.
-- `request.clone()`: clones the request and returns that request
-- `request.bodyUsed`: whether or not the response body was already read. If this is `true`, then attempting to clone the response with `response.clone()` will throw an error. 
-
-**response**
-
-Here are some useful things on the `Response` object: 
-
-- **`status`**: The HTTP status code of the response (e.g., 200 for a successful request).
-- **`headers`**: An object representing the headers of the response.
-- `bodyUsed`: whether or not the response body was already read. If this is `true`, then attempting to clone the response with `response.clone()` will throw an error. 
-- **`text()`**: A method to read the response body as text.
-- **`json()`**: A method to parse the response body as JSON.
-- **`blob()`**: A method to get the response body as a Blob.
-- **`clone()`**: A method to clone the response, allowing it to be used in multiple places.
-
-### Fetch with Headers
-
-Instead of passing the headers straight in, we can create a `Headers` object and pass that in instead. We can create a `Headers` object like this:
-
-```javascript
-const headers = new Headers({
-  "Content-Type": "application/json",
-});
-```
-
-Then we can pass this into the `fetch()` method like this:
-
-```javascript
-fetch(url, {
-  method: "POST",
-  headers,
-  body: JSON.stringify(data),
-});
-```
-
-
-### Aborting inflight fetch requests
-
-```ts
-let abortController = new AbortController();
- 
-fetch('wikipedia.zip', { signal: abortController.signal })
-  .catch(() => console.log('aborted!'));
- 
-// Abort the fetch after 10ms
-setTimeout(() => abortController.abort(), 10);
-```
 ## Other APIs
 
 ### Web Payments API
@@ -808,6 +722,86 @@ export class FileSystemManager {
   }
 }
 ```
+
+#### OPFS
+
+Related to the filesystem API is OPFS (origin private file system) which allows the web to access and store local file data in web storage. 
+
+Here are the benefits of using OPFS:
+
+- efficient storage for large files
+- fast local performance with read/write operations
+- offline capability
+- secure
+- no need for permission requesting once user has granted access.
+
+
+> [!NOTE] 
+> Notion uses OPFS with read/write access to a local sqlite file on your disk to have fast operations before uploading to a cloud database. 
+
+```ts
+class OPFS {
+  private root!: FileSystemDirectoryHandle;
+  async openDirectory() {
+    this.root = await navigator.storage.getDirectory();
+  }
+
+  public get directory() {
+    return this.root;
+  }
+
+  async getDirectoryContents() {
+    this.validate();
+    const data = [] as { name: string; fileHandle: FileSystemHandle }[];
+    for await (let [name, handle] of this.root) {
+      data.push({ name, fileHandle: handle });
+    }
+    return data;
+  }
+
+  private validate(): this is { root: FileSystemDirectoryHandle } {
+    if (!this.root) {
+      throw new Error("Root directory not set");
+    }
+    return true;
+  }
+  async createFile(filename: string) {
+    this.validate();
+    const file = await this.root.getFileHandle(filename, { create: true });
+    return file;
+  }
+
+  async getFileHandle(filename: string) {
+    this.validate();
+    const file = await this.root.getFileHandle(filename);
+    return file;
+  }
+
+  async deleteFile(filename: string) {
+    this.validate();
+    await this.root.removeEntry(filename);
+  }
+
+  async getFile(filename: string) {
+    const fileHandle = await this.getFileHandle(filename);
+    return await fileHandle.getFile();
+  }
+
+  async getFileAsURL(filename: string) {
+    return URL.createObjectURL(await this.getFile(filename));
+  }
+
+  static async writeToFileHandle(
+    file: FileSystemFileHandle,
+    data: string | Blob | ArrayBuffer
+  ) {
+    const writable = await file.createWritable();
+    await writable.write(data);
+    await writable.close();
+  }
+}
+```
+
 ### Navigator share API
 
 The `navigator.share(options)` async method allows sharing media and urls like you can do on your phone. You pass in an object of options which configure the sharing behavior: 

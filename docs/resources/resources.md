@@ -14,6 +14,10 @@
 - [Animate on scroll](https://michalsnik.github.io/aos/) and its [github](https://github.com/michalsnik/aos/tree/v2)
 - https://roughnotation.com/: Hand drawn annotation animations. Great for blogs. 
 - https://atroposjs.com/docs: Parallax in JS
+- https://sonner.emilkowal.ski/getting-started: toast library
+- https://sweetalert.js.org/guides/: better alert library
+- https://popmotion.io/: simple animation library
+- https://simpleparallax.com/: simple parallax library
 
 
 ### React libraries
@@ -30,6 +34,9 @@ These are my references:
 - https://react-svgr.com/playground/ : SVG to React component
 - https://mantine.dev/ : React UI library
 - https://usehooks-ts.com/ : React Typescript hooks
+- https://primereact.org/: React UI library 
+- https://www.webbie.app/: React + Tailwind components
+- https://react-rainbow.io/#/Components: React component library
 
 ## CSS
 
@@ -58,6 +65,8 @@ These are my references:
 - https://www.cssportal.com/css-loader-generator/ : CSS loader generator
 - https://animate.style/ : CSS animation choices
 - https://tobiasahlin.com/spinkit/ : CSS loader choices
+- https://loading.io/: CSS loader choices
+- https://uiball.com/ldrs/: CSS loader choices
 - https://github.com/IanLunn/Hover : CSS hover effects stylesheet
 - https://cssgrid-generator.netlify.app/ : CSS grid generator
 - https://9elements.github.io/fancy-border-radius/ : CSS border radius generator
@@ -68,6 +77,8 @@ These are my references:
 - https://www.vantajs.com/: Animated background tool
 - https://cssloaders.github.io/: CSS Loaders collector
 - https://www.minimamente.com/project/magic/: Copy and paste animations
+- https://sarcadass.github.io/granim.js/examples.html: gradient animation library
+- https://gra.dient.art/: advanced gradient design generator
 
 ### **SVG generator tools**
 
@@ -141,6 +152,7 @@ These websites have all-in-one solutions to many problems:
 - https://www.warp.dev/ai : command line AI agent
 - https://aider.chat/ : AI copilot in terminal
 - https://leonardo.ai/ : AI image generation
+- https://fronty.com/: convert image to HTML (great for making websites)
 
 ### Other
 
@@ -148,6 +160,12 @@ These websites have all-in-one solutions to many problems:
 - https://selfh.st/apps : self hosted apps
 - https://smallpdf.com/ : edit PDFs
 - https://www.tldraw.com/ : free whiteboard app
+
+### Chrome extensions
+
+- [web maker online web playground](https://chromewebstore.google.com/detail/web-maker/lkfkkhfhhdkiemehlpkgjeojomhpccnh)
+- [mobile devtools simulator](https://www.webmobilefirst.com/en/extension/onboarding/?utm_source=extension&utm_campaign=onboarding)
+- [tailscan](https://tailscan.com/#pricing): an extension that lets you change tailwind classes in the devtools browser with a nice UI. 
 
 ## Learning
 
@@ -159,6 +177,7 @@ These websites have all-in-one solutions to many problems:
 - [Learn HTML DOM](https://phuoc.ng/collection/html-dom/)
 - [Learn debugging](https://alan.norbauer.com/articles/browser-debugging-tricks)
 - [JS cheatsheet](https://zerotomastery.io/cheatsheets/javascript-cheatsheet-the-advanced-concepts)
+- [complete cheatsheet collection](https://overapi.com/python)
 - [Learn CSS animations blog](https://emilkowal.ski/)
 - [Best roadmaps](https://roadmap.sh/)
 - [Free programming books](https://ebookfoundation.github.io/free-programming-books-search/?&sect=books&file=free-programming-books-langs.md#react-native)
@@ -173,15 +192,9 @@ These websites have all-in-one solutions to many problems:
 - [microsoft generative ai](https://github.com/microsoft/generative-ai-for-beginners)
 - [deep learning book](https://github.com/udlbook/udlbook)
 
-### Various collections of stuff
 
-- https://github.com/sdmg15/Best-websites-a-programmer-should-visit
-
-### Useful articles
-
-- https://www.joshwcomeau.com/blog/how-to-learn-stuff-quickly/
-- https://www.joshwcomeau.com/css/stacking-contexts/
 
 ## References
 
 - https://www.linkedin.com/pulse/tools-make-your-life-much-easier-developer-kazim-kayhan/
+- https://github.com/sdmg15/Best-websites-a-programmer-should-visit

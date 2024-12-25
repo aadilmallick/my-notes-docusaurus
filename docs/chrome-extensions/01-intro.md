@@ -140,6 +140,116 @@ In the `"chrome_url_overrides"` key, there are three pages you can override:
 - `"bookmarks"` : the bookmarks page
 - `"history"` : the chrome history page
 
+
+### Offscreen Documents
+
+If you want to do background work with a service worker and need access to DOM APIs like clipboard or canvas, you need to do it with **offscreen documents**. Offscreen documents don't need a webpage to run DOM API methods, which is ideal for extension service workers.
+
+
+> [!IMPORTANT] 
+> You need the `"offscreen"` manifest permission to use offscreen documents. 
+
+**creating offscreen documents**
+
+Here is an example of registering an offscreen document, and you can only register one offscreen document per chrome extension. 
+
+```ts
+chrome.offscreen.createDocument({
+  url: 'off_screen.html',
+  reasons: ['CLIPBOARD'],
+  justification: 'reason for needing the document',
+});
+```
+
+Here are the properties you should pass to the `chrome.offscreen.createDocument(options)` method: 
+- `url` : the static extension page to act as the offscreen document
+- `reasons` : used to determine what the document is used for and the lifetime of the document.
+
+**using offscreen documents**
+
+Once you create an offscreen document, you can use basic chrome runtime messaging to communicate with it and send data to it so it can perform DOM tasks with that data. 
+
+
+> [!IMPORTANT] 
+> Offscreen documents only have access to the `chrome.runtime` API and no other APIs. 
+
+**closing offscreen documents**
+
+You can then deregister the document using the `chrome.offscreen.closeDocument()` async method. 
+
+You can also close the document from the offscreen context itself by doing `window.close()` from within the offscreen context
+
+```ts
+// requires "offscreen" permission in manifest.json
+
+export default class Offscreen {
+  private static creating: Promise<null | undefined | void> | null; // A global promise to avoid concurrency issues
+  static reasons = {
+    DOM_PARSER: chrome.offscreen.Reason.DOM_PARSER, // access to the DOMParser API
+    CLIPBOARD: chrome.offscreen.Reason.CLIPBOARD, // access to the clipboard API
+    TESTING: chrome.offscreen.Reason.TESTING, // used for testing purposes
+    BLOBS: chrome.offscreen.Reason.BLOBS, // access to the Blob API and creating blobs
+    LOCAL_STORAGE: chrome.offscreen.Reason.LOCAL_STORAGE, // access to the localStorage API
+    GEOLOCATION: chrome.offscreen.Reason.GEOLOCATION, // access to the geolocation API
+    USER_MEDIA: chrome.offscreen.Reason.USER_MEDIA, // access to the getUserMedia API
+    DISPLAY_MEDIA:
+      chrome.offscreen.Reason
+        .DISPLAY_MEDIA /** The offscreen document needs to interact with 
+        media streams from display media (e.g. getDisplayMedia()). */,
+  };
+  static getReasons(reasons: (keyof (typeof Offscreen)["reasons"])[]) {
+    return reasons as chrome.offscreen.Reason[];
+  }
+
+  static async getOffscreenDocument() {
+    const existingContexts = await chrome.runtime.getContexts({});
+
+    const offscreenDocument = existingContexts.find(
+      (c) => c.contextType === "OFFSCREEN_DOCUMENT"
+    );
+    return offscreenDocument;
+  }
+
+  static async setupOffscreenDocument({
+    url,
+    justification,
+    reasons,
+  }: chrome.offscreen.CreateParameters) {
+    // Check all windows controlled by the service worker to see if one
+    // of them is the offscreen document with the given path
+
+    if (await Offscreen.hasDocument(url)) return;
+
+    // create offscreen document
+    if (Offscreen.creating) {
+      await Offscreen.creating;
+    } else {
+      Offscreen.creating = chrome.offscreen.createDocument({
+        url,
+        justification,
+        reasons,
+      });
+      await Offscreen.creating;
+      Offscreen.creating = null;
+    }
+  }
+
+  static async closeDocument() {
+    await chrome.offscreen.closeDocument();
+  }
+
+  private static async hasDocument(path: string) {
+    const offscreenUrl = chrome.runtime.getURL(path);
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+      documentUrls: [offscreenUrl],
+    });
+    return existingContexts.length > 0;
+  }
+}
+```
+
+
 ## Match Patterns
 
 Match patterns and globs are way of matching URLs. Globs are more flexible than match patterns.
@@ -253,6 +363,165 @@ function executeScript(tabId: number) {
 	})
 }
 ```
+
+### Web Components
+
+It is not possible to register web components in a content script because `customElements` is set to null for security reasons.
+
+Instead of rendering custom elements, you can just manually build them like so:
+
+```ts
+import { css, CSSVariablesManager, DOM, html } from "../Dom";
+import WebComponent from "./WebComponent";
+
+interface StaticProps {
+  "data-iframe-url": string;
+}
+
+const observableAttributes = [] as readonly string[];
+export class ContentScriptUI extends WebComponent {
+  static tagName = "content-script-ui" as const;
+  static cameraId = "ez-screen-recorder-camera" as const;
+  static elementContainerName = "camera-iframe-container" as const;
+
+  constructor() {
+    super({
+      templateId: ContentScriptUI.tagName,
+    });
+  }
+
+  static override get CSSContent() {
+    return css`
+      #camera-iframe-container {
+        width: 200px;
+        height: 200px;
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        border-radius: 9999px;
+        border: 4px solid rebeccapurple;
+        z-index: 5000;
+        cursor: grab;
+        resize: both;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.25);
+      }
+
+      #camera-iframe-container .draggable-handle {
+        background-color: #fff;
+        border: 2px solid gray;
+        width: 3rem;
+        height: 1.5rem;
+        border-radius: 1rem;
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translate(-50%, -50%);
+        display: block;
+        z-index: -1;
+        cursor: grab;
+      }
+
+      #camera-iframe-container .iframe-container {
+        overflow: hidden;
+        background-color: black;
+        width: 100%;
+        height: 100%;
+        border-radius: 9999px;
+      }
+
+      #camera-iframe-container iframe {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border: none;
+        pointer-events: none;
+      }
+
+      #placeholder {
+        visibility: hidden;
+        position: absolute;
+        transform: translate(-600%, -600%);
+      }
+    `;
+  }
+
+  static registerSelf() {
+    if (!customElements.get(this.tagName)) {
+      WebComponent.register(this.tagName, this);
+    }
+  }
+
+  static override get HTMLContent() {
+    return html`
+      <div class="shit-another-container">
+        <div id="placeholder"></div>
+        <div id="camera-iframe-container">
+          <!-- <div class="draggable-handle"></div> -->
+          <div class="iframe-container">
+            <iframe
+              allow="camera; microphone; fullscreen; display-capture; autoplay; encrypted-media; picture-in-picture;"
+              width="200"
+              height="200"
+              id="${this.cameraId}"
+            ></iframe>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  static manualCreation(iframeSrc: string) {
+    // 1) add css
+    const styles = document.createElement("style");
+    styles.textContent = this.CSSContent;
+    styles.id = `${this.tagName}-camera-iframe-styles`;
+
+    console.log("styles", styles);
+    document.head.appendChild(styles);
+
+    // 2) add iframe
+    const videoFrame = DOM.createDomElement(this.HTMLContent);
+    console.log("videoFrame", videoFrame);
+    videoFrame.querySelector("iframe").src = iframeSrc;
+    document.body.appendChild(videoFrame);
+
+    return videoFrame;
+  }
+
+  static manualDestruction() {
+    const styles = DOM.$(`#${this.tagName}-camera-iframe-styles`);
+    if (styles) {
+      styles.remove();
+    }
+
+    const videoFrame = DOM.$(".shit-another-container");
+    console.log("content script: videoFrame to remove", videoFrame);
+    if (videoFrame) {
+      videoFrame.remove();
+    }
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    const iframeSrc = this.getAttribute("data-iframe-url");
+    if (!iframeSrc) {
+      throw new Error("data-iframe-url attribute is required");
+    }
+    this.$throw("iframe").src = iframeSrc;
+  }
+}
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [ContentScriptUI.tagName]: React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & StaticProps,
+        HTMLElement
+      >;
+    }
+  }
+}
+```
 ## Core API
 
 ### Event filters
@@ -347,6 +616,250 @@ export class MessagesModel {
         sendResponse({ status: "PONG" });
       }
     });
+  }
+}
+```
+
+The way this works is two fold:
+
+1. Establish a pinging listener on the content script with the `receivePingFromBackground()` method.
+2. Send messages with pinging with the `pingContentScript()` method. 
+
+Here is the best way to use messages:
+
+```ts
+type Listener = (
+  message: any,
+  sender: chrome.runtime.MessageSender,
+  sendResponse: (response?: any) => void
+) => void;
+export class MessagesOneWay<PayloadType, ResponseType> {
+  private listener: Listener | null = null;
+  static channels: string[] = [];
+  constructor(private channel: string) {
+    if (MessagesOneWay.channels.includes(channel)) {
+      throw new Error(`Channel ${channel} already exists`);
+    }
+    MessagesOneWay.channels.push(channel);
+  }
+
+  /**
+   * for sending message from process to another process
+   *
+   */
+  sendP2P(payload: PayloadType) {
+    chrome.runtime.sendMessage({ type: this.channel, ...payload });
+  }
+
+  /**
+   * for sending message from a content script to another process
+   *
+   */
+  sendC2P(payload: PayloadType) {
+    chrome.runtime.sendMessage({ type: this.channel, ...payload });
+  }
+
+  /**
+   * for sending message from a process to a content script
+   */
+  sendP2C(tabId: number, payload: PayloadType) {
+    chrome.tabs.sendMessage(tabId, { type: this.channel, ...payload });
+  }
+
+  /**
+   * for sending message from a process to a content script, waiting for content script to load
+   */
+  sendP2CWithPing(tabId: number, payload: PayloadType) {
+    MessagesModel.waitForContentScript(tabId, () => {
+      chrome.tabs.sendMessage(tabId, { type: this.channel, ...payload });
+    });
+  }
+
+  /**
+   * for sending message from process to another process
+   *
+   */
+  async sendP2PAsync(payload: PayloadType) {
+    return (await chrome.runtime.sendMessage({
+      type: this.channel,
+      ...payload,
+    })) as ResponseType;
+  }
+
+  /**
+   * for sending message from a content script to another process
+   *
+   */
+  async sendC2PAsync(payload: PayloadType) {
+    return (await chrome.runtime.sendMessage({
+      type: this.channel,
+      ...payload,
+    })) as ResponseType;
+  }
+
+  /**
+   * for sending message from a process to a content script async
+   */
+  async sendP2CAsync(tabId: number, payload: PayloadType) {
+    return (await chrome.tabs.sendMessage(tabId, {
+      type: this.channel,
+      ...payload,
+    })) as ResponseType;
+  }
+
+  async sendP2CAsyncWithPing(tabId: number, payload: PayloadType) {
+    const response = await MessagesModel.waitForContentScript(
+      tabId,
+      async () => {
+        return (await chrome.tabs.sendMessage(tabId, {
+          type: this.channel,
+          ...payload,
+        })) as ResponseType;
+      }
+    );
+    return response;
+  }
+
+  listen(callback: (payload: PayloadType) => void) {
+    const listener: Listener = (
+      message: PayloadType & { type: string },
+      sender: any,
+      sendResponse: any
+    ) => {
+      if (message.type === this.channel) {
+        callback(message);
+      }
+    };
+    this.listener = listener;
+    chrome.runtime.onMessage.addListener(this.listener);
+  }
+
+  static listenToMessages(
+    callback: (
+      message: any,
+      sender?: any,
+      sendResponse?: (t: any) => void
+    ) => void
+  ) {
+    chrome.runtime.onMessage.addListener(callback);
+    return callback;
+  }
+
+  listenAsync(callback: (payload: PayloadType) => Promise<ResponseType>) {
+    const listener: Listener = async (
+      message: PayloadType & { type: string },
+      sender: any,
+      sendResponse: any
+    ) => {
+      if (message.type === this.channel) {
+        const response = await callback(message);
+        sendResponse(response);
+        return true;
+      }
+      return true;
+    };
+    this.listener = listener;
+    chrome.runtime.onMessage.addListener(this.listener);
+  }
+
+  removeListener() {
+    if (this.listener) {
+      chrome.runtime.onMessage.removeListener(this.listener);
+    }
+  }
+
+  parseMessage(message: any) {
+    if (!message.type) {
+      return { messageBelongsToChannel: false, payload: undefined };
+    }
+    if (message.type === this.channel) {
+      return {
+        messageBelongsToChannel: true,
+        payload: message as PayloadType & { type: string },
+      };
+    } else {
+      return { messageBelongsToChannel: false, payload: undefined };
+    }
+  }
+}
+
+export class MessagesModel {
+  private static pingContentScript(
+    tabId: number,
+    maxRetries = 10,
+    interval = 500
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+
+      function sendPing() {
+        attempts++;
+        chrome.tabs.sendMessage(tabId, { type: "PING" }, (response) => {
+          if (chrome.runtime.lastError) {
+            if (attempts < maxRetries) {
+              setTimeout(sendPing, interval); // Retry after a delay
+            } else {
+              reject(
+                "Content script not responding. Make sure you are invoking MessagesModel.receivePingFromBackground() in the content script."
+              );
+            }
+          } else if (response && response.status === "PONG") {
+            resolve("Content script is ready.");
+          } else {
+            reject("Unexpected response from content script.");
+          }
+        });
+      }
+
+      sendPing();
+    });
+  }
+
+  static receivePingFromBackground() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === "PING") {
+        sendResponse({ status: "PONG" });
+      }
+    });
+  }
+
+  static async waitForContentScript<T = void>(
+    tabId: number,
+    cb: () => T | Promise<T>
+  ): Promise<T>;
+  static async waitForContentScript<T = void>(
+    tabId: number,
+    {
+      successCb,
+      errorCb,
+    }: {
+      successCb: (message?: string) => void;
+      errorCb?: () => void;
+    }
+  ): Promise<T>;
+
+  static async waitForContentScript<T = void>(
+    tabId: number,
+    optionsOrCb:
+      | {
+          successCb: (message?: string) => T | Promise<T>;
+          errorCb?: () => void;
+        }
+      | (() => void | Promise<void>)
+  ) {
+    try {
+      const message = await this.pingContentScript(tabId);
+      if (typeof optionsOrCb === "function") {
+        return await optionsOrCb();
+      }
+      return await optionsOrCb.successCb(message);
+    } catch (error) {
+      console.error("Error pinging content script", error);
+      if (typeof optionsOrCb === "function") {
+        return;
+      }
+      optionsOrCb.errorCb?.();
+    }
   }
 }
 ```
@@ -518,70 +1031,3 @@ function setupAlarmListener() {
 }
 ```
 
-
-### Offscreen
-
-You need the `"offscreen"` manifest permission to use offscreen documents. 
-
-If you want to do background work with a service worker and need access to DOM APIs like clipboard or canvas, you need to do it with **offscreen documents**. Offscreen documents don't need a webpage to run DOM API methods, which is ideal for extension service workers.
-
-Here is an example of registering an offscreen document, and you can only register one offscreen document per chrome extension. 
-
-```ts
-chrome.offscreen.createDocument({
-  url: 'off_screen.html',
-  reasons: ['CLIPBOARD'],
-  justification: 'reason for needing the document',
-});
-```
-
-Here are the properties you should pass to the `chrome.offscreen.createDocument(options)` method: 
-- `url` : the static extension page to act as the offscreen document
-- `reasons` : used to determine what the document is used for and the lifetime of the document.
-
-Once you create an offscreen document, you can use basic chrome runtime messaging to communicate with it and send data to it so it can perform DOM tasks with that data. 
-
-You can then deregister the document using the `chrome.offscreen.closeDocument()` async method. You can also close the document from the offscreen context itself by doing `window.close()`.
-
-```ts
-export default class Offscreen {
-  // A global promise to avoid concurrency issues
-  static creating: Promise<null | undefined | void> | null; 
-  static async setupOffscreenDocument({
-    url,
-    justification,
-    reasons,
-  }: chrome.offscreen.CreateParameters) {
-    // Check all windows controlled by the service worker to see if one
-    // of them is the offscreen document with the given path
-
-    if (await Offscreen.hasDocument(url)) return;
-
-    // create offscreen document
-    if (Offscreen.creating) {
-      await Offscreen.creating;
-    } else {
-      Offscreen.creating = chrome.offscreen.createDocument({
-        url,
-        justification,
-        reasons,
-      });
-      await Offscreen.creating;
-      Offscreen.creating = null;
-    }
-  }
-
-  static async closeDocument() {
-    await chrome.offscreen.closeDocument();
-  }
-
-  static async hasDocument(path: string) {
-    const offscreenUrl = chrome.runtime.getURL(path);
-    const existingContexts = await chrome.runtime.getContexts({
-      contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
-      documentUrls: [offscreenUrl],
-    });
-    return existingContexts.length > 0;
-  }
-}
-```
