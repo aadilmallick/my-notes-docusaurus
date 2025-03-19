@@ -683,6 +683,50 @@ This produces a soft, realistic look.
 
 ## Scrolling
 
+### Styling scrollbars
+
+This is a basic example of how to style a scrollbar:
+
+```css
+.fancy-scroll {
+  --size: 10px;
+  --track-color: hsl(190, 23%, 90%);
+  --track-active: hsl(192, 8%, 74%);
+  --thumb-color: hsl(191, 20%, 38%);
+  --thumb-hover: hsl(191, 30%, 44%);
+  --thumb-active: hsl(191, 40%, 48%);
+  &::-webkit-scrollbar {
+    height: var(--size);
+    width: var(--size);
+  }
+  &::-webkit-scrollbar-track {
+    border-radius: 5px;
+    background-color: var(--track-color);
+  }
+
+  &::-webkit-scrollbar-track:hover {
+    background-color: var(--track-active);
+  }
+
+  &::-webkit-scrollbar-track:active {
+    background-color: var(--track-active);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background-color: var(--thumb-color);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--thumb-hover);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background-color: var(--thumb-active);
+  }
+}
+```
+
 ### Scroll snap
 
 ```css

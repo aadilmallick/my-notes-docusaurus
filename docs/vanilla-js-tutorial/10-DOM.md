@@ -980,6 +980,8 @@ export default class FullscreenModel {
 
 ### Picture in Picture
 
+#### Video Picture in picture
+
 The picture-in-picture API is a simple API that allows you to put any HTML video DOM element in picture in picture mode.
 
 - `document.pictureInPictureElement` : returns the current element in your page that is in picture-in-picture mode. `null` if nothing.
@@ -1003,6 +1005,433 @@ There are also two events on the `<video>` element you can listen for concerning
 - `enterpictureinpicture` : video enters pip mode
 - `leavepictureinpicture` : video exits pip mode
 
+Here is a basic class wrapping PIP video functionality:
+
+#### Any Element picture in picture
+
+
+> [!NOTE] 
+> The any element PiP API offers more flexibility on what elements can be made into a picture and picture experience, allowing you to add styling to those elements. But at the same time, you have to manually control the PiP flow yourself.
+
+For this API, the main catch is that you have to manually remove the element from the screen and add it to the PIP window when you want to enter PIP, and manually add the element back to the screen when you want to close PIP. Here is the basic flow:
+
+- **wants to enter PIP**
+	- Request PIP window, add styles to element
+	- Remove element from main document
+	- Add element to body of pip window
+- **wants to leave PIP**
+	- Close PIP window
+	- Add element back to main document
+
+There are also two event listeners that activate when the custom PIP window is closed or opened, and you should listen to these to appropriately handle all logic cases.
+##### Typings
+
+Since this is a new API, the typescript types aren't out yet. You'll have to supply your own by putting it in a `.d.ts` file somewhere.
+
+```ts
+interface DocumentPictureInPicture {
+  // The current Picture-in-Picture window if one is open; otherwise, null.
+  readonly window: Window | null;
+
+  // Requests a new Picture-in-Picture window with optional configuration.
+  requestWindow(options?: PictureInPictureWindowOptions): Promise<Window>;
+
+  addEventListener(
+    type: "enter",
+    listener: (event: DocumentPictureInPictureEvent) => void,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+}
+
+interface PictureInPictureWindowOptions {
+  // The initial width of the Picture-in-Picture window.
+  width?: number;
+
+  // The initial height of the Picture-in-Picture window.
+  height?: number;
+
+  // If true, hides the "back to tab" button in the Picture-in-Picture window.
+  disallowReturnToOpener?: boolean;
+
+  // If true, opens the Picture-in-Picture window in its default position and size.
+  preferInitialWindowPlacement?: boolean;
+}
+
+interface Window {
+  // The DocumentPictureInPicture object for the current document context.
+  readonly documentPictureInPicture: DocumentPictureInPicture;
+}
+
+interface DocumentPictureInPictureEvent extends Event {
+  // The Picture-in-Picture window associated with the event.
+  readonly window: Window;
+}
+declare var documentPictureInPicture: DocumentPictureInPicture;
+```
+
+##### Opening a window
+
+First step is to create the custom PIP element, which is the div with the id `playerContainer`.
+
+```html
+<div id="playerContainer">
+  <div id="player">
+    <video id="video"></video>
+  </div>
+</div>
+<button id="pipButton">Open Picture-in-Picture window</button>
+```
+
+Then we bind an event listener to our open PIP button to request picture in picture.
+
+```js
+pipButton.addEventListener('click', async () => {
+  const player = document.querySelector("#player");
+
+  // Open a Picture-in-Picture window.
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  // Move the player to the Picture-in-Picture window.
+  pipWindow.document.body.append(player);
+});
+```
+
+You can pass in an object of options to the `documentPictureInPicture.requestWindow()` method, and pass in the `width` and `height` properties to control the size of the PIP window that appears. Here are all the possible properties
+
+- `width`: width of the PIP window
+- `height`: height of the PIP window
+- `disallowReturnToOpener`: if true, hides the "back to tab" button
+
+```ts
+  const player = document.querySelector("#player");
+
+  // Open a Picture-in-Picture window whose size is
+  // the same as the player's.
+  const pipWindow = await documentPictureInPicture.requestWindow({
+    width: player.clientWidth,
+    height: player.clientHeight,
+    disallowReturnToOpener: true,
+  });
+```
+
+##### Closing the PIP window
+
+To deal with closing the player, you have to return the element back to its original position ont he page. You do it by listening to the `"pagehide"` event on the window object.
+
+```ts
+pipButton.addEventListener("click", async () => {
+  const player = document.querySelector("#player");
+
+  // 1. Open a Picture-in-Picture window.
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  // 2. Move the custom element to the Picture-in-Picture window.
+  pipWindow.document.body.append(player);
+
+  // 3. Move the custom element back when the Picture-in-Picture window closes.
+  pipWindow.addEventListener("pagehide", (event) => {
+    const playerContainer = document.querySelector("#playerContainer");
+    const pipPlayer = event.target.querySelector("#player");
+    playerContainer.append(pipPlayer);
+  });
+});
+```
+
+You can close the player programmatically using the `pipWindow.close()` method.
+
+##### accessing pip window
+
+We can get a picture in picture window by executing the async `documentPictureInPicture.requestWindow()` method, which returns that PIP window instance. However, there are multiple ways of retrieving it: 
+
+```ts
+// 1. documentPictureInPicture.requestWindow()
+async function getNewPIPWindow() {
+	return await documentPictureInPicture.requestWindow();
+}
+
+// 2. event listener
+documentPictureInPicture.addEventListener("enter", (event) => {
+  const pipWindow = event.window;
+});
+
+// 3. property
+const pipWindow = documentPictureInPicture.window;
+```
+
+once you have the `pipWindow` object, you can just treat it as a mini-instance of the `window` object. You can add DOM elements to it, remove, add event listeners, etc.
+
+#### Classes
+
+```ts
+export class AbortControllerManager {
+  private controller = new AbortController();
+
+  get signal() {
+    return this.controller.signal;
+  }
+
+  get isAborted() {
+    return this.controller.signal.aborted;
+  }
+
+  reset() {
+    this.controller = new AbortController();
+  }
+
+  abort() {
+    this.controller.abort();
+  }
+}
+
+export class PIPVideo {
+  enterPIPAborter = new AbortControllerManager();
+  exitPIPAborter = new AbortControllerManager();
+  constructor(private video: HTMLVideoElement) {}
+
+  async togglePictureInPicture() {
+    try {
+      // If the video is not in PiP mode, request PiP
+      if (this.video !== document.pictureInPictureElement) {
+        const pipWindow = await this.video.requestPictureInPicture();
+      } else {
+        // If the video is in PiP mode, exit PiP
+        await document.exitPictureInPicture();
+      }
+    } catch (error) {
+      console.error("Error toggling Picture-in-Picture:", error);
+    }
+  }
+
+  Events = {
+    onEnterPictureInPicture: (cb: (event: PictureInPictureEvent) => any) => {
+      this.video.addEventListener(
+        "enterpictureinpicture",
+        cb as EventListener,
+        {
+          signal: this.enterPIPAborter.signal,
+        }
+      );
+      return cb;
+    },
+    onLeavePictureInPicture: (cb: (event: Event) => any) => {
+      this.video.addEventListener(
+        "leavepictureinpicture",
+        cb as EventListener,
+        {
+          signal: this.exitPIPAborter.signal,
+        }
+      );
+      return cb;
+    },
+    removeEnterPIPListeners: () => {
+      this.enterPIPAborter.abort();
+      this.enterPIPAborter.reset();
+    },
+    removeExitPIPListeners: () => {
+      this.exitPIPAborter.abort();
+      this.exitPIPAborter.reset();
+    },
+  };
+}
+
+export class PIPElement {
+  private pipWindow: Window | null = null;
+  enterPIPAborter = new AbortControllerManager();
+  exitPIPAborter = new AbortControllerManager();
+  constructor(
+    private pipContainer: HTMLElement,
+    private options?: {
+      width: number;
+      height: number;
+    }
+  ) {}
+
+  static get isAPIAvailable() {
+    return "documentPictureInPicture" in window;
+  }
+
+  // closes pip window
+  static closePipWindow() {
+    window.documentPictureInPicture?.window?.close();
+  }
+
+  // checks if pip window is open
+  static get pipWindowOpen() {
+    return !!window.documentPictureInPicture.window;
+  }
+
+  // gets currently active pip window, else returns null
+  static get pipWindow() {
+    return window.documentPictureInPicture.window;
+  }
+
+  // logic for toggling pip 
+  async togglePictureInPicture({
+    onOpen,
+    onClose,
+  }: {
+    onOpen: (window: Window) => void;
+    onClose: () => void;
+  }) {
+    this.Events.resetExitAborter();
+    this.Events.resetEnterAborter();
+    this.Events.onPIPEnter(onOpen);
+    if (PIPElement.pipWindowOpen) {
+      PIPElement.closePipWindow();
+      onClose();
+      return;
+    } else {
+      await this.openPipWindow();
+      this.copyStylesToPipWindow();
+      this.Events.onPIPWindowClose(onClose);
+    }
+  }
+
+  // requests new pip window
+  async openPipWindow() {
+    const pipWindow = await window.documentPictureInPicture.requestWindow({
+      width: this.options?.width || this.pipContainer.clientWidth,
+      height: this.options?.height || this.pipContainer.clientHeight,
+    });
+    this.pipWindow = pipWindow;
+    this.pipWindow.document.body.append(this.pipContainer);
+  }
+
+  // manually add styles to pip window when open
+  addStylesToPipWindow({ id, styles }: { styles: string; id: string }) {
+    if (!this.pipWindow) {
+      throw new Error("PIP window is not open");
+    }
+    const style = document.createElement("style");
+    style.id = id;
+    style.textContent = styles;
+    this.pipWindow.document.head.appendChild(style);
+  }
+
+  // copy styles from main document to pip window
+  copyStylesToPipWindow() {
+    if (!this.pipWindow) {
+      throw new Error("PIP window is not open");
+    }
+    // delete all style tags first
+    this.pipWindow.document.querySelectorAll("style").forEach((style) => {
+      style.remove();
+    });
+    [...document.styleSheets].forEach((styleSheet) => {
+      const pipWindow = this.pipWindow!;
+      try {
+        const cssRules = [...styleSheet.cssRules]
+          .map((rule) => rule.cssText)
+          .join("");
+        const style = document.createElement("style");
+
+        style.textContent = cssRules;
+        pipWindow.document.head.appendChild(style);
+      } catch (e) {
+        const link = document.createElement("link");
+
+        link.rel = "stylesheet";
+        link.type = styleSheet.type;
+        link.href = styleSheet.href || "";
+        pipWindow.document.head.appendChild(link);
+      }
+    });
+  }
+
+  Events = {
+	// event that is triggered when pip window closes
+    onPIPWindowClose: (cb: () => void) => {
+      if (!this.pipWindow) {
+        throw new Error("PIP window is not open");
+      }
+      this.pipWindow.addEventListener("pagehide", cb, {
+        signal: this.exitPIPAborter.signal,
+      });
+    },
+    
+	// event that is triggered when pip window is opened
+    onPIPEnter: (cb: (window: Window) => void) => {
+      window.documentPictureInPicture.addEventListener(
+        "enter",
+        (event: DocumentPictureInPictureEvent) => {
+          cb(event.window);
+        },
+        {
+          signal: this.enterPIPAborter.signal,
+        }
+      );
+    },
+    resetExitAborter: () => {
+      this.exitPIPAborter.abort();
+      this.exitPIPAborter.reset();
+    },
+    resetEnterAborter: () => {
+      this.enterPIPAborter.abort();
+      this.enterPIPAborter.reset();
+    },
+  };
+}
+```
+
+`PipVideo` is used for `<video>` picture in picture elements while `PipElement` is used for custom PiP elements. 
+
+This class extends the PiP functionality to generic HTML elements (not just videos) using the `documentPictureInPicture` API. It allows you to open a PiP window, copy styles, and manage event listeners for PiP-related events.
+
+- **Properties**:
+    
+    - `pipWindow`: The currently active PiP window, or `null` if no PiP window is open.
+        
+- **Static Properties**:
+    
+    - `isAPIAvailable`: Checks if the `documentPictureInPicture` API is supported in the current browser.
+        
+    - `pipWindowOpen`: Returns `true` if a PiP window is currently open.
+        
+    - `pipWindow`: Returns the currently active PiP window, or `null` if none is open.
+        
+- **Methods**:
+    
+    - `togglePictureInPicture({ onOpen, onClose })`: Toggles the PiP window. If a PiP window is open, it closes it and calls `onClose`. If no PiP window is open, it opens one and calls `onOpen`.
+        
+    - `openPipWindow()`: Opens a new PiP window with the specified dimensions (or defaults to the container's dimensions).
+        
+    - `addStylesToPipWindow({ id, styles })`: Adds custom styles to the PiP window using a `<style>` element.
+        
+    - `copyStylesToPipWindow()`: Copies all styles from the main document to the PiP window, ensuring consistent styling.
+
+- **Events**:
+    
+    - `onPIPWindowClose(cb)`: Registers a callback to be called when the PiP window closes.
+        
+    - `onPIPEnter(cb)`: Registers a callback to be called when the PiP window is opened. The callback receives the PiP window as an argument.
+        
+    - `resetExitAborter()`: Aborts and resets the `exitPIPAborter`, removing all "exit PiP" event listeners.
+        
+    - `resetEnterAborter()`: Aborts and resets the `enterPIPAborter`, removing all "enter PiP" event listeners.
+
+Here is an example of how to use the custom `PipElement` class:
+
+```ts
+async function handlePip() {
+  await pipPlayer.togglePictureInPicture({
+    onClose: () => {
+      sessionTimerSection.innerHTML = "";
+      sessionTimerSection.appendChild(timerElement);
+      togglePiPButton!.textContent = "Open PiP";
+    },
+    onOpen: (pipWindow) => {
+      sessionTimerSection.innerHTML = "Playing in PIP Window";
+      togglePiPButton!.textContent = "Close PiP";
+    },
+  });
+}
+
+const timerElement = DOM.$throw("#practice-session-timer > div");
+const pipPlayer = new PIPElement(timerElement);
+
+togglePiPButton!.addEventListener("click", handlePip);
+```
+-
 ### ResizeObserver
 
 The window resize event is slow and costly, while the `ResizeObserver` class lets you observe resizing on any element and is more performant.
@@ -2145,10 +2574,16 @@ This is how iframes look like in html:
 ```
 
 - `loading=`: how to load the iframe
-- `sandbox=`: security settings for iframe. 
+- `sandbox=`: security settings for iframe. By default the iframe is least privileged, so you need to explicitly allow unsafe settings like the ones below separated by spaces
 	- `allow-scripts`: allows the embedded page to run scripts
 	- `allow-same-origin`: allows the embedded page to have iframes that are of its same origin.
+	- `allow-forms`: allow forms to be submitted
+	- `allow-popups`: allows popups to be shown
+	- `allow-popups-to-escape-sandbox`: allows popups to be shown outside of sandbox
 - `src=`: the source for the iframe
+- `allow=`: a list of web permissions the iframe is allowed to use, like camera, microphone.
+
+### JavaScript
 
 You can also access iframes through javascript:
 
@@ -2229,6 +2664,13 @@ You can access the content of iframes if they are the same origin, otherwise web
 
 > [!CAUTION] 
 > The `iframe.contentDocument` property is only available if the iframe you are serving is from the same origin as your site. Otherwise you will get a `SecurityError` to prevent XSS attacks. Doing any DOM stuff with an embedded site is prohibited if not served from the same origin.
+
+### Event listeners
+
+Here are the events you can listen for on an iframe element: 
+
+- `"load"`: when the iframe loads its content.
+### Message Sending
 
 The only thing you can do is post messages:
 
