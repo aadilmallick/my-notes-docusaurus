@@ -400,6 +400,51 @@ When a component uses some value from context, and the context value changes, th
 
 
 
+
+## React 19 changes
+
+The React 19 changes remove a lot of annoying optimization code we once had to write ourselves, like `useMemo()` or `useCallback()` or `memo()`. This is because the react compiler looks ahead of time at the correct optimizations to make. But besides this main feature, there are new changes:
+
+### removal of `forwardRef()`
+
+If you want to pass a `ref` prop to a custom child component, you needed to wrap it in a `forwardRef()` call. Well, not anymore. All you need to do know is to destructure the `ref` prop in the child component props and type annotate it accordingly.
+
+![new react 19 ref example](https://gcdnb.pbrd.co/images/xLWcZYBJKGSs.png?o=1)
+
+
+### `use()` hook
+
+![use hook example](https://gcdnb.pbrd.co/images/ioK7W5ZqddWI.png?o=1)
+
+The `use()` hook is a way to asynchronously deal with data fetching and other things that take time without having to use a `useEffect()` call.
+
+```tsx
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchData() {
+  await delay(1000);
+  return "Hello, world!";
+}
+
+const UseExample = () => {
+  const message = use(fetchData());
+  return <div>{message}</div>;
+};
+
+const App = () => {
+  return (
+    <div>
+      <Suspense fallback={<div>Loading...</div>}>
+        <UseExample />
+      </Suspense>
+    </div>
+  );
+};
+```
+
+
 ## Custom components
 ### Boop
 

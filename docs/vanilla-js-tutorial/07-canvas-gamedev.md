@@ -1,6 +1,7 @@
 # Canvas with game development: recipes
 
 ## Basic Recipes 
+
 This is going to be a catalog of basic game development recipes in JavaScript instead of game-dev specific concepts like the animation loop and the OOP side of things.
 
 ### Wall boundary detection

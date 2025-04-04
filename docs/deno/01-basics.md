@@ -75,6 +75,8 @@ You can get environment variables programmatically with `Deno.env.get(var_name)`
 ### Compile into executable
 
 - `deno compile <file>`: compiles a js file into an executable
+	- `-A`: compile with all permissions
+	- `-o <filename>`: rename executable to this filename
 
 ## Deno Config
 
@@ -100,7 +102,6 @@ Or you could just import like so, removing the need to explicitly install a pack
 ```tsx
 import chalk from "npm:chalk";
 ```
-### From jsr
 
 ### When downloading type declarations
 

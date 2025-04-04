@@ -249,7 +249,7 @@ It’s important to remember you have to accomodate for users who don’t want a
 ```
 
 
-### Text Orientation
+### Text Orientation with `writing-mode`
 
 The `writing-mode` property changes the flow of text
 - `writing-mode: vertical-lr` : text is displayed vertically as if it were turned 90 degrees.
@@ -285,6 +285,15 @@ This is what happens when you have these properties:
 
 
 
+
+### `text-wrap`
+
+The `text-wrap` property determines how text wraps to a new line for a text element. Here are the different values you can provide:
+
+- `normal` (default): Standard wrapping behavior
+- `balance`: Attempts to distribute text evenly across lines for visual balance
+- `pretty`: Prevents isolated words on the last line ("orphans")
+- `nowrap`: Prevents text from wrapping to a new line
 ## Flexbox Tutorial
 
 ### Controlling the size of flex items
@@ -889,13 +898,9 @@ h1, h2, h3, h4, h5, h6 {
 
 #### has, is, not
 
-- The `:has` pseudoselector lets you style parent elements based on some state of a child element.
+- The `:has` pseudoselector lets you style parent elements based on some state of a child element. selects an element if it has any of the specified selectors as its children. It’s useful because it styles the selected element, not its children.
 - The `:not` pseudoselector basically does the opposite of the selection
-
-These advanced CSS psuedoselectors are functions that take in multiple selectors.
-
-- `:is()` : selects an element if it matches any of the selectors inside the parenthesis
-- `:has()` : selects an element if it has any of the specified selectors as its children. It’s useful because it styles the selected element, not its children.
+- The `:is()` : selects an element if it matches any of the selectors inside the parenthesis
 
 ```css
 /* If .container has an h2 descendant */

@@ -850,58 +850,6 @@ async function setCookie() {
 - `window.close()`: closes the current window
 - `window.open(url)`: opens a new window and creates a tab with the specified URL
 
-### Screen Recording
-
-The `navigator.mediaDevices.getDisplayMedia()` method prompts the user to record either tab, window, or desktop.
-
-```ts
-const startRecordingButton = document.getElementById(
-  "record-start"
-) as HTMLButtonElement;
-const stopRecordingButton = document.getElementById(
-  "record-stop"
-) as HTMLButtonElement;
-
-let stream: MediaStream;
-let recorder: MediaRecorder;
-
-async function startRecording() {
-  // has audio and video default enabled.
-  stream = await navigator.mediaDevices.getDisplayMedia({
-    audio: true,
-    video: true,
-  });
-  recorder = new MediaRecorder(stream);
-
-  // Start recording.
-  recorder.start();
-  recorder.addEventListener("dataavailable", async (event) => {
-    let recordedBlob = event.data;
-    let url = URL.createObjectURL(recordedBlob);
-
-    let a = document.createElement("a");
-
-    a.style.display = "none";
-    a.href = url;
-    a.download = "screen-recording.webm";
-
-    document.body.appendChild(a);
-    a.click();
-
-    document.body.removeChild(a);
-
-    URL.revokeObjectURL(url);
-  });
-}
-
-async function stopRecording() {
-  stream.getTracks().forEach((track) => track.stop());
-  recorder.stop();
-}
-
-startRecordingButton.addEventListener("click", startRecording);
-stopRecordingButton.addEventListener("click", stopRecording);
-```
 
 ### Match media
 
@@ -1265,7 +1213,7 @@ export class PIPElement {
     return window.documentPictureInPicture.window;
   }
 
-  // logic for toggling pip 
+  // logic for toggling pip
   async togglePictureInPicture({
     onOpen,
     onClose,
@@ -1339,7 +1287,7 @@ export class PIPElement {
   }
 
   Events = {
-	// event that is triggered when pip window closes
+    // event that is triggered when pip window closes
     onPIPWindowClose: (cb: () => void) => {
       if (!this.pipWindow) {
         throw new Error("PIP window is not open");
@@ -1348,8 +1296,8 @@ export class PIPElement {
         signal: this.exitPIPAborter.signal,
       });
     },
-    
-	// event that is triggered when pip window is opened
+
+    // event that is triggered when pip window is opened
     onPIPEnter: (cb: (window: Window) => void) => {
       window.documentPictureInPicture.addEventListener(
         "enter",
@@ -1415,11 +1363,13 @@ Here is an example of how to use the custom `PipElement` class:
 async function handlePip() {
   await pipPlayer.togglePictureInPicture({
     onClose: () => {
+	    // when closing pip, add back content from pip player to webpage
       sessionTimerSection.innerHTML = "";
       sessionTimerSection.appendChild(timerElement);
       togglePiPButton!.textContent = "Open PiP";
     },
     onOpen: (pipWindow) => {
+	    // when opening pip, remove content from webpage
       sessionTimerSection.innerHTML = "Playing in PIP Window";
       togglePiPButton!.textContent = "Close PiP";
     },
@@ -2258,6 +2208,7 @@ dialog {
 }
 ```
 
+
 ## Various DOM Tips
 
 ### Text Fragments
@@ -2554,6 +2505,147 @@ let scrollHeight = Math.max(
 ```
 
 
+
+### Convert images using canvas
+
+We can use the Canvas API to process images and even convert them into a different type on the frontend. 
+
+Here are the steps:
+
+1. Create a `FileReader` instance and read a blob as a data url 
+
+```ts
+const reader = new FileReader();
+reader.readAsDataURL(imageBlob);
+```
+
+2. Listen to the `"load"` event on the file reader, which gets triggered when the reader fully loads the image as a data URL, and then create a new `Image` instance and set its src to the data url.
+
+```ts
+reader.addEventListener("load", (e) => {
+	const dataUrl = e.target.result
+	const image = new Image()
+	// setting image src will trigger load event on image
+	image.src = dataUrl
+})
+```
+
+3. Once you set the image src, the `"load"` event on the `Image` instance will be triggered. Listen for that event in order to access raw data about the image.
+
+```ts
+image.addEventListener("load", () => {
+	const originalImageWidth = image.naturalWidth
+	const originalImageHeight = image.naturalHeight
+})
+```
+
+4. You can create a canvas element to draw the image to the canvas, essentially resizing it how you want. You can then call the `canvas.toBlob()` method to convert the current drawing of the canvas to an image blob, supplying the mimetype as the second argument
+
+```ts
+image.addEventListener("load", () => {
+	const originalImageWidth = image.naturalWidth
+	const originalImageHeight = image.naturalHeight
+	
+	const canvas = document.createElement("canvas");
+	const context = canvas.getContext("2d")!;
+
+	// resize image to half of size
+	context.drawImage(image, 0, 0, w / 2, h / 2);
+
+	// convert canvas drawing to blob
+	canvas.toBlob((blob) => {
+		if (blob) {
+			downloadBlob(blob)
+		} else {
+			throw new Error("no blob")
+		}
+	})
+})
+```
+
+
+```ts
+// takes an image, width, height, mimetype, and converts it to the mimetype
+// and resizes to specified size
+async function convertImage({
+  h,
+  img,
+  mimetype,
+  w,
+}: {
+  img: HTMLImageElement;
+  w: number;
+  h: number;
+  mimetype: string;
+}) {
+  // 1. create new canvas
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d")!;
+
+  // 2. draw image
+  context.drawImage(img, 0, 0, w, h);
+
+  // 3. asynchronously convert current canvas drawing to blob with mimetype
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      return blob !== null ? resolve(blob) : reject("no blob");
+    }, mimetype);
+  });
+}
+
+// takes in a blob and reads it as a data url, returning HTMLImageElement
+function loadImage(blob: Blob) {
+  const reader = new FileReader();
+
+  // Read the file
+  reader.readAsDataURL(blob);
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    reader.addEventListener("load", (e) => {
+      const dataUrl = e.target!.result as string;
+      const img = new Image();
+      img.src = dataUrl;
+      resolve(img);
+    });
+
+    reader.addEventListener("error", function () {
+      reject();
+    });
+  });
+}
+
+// gets the original height and width of image
+function getImageDimensions(img: HTMLImageElement) {
+  return new Promise<{
+    originalWidth: number;
+    originalHeight: number;
+  }>((resolve, reject) => {
+    img.addEventListener("load", () => {
+      resolve({
+        originalWidth: img.naturalWidth,
+        originalHeight: img.naturalHeight,
+      });
+    });
+  });
+}
+
+async function convertImageToWebp(blob: Blob) {
+  const img = await loadImage(blob);
+  const { originalHeight, originalWidth } = await getImageDimensions(img);
+  return await convertImage({
+    h: originalHeight,
+    w: originalWidth,
+    img,
+    mimetype: blob.type || "image/webp",
+  });
+}
+```
+
+**what did we learn?**
+
+Here are the properties on an `Image` instance you can access:
+
+- `image.naturalWidth`: the original width of the image
+- `image.naturalHeight`: the original height of the image
 ## iFrames
 
 This is how iframes look like in html:
