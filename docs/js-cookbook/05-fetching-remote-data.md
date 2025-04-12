@@ -884,3 +884,90 @@ There are three events you can add listeners for on the event source object:
 - `open` – the connection is open.
 - `error` – the connection could not be established, e.g. the server returned HTTP 500 status.
 
+#### Example
+
+Here is a full example of sending server-sent data from a server to a client. 
+
+The **server side** must comply with these rules:
+
+1. Must send back a `ReadableStream` as a response
+2. Must send back these headers:
+
+```ts
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+```
+
+```ts
+app.get("/realtime/:id", async (_req, info, params) => {
+  const shortCode = info?.pathname.groups["id"] as string;
+  const response = await fetch("/public/bruh.png");
+  const stream = response.body?.getReader();
+  if (!stream) {
+    return app.text("Stream not found", 404);
+  }
+  // Create stream response body
+  const body = new ReadableStream({
+    async start(controller) {
+      // Fetch initial data if needed
+      // const initialData = await getShortLink(shortCode);
+      // controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ clickCount: initialData.clickCount })}\n\n`));
+
+      while (true) {
+        const { done, value } = await stream.read();
+        if (done) {
+          return;
+        }
+        const bits = value?.length;
+
+		// this is how we keep adding to the stream
+        controller.enqueue(
+          new TextEncoder().encode(
+            `data: ${JSON.stringify({
+              bits,
+            })}\n\n`
+          )
+        );
+        console.log("Stream updated");
+      }
+    },
+    cancel() {
+      stream.cancel();
+    },
+  });
+
+	// exact headers required to start event stream
+  return new Response(body, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+});
+```
+
+And this is how you would consume from the frontend:
+
+```ts
+document.addEventListener('DOMContentLoaded', (event) => {
+    console.log('realtime script loaded')
+    const pathParts = window.location.pathname.split('/');
+    const shortCode = pathParts[pathParts.length - 1]; 
+    const eventSource = new EventSource('/realtime/' + shortCode);
+
+    eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log(data)
+        document.getElementById('clickCount').innerText = data.clickCount
+    };
+
+    eventSource.onerror = (error) => {
+        console.error('EventSource failed:', error);
+        eventSource.close();
+    };
+});
+```

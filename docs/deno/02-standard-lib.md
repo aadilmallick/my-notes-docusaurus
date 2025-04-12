@@ -2,6 +2,8 @@
 
 ## Working with files
 
+This is a standard file implementation using Node
+
 ```ts
 import fs from "node:fs/promises";
 
@@ -54,17 +56,102 @@ export class FileManager {
     return await fs.readFile(filepath, "utf-8");
   }
 }
-
 ```
 
-### Base 64
+But we can make an even better and easier implementation using methods from the `@std/file` deno standard library.
 
-- `btoa()`: decodes from base 64
-- `atob()`: encodes to base 64
+```ts
+import { ensureFile, copy, ensureDir, move } from "@std/fs";
 
-### Command line stuff
+await ensureFile("example.txt");
 
-#### Command Line Arguments
+await copy("example.txt", "example_copy.txt");
+
+await ensureDir("subdir");
+
+await move("example_copy.txt", "subdir/example_copy.txt");
+```
+
+Here is a better class:
+
+```ts
+import {
+  ensureFile,
+  copy,
+  ensureDir,
+  move,
+  exists,
+  expandGlob,
+  emptyDir,
+  walk,
+} from "@std/fs";
+
+export class DenoFileManager {
+  static async upsertFile(filePath: string) {
+    return await ensureFile(filePath);
+  }
+
+  static async upsertFolder(dirPath: string) {
+    return await ensureDir(dirPath);
+  }
+
+  static async exists(path: string) {
+    return await exists(path);
+  }
+
+  static async listFilesFromGlob(globPath: string) {
+    const files = await Array.fromAsync(expandGlob(globPath));
+    return files;
+  }
+
+  static async moveFileToFolder(filePath: string, folderPath: string) {
+    await move(filePath, folderPath);
+  }
+
+  static async rename(path: string, newPath: string) {
+    await fs.rename(path, newPath);
+  }
+
+  static async copyFile(source: string, folder: string) {
+    await copy(source, folder);
+  }
+
+  static async copyFolder(source: string, folder: string) {
+    await copy(source, folder, {
+      overwrite: true,
+    });
+  }
+
+  static async walkDir(
+    dirPath: string,
+    cb: (entry: Deno.DirEntry) => Promise<void>,
+    options?: {
+      extensionsToInclude?: string[];
+      includeDirs?: boolean;
+      includeFiles?: boolean;
+      filePatternsToMatch?: RegExp[];
+      filePatternsToSkip?: RegExp[];
+    }
+  ) {
+    for await (const entry of walk(dirPath, {
+      exts: options?.extensionsToInclude,
+      includeDirs: options?.includeDirs,
+      includeFiles: options?.includeFiles,
+      skip: options?.filePatternsToSkip,
+      match: options?.filePatternsToMatch,
+    })) {
+      await cb(entry);
+    }
+  }
+}
+```
+
+
+## Command line stuff
+
+Go to this library for more info: https://jsr.io/@std/cli/doc
+
+### Command Line Arguments
 
 We can use the `Deno.args` to get all command line arguments passed when running a file with `deno run`, and we can parse those arguments with options and type safety using `parseArgs()` method.
 
@@ -96,7 +183,7 @@ The resulting `args` object looks like so:
 }
 ```
 
-#### Text Colors
+### Text Colors
 
 You can easily print text colors in the shell with the deno colors library:
 
@@ -107,7 +194,11 @@ console.log(yellow("this text is yellow"));
 console.log(bgRed("this text has a red background"));
 ```
 
-#### `confirm()` and `prompt()`
+## From Web To Deno
+
+There are numerous built in functions in Deno that are adapted from the web and fit to the command line environment.
+
+### Command line related functions
 
 `confirm()` and `prompt()` are two built in functions in Deno that get input from the command line so you can use them programmatically.
 
@@ -123,6 +214,26 @@ if (isSure) {
   console.log(name);
 }
 ```
+
+- `confirm(text: string)`: pulls up a yes/no picker in the command line and records the response as a boolean.
+- `prompt(text: string)`: reads user input from the command line and records the response as a string.
+- `alert(text: string)`: shows the user a message and waits for the user to press **enter** to continue.
+
+### Timeouts and Intervals
+
+The `setInterval()`, `setTimeout()`, `clearInterval()`, and `clearTimeout()` functions work exactly like they do in web.
+
+### Fetching data
+
+When fetching data server-side from deno using `fetch()`, it's necessary to use absolute filepaths.
+
+```ts
+const response = await fetch(new URL("./config.json", import.meta.url));
+const config = await response.json();
+```
+### Processes
+
+The `close()` function exits the main Deno process, stopping the file from running.
 
 ## Server-side
 
@@ -378,8 +489,6 @@ export class Router<
 #### Basic Usage
 
 
-Copy
-
 ```ts
 import { Router } from "./router.ts"; 
 const router = new Router(); 
@@ -389,6 +498,15 @@ router.get("/", (req) => {   return new Response("Hello World!"); }); router.pos
 	return router.json({ success: true, userId: 123 }); 
 });
 router.initServer();
+```
+
+You can deal with route parameters like so:
+
+```ts
+app.get("/realtime/:id", async (_req, info, params) => {
+	// get dynamic route param `id`
+  const id = info?.pathname.groups["id"] as string;
+})
 ```
 
 #### Type Parameters
@@ -600,6 +718,30 @@ const Layout = (props: { children: ComponentChildren }) => {
 
 
 ### Deno OAuth
+
+#### Main flow
+
+To successfully implement user data with OAuth, this type of data strategy is required. 
+
+First, you must create a `"sessions"` table that stores temporary session IDs. Each key will point to a specific `userId` that represents the logged in user, such as an email or a username.
+
+Since during the OAuth flow, we only get access to the `sessionId`, we need to store it temporarily in a table and have it point to the `userId`, and then create a permanent `"users"` table that stores user data under the `userId` key.
+
+Once the user logs out, we grab hold of the current `sessionId` and delete it from the `"sessions"` table.`
+
+Here is an example of the basic data flow:
+
+- Store key `["sessions", "mySessionId"]` with value of the user ID, like `waadlingbruh@gmail.com`.
+- Store key  `["users", "waadlingbruh@gmail.com"]` with value of the user data.
+
+Then whenever you need to access the user data, you can just fetch the current session ID, query that key from the `"sessions"` table which gives you the user ID, and query that key from the `"users"` table to get the user data. 
+
+
+**complete flow**
+
+1. On the redirect URI OAuth path you specify, have a route handler that stores the `sessionId` in its own table and the user data in its own table.
+2. On every route, call the helper `getSessionId()` in your middleware to get access to the `sessionId`, and from that session ID, fetch the user data. 
+3. On the logout route, make sure to delete the current session ID from the `"sessions"` table in order to free up space, since that session ID will not be used anymore.
 
 #### Github
 
@@ -836,6 +978,7 @@ app.get("/oauth/google/signin", async (req) => {
 
 // logout handler
 app.get("/oauth/google/signout", async (req) => {
+	// delete current sessionId from database
   return await googleAuth.signOut(req);
 });
 
@@ -850,11 +993,16 @@ app.get(googleAuth.redirectUriPath, async (req: Request) => {
   return response;
 });
 ```
-## Deno Crypto
+## Miscellaneous
+
+### Deno Crypto
 
 This is a utility class to hash text and get in back in either hex or base64 format.
 
 ```ts
+import { encodeBase64Url, encodeHex } from "jsr:@std/encoding";
+import { crypto, DigestAlgorithm } from "jsr:@std/crypto/crypto";
+
 export class CryptoUtils {
   private static async getHash(
     str: string,
@@ -870,12 +1018,374 @@ export class CryptoUtils {
   static sha256(str: string, format: "hex" | "base64" = "hex") {
     return this.getHash(str, "SHA-256", format);
   }
+
+  static decodeFromBase64(str: string) {
+    return atob(str);
+  }
+
+  static encodeToBase64(str: string) {
+    return btoa(str);
+  }
+
+  static uuid() {
+    return crypto.randomUUID();
+  }
 }
 ```
 
-## Deno KV
+- `btoa()`: decodes from base 64
+- `atob()`: encodes to base 64
+- `crypto.randomUUID()`: returns a random string uuid v4.
+
+### Deno Assertions
+
+Assertions are great for clean code and debugging.
+
+```ts
+import { assert, assertEquals } from "@std/assert";
+
+assert("I am truthy"); // Doesn't throw
+assert(false); // Throws `AssertionError`
+assertEquals(2, 2)
+```
+
+- `assert(boolean)`: asserts that the given boolean is true
+- `assertEquals(val1, val2)`: asserts that both of the values are deeply equal
+- `assertExists(val)`: asserts that the passed in arg is not null or undefined.
+- `assertFalse(val)`: asserts that the passed in arg is a falsy value
+
+### Deno Streams
+
+The `@std/streams` library offers utility methods for converting `ReadableStreams` into different data objects.
+
+```ts
+import { toText } from "@std/streams";
+import { assertEquals } from "@std/assert";
+
+const stream = ReadableStream.from(["Hello, world!"]);
+const text = await toText(stream);
+
+assertEquals(text, "Hello, world!");
+```
+
+Here is a class:
+
+```ts
+import { toText, toArrayBuffer, toBlob, toJson } from "@std/streams";
+
+export class DenoReadableStreamManager {
+  constructor(public stream: ReadableStream) {}
+  toText = () => toText(this.stream);
+  toArrayBuffer = () => toArrayBuffer(this.stream);
+  toBlob = () => toBlob(this.stream);
+  toJson = () => toJson(this.stream);
+}
+```
+
+
+## Storage in Deno
+
+### LocalStorage + SessionStorage
+
+Deno adapted web APIs like local storage and session storage from the web to the server-side.
+
+- **local storage**: Persistent data storage that lasts across reruns of the application. Ideal for preferences or user data.
+- **session storage**: Data storage that only lasts as long as the application is active. Ideal for storage session-related items like user session Ids, carts, etc.
+
+### Deno KV
 
 Deno KV is an object-based key-value storage that is blazingly fast, works on the cloud with Deno Deploy, but has size limitations with each item.
 
 - **Key Size:** Maximum length of 2048 bytes after serialization. 
 - **Value Size:** Maximum length of 64 KiB after serialization
+
+#### Basic
+
+In Deno KV, keys are arrays of strings and values can be anything less than 64KB per each unique key. All methods are asynchronous.
+
+You can create a deno KV instance like so:
+
+```ts
+const kv = await Deno.openKv();
+```
+
+Here are the methods you have:
+
+- `kv.set<T>(key: string[], value: any)`: asynchronously sets data under the specified key
+- `kv.get<T>(key: string[])`: asynchronously gets data from the specified key
+- `kv.delete<T>(key: string[])`: asynchronously deletes data from the specified key
+
+Any here is a basic class that lets you get autocomplete for types:
+
+```ts
+class DatabaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DatabaseError";
+  }
+}
+
+abstract class AtomicOperation {
+  abstract key: string[];
+  abstract value: unknown;
+  abstract type: "check" | "set" | "delete";
+
+  abstract execute(res: Deno.AtomicOperation): Deno.AtomicOperation;
+}
+
+class AtomicSetOperation extends AtomicOperation {
+  override type: "check" | "set" | "delete" = "set";
+  constructor(public key: string[], public value: unknown) {
+    super();
+  }
+
+  override execute(res: Deno.AtomicOperation): Deno.AtomicOperation {
+    return res.set(this.key, this.value);
+  }
+}
+
+class AtomicDeleteOperation extends AtomicOperation {
+  override type: "check" | "set" | "delete" = "delete";
+  override value: unknown = null;
+  constructor(public key: string[]) {
+    super();
+  }
+
+  override execute(res: Deno.AtomicOperation): Deno.AtomicOperation {
+    return res.delete(this.key);
+  }
+}
+
+class AtomicCheckOperation extends AtomicOperation {
+  override type: "check" | "set" | "delete" = "delete";
+  override value: unknown = null;
+  constructor(public key: string[], public versionstamp: string | null) {
+    super();
+  }
+
+  override execute(res: Deno.AtomicOperation): Deno.AtomicOperation {
+    return res.check({
+      key: this.key,
+      versionstamp: this.versionstamp,
+    });
+  }
+}
+
+class AtomicNotExistCheckOperation extends AtomicCheckOperation {
+  constructor(key: string[]) {
+    super(key, null);
+  }
+
+  override execute(res: Deno.AtomicOperation): Deno.AtomicOperation {
+    return res.check({
+      key: this.key,
+      versionstamp: this.versionstamp,
+    });
+  }
+}
+
+export class KVDB {
+  constructor(private kv: Deno.Kv) {}
+  static async init(path?: string) {
+    const kv = await Deno.openKv(path);
+    return new KVDB(kv);
+  }
+
+  async set<T>(key: string[], value: T) {
+    const response = await this.kv.set(key, value);
+    if (!response.ok) {
+      throw new DatabaseError(`Error setting value ${value} for key ${key}`);
+    }
+  }
+
+  async upsert<T>(key: string[], value: T) {
+    const res = await this.kv
+      .atomic()
+      .check({ key, versionstamp: null }) // `null` versionstamps mean 'no value'
+      .set(key, value)
+      .commit();
+    if (!res.ok) {
+      throw new DatabaseError(`Error setting value ${value} for key ${key}`);
+    }
+  }
+
+  async get<T>(key: string[]) {
+    return await this.kv.get<T>(key);
+  }
+
+  async getMany<T extends readonly unknown[]>(keys: string[][]) {
+    return await this.kv.getMany<T>(
+      keys as readonly [...{ [K in keyof T]: Deno.KvKey }]
+    );
+  }
+
+  async atomic(actions: AtomicOperation[]) {
+    let res = this.kv.atomic();
+    for (const action of actions) {
+      res = action.execute(res);
+    }
+    const response = await res.commit();
+    if (!response.ok) {
+      throw new DatabaseError(`Error committing atomic operation`);
+    }
+    return response;
+  }
+
+  async delete(key: string[]) {
+    await this.kv.delete(key);
+  }
+
+  getTable<KeyType extends string[], ValueType>(keyPrefix: string[]) {
+    return new KVDBTable<KeyType, ValueType>(this.kv, keyPrefix);
+  }
+
+  close() {
+    this.kv.close();
+  }
+}
+
+export class KVDBTable<KeyType extends string[], ValueType> {
+  constructor(private kv: Deno.Kv, private keyPrefix: string[]) {}
+
+  private getKey(key: KeyType) {
+    return [...this.keyPrefix, ...key];
+  }
+
+  async getAll() {
+    const list = this.kv.list<ValueType>({
+      prefix: this.keyPrefix,
+    });
+    const data = await Array.fromAsync(list);
+    return data.map((item) => item);
+  }
+
+  async getAllKeys() {
+    const list = this.kv.list<ValueType>({
+      prefix: this.keyPrefix,
+    });
+    const data = await Array.fromAsync(list);
+    return data.map((item) => item.key);
+  }
+
+  async getMany(keys: KeyType[]) {
+    const res = await this.kv.getMany(keys.map((key) => this.getKey(key)));
+    const data = await Array.fromAsync(res.values());
+    return data.map((item) => item.value) as unknown as ValueType[];
+  }
+
+  async set(key: KeyType, value: ValueType) {
+    await this.kv.set([...this.keyPrefix, ...key], value);
+  }
+
+  async upsert<T>(key: KeyType, value: ValueType) {
+    const res = await this.kv
+      .atomic()
+      .check({ key, versionstamp: null }) // `null` versionstamps mean 'no value'
+      .set(key, value)
+      .commit();
+    if (!res.ok) {
+      throw new DatabaseError(`Error setting value ${value} for key ${key}`);
+    }
+  }
+
+  async get(key: KeyType) {
+    return await this.kv.get<ValueType>([...this.keyPrefix, ...key]);
+  }
+
+  async delete(key: KeyType) {
+    await this.kv.delete([...this.keyPrefix, ...key]);
+  }
+
+  async deleteTable() {
+    const list = this.kv.list<ValueType>({
+      prefix: this.keyPrefix,
+    });
+    for await (const item of list) {
+      await this.kv.delete(item.key);
+    }
+  }
+
+  produceSetAction(key: KeyType, value: ValueType) {
+    return new AtomicSetOperation([...this.keyPrefix, ...key], value);
+  }
+
+  produceDeleteAction(key: KeyType) {
+    return new AtomicDeleteOperation([...this.keyPrefix, ...key]);
+  }
+
+  produceCheckAction(key: KeyType, versionstamp?: string) {
+    if (versionstamp) {
+      return new AtomicCheckOperation(
+        [...this.keyPrefix, ...key],
+        versionstamp
+      );
+    } else {
+      return new AtomicNotExistCheckOperation([...this.keyPrefix, ...key]);
+    }
+  }
+}
+```
+
+You use this class to create tables, which gives you complete type safety over your database logic.
+
+
+#### Querying based on multiple keys
+
+The `kv.getMany<T>(keys: string[])` method returns all the database values fetched from the multiple keys all at once in an array of results.
+
+```ts
+async function getMany<T>() {
+	const resultsArr = await kv.getMany<T>([
+		["users", "sharon"],
+		["users", "dill"]
+	])
+	return resultsArr.map(result => result.value)
+}
+```
+
+The `kv.list()` method is a way to get all values corresponding to all keys starting with a specific key prefix, which is great for modeling relational data without explicitly defining links. 
+
+- This method returns an async generator which you can loop over or immediately get back all results by converting it to an array with the `Array.fromAsync(asyncGenerator)` method.
+- A call to `kv.list({prefix: ["users"]})` would fetch all records with the first element in their key array being `"users"`.
+
+```ts
+async getAll<T>(keyPrefix: string[]) {
+    const list = await this.kv.list<T>({
+      prefix: keyPrefix,
+    });
+    const data = await Array.fromAsync(list);
+    return data;
+  }
+```
+
+#### Transactions
+
+In Deno KV, you can make atomic transactions that fail if one of the actions fail, and succeeds only if all the actions succeed.
+
+Here are some basic atomic operations you can perform:
+
+- **set operations**: modifying data
+- **delete operations**: deleting data
+- **check operations**: checking the versionTimestamp of some data, either to check if the data already exists or if its version timestamp was corrupted.
+
+```ts
+  const res = await kv.atomic()
+    .set(["shortlinks", "123456"], {
+	    longUrl: "https://youtube.com"
+	})
+    .set(["brandon", "123456"], "123456")
+    .commit()
+```
+
+```ts
+  async function atomic(actions: { key: string[]; value: unknown }[]) {
+    let res = kv.atomic();
+    for (const action of actions) {
+      res = res.set(action.key, action.value);
+    }
+    const response = await res.commit();
+    if (!response.ok) {
+      throw new DatabaseError(`Error committing atomic operation`);
+    }
+  }
+```

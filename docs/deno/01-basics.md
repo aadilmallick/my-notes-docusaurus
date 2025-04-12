@@ -72,6 +72,20 @@ You can get environment variables programmatically with `Deno.env.get(var_name)`
 - `deno lint --fix`: fixes incompatibility with node modules
 - `deno check`: type checks your code
 
+For linting, you can lint specific files and folders like so:
+
+```bash
+deno lint <file-or-folder-path>
+```
+
+You can also tell the deno linter to ignore specific files by adding the `// deno-lint-ignore-file` comment at the top of your file:
+
+```ts file="main.ts"
+// deno-lint-ignore-file
+
+// ... rest of your code
+```
+
 ### Compile into executable
 
 - `deno compile <file>`: compiles a js file into an executable
