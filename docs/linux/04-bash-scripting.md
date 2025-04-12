@@ -39,3 +39,14 @@ for FILE in $TEXTFILES
                 wc -w $FILE | cat
         done
 ```
+
+## Windows Batch Files
+
+Windows batch files are a way of scripting for powershell instead of bash. The best part is, we don't even need to write powershell. All we have to do is call other files from within the batch file.
+
+But why even use batch files? Well, just by pressing the `windows + R` keyboard shortcut you're able to run any batch file that lives on your path in the system environment variables.
+
+- For example, a batch file named `yttrimmer.bat` that lives in a folder added to the PATH will be able to be run by typing `windows + R` and then typing in `yttrimmer` and then hitting enter.
+
+
+

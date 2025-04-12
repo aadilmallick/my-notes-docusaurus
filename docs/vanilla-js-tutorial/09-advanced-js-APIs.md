@@ -599,9 +599,149 @@ document.querySelector("#pay").addEventListener("click", async () => {
 ```
 ### FileSystem API
 
-The new filesystem API allows you to open and directly write to the file system. 
+The new filesystem API allows you to open and directly write to the file system, as well as access files from the local filesystem. 
+
+Here are the typescript types required:
+
+```ts filename="types.d.ts"
+// Basic types
+type FileSystemPermissionMode = "read" | "readwrite";
+type FileSystemHandleKind = "file" | "directory";
+
+interface FileSystemHandlePermissionDescriptor {
+  mode?: FileSystemPermissionMode;
+}
+
+// FileSystemHandle (shared between file and directory)
+interface FileSystemHandle {
+  readonly kind: FileSystemHandleKind;
+  readonly name: string;
+
+  isSameEntry(other: FileSystemHandle): Promise<boolean>;
+  queryPermission(
+    descriptor?: FileSystemPermissionDescriptor
+  ): Promise<PermissionState>;
+  requestPermission(
+    descriptor?: FileSystemPermissionDescriptor
+  ): Promise<PermissionState>;
+}
+
+interface FileSystemPermissionDescriptor {
+  mode?: "read" | "readwrite";
+}
+
+// FileSystemFileHandle
+interface FileSystemFileHandle extends FileSystemHandle {
+  readonly kind: "file";
+
+  getFile(): Promise<File>;
+  createWritable(
+    options?: FileSystemCreateWritableOptions
+  ): Promise<FileSystemWritableFileStream>;
+}
+
+// FileSystemDirectoryHandle
+interface FileSystemDirectoryHandle extends FileSystemHandle {
+  readonly kind: "directory";
+
+  getFileHandle(
+    name: string,
+    options?: GetFileHandleOptions
+  ): Promise<FileSystemFileHandle>;
+  getDirectoryHandle(
+    name: string,
+    options?: GetDirectoryHandleOptions
+  ): Promise<FileSystemDirectoryHandle>;
+  removeEntry(name: string, options?: RemoveEntryOptions): Promise<void>;
+  resolve(possibleDescendant: FileSystemHandle): Promise<string[] | null>;
+  entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+  keys(): AsyncIterableIterator<string>;
+  values(): AsyncIterableIterator<FileSystemHandle>;
+  [Symbol.asyncIterator](): AsyncIterableIterator<[string, FileSystemHandle]>;
+}
+
+// Writable stream for saving files
+interface FileSystemWritableFileStream extends WritableStream {
+  write(data: BufferSource | Blob | string | WriteParams): Promise<void>;
+  seek(position: number): Promise<void>;
+  truncate(size: number): Promise<void>;
+  close(): Promise<void>;
+}
+
+interface WriteParams {
+  type: "write";
+  position?: number;
+  data: BufferSource | Blob | string;
+}
+
+// Options
+interface FileSystemCreateWritableOptions {
+  keepExistingData?: boolean;
+}
+
+interface GetFileHandleOptions {
+  create?: boolean;
+}
+
+interface GetDirectoryHandleOptions {
+  create?: boolean;
+}
+
+interface RemoveEntryOptions {
+  recursive?: boolean;
+}
+
+// File picker options
+interface FilePickerAcceptType {
+  description?: string;
+  accept: Record<string, string[]>;
+}
+
+interface OpenFilePickerOptions {
+  multiple?: boolean;
+  excludeAcceptAllOption?: boolean;
+  types?: FilePickerAcceptType[];
+}
+
+type StartInType =
+  | "desktop"
+  | "documents"
+  | "downloads"
+  | "pictures"
+  | "videos"
+  | "music"
+  | FileSystemHandle;
+
+interface SaveFilePickerOptions {
+  suggestedName?: string;
+  types?: FilePickerAcceptType[];
+  excludeAcceptAllOption?: boolean;
+  startIn?: FileSystemHandle | string;
+}
+
+interface DirectoryPickerOptions {
+  id?: string;
+  mode?: FileSystemPermissionMode;
+  startIn?: FileSystemHandle | string;
+}
+
+// Global functions
+declare function showOpenFilePicker(
+  options?: OpenFilePickerOptions
+): Promise<FileSystemFileHandle[]>;
+declare function showSaveFilePicker(
+  options?: SaveFilePickerOptions
+): Promise<FileSystemFileHandle>;
+declare function showDirectoryPicker(
+  options?: DirectoryPickerOptions
+): Promise<FileSystemDirectoryHandle>;
+
+```
+
+Here is an example of prompting the user to open a file, and then getting the file data off the file handle.
 
 ```ts
+// opens file you choose and reads
 document.querySelector("#open-file").addEventListener("click", async () => {
   const [fileHandle] = await window.showOpenFilePicker({
     types: [
@@ -621,6 +761,7 @@ document.querySelector("#open-file").addEventListener("click", async () => {
   document.querySelector("textarea")!.textContent = await file.text();
 });
 
+// opens directory you choose and logs out all subfile and subfolder handles
 document.querySelector("#open-dir").addEventListener("click", async () => {
   const dirHandle = await window.showDirectoryPicker();
   console.log(dirHandle);
@@ -646,8 +787,51 @@ document.querySelector("#save-as").addEventListener("click", async () => {
 });
 ```
 
-- `window.showOpenFilePicker(options)`: for opening a file and retrieving info about it
-- `window.showDirectoryPicker(options)`: for opening a folder and retrieving info about it
+- `window.showOpenFilePicker(options)`: for opening a file and retrieving info about it. Returns a **file handle**
+- `window.showDirectoryPicker(options)`: for opening a folder and retrieving info about it. Returns a **directory handle**
+
+**file handles**
+
+With a file handle, you can do stuff like writing to the file, and reading from it:
+
+```ts
+  async function writeData(
+    fileHandle: FileSystemFileHandle,
+    data: Blob | string
+  ) {
+	 // create a writable, write to it, close it.
+    const writable = await fileHandle.createWritable();
+    await writable.write(data);
+    await writable.close();
+  }
+```
+
+
+
+**directory handles**
+
+With directory handles, you can do stuff like creating file handles and directory handles nested within it, and iterate over all the file handles and directory handles in the folder.
+
+```ts
+async function example(dirHandle: FileSystemDirectoryHandle) {
+	// 1. create new file handle in directory
+	const testHandle = dirHandle.getFileHandle("test.txt", { create: true });
+	// 2. delete file handle (deletes files)
+	await dirHandle.removeEntry(testHandle)
+
+}
+```
+
+You can read all file handles from a directory like so:
+
+```ts
+async function readDirectoryHandle(dirHandle: FileSystemDirectoryHandle) {
+	const values = await Array.fromAsync(dirHandle.values());
+	return values; // returns array of file handles
+}
+```
+
+**basic class**
 
 Here's a basic class:
 
@@ -658,6 +842,7 @@ type FileAcceptType = {
 };
 
 export class FileSystemManager {
+  // region READ
   static async openSingleFile(types: FileAcceptType[]) {
     const [fileHandle] = await window.showOpenFilePicker({
       types,
@@ -676,10 +861,87 @@ export class FileSystemManager {
     return fileHandles;
   }
 
-  static async openDirectory() {
-    const dirHandle = await window.showDirectoryPicker();
-    return await dirHandle.values();
+  static async openDirectory({
+    mode = "read",
+    startIn,
+  }: {
+    mode?: "read" | "readwrite";
+    startIn?: StartInType;
+  }) {
+    const dirHandle = await window.showDirectoryPicker({
+      mode: mode,
+      startIn: startIn,
+    });
+    return dirHandle;
   }
+
+  static async readDirectoryHandle(dirHandle: FileSystemDirectoryHandle) {
+    const values = await Array.fromAsync(dirHandle.values());
+    return values;
+  }
+
+  static getFileFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    filename: string
+  ) {
+    return dirHandle.getFileHandle(filename, { create: false });
+  }
+
+  static async getFileDataFromHandle(
+    handle: FileSystemFileHandle,
+    options?: { type?: "blobUrl" | "file" | "arrayBuffer" }
+  ): Promise<File>;
+  static async getFileDataFromHandle(
+    handle: FileSystemFileHandle,
+    options: { type: "blobUrl" }
+  ): Promise<string>;
+  static async getFileDataFromHandle(
+    handle: FileSystemFileHandle,
+    options: { type: "arrayBuffer" }
+  ): Promise<ArrayBuffer>;
+  static async getFileDataFromHandle(
+    handle: FileSystemFileHandle,
+    options?: {
+      type?: "blobUrl" | "file" | "arrayBuffer";
+    }
+  ) {
+    const file = await handle.getFile();
+    if (options?.type === "blobUrl") {
+      return URL.createObjectURL(file);
+    }
+    if (options?.type === "arrayBuffer") {
+      return file.arrayBuffer();
+    } else {
+      return file;
+    }
+  }
+
+  // region CREATE
+  static createFileFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    filename: string
+  ) {
+    return dirHandle.getFileHandle(filename, { create: true });
+  }
+
+  // region DELETE
+  static deleteFileFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    filename: string
+  ) {
+    return dirHandle.removeEntry(filename);
+  }
+
+  static deleteFolderFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    folderName: string
+  ) {
+    return dirHandle.removeEntry(folderName, {
+      recursive: true,
+    });
+  }
+
+  // region WRITE
 
   static async saveTextFile(text: string) {
     const fileHandle = await window.showSaveFilePicker({
@@ -695,27 +957,51 @@ export class FileSystemManager {
     await this.writeData(fileHandle, text);
   }
 
+  static FileTypes = {
+    getTextFileTypes: () => {
+      return {
+        description: "Text files",
+        accept: {
+          "text/*": [".txt", ".md", ".html", ".css", ".js", ".json"],
+        },
+      };
+    },
+    getVideoFileTypes: () => {
+      return {
+        description: "Video files",
+        accept: {
+          "video/*": [".mp4", ".avi", ".mkv", ".mov", ".webm"],
+        },
+      };
+    },
+    getImageFileTypes: () => {
+      return {
+        description: "Image files",
+        accept: {
+          "image/*": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp"],
+        },
+      };
+    },
+  };
+
   static async saveFile(options: {
-    data: any;
+    data: Blob | string;
     types?: FileAcceptType[];
     name?: string;
-    startIn?:
-      | "desktop"
-      | "documents"
-      | "downloads"
-      | "pictures"
-      | "videos"
-      | "music";
+    startIn?: StartInType;
   }) {
     const fileHandle = await window.showSaveFilePicker({
       types: options.types,
       suggestedName: options.name,
       startIn: options.startIn,
     });
-    await this.writeData(fileHandle, data);
+    await this.writeData(fileHandle, options.data);
   }
 
-  private static async writeData(fileHandle: any, data: any) {
+  private static async writeData(
+    fileHandle: FileSystemFileHandle,
+    data: Blob | string
+  ) {
     const writable = await fileHandle.createWritable();
     await writable.write(data);
     await writable.close();
@@ -725,7 +1011,11 @@ export class FileSystemManager {
 
 #### OPFS
 
-Related to the filesystem API is OPFS (origin private file system) which allows the web to access and store local file data in web storage. 
+Related to the filesystem API is OPFS (origin private file system) which allows the web to access and store local file data in web storage. It's basically a filesystem per origin that is unrelated to the user's filesystem, but you can copy over files from the local filesystem to the OPFS.
+
+The **Origin Private File System** (part of the File System Access API spec) allows web apps to store **persistent files** that live **within the origin's private sandbox**. This is **never visible** to the user directly (i.e., not tied to the local filesystem UI).
+
+> Think of it as the app's internal hard drive that lives in the browser's storage quota.
 
 Here are the benefits of using OPFS:
 
@@ -733,30 +1023,44 @@ Here are the benefits of using OPFS:
 - fast local performance with read/write operations
 - offline capability
 - secure
-- no need for permission requesting once user has granted access.
+- No file picker or permission prompt required.
+- web workers can access the files stored on OPFS for high-performance operations
 
 
 > [!NOTE] 
 > Notion uses OPFS with read/write access to a local sqlite file on your disk to have fast operations before uploading to a cloud database. 
 
+The OPFS API works the exact same way as the filesystem access API, except that you work with a special directory handle that points to the OPFS of the origin:
+
+We use the `navigator.storage.getDirectory()` method to access this directory handle, and then we can use the same familiar FileSystem API methods we know to work with it.
+
 ```ts
-class OPFS {
+const opfsRoot = await navigator.storage.getDirectory();
+```
+
+
+```ts
+export class OPFS {
   private root!: FileSystemDirectoryHandle;
-  async openDirectory() {
-    this.root = await navigator.storage.getDirectory();
-  }
 
-  public get directory() {
-    return this.root;
-  }
-
-  async getDirectoryContents() {
-    this.validate();
-    const data = [] as { name: string; fileHandle: FileSystemHandle }[];
-    for await (let [name, handle] of this.root) {
-      data.push({ name, fileHandle: handle });
+  constructor(root?: FileSystemDirectoryHandle) {
+    if (root) {
+      this.root = root;
     }
-    return data;
+  }
+
+  async initOPFS() {
+    try {
+      this.root = await navigator.storage.getDirectory();
+      return true;
+    } catch (e) {
+      console.error("Error opening directory:", e);
+      return false;
+    }
+  }
+
+  public get directoryHandle() {
+    return this.root;
   }
 
   private validate(): this is { root: FileSystemDirectoryHandle } {
@@ -765,30 +1069,30 @@ class OPFS {
     }
     return true;
   }
-  async createFile(filename: string) {
+
+  async getDirectoryContents() {
     this.validate();
-    const file = await this.root.getFileHandle(filename, { create: true });
-    return file;
+    return await FileSystemManager.readDirectoryHandle(this.root);
+  }
+
+  async createFileHandle(filename: string) {
+    this.validate();
+    return await FileSystemManager.createFileFromDirectory(this.root, filename);
   }
 
   async getFileHandle(filename: string) {
     this.validate();
-    const file = await this.root.getFileHandle(filename);
-    return file;
+    return await FileSystemManager.getFileFromDirectory(this.root, filename);
   }
 
   async deleteFile(filename: string) {
     this.validate();
-    await this.root.removeEntry(filename);
+    await FileSystemManager.deleteFileFromDirectory(this.root, filename);
   }
 
-  async getFile(filename: string) {
-    const fileHandle = await this.getFileHandle(filename);
-    return await fileHandle.getFile();
-  }
-
-  async getFileAsURL(filename: string) {
-    return URL.createObjectURL(await this.getFile(filename));
+  async deleteFolder(folderName: string) {
+    this.validate();
+    await FileSystemManager.deleteFolderFromDirectory(this.root, folderName);
   }
 
   static async writeToFileHandle(
