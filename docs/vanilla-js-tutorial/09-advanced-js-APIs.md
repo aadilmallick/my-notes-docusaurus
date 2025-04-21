@@ -599,7 +599,7 @@ document.querySelector("#pay").addEventListener("click", async () => {
 ```
 ### FileSystem API
 
-The new filesystem API allows you to open and directly write to the file system, as well as access files from the local filesystem. 
+The new filesystem API allows you to open and directly read from and write to the user's file system.
 
 Here are the typescript types required:
 
@@ -818,6 +818,8 @@ async function example(dirHandle: FileSystemDirectoryHandle) {
 	const testHandle = dirHandle.getFileHandle("test.txt", { create: true });
 	// 2. delete file handle (deletes files)
 	await dirHandle.removeEntry(testHandle)
+	// 3. create new folder handle in directory
+	const subdirHandle = dirHandle.getDirectoryHandle("subdir", { create: true });
 
 }
 ```
@@ -1013,7 +1015,9 @@ export class FileSystemManager {
 
 Related to the filesystem API is OPFS (origin private file system) which allows the web to access and store local file data in web storage. It's basically a filesystem per origin that is unrelated to the user's filesystem, but you can copy over files from the local filesystem to the OPFS.
 
-The **Origin Private File System** (part of the File System Access API spec) allows web apps to store **persistent files** that live **within the origin's private sandbox**. This is **never visible** to the user directly (i.e., not tied to the local filesystem UI).
+The **Origin Private File System** (part of the File System Access API spec) allows web apps to store **persistent files** that live **within the origin's private sandbox**. This is **never visible** to the user directly (i.e., not tied to the local filesystem UI). This is basically the same as web storage and has the same storage capacity as IndexedDB, meaning that it can be cleared at any time from the user.
+
+You can see the amount of storage you have remaining with `navigator.storage.estimate()` method.
 
 > Think of it as the app's internal hard drive that lives in the browser's storage quota.
 
