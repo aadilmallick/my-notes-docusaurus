@@ -70,6 +70,35 @@ export default async function IssuePage({
 }
 ```
 
+By default, since NextJS has no idea which params will be passed to the dynamic route param page, it dynamically renders to page. To bypass this, you can choose a subset of route parameters to prebuild and generate static pages for, like so, by exporting the async `generateStaticParams()` method.
+
+```ts
+export async function generateStaticParams() {
+  const posts = await fetch('https://api.vercel.app/blog', {
+    cache: 'force-cache',
+  }).then((res) => res.json())
+ 
+  return posts.map((post: Post) => ({
+    id: String(post.id),
+  }))
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const post = await getPost(id)
+ 
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </article>
+  )
+}
+```
 
 ## Miscellaneous
 
@@ -489,6 +518,8 @@ export function Button() {
 
 ### Things you can do in server actions
 
+#### Redirecting users
+
 You can do stuff like redirecting a user in a server action:
 
 ```ts
@@ -503,6 +534,38 @@ export async function createPost(formData: FormData) {
   redirect('/posts')
 }
 ```
+
+
+
+> [!IMPORTANT] 
+> You CANNOT use the `redirect()` function within a try-catch block. You can only use it outside.
+
+#### `useFormStatus`
+
+There is the `useFormStatus` hook from React that allows you to access form loading state and thus change UI based on that state. 
+
+The only rule is that whatever component you use this hook in must be rendered somewhere inside a form.
+
+```tsx
+'use client'
+ 
+import { useFormStatus } from 'react-dom'
+ 
+export function SubmitButton() {
+  const { pending } = useFormStatus()
+ 
+  return (
+    <button disabled={pending} type="submit">
+      Sign Up
+    </button>
+  )
+}
+```
+
+Here are the properties on the object returned from the `useFormStatus()` hook:
+
+- `data`
+- `pending`
 
 ## Caching
 
@@ -562,6 +625,11 @@ To implement manual revalidation, you can used a tags-based approach that lets y
 - `cacheTag(tag: string)`: caches the function/component under the specified tag
 - `revalidateTag(tag: string)`: from the specified tag, removes the function from the cache.
 
+You can also revalidate entire paths, if you cache at the page level:
+
+- `revalidatePath(path: string)`: revalidates a page cached with `"use cache"`
+
+
 #### 1) Caching at the page level
 
 When you cache at the page level, you are telling NextJS to **statically prerender** that page, and to only dynamically regenerate by revalidating the cache manually, which you can do by revalidating the path or a tag.
@@ -569,6 +637,23 @@ When you cache at the page level, you are telling NextJS to **statically prerend
 > [!WARNING]
 > Since `"use cache"` has buildtime behavior here, you CANNOT use dynamic data associated with requests like `cookies()` or `headers()`.
 
+Remember to implement revalidation with `revalidatePath()` if you choose to cache at the page level.
+
+```ts
+'use server'
+ 
+import { revalidatePath } from 'next/cache'
+ 
+export async function createPost() {
+  try {
+    // ...
+  } catch (error) {
+    // ...
+  }
+ 
+  revalidatePath('/posts')
+}
+```
 #### 2) Caching at the component level
 
 Caching at the component level essentially memoizes the props and any computations that happen inside the component. The cached value will be returned as long as all the serialized props are the same across each call.
@@ -638,6 +723,44 @@ export const getPost = cache(async (slug: string) => {
   const res = await db.query.posts.findFirst({ where: eq(posts.slug, slug) })
   return res
 })
+```
+
+### Parallelism vs Sequential
+
+When performing asynchronous data fetching in your RSCs, it's vital to understand how to speed up your data fetching by awaiting promises in parallel.
+
+```ts
+import Albums from './albums'
+ 
+async function getArtist(username: string) {
+  const res = await fetch(`https://api.example.com/artist/${username}`)
+  return res.json()
+}
+ 
+async function getAlbums(username: string) {
+  const res = await fetch(`https://api.example.com/artist/${username}/albums`)
+  return res.json()
+}
+ 
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}) {
+  const { username } = await params
+  const artistData = getArtist(username)
+  const albumsData = getAlbums(username)
+ 
+  // Initiate both requests in parallel
+  const [artist, albums] = await Promise.all([artistData, albumsData])
+ 
+  return (
+    <>
+      <h1>{artist.name}</h1>
+      <Albums list={albums} />
+    </>
+  )
+}
 ```
 
 ## API routes and middleware
@@ -734,6 +857,27 @@ API routes in NextJS are augmented with the use of several utility helpers avail
 
 #### `NextResponse`
 
+#### `cookies()`
+
+```ts
+'use server'
+ 
+import { cookies } from 'next/headers'
+ 
+export async function exampleAction() {
+  const cookieStore = await cookies()
+ 
+  // Get cookie
+  cookieStore.get('name')?.value
+ 
+  // Set cookie
+  cookieStore.set('name', 'Delba')
+ 
+  // Delete cookie
+  cookieStore.delete('name')
+}
+```
+
 ### Edge Runtime
 
 The edge runtime is a low-memory, slimmed down version of the Node runtime that allows you to deploy your API routes and middlewares around the world to be as close to your users as possible, using Vercel's extensive edge server network.
@@ -806,7 +950,7 @@ There are several benefits to using middleware in NextJS:
 
 **writing middleware**
 
-To start writing middleware, create a `middleware.ts` at the root of your application:
+To start writing middleware, create a single `middleware.ts` at the root of your application:
 
 ```ts
 // middleware.ts
@@ -869,6 +1013,58 @@ export const config = {
 3. **Testing**: Test your middleware thoroughly to ensure it behaves as expected.
 4. **Use the Edge Runtime**: Middleware runs on the Edge runtime, which has limitations compared to Node.js. Make sure your code is compatible.
 5. **Caching Considerations**: Be aware of how your middleware might affect caching strategies.
+
+#### Middleware examples
+
+**changing headers**
+
+You can change request headers for the request object coming into the middleware and then that request will have those new headers before heading to the next route handler. We can do this via two steps
+
+1. Access the request headers from `request.headers` and set new headers on them.
+2. Go to next route handler with `NextResponse.next()`, and passing the headers to the `request.headers` option.
+
+```ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+ 
+export function middleware(request: NextRequest) {
+  // 1) Clone the request headers and set a new header
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-hello-from-middleware1', 'hello')
+ 
+  // 2) request headers in NextResponse.next
+  const nextHandler = NextResponse.next({
+    request: {
+      // New request headers
+      headers: requestHeaders,
+    },
+  })
+ 
+  // You can also set request headers like so: 
+  nextHandler.headers.set('x-hello-from-middleware2', 'hello')
+  return nextHandler
+}
+```
+
+**running background work**
+
+A second argument you can accept into your middleware is the `event` object of type `NextFetchEvent`, and by using the `event.waitUntil()` method, you can launch and run background work while immediately returning a response.
+
+```ts
+import { NextResponse } from 'next/server'
+import type { NextFetchEvent, NextRequest } from 'next/server'
+ 
+export function middleware(req: NextRequest, event: NextFetchEvent) {
+  event.waitUntil(
+    fetch('https://my-analytics-platform.com', {
+      method: 'POST',
+      body: JSON.stringify({ pathname: req.nextUrl.pathname }),
+    })
+  )
+ 
+  return NextResponse.next()
+}
+```
 
 ## NextJS Config
 

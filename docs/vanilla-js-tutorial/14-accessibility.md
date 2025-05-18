@@ -119,9 +119,14 @@ Aria is what allows us to make non-semantic elements like `<div>` elements more 
 
 You can use three attributes for labelling with aria.
 
-- `aria-label` : the label for an element. Set this to a string
-- `aria-labeledby` : If you don’t want to inline a long label into your html, you can use the labeled by property to refer to the id of an element whose text content contains that description
-- `aria-describedby` : same thing as labeling by, but as a description, which is less essential than a label. It’s a “more info” kind of thing.
+- `aria-label=` : the label for an element. Set this to a string
+- `aria-labeledby=` : If you don’t want to inline a long label into your html, you can use the labeled by property to refer to the id of an element whose text content contains that description. **Accepts id(s)**
+- `aria-describedby=` : same thing as labeling by, but as a description, which is less essential than a label. It’s a “more info” kind of thing. **Accepts id(s)**
+
+Here's a useful example showing how to use them correctly:
+
+![aria label code example](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1747417509/image-clipboard-assets/bzhdpw0codse4ymbpsn4.webp)
+
 
 > [!NOTE]
 >When you don’t want to inline your labels and descriptions, you can use the `aria-labeledby=` and `aria-describedby=` attributes to refer to elements containing that description as text. You can then visually hide those elements.
@@ -138,9 +143,15 @@ To style custom elements when they are being focused, you need to have some sort
 
 ```css
 button:focus-visible {
-	outline: 1px solid black;
+	outline: 2px solid black;
 }
 ```
+
+Here are the basic focus style requirements:
+
+- [ ] Focus areas (borders, outlines) should be at least 2px thick
+- [ ] Focus styles should be adapted for both light and dark modes
+- [ ] Focus styles should combine multiple style changes (outline, background, border)
 
 ### Making accessible button
 
@@ -170,12 +181,60 @@ aria-checked="false">Light Mode</button>
 When showing things like popups or toast notifications, you should add an `aria-live` attribute to that element to let the user know that a disappearing time-sensitive element has appeared on the screen.
 
 - `aria-live="polite"`: low priority notification
+- `aria-live="off"`: no notification
 - `aria-live="assertive"`: high priority notification, interrupts user. This is not good UX, so save this for extremely important occasions.
+
+Here are the main use cases for aria-live:
+
+- When a toast notification pops up
+- When a form gets validated and form errors pop up
+### Tab trapping
+
+When popping up a modal, you need to implement **tab trapping** for a good UX experience, which is where you force focus on the modal and prevent tabbing or shift tabbing out of the modal. Here are the rules:
+
+1. When the modal is open, use JS to programmatically focus on the first element in the modal
+2. When the user tries to tab out of the modal (currently focused element is not in modal), use use JS to programmatically focus on the first element in the modal
+3. Add an event listener to close the modal when the user hits the `ESC` key.
+
+```ts
+function getFocusableChildren(element: HTMLElement) {
+	return Array.from(
+	          element.querySelectorAll(
+	            `button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])`
+	          )
+	        );
+}
+
+
+function tabTrap(modal: HTMLElement) {
+	const focusableChildren = getFocusableChildren(modal);
+	const onTab = (e : KeyboardEvent) => {
+		if (e.key === "Tab") {
+			const currentFocusInModal = modal.contains(document.activeElement)
+			// if not focused in modal, force focus back to 
+			// first focusable element in modal
+			if (!currentFocusInModal) focusableChildren[0].focus()
+		}
+	}
+
+	return {
+		startTrapping: () => {
+			document.addEventListener("keydown", onTab)
+		},
+		stopTrapping: () => {
+			document.removeEventListener("keydown", onTab)
+		}
+	}
+}
+```
 ## Color Contrast
 
 TO get triple A level contrast, go to this site and check your colors against each other.
 
-[WebAIM: Contrast Checker](https://webaim.org/resources/contrastchecker/)
+Here are some basic tools you can use:
+
+- [WebAIM: Contrast Checker](https://webaim.org/resources/contrastchecker/)
+- Chrome devtools color picker
 
 Contrast ratio is noted as **foreground:background** , which means the same color will have a ratio of 1:1, which is the absolute worst. The highest contrast ratio is black:white, which is 21:1.
 
@@ -184,7 +243,37 @@ Contrast ratio is noted as **foreground:background** , which means the same colo
 
 Aim for AAA standard. 
 
-## Skip Link
+## Dealing with screen readers
+
+### Visually hidden
+
+To provide readable content for screen readers that promotes accessibility, but you don't want to be visible for normal users, you can visually hide an element instead of removing it from the DOM.
+
+Here is a class to do so:
+
+```css
+.visually-hidden {
+	position: absolute;
+	left: 0;
+	top: -500px;
+	width: 1px;
+	height: 1px;
+	overflow:hidden;
+}
+```
+
+
+> [!NOTE] 
+> The width and height are `1px` each because if they were 0, then screen readers would skip them.
+
+### Skip links
+
+**Skip links** are sort of a visually hidden table of contents that screen readers read out loud that is navigation for the disabled users to skip to content they want. 
+
+Here are the two rules when using skip links:
+
+1. Visually hide the skip link, make it visible when focused or tabbed to
+2. The skip link should be the first tabbable element on the page
 
 To make a skip link, don’t hide it. Instead translate it off screen so that it’s still visible to screen readers.
 
@@ -201,7 +290,15 @@ To make a skip link, don’t hide it. Instead translate it off screen so that it
 }
 ```
 
-## Animations accessibility
+
+## Other accessibility tips
+
+### Keyboard shortcuts
+
+Often, you want to implement a list of keyboard shortcuts that work on your website. A standard practice is to show a modal listing all the keyboard shortcuts for the website when the user hits `?`
+
+
+### Animations accessibility
 
 Remove animations for those who don't want it by providing these styles in the prefers-reduced-motion media query: 
 ```css

@@ -6,8 +6,6 @@ For more resources on PWA, go to these sites:
 - 
 ## JavaScript in the background
 
-### Web Storage
-
 ### Lifecycle of a web page
 
 In the past, web pages would consume resources infinitely, awake all the time. Now they have a strict lifecycle that they adhere to, where the browsers can cut off resources to the website without the developer knowing. You can hook into these events to prevent your application from getting ruined by the browser unexpectedly discarding your website's memory. 
@@ -109,12 +107,12 @@ const beforeUnloadListener = (event) => {
 
 // A function that invokes a callback when the page has unsaved changes.
 onPageHasUnsavedChanges(() => {
-  addEventListener('beforeunload', beforeUnloadListener);
+  window.addEventListener('beforeunload', beforeUnloadListener);
 });
 
 // A function that invokes a callback when the page's unsaved changes are resolved.
 onAllChangesSaved(() => {
-  removeEventListener('beforeunload', beforeUnloadListener);
+  window.removeEventListener('beforeunload', beforeUnloadListener);
 });
 ```
 
@@ -998,6 +996,55 @@ export async function askQuota() {
     console.log(`Percent used: ${percentUsed.toFixed(2)}%`);
     return percentUsed;
   }
+}
+```
+
+#### **Summary**
+
+Here is a class that covers all cases:
+
+```ts
+
+export class NavigatorStorageManager {
+  async askPersistStorage() {
+    const isPersisted = await navigator.storage.persisted();
+    if (!isPersisted) {
+      const isPersistGranted = await navigator.storage.persist();
+      return isPersistGranted;
+    }
+    return isPersisted;
+  }
+
+  async getStorageInfo() {
+    const info = await FileSystemManager.getStorageInfo();
+    return {
+      percentUsed: info.storagePercentageUsed,
+      bytesUsed: humanFileSize(info.bytesUsed),
+      bytesAvailable: humanFileSize(info.bytesAvailable),
+    };
+  }
+}
+
+export function humanFileSize(bytes: number, dp = 1) {
+  const thresh = 1000;
+
+  if (Math.abs(bytes) < thresh) {
+    return bytes + " B";
+  }
+
+  const units = ["kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  let u = -1;
+  const r = 10 ** dp;
+
+  do {
+    bytes /= thresh;
+    ++u;
+  } while (
+    Math.round(Math.abs(bytes) * r) / r >= thresh &&
+    u < units.length - 1
+  );
+
+  return bytes.toFixed(dp) + " " + units[u];
 }
 ```
 
