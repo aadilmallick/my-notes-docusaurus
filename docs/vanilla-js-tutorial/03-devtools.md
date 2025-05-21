@@ -1,4 +1,4 @@
-# 03: Devtools
+# 03: Chrome Devtools
 
 [devtool tips](https://devtoolstips.org/)
 
@@ -18,7 +18,7 @@
 5. **vizbug extension** : allows you to visually design your website.
 6. **coverage**: Open up the coverage tab in devtools to see how much javascript and css is used and unused. You can optimize your bundle with the info from this page.
 7. **live expressions**: Use live expressions to keep track of a variable across the lifetime of a page. Click on the eye icon in the top to create a new live expression. 
-	- ![](https://www.webpagescreenshot.info/image-url/yQjT7dxu2)
+	- ![](https://storage.googleapis.com/openscreenshot/2/u/x/yQjT7dxu2.png)
 
 ### Taking high quality screenshots
 
@@ -28,7 +28,7 @@
 
 By putting devtools in device mode and then increasing the device pixel ratio, you can take super high quality screenshots. 
 
-![devtools image](https://www.webpagescreenshot.info/image-url/oUNn0LU7t)
+![devtools image](https://storage.googleapis.com/openscreenshot/t/7/U/oUNn0LU7t.png)
 
 
 ## Firefox devtools
@@ -181,6 +181,9 @@ These builtin variables can be used in the devtools console.
 
 - `$0` : the last selected element. You can continue this pattern with `$1` for the 2nd recently selected, and so on. Think of it exactly like a stack. Last in, first out.
 - `$_` : the last returned values
+
+You then have these builtin functions:
+
 - `$(selector : string)` : JQuery builtin for `document.querySelector()`
 - `$$(selector : string)` : JQuery builtin for `document.querySelectorAll()`
 - `copy(variable)`: Copies whatever value of the variable you pass in to the clipboard. Super helpful.  
