@@ -14,7 +14,10 @@ For git bash, you can install NVM as normal but then you must add the sourcing c
 
 You can install node with `nvm install node` or `nvm install <version>`.
 
-You can use a specific version with `nvm use <version>`
+You can use a specific version with `nvm use <version>`:
+
+- `nvm install 20`: installs node version 20
+- `nvm install --lts`: installs the current lts version of node
 
 
 

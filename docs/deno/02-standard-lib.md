@@ -569,7 +569,7 @@ app.getWithGlobalMiddleware("/", [userAuthMiddleware], () => {
 
 Middleware that runs for specific routes and affects the request payload. This requires some typescript fuckery by extending the web `Request` interface in a `.d.ts` file:
 
-```ts filename="types.d.ts"
+```ts title="types.d.ts"
 interface Request {
   payload: any;
 }

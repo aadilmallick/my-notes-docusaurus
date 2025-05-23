@@ -13,8 +13,11 @@ https://stevekinney.com/courses/visual-studio-code
 - `alt + up down`: moves code line down
 - `ctrl + space`: brings up intellisense suggestions
 - `ctrl + shift + space`: brings up parameter info when pressing this keyboard shortcut inside the parenthesis of a function call.
-- `ctrl + shift + z`: undo action
 - `ctrl + l`: highlights lines of text
+- `ctrl + y` or `ctrl + shift + z`: undo
+- `ctrl + [`: tabs to the right
+- `ctrl + ]`: tabs to the left
+- `ctrl + shift + k`: deletes current line
 
 ## Essentials
 

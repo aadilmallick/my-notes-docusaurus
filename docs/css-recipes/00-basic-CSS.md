@@ -570,6 +570,19 @@ Let's dive into an example:
 
 ## New CSS Features
 
+### relative colors
+
+you can make colors inline relative to other colors, for example changing the opacity or something else like so, to change the opacity of blue to 0.75:
+
+```css
+.text-blue-75 {
+	color: rgba(
+		from blue
+		r g b calc(a * 0.75)
+	)
+}
+```
+
 ### `interpolate-size`
 
 Adding the `interpolate-size: allow-keywords` on the `:root` pseudoselector allows you to animate height and width to keywords like `auto` or `none`, which is pretty useful. 
@@ -722,8 +735,8 @@ The `light-dark(light_val, dark_val)` function returns the first parameter if th
 	color-scheme: light dark;
 }
 
-.omni-theme {
-	/* If in light mode, return black. Else return white. */
+p {
+	/* If in light mode, make text color black. Else make white. */
 	color: light-dark(black, white);
 }
 ```

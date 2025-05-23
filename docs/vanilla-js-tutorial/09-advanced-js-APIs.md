@@ -603,7 +603,7 @@ The new filesystem API allows you to open and directly read from and write to th
 
 Here are the typescript types required:
 
-```ts filename="types.d.ts"
+```ts title="types.d.ts"
 // Basic types
 type FileSystemPermissionMode = "read" | "readwrite";
 type FileSystemHandleKind = "file" | "directory";

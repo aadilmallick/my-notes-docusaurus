@@ -568,9 +568,8 @@ describe("API routes", () => {
 });
 ```
 
-## Miscellaneous
 
-### Downloading files
+## Downloading files
 
 This is how when a user requests this route, you send them a file download:
 

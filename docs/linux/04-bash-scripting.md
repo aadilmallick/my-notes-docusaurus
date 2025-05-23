@@ -4,7 +4,7 @@
 
 Bash scripts are simple linux commands run one after the other in the form of a file. They are `.sh` file extensions, and you run such scripts with the `bash` command, like `bash script.sh`
 
-```bash file="script.sh"
+```bash title="script.sh"
 mkdir -p brahdir
 cd brahdir
 touch brah{1..10}

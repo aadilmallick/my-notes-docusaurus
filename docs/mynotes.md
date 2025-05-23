@@ -46,6 +46,15 @@ export default function MyReactPage() {
 
 #### Code block metadata: titles and copying
 
+You can specify the name of the file a codeblock is representing by having a `title="somefilenamehere.tsx"` next to the language of the code block, like so:
+
+````md
+```jsx title="App.tsx"
+// ... jsx code here
+```
+````
+
+
 You can add metadata to configure the position of the page in the sidebar, and the title of the page.
 
 ```mdx title="src/pages/my-markdown-page.md"
@@ -74,6 +83,7 @@ sidebar_position: 3
 
 This is my **first Docusaurus document**!
 ```
+
 
 ````md title="docs/hello.md"
 ```md title="docs/hello.md" {1-4}

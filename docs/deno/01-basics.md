@@ -80,7 +80,7 @@ deno lint <file-or-folder-path>
 
 You can also tell the deno linter to ignore specific files by adding the `// deno-lint-ignore-file` comment at the top of your file:
 
-```ts file="main.ts"
+```ts title="main.ts"
 // deno-lint-ignore-file
 
 // ... rest of your code

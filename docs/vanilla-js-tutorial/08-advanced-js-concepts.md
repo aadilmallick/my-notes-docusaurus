@@ -598,6 +598,34 @@ num = null;
 num ??= 20; // makes num = 20
 ```
 
+
+## Tagged Template Literal Functions
+
+You can use tagged template functions to easily parse strings and do string manipulations.
+
+```jsx
+function bold(strings, ...values) {
+  if (values.length === 0) return strings.join("")
+
+  const smallerLength = Math.min(strings.length, values.length)
+  const boldedValues = values.map(str => `<b>${str}</b>`)
+  let stringBuilder = ""
+  for (let i = 0; i < smallerLength; i++) {
+    stringBuilder+= strings[i] 
+    stringBuilder+= boldedValues[i]
+  }
+
+  stringBuilder += strings.slice(smallerLength).join("")
+  stringBuilder += boldedValues.slice(smallerLength).join("")
+  return stringBuilder
+}
+
+const html = bold`My name is ${"Maria"}  and I love french toast. I am a petite ${18} year old.`
+console.log(html) // My name is <b>Maria</b> and I love french toast. I am a petite <b>18</b> year old.
+```
+
+- `strings` : the array of strings that are not interpolated
+- `values` : the array of values that are interpolated with the `${}`
 ## Timers
 
 ### Basics

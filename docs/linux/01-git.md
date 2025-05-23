@@ -253,7 +253,7 @@ All your aliases live in the git config, and you should put your aliases in the 
 
 All aliases start with the `alias` section and then have specific keynames: 
 
-```file="~/.gitconfig"
+```bash title="~/.gitconfig"
 [user]
 	email = aadiltj.mallick@gmail.com
 	name = aadilmallick
