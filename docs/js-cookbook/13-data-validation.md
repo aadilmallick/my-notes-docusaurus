@@ -305,6 +305,48 @@ const map = new Map([
 ]) as z.infer<typeof userIdToInfoMap>
 ```
 
+
+### Zod validation class
+
+Here is a wrapper I wrote around some common zod functionality:
+
+```ts
+export class Validation<T extends Record<string, any>> {
+  constructor(public schema: z.ZodObject<T>) {}
+
+  createObjectWithAutocomplete(obj: T) {
+    return obj;
+  }
+
+  isOfType(value: unknown): value is T {
+    return this.schema.safeParse(value).success;
+  }
+
+  validateSchema(value: unknown) {
+    return this.schema.parse(value);
+  }
+
+  pick(value: unknown, keys: (keyof T)[]) {
+    const obj: Partial<Record<keyof T, true>> = {};
+    for (let key of keys) {
+      obj[key] = true;
+    }
+    return this.schema
+      .pick(obj as unknown as Parameters<z.ZodObject<T>["pick"]>[0])
+      .parse(value);
+  }
+
+  omit(value: unknown, keys: (keyof T)[]) {
+    const obj: Partial<Record<keyof T, true>> = {};
+    for (let key of keys) {
+      obj[key] = true;
+    }
+    return this.schema
+      .omit(obj as unknown as Parameters<z.ZodObject<T>["omit"]>[0])
+      .parse(value);
+  }
+}
+```
 ### Custom validation
 
 You can add custom validation functions with the universal `z.refine()` modifier, which takes in a callback with the value as a parameter and must return a boolean: `true` if passing, `false` if failing.

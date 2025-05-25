@@ -26,6 +26,70 @@ readableStream
   .on("error", (error) => console.log(error.message));
 ```
 
+## Event Emitter
+
+The event emitter api in node allows you to partake in event-based programming and is extremely simple, just based on a single messaging event.
+
+The basic premise is that an `new EventEmitter()` instance has only two important methods: `emitter.emit()` to trigger events and send a payload, and `emitter.on()` to listen for events and access the payload. 
+
+```ts
+const EventEmitter = require("events");
+
+const emitter = new EventEmitter();
+
+// 1. setup listener
+emitter.on("redevent", () => console.log("RED EVENT FIRED"));
+
+// 2. emit/trigger event
+emitter.emit("redevent");
+```
+
+We can take this a step further and make a generic, type safe class wrapper around this:
+
+```ts
+import { EventEmitter } from "node:events";
+
+type EventsType = Record<string, any>;
+
+export class EventEmitterNode<T extends EventsType> {
+  private emitter: EventEmitter;
+
+  constructor() {
+    this.emitter = new EventEmitter();
+  }
+
+  sendEvent<K extends keyof T>(event: K, data: T[K]) {
+    this.emitter.emit(event as string, data);
+  }
+
+  onEvent<K extends keyof T>(event: K, callback: (data: T[K]) => void) {
+    this.emitter.on(event as string, callback);
+    return {
+      removeListener: () => this.offEvent(event, callback),
+    };
+  }
+
+  offEvent<K extends keyof T>(event: K, callback: (data: T[K]) => void) {
+    this.emitter.off(event as string, callback);
+  }
+}
+```
+
+And here is how you would use this:
+
+```ts
+const partyEmitter = new EventEmitterNode<{
+  "party-started": { name: string; time: string };
+  "party-ended": { bummer: boolean };
+}>();
+
+partyEmitter.onEvent("party-started", (data) => {
+  console.log(`Party started: ${data.name} at ${data.time}`);
+});
+
+partyEmitter.sendEvent("party-started", { name: "Party", time: "2025-05-24" });
+```
+
 ## File System
 
 ### Filepath manipulation
@@ -113,9 +177,8 @@ const currentDir = dirname(fileURLToPath(currentFileURL));
 // you now have access to the current directory as you please
 const DB_FILE = join(currentDir, "db.json");
 ```
-## Making a CLI with commander
 
-## Child processes
+## Running CLI commands in Node
 
 The `child_process` module in node allows you to run command line tools from within your nodeJS program, like `cd`, `ls`, and much more.
 
