@@ -103,6 +103,8 @@ app.use("/auth", userRouter) // now login at /auth/login
 
 ## Guide to middleware
 
+### Basics
+
 Middleware in express is the industry-standard that has been copied across other frameworks. It's simple to understand: every route handler also gets access to a `next()` function that when invoked, goes to the next middleware/route handler.
 
 ```ts
@@ -130,6 +132,126 @@ There are three basic ways to use middleware:
 - **method 2 - scoped middleware**: This method involves passing the middleware to `app.use()` but then scoping it to a route by passing in the route as the first parameter.
 	- `app.use("/frontend", someMiddleware())` will only run the middleware on the `/frontend` level root and anything below that. 
 - **method 3 - middleware on a request/response cycle**: You can have middleware run before specific route handlers by putting them in an array before the actual route handler callback.
+
+### Error handling
+
+Your app architecture will benefit from throwing custom errors so you know exactly what went wrong in your code.
+
+```ts
+// errors.ts
+export enum ErrorCode {
+  NOT_FOUND = 'NOT_FOUND',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  FORBIDDEN = 'FORBIDDEN',
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+}
+
+export interface ErrorResponse {
+  error: {
+    message: string;
+    code: ErrorCode;
+    details?: unknown;
+  };
+}
+
+export class AppError extends Error {
+  statusCode: number;
+  code: ErrorCode;
+  details?: unknown;
+
+  constructor(message: string, code: ErrorCode, statusCode: number, details?: unknown) {
+    super(message);
+    this.name = 'AppError';
+    this.code = code;
+    this.statusCode = statusCode;
+    this.details = details;
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(message = 'Resource not found', details?: unknown) {
+    super(message, ErrorCode.NOT_FOUND, 404, details);
+    this.name = 'NotFoundError';
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(message = 'Validation failed', details?: unknown) {
+    super(message, ErrorCode.VALIDATION_ERROR, 400, details);
+    this.name = 'ValidationError';
+  }
+}
+
+// Additional error classes…
+```
+
+### Dealing with cookies
+
+Use the `cookieParser()` 3rd party middleware in express to deal with cookies:
+
+```ts
+import cookieParser from 'cookie-parser';
+
+// Setup cookie parser
+
+app.use(cookieParser());
+
+// Define expected cookies
+
+interface AuthCookies {
+  sessionId?: string;
+}
+
+// Create a middleware to validate required cookies
+
+function requireCookie(cookieName: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.cookies?.[cookieName]) {
+      return res.status(400).json({
+        error: `Missing required cookie: ${cookieName}`,
+      });
+    }
+
+    next();
+  };
+}
+
+// Use it in routes
+
+app.get('/dashboard', requireCookie('sessionId'), (req: Request, res: Response) => {
+  // Safe to assert this cookie exists
+
+  const sessionId = req.cookies.sessionId as string;
+
+  // Use the session ID
+
+  // …
+
+  res.send('Dashboard');
+});
+
+// Setting cookies
+
+app.post('/login', (req: Request, res: Response) => {
+  // Authentication logic
+
+  // …
+
+  // Set cookie
+
+  res.cookie('sessionId', 'abc123', {
+    httpOnly: true,
+
+    secure: process.env.NODE_ENV === 'production',
+
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  });
+
+  res.json({ success: true });
+});
+```
 
 ## Data Persistence
 

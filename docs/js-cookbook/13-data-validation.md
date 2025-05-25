@@ -363,3 +363,45 @@ const userSchema2 = z.object({
 #### Adding custom messages
 
 You can add custom messages for when validation fails at certain stages, which is possible at each modifier as an optional argument.
+
+### Zod 3rd-party integrations
+
+#### Zod with React Hook Form
+
+This is an example of providing a zod object schema to react hook form so you can get strong typing, runtime validation, and meaningful errors:
+
+```tsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+// 1. create a schema
+const FormSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(8)
+});
+type FormData = z.infer<typeof FormSchema>;
+
+function MyFormComponent() {
+  // 2. create the hook, passing in zod resolver
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(FormSchema)
+  });
+
+  // 3. guaranteed that all data that reaches onSubmit will be valid
+  const onSubmit = (data: FormData) => {
+    console.log("Valid form data:", data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {…register("username")} placeholder="Username" />
+      {errors.username && <span>{errors.username.message}</span>}
+
+      <input {…register("password")} type="password" placeholder="Password" />
+      {errors.password && <span>{errors.password.message}</span>}
+
+      <button type="submit">Sign Up</button>
+    </form>
+  );
+}
+```

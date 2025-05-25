@@ -822,11 +822,11 @@ async function main() {
 
 Generators in JS follow the same exact concept as in python, where you can iterate through a data structure without there being an actual data structure. 
 
-Generators are created with generator functions, in which you use the special `yield` keyword.
-
 The `yield` statement in a generator essentially returns a value and **pauses the execution** of the function, and only resumes execution once the programmer forces the generator to go to the next yield statement using the `generator.next()` method.
 
 ### Basic generators
+
+Create a generator function in JS using the `function*` syntax, which is syntactic sugar over a regular generator function. Then you can use the yield keyword to yield values. 
 
 ```ts
 // 1. create generator function
@@ -852,9 +852,7 @@ console.log(`yielded value is ${value}, generator is done: ${done}`)
 generator.throw(new Error("idk bro"))
 ```
 
-Create a generator function in JS using the `function*` syntax. Then you can use the yield keyword to yield values. 
-
-Calling the generator function returns a `generator` object, which has these methods: 
+Invoking a `function*` function is syntactic sugar for converting that function into a normal generator function that returns an object with these methods:
 
 - `generator.next()`: gets the value next yield statement in the generator function. This always returns an object with the `value` and `done` properties:
 	- `value`: the yielded value

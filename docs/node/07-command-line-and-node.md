@@ -44,10 +44,49 @@ emitter.on("redevent", () => console.log("RED EVENT FIRED"));
 emitter.emit("redevent");
 ```
 
+You can extend the event emitter class to create event-based programming easy:
+
+```ts
+const EventEmitter = require('events');
+
+class MyCustomEmitter extends EventEmitter {
+  constructor() {
+    super(); // Call the parent constructor
+    this.data = [];
+  }
+
+  addItem(item) {
+    this.data.push(item);
+    this.emit('itemAdded', item); // Emit an event when an item is added
+  }
+
+  processData() {
+    // Simulate some processing
+    console.log('Processing data...');
+    this.emit('processingComplete', this.data.length); // Emit event on completion
+  }
+}
+
+const myObject = new MyCustomEmitter();
+
+myObject.on('itemAdded', (item) => {
+  console.log(`New item added: ${item}`);
+});
+
+myObject.once('processingComplete', (count) => {
+  console.log(`Finished processing ${count} items.`);
+});
+
+myObject.addItem('A');
+myObject.addItem('B');
+myObject.processData();
+
+```
+
 We can take this a step further and make a generic, type safe class wrapper around this:
 
 ```ts
-import { EventEmitter } from "node:events";
+import { EventEmitter, on } from "node:events";
 
 type EventsType = Record<string, any>;
 
@@ -62,17 +101,28 @@ export class EventEmitterNode<T extends EventsType> {
     this.emitter.emit(event as string, data);
   }
 
-  onEvent<K extends keyof T>(event: K, callback: (data: T[K]) => void) {
+  on<K extends keyof T>(event: K, callback: (data: T[K]) => void) {
     this.emitter.on(event as string, callback);
     return {
-      removeListener: () => this.offEvent(event, callback),
+      removeListener: () => this.off(event, callback),
     };
   }
 
-  offEvent<K extends keyof T>(event: K, callback: (data: T[K]) => void) {
+  once<K extends keyof T>(event: K, callback: (data: T[K]) => void) {
+    this.emitter.once(event as string, callback);
+  }
+
+  async *consumeEventStream<K extends keyof T>(event: K, signal?: AbortSignal) {
+    for await (const data of on(this.emitter, event as string, { signal })) {
+      yield data as T[K];
+    }
+  }
+
+  off<K extends keyof T>(event: K, callback: (data: T[K]) => void) {
     this.emitter.off(event as string, callback);
   }
 }
+
 ```
 
 And here is how you would use this:
@@ -89,6 +139,11 @@ partyEmitter.onEvent("party-started", (data) => {
 
 partyEmitter.sendEvent("party-started", { name: "Party", time: "2025-05-24" });
 ```
+
+> [!NOTE]
+> Event emitters are synchronous by nature, meaning that an `eventEmitter.emit()` call is blocking until the listener for that event finishes executing.
+
+
 
 ## File System
 
