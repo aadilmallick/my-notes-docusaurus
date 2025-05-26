@@ -777,6 +777,8 @@ function printFileOrDirectory(obj: FileSystemObject) {
 
 ## Conditional types
 
+Conditional types are flexible ways to use generics by combining check the `extends` typing of a generic type param and then using that with the ternary operator.
+
 ```typescript
 // make sure passed in generic is either number or string
 // if number, return number. Else return T, which can only be string
@@ -804,9 +806,9 @@ WHen passing in a union type as a generic, you can think of it as splitting into
 
 - `MustBeString<string | number>` is evaluated as `MustBeString<string>` | `MustBeString<number>`
 
-### Conditional and `infer`
+###  `infer`
 
-The `infer` keyword is used in conditional types to dynamically get the type of something as set it as a generic.
+The `infer` keyword is used and can ONLY BE USED in conditional types to dynamically get the type of something as set it as a generic.
 
 ```typescript
 // if generic type passed in is a function, infer the return type as Return generic and return it
@@ -817,7 +819,7 @@ type GetReturnType<T> = T extends (...args: never[]) => infer Return
 type Num = GetReturnType<() => number>;
 ```
 
-In the example above, we are basically creating another generic called `Return` that will the return type of the function we pass in. We are saying that whatever thing we pass into the `GetReturnType<>` generic type alias must be a function, and then we infer its return type.
+In the example above, we are basically creating another generic called `Return` that will be the return type of the function we pass in. We are saying that whatever thing we pass into the `GetReturnType<>` generic type alias must be a function, and then we infer its return type.
 
 ```ts
 type RType<T> = T extends (...args: any[]) => infer R ? R : never;
@@ -827,12 +829,25 @@ const multiply = (a: number, b: number) => a * b;
 type MyType = RType<typeof multiply>; // number
 ```
 
-#### Infer with constraints
-
+**infer with type constraints**
+****
 You can also add type constraints to your `infer` conditionals, like `infer T extends string`
 
-#### Infer with template strings
+Here are some useful examples:
 
+```ts
+type GetInstanceType<T extends new (...args: any[]) => any> =
+  T extends new (...args: any[]) => infer R ? R : never;
+```
+
+- In this example, we specify that we want the type parameter to at least be a class, represented by the `new (...args: any[]) => any` signature.
+- We then infer the return type of that function constructor with the type param `R`, which would just be the instance.
+- If the type param `T` extends a class (which we made sure that it does by providing the generic constraint), then we return `R`. Else, we return `never`
+
+
+
+**Infer with template strings**
+****
 You can even infer strings from template string literal types.
 
 ```ts
@@ -843,7 +858,7 @@ type EmailSurname<T> = T extends `${infer S extends string}@${string}`
 type Test = EmailSurname<"waadlingaadil@gmail.com">;
 ```
 
-### Type Distributivity
+### Type Distributivity with unions
 
 When using conditional generic types with union types, they have a **distributive effect**, where all the types in the union type are evaluated separately in the conditional types, and then joined back together in a union.
 
@@ -1059,6 +1074,17 @@ bruh.color.repeat(3);
 
 In the example above, `bruh.color` would be of type `string | undefined` if we simply type annotated it. By using `satisfies`, we turn it into a const declaration while satisfying the type simultaneously, allowing us to access the color type if we explicitly define it on the object.
 
+> [!NOTE]
+> `satisfies` is like `as` but without the type casting, which is way to adhere to a type without losing flexibility in the explicit typing of an object. Think about it as the least strict way to type annotate.
+
+This is the order in which type annotation strictness goes:
+
+>`as` (most strict, does casting) -> normal type annotations -> `satisfies`
+
+
+
+
+
 ### Template literal types
 
 You can use template literal types like so:
@@ -1160,16 +1186,17 @@ let padding: Padding = "12px";
 
 ## Mapped Types
 
-Mapped types are like index signatures but on a smaller scale, allowing you to iterate through the keys of a type and assign a corresponding type value to each key.
+Mapped types are like index signatures but on a smaller scale, allowing you to iterate through a union type, extract each singular value from that union type which will be called as a **key**, and assign a corresponding type value to each key.
 
 ```typescript
 type MyMappedType = {
+  // maps over union type, extracts each individual string value, and applies it
   [key in keyof MyType]: MyType[key];
 };
 ```
 
 - The `keyof` operator returns a union string type of the keys of another type, like an interface
-- You can map over union string types, or implicitly map over a union string type by using the `keyof` operator.
+- You can map over union string types, or implicitly map over a union string type by using the `keyof` operator on an interface or object type.
 
 You can also use attribute modifiers to make these mapped types `readonly`, required, or `optional`.
 
@@ -1353,7 +1380,13 @@ type StoreSetters = Setters<Store>;
 ### Advanced mapped types
 #### Filtering keys
 
-You can carry this further to filtering keys before doing something with them by combining mapped types with conditionals.
+You can carry this further to filtering keys before doing something with them by combining mapped types with conditionals. The way to do this is to combine **key remapping** with **conditional typing** for the key type in the mapped type signature. 
+
+The basic syntax is as follows:
+
+```
+
+```
 
 Whenever you are trying to filter types based on filtered keys, follow these rules: 
 
@@ -1395,6 +1428,20 @@ type bruh = OmitRequired<Obj>
 
 - `OmitOptional<T>` : returns back only the required properties from an object
 - `OmitRequired<T>` : returns back only the optional properties from an object
+
+Here is another example that illustrates how we do the key remapping conditionally, where we return the key if it passes the condition `Document[K] extends string` or otherwise we return `never`, which essentially excludes the key.
+
+```ts
+type OnlyStrings = {
+  //   ^?
+  [K in keyof Document as (Document[K] extends string ? K : never)]: Document[K]
+}
+```
+
+> [!TIP]
+> In a union type, the `never` type always gets excluded. This comes in handy for filtering out keys.
+
+
 
 #### `Prettify<T>`
 
