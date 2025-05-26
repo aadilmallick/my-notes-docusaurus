@@ -1055,3 +1055,21 @@ export const subRouter = router({
   }),
 });
 ```
+
+### Other adapters
+#### Custom adapter
+
+The most custom adapter is to create a standalone separate HTTP server running on a specific port with the sole purpose of running TRPC:
+
+```ts
+import { createHTTPServer } from "npm:@trpc/server/adapters/standalone";
+```
+
+```ts
+const server = createHTTPServer({
+  router: appRouter,
+  createContext: () => {},
+});
+server.listen(3000);
+```
+

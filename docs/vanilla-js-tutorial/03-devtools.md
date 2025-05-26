@@ -167,6 +167,11 @@ console.assert(condition: boolean, message: any)
 ```
 ## Devtools basics
 
+### Elements panel shortcuts
+
+- `esc`: brings up the console
+- `h`: hides the currently selected element
+
 ### Mastering the Context menu
 
 When you right click on an element, here all the different options you have available to you:
@@ -179,8 +184,8 @@ When you right click on an element, here all the different options you have avai
 
 These builtin variables can be used in the devtools console.
 
-- `$0` : the last selected element. You can continue this pattern with `$1` for the 2nd recently selected, and so on. Think of it exactly like a stack. Last in, first out.
-- `$_` : the last returned values
+- `$0` : the last selected element that you click on in the elements panel. You can continue this pattern with `$1` for the 2nd recently selected, `$2`, `$3`, `$4`, and `$5`. Think of it exactly like a stack. Last in, first out.
+- `$_` : the last returned value
 
 You then have these builtin functions:
 

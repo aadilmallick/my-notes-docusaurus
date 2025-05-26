@@ -859,37 +859,6 @@ type ArrOfStrOrNum = ToArrayNonDist<string | number>; // returns (string | numbe
 ```
 
 ## Utility types
-
-### Extract and Exclude
-
-Once you understand how `extends` works, you can use the `Extract<>` and `Exclude<>` generic types to query parts of a type of you want.
-
-This is useful when working with union types, and you want to extract out specific parts
-
-```ts
-type FavoriteColors =
-  | "dark sienna"
-  | "van dyke brown"
-  | "yellow ochre"
-  | "sap green"
-  | "titanium white"
-  | "phthalo green"
-  | "prussian blue"
-  | "cadium yellow"
-  | [number, number, number]
-  | { red: number; green: number; blue: number }
-  | never;
-
-// from the union type, return only the types that extends string
-type StringColors = Extract<FavoriteColors, string>;
-
-// from the union type, return only the types that do not extend string
-type NonStringColors = Exclude<FavoriteColors, string>;
-```
-
-- `Extract<T, U>` : returns all subtypes from `T` that extends `U`, meaning whatever subtypes in `T` that could be assignable to type `U` , those are what are going to get extracted.
-- `Exclude<T, U>` : the exact opposite of extract. All subtypes in `T` that are **not** assignable to `U` are what get extracted and returned.
-
 ### `ReturnType<>`
 
 There is a builtin `ReturnType<>` generic that allows you to get and inger the return type of a function on the fly. This is useful if you don't want to manually type out the return type of a function and create a type Alias for that.
@@ -1020,6 +989,15 @@ The `NonNullable<T>` type basically returns the same type but excluding null and
 type A = {a?: number | null}
 type B = NonNullable<A['a']>  // number
 ```
+
+### `Awaited<T>`
+
+A quick thing to note is that using the `awaits` keyword to await a promise will actually wait for all the nested promises to unwrap and resolve before returning. So no matter how many levels deep, `await` avoids callback hell.
+
+> [!NOTE]
+> If there is a promise that returns another promise, and that promise returns a string, `await` simply waits for all those nested promises to resolve, and then returns the string.
+
+The `Awaited<T>` type takes in a promise type and returns the unwrapped final resolved type value of that nested promise chain.
 
 ## Other type things
 
@@ -1165,11 +1143,10 @@ export class PrintAdvanced implements PrintAdvancedColors {
 
 If you are ever in the situation where you want autocomplete for string literal types defined by a union string type, but you also want any string to be a valid value, you need to use some TypeScript type gymnastics to get appropriate autocomplete.
 
-:::warning
-A union type like `"dog" | "cat" | string` will just be broadened into a `string` type, so that's why this approach is not sufficient.
-:::
+> [!WARNING]
+> A union type like `"dog" | "cat" | string` will just be broadened into a `string` type, so that's why this approach is not sufficient.
 
-Instead of having a union type with `string`, have a union type with `(string & {})`.
+Instead of having a union type with `string`, have a union type with `(string & {})`. This lets you expand the type to work for any string, but still gives you autocomplete functionality.
 
 ```ts
 type Padding = "small" | "medium" | "large" | (string & {});
@@ -1181,7 +1158,7 @@ let padding: Padding = "small";
 let padding: Padding = "12px";
 ```
 
-### Mapped Types
+## Mapped Types
 
 Mapped types are like index signatures but on a smaller scale, allowing you to iterate through the keys of a type and assign a corresponding type value to each key.
 
@@ -1228,12 +1205,15 @@ type MakeOptions<T> = {
 type Options = MakeOptions<typeof setOptions>;
 ```
 
-You also have a bunch of mapped types that are built into typescript.
+You also have a bunch of mapped types that are built into typescript:
 
 
-#### `Pick<T>`
+#### `Pick<T, K>`
 
-The `Pick` utility type allows you to extract only the properties you want from an object.
+The `Pick` utility type allows you to extract only the properties you want from an object. The `Pick<T, K>` type takes in two type parameters:
+
+- `T`: an object type with string keys
+- `K`: a union type of the keys you want to choose from the object
 
 ```ts
 interface Person {
@@ -1246,6 +1226,15 @@ const bob: Pick<Person, "name"> = {
   name: "Bob",
 };
 ```
+
+#### `Omit<T, K>`
+
+The `Omit<T, K>` type takes in two type parameters, and is the opposite of the `Pick<T, K>` generic type.
+
+- `T`: an object type with string keys
+- `K`: a union type of the keys you want to omit from the object
+
+
 
 #### `ReadOnly<>`
 
@@ -1264,6 +1253,39 @@ const obj = {
 
 type ReadOnlyIdentifier = ReadOnly<typeof obj>;
 ```
+
+
+#### Extract and Exclude
+
+Once you understand how `extends` works, you can use the `Extract<>` and `Exclude<>` generic types to query parts of a type of you want.
+
+This is useful when working with union types, and you want to extract out specific parts
+
+```ts
+type FavoriteColors =
+  | "dark sienna"
+  | "van dyke brown"
+  | "yellow ochre"
+  | "sap green"
+  | "titanium white"
+  | "phthalo green"
+  | "prussian blue"
+  | "cadium yellow"
+  | [number, number, number]
+  | { red: number; green: number; blue: number }
+  | never;
+
+// from the union type, return only the types that extends string
+type StringColors = Extract<FavoriteColors, string>;
+
+// from the union type, return only the types that do not extend string
+type NonStringColors = Exclude<FavoriteColors, string>;
+```
+
+- `Extract<T, U>` : returns all subtypes from `T` that extends `U`, meaning whatever subtypes in `T` that could be assignable to type `U` , those are what are going to get extracted.
+- `Exclude<T, U>` : the exact opposite of extract. All subtypes in `T` that are **not** assignable to `U` are what get extracted and returned.
+
+
 
 #### `Partial<>`
 
@@ -1328,6 +1350,7 @@ type StoreGetters = Getters<Store>;
 type StoreSetters = Setters<Store>;
 ```
 
+### Advanced mapped types
 #### Filtering keys
 
 You can carry this further to filtering keys before doing something with them by combining mapped types with conditionals.
@@ -1350,23 +1373,6 @@ const store = {
 type OnlySaliva = KeysThatStartWithS<typeof store>;
 ```
 
-Here are custom types that return new objects based on which keys you want to include or exclude: 
-
-```ts
-// T: an object you pass in
-// V: the keys you want to extract from the object
-type WithKeys<T, V extends keyof T> = {
-  [K in V]: T[K];
-}
-
-type WithoutKeys<T, V extends keyof T> = {
-  [K in Exclude<keyof T, V>]: T[K];
-};
-
-const thing: WithKeys<{a: number, b: number}, "a"> = {
-  a: 1,
-}
-```
 
 And here is how you can get only required properties out from an object: 
 
@@ -1389,10 +1395,13 @@ type bruh = OmitRequired<Obj>
 
 - `OmitOptional<T>` : returns back only the required properties from an object
 - `OmitRequired<T>` : returns back only the optional properties from an object
-### Awaited
 
-A quick thing to note is that using the `awaits` keyword to await a promise will actually wait for all the nested promises to unwrap and resolve before returning. So no matter how many levels deep, `await` avoids callback hell.
+#### `Prettify<T>`
 
-- If there is a promise that returns another promise, and that promise returns a string, `await` simply waits for all those nested promises to resolve, and then returns the string.
+This prettify type basically works to prettify any typscript types via mapped types magic:
 
-The `Awaited<T>` type takes in a promise type and returns the unwrapped final resolved type value of that nested promise chain.
+```ts
+type Prettify<T extends Record<string, any>> = {
+	[key in keyof T] : T[key]
+} & {}
+```

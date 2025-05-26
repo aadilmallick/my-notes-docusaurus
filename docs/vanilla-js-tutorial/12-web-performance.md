@@ -1,5 +1,23 @@
 # Learning web performance
 
+## Intro
+
+Web performance is a **frontend problem**, not backend. The only thing the server handles is serving the HTML, which accounts for 5% on average for total page load time.
+
+Optimizing the backend is not a fruitful task. Our efforts are better spent optimizing the frontend.
+
+### Adopt a "mobile-first" mindset
+
+Latency is the time delay between sending packets over an HTTP connection. The time it takes in milliseconds between a packet being sent and it being received.
+
+- max latency for 4g network is 160ms
+- max latency for 5g network is 50ms
+
+The key to making our website performant is to make the website performant on mobile.
+
+- 28% of the world is still on a 3G network, which has high latency, so we have to accommodate for them.
+- Mobile phones have a CPU that is 8x weaker than those of computers, so page load will be 8x slower on mobile.
+
 ## Types of rendering patterns
 
 ### Client side rendering
@@ -65,6 +83,33 @@ FID is the time it takes until the website is able to be interacted with. The ma
 ### CLS
 
 To avoid CLS, you need to prevent elements from shifting across the page all the time. You can achieve this by setting aspect-ratio appropriate `width=` and `height=` attributes on all `<img>` elements. 
+
+### Other Metrics
+
+**Time to first byte**
+****
+TTFB is the time it takes to get the first byte of the web page (like index.html ).
+
+**First interactive**
+****
+First interactive is the time it takes to finish executing the main thread. It is a **user centric** metric that when improved, also improves user experience.
+
+**Speed index**
+
+Speed index is a metric concerned with how fast a website’s loading feels. It measures the percentage of the page rendered every few milliseconds until the page completely loads. It is a **user centric** metric that when improved, also improves user experience.
+
+![](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1748265419/image-clipboard-assets/scend0pv6ujpwknv3rsl.webp)
+
+Speed index is measured by the area above the curve in the graph. The less of the area above the curve (the purple area), the better and **faster the website feels.**
+
+> [!WARNING]
+> The lower the speed index, the better. A good speed index is less than 2.5
+
+
+Basically, if a high percentage of the website is rendered early on rather than later, the website _feels_ like it loaded faster.
+
+- A website with 5 second page load but loads 90% of its content within the first second has a better speed index that a website with 5 second page load but loads only 20% of its content within the first second.
+
 
 ## Images
 
@@ -192,6 +237,14 @@ await imagemin(['public/assets/img/min/**/*.png', 'public/assets/img/*.png'], {
 ### Performance tools
 
 Do an audit of your site at https://pagespeed.web.dev/. Also go here: https://speedvitals.com/
+
+#### Lighthouse
+
+There are three modes in lighthouse for making a report:
+
+- **navigation:** The default. Reloads the page and records page load and other metrics
+- **timespan:** Records how a user interacts with the website over time. Records user interaction over a period of time and reports back
+- **snapshot:** Takes a performance snapshot of the current page without reloading. Useful for SPAs where you don’t want to lose state
 ### Improve time to first byte
 
 You can improve time to first byte via these three methods: 
@@ -210,7 +263,59 @@ HTTP3 uses UDP connections, which is just the server rapid-firing sending data t
 > [!NOTE] 
 > Try to use HTTP3 over HTTP2 whenever possible
 
-#### Speculative loading
+#### Compression Strategies
+
+You can use either GZIP or Brotli file compression to reduce file size and transfer over the wire when sending website assets to the browser because all browsers have built-in mechanisms for decompressing brotli and gzip files. 
+
+**why would you want to use compression?** Because it makes your TTFB metric faster. However, there are some tradeoffs between GZIP and Brotli:
+
+**GZIP**
+****
+GZIP has been a web standard for compression for over two decades now, and offers decent levels of compression while being extremely fast to decompress. GZIP compression uses two techniques in their compression strategy:
+
+- **LZ77:** This part of the algorithm finds repetitive sequences of bytes in the data and replaces them with pointers to previous occurrences. For example, if the word "the" appears multiple times, subsequent instances can be replaced with a reference to the first occurrence.
+- **Huffman Coding**: This is a form of entropy encoding. It assigns variable-length codes to the data, with more frequent symbols receiving shorter codes and less frequent symbols receiving longer codes. This further reduces the overall size of the data.
+
+> [!NOTE]
+> Since GZIP works at the binary level and not at the text level, it achieves standard performance on all assets, not just text-based files.
+
+**Brotli**
+****
+Brotli is a newer compression algorithm developed by Google, and achieves higher compression than GZIP but suffers larger decompression times. They use 4 techniques that help them achieve stellar compression on text-based files:
+
+1. **Dictionary-Based Compression**: Brotli uses a pre-defined, static dictionary of common words, phrases, and code snippets found in web resources. This dictionary contains over 120,000 entries. When it encounters a sequence in the data that matches an entry in the dictionary, it can replace that sequence with a short reference to the dictionary entry. This is particularly effective for text-based web content like HTML, CSS, and JavaScript, which often contain repetitive patterns.
+2. **Context Modeling**: Brotli uses context modeling to predict the probability of the next symbol based on the surrounding symbols. This helps in more efficient entropy coding.
+3. **Second-Order Context Modeling**: This is an advanced technique where the prediction of the next symbol is based on the two preceding symbols, leading to even better compression.
+4. **Improved Huffman Coding**: Brotli utilizes a more sophisticated form of Huffman coding compared to Gzip.
+
+> [!NOTE]
+> This approach on focusing on text-based compression makes Brotli the optimal choice for achieving high compression for text files, but the slow decompression time means you'll want to use Brotli for static assets that won't change too often.
+
+
+**GZIP vs Brotli**
+****
+
+Here is the main tradeoff between GZIP and Brotli summarized:
+
+- **GZIP** has low compression but fast at decompressing
+- **Brotli** has high compression but slow at decompressing, (excels at text-based)
+
+Therefore GZIP is the best bet for serving assets that change often (dynamic HTML routes) while Brotli is the best bet for serving assets that are mostly static (CSS , JS for PWA) and when you implement aggressive caching to not deal with the long decompression time.
+
+**implementing file compression**
+****
+It's important to realize that you should only use GZIP and Brotli on text-based website assets, as you'll often want other compression methods to use for images, videos, and the like.
+
+Here is a well-used strategy to implement file compression on your server:
+
+1. **Content Negotiation**: Modern web servers can use HTTP's `Accept-Encoding header` to determine which compression algorithms the user's browser supports.
+2. **Prioritize Brotli:** Configure your server to prefer Brotli if the browser supports it (`br` in the Accept-Encoding header).
+3. **Fallback to Gzip**: If the browser does not support Brotli (or `br` is not present in the header), fall back to Gzip (`gzip` in the `Accept-Encoding` header).
+4. **No Compression**: As a final fallback, serve the uncompressed resource if neither is supported.
+
+Use aggressive caching when dealing with Brotli so you don't have to deal with serving the asset and making the browser decompress it again.
+
+#### Speculative loading (reduce DNS connection time)
 
 Speculative loading comes in two flavors: 
 
@@ -259,6 +364,8 @@ The first time the user requests the CDN, it will be a cache miss and the CDN wi
 
 ### Improve FCP
 
+The browser can only download up to 5 resources in parallel, so at some point we have to start deciding which assets are the most essential to download first and make the site load faster.
+
 To improve FCP, we need to do these three things: 
 
 1. Remove sequence chains
@@ -273,9 +380,20 @@ For example, if your CSS requests a Google Font via URL and then requests anothe
 
 The solution is to create a single bundle for your CSS that includes all its dependencies inside it, so instead you just make 1 request to one massive thing instead of 5 requests to 5 semi-massive things that can't be parallelized. 
 
-#### Preload resources
+#### Remove unused CSS or JS
 
-It's important to preload resources on the internet, like google fonts, CDNs, and external stylesheets. 
+On the chrome devtools, you can go to the **coverage** tab, which will show you the current assets being used ont he website and how much of the CSS or JS is unused. This lets you do cool things like only loading the CSS or JS when necessary.
+
+#### Preload vs Prefetch
+
+Two concepts that are vital to downloading essential resources ahead of time are preloading and prefetching:
+
+- **preloading**: Downloads resources ahead of time and prioritizes them. Putting a `<link rel="preload" />` tag in your HTML preloads that resource ahead of time and puts it in the beginning of the network waterfall.
+- **prefetching**: Downloads an entire URL ahead of time, which would be something like a website URL. This is useful for pre-downloading the next page in your site you think the user is going to click on.
+
+**preloading**
+****
+It's important to preload resources on the internet, like google fonts, CDNs, and external stylesheets, all these external or internal resources that are needed for the functionality and appearance of your web app.
 
 Here are the attributes you should put on a `<link>` tag to make it preload a resource:
 
@@ -304,7 +422,8 @@ If you are trying to preload a javascript file, it's better to use think link be
 
 Preload rules:
 
-1. When everything is important, nothing is important. Only use preload to improve LCP, like preloading the hero image
+1. When everything is important, nothing is important. Only use preload to improve LCP, like preloading the hero image or preloading 
+2. Do not preload anything that is visible in your HTML file. The browser already knows about it.
 
 
 > [!TIP] 
@@ -525,3 +644,21 @@ if (HTMLScriptElement.supports &&
   document.body.append(specScript);
 }
 ```
+
+## Improving JavaScript Performance
+
+### Memory Leaks in Js
+
+There are 4 common culprits in JS for memory leaks:
+
+1. Creating global variables and not dereferencing them
+2. Creating variables in closures
+3. Creating too many event listeners and not cleaning them up
+4. Creating an interval with `setInterval()` and not clearing it
+
+You can discover memory leaks in the devtools in the **memory** pane. It will look something like this:
+
+![](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1748273071/image-clipboard-assets/sm7zc3lvs5xh3mycocnh.webp)
+
+- **shallow size**: how much memory the object itself is taking up
+- **retained size**: how much memory you would get back if you dereferenced that object, which includes calculations of how many references you have pointing to that same object.

@@ -190,6 +190,17 @@ these modifiers are universal and can be used on any primitive type:
 
 **string modifiers**
 ****
+- `z.brand<T>()`: used for **type branding**, when you want typescript to infer your string type as a literal.
+
+```ts
+const hexColorSchema = z
+  .string()
+  .regex(/^#([0-9a-fA-F]{6})$/)
+  .brand<HexColor>();
+
+const hexColor = hexColorSchema.parse("#123456");
+```
+
 
 **number modifiers**
 ****
@@ -243,7 +254,66 @@ const catSchema = z.object({
 const dogOrCatSchema = dogSchema.merge(catSchema);
 const {meows, name} = dogOrCatSchema.parse({});
 ```
-### Enums, unions, tuples
+
+**Zod modes**
+
+There are three main modes in zod when it deals with the concept of **duck typing** and how to deal with objects that fit the schema but have have extra properties:
+
+- **strip mode (default)**: If an object that fits the schema also has extra properties, Zod will automatically transform it to strip those extra properties so that the returned object EXACTLY fits the schema
+- **passthrough mode**: If an object that fits the schema also has extra properties, Zod will let the object keep those properties. This is useful for being permissive and for doing debugging.
+- **strict mode**: If an object that fits the schema also has extra properties, Zod will interpret that as failing the schema and will throw an error.
+
+```ts
+const baseObj = z.object({ name: z.string() });
+
+// Strict
+const strictObj = baseObj.strict();
+strictObj.parse({ name: 'Zod', age: 99 });
+// => throws: unrecognized key "age"
+
+// Passthrough
+const passObj = baseObj.passthrough();
+passObj.parse({ name: 'Zod', age: 99 });
+// => { name: "Zod", age: 99 }
+
+// Default (strip)
+baseObj.parse({ name: 'Zod', age: 99 });
+// => { name: "Zod" } (age is stripped out)
+```
+
+> [!NOTE]
+> To remember it better, you can think about these modes from least permissive to most permissive:
+> 
+> - **strict** (least permissive) -> **strip** (default) -> **passthrough** (most permissive)
+
+
+
+#### Transforms
+
+Transforms work to ensure that a variable fits a zod schema first, and after it does so, it runs additional transformations on that value using `z.transform()`. This is useful for reusable pipelines:
+
+```ts
+import { z } from "npm:zod";
+
+const stringToDateSchema = z.string().transform((val) => {
+  try {
+    return new Date(val);
+  } catch (e) {
+    throw e
+  }
+});
+
+const date = stringToDateSchema.parse("2025-05-25");
+console.log(date);
+```
+
+In the example above, we approached the difficult problem of determining whether or not a string represents a valid date string by first ensuring it was a string, and then trying to transform it into a `Date` object in javascript with `z.transform()`:
+
+- If transformation works, then date string was valid
+- If transformation fails, throw an error 
+
+### Miscellaneous Zod types
+#### Enums, unions, tuples, intersections
 
 you can create an enum like so to create union literal typing like so:
 
@@ -265,7 +335,15 @@ You can create a union type with `z.union()` type which takes in an array of zod
 const stringOrNumber = z.union([z.string(), z.number()])
 ```
 
-### records, maps
+Intersections are basically the same thing as merging schemas, but can be applied to all zod types, not just objects. You use them with the `z.intersect()` method:
+
+```ts
+const stringSchema = z.object({ a: z.string() });
+const numberSchema = z.object({ b: z.number() });
+const intersectionSchema = z.intersection(stringSchema, numberSchema);
+```
+
+#### records, maps
 
 Records in zod have a string up on their TS counterparts because of the power of runtime validation and stringent requirements. You can use the `z.record()` method and then pass in any single zod type.
 
@@ -363,6 +441,26 @@ const userSchema2 = z.object({
 #### Adding custom messages
 
 You can add custom messages for when validation fails at certain stages, which is possible at each modifier as an optional argument.
+
+### Creating recursive schemas
+
+You can create recursive schemas that reference themselves by using `z.lazy()` and returning a self-referential schema in the callback:
+
+```ts
+const serializableSchema = z.lazy(() => {
+  return z.record(
+    z.string(),
+    z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined(), serializableSchema])
+  );
+});
+
+const parent = z.lazy(() => {
+  return z.object({
+    name: z.string(),
+    children: z.array(parent),
+  });
+});
+```
 
 ### Zod 3rd-party integrations
 
