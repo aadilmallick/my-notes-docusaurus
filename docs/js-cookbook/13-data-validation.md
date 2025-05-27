@@ -288,7 +288,7 @@ baseObj.parse({ name: 'Zod', age: 99 });
 
 
 
-#### Transforms
+#### Transforms and coerce
 
 Transforms work to ensure that a variable fits a zod schema first, and after it does so, it runs additional transformations on that value using `z.transform()`. This is useful for reusable pipelines:
 
@@ -311,6 +311,19 @@ In the example above, we approached the difficult problem of determining whether
 
 - If transformation works, then date string was valid
 - If transformation fails, throw an error 
+
+**coercing**
+****
+If you don't want to go through the hassle of writing a custom transform and instead just want to force an input to be a certain type, you can use the `z.coerce()` modifier. This is how we can rewrite the above example in less code:
+
+```ts
+const stringToDateSchema = z.string().pipe(z.coerce.date());
+
+const date = stringToDateSchema.parse("2025-05-25"); // "dog" would fail
+console.log(date);
+```
+
+If you pass in a value into `z.coerce()` that cannot be coerced at all (zod tries its hardest), then it would throw an error.
 
 ### Miscellaneous Zod types
 #### Enums, unions, tuples, intersections

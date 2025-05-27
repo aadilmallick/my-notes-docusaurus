@@ -2,8 +2,8 @@
 https://stevekinney.com/courses/visual-studio-code
 ## Keyboard shortcuts
 
-- `ctrl + shift + up arrow` : collpase up emmet
-- `ctrl + shift + down arrow`: collapse down emment
+- `ctrl + shift + right arrow` : selects up (idk how to explain this)
+- `ctrl + shift + left arrow`:  selects down (idk how to explain this)
 - `ctrl + d, ctrl + k`: when highlighting instances of text, use **ctrl + k** to skip instances
 - `ctrl + p + p`: **ctrl peepee** goes back to the most recent file
 - `ctrl + k`: bring up list of keybindings
@@ -11,6 +11,8 @@ https://stevekinney.com/courses/visual-studio-code
 - `ctrl + w`: closes the currently opened file
 - `alt + up arrow`: moves code line up
 - `alt + up down`: moves code line down
+- `alt + click`: creates an extra cursor where you click to get multiple cursors
+- `ctrl + u`: undoes a misplaced cursor when dealing with creating multiple cursors
 - `ctrl + space`: brings up intellisense suggestions
 - `ctrl + shift + space`: brings up parameter info when pressing this keyboard shortcut inside the parenthesis of a function call.
 - `ctrl + l`: highlights lines of text
@@ -18,6 +20,17 @@ https://stevekinney.com/courses/visual-studio-code
 - `ctrl + [`: tabs to the right
 - `ctrl + ]`: tabs to the left
 - `ctrl + shift + k`: deletes current line
+- `ctrl + enter`: moves cursor down a line, creating an empty line
+- `ctrl + shift + enter`: moves cursor up a line, creating an empty line
+- `ctrl + /`: comments out a line or lines of selected code
+- `shift + alt + /` or `shift + option + /`: comments out only the selected text. Useful for fine grained commenting-out
+- `ctrl + tab`: switch between tabs in VScode
+- `ctrl + <panel/tab index>`: switches between panels in VScode. There are 9 panels. If there are no panels open, it just switches between tabs.
+- `ctrl + shift + tilde` :brings up a terminal in vscode. In mac, you use ctrl, not command.
+- `ctrl + tilde`: switches focus to terminal
+- `ctrl + shift + f`: global search across workspace
+- `fn + f2`: refactor across codebase (much better than ctrl + d  )
+- `ctrl + shift + o`: searches for symbols in the current file (same as opening up command palette and typing `@` prefix to initiate symbol search mode)
 
 ## Essentials
 
