@@ -84,7 +84,7 @@ You can nest content as well inside using curly braces `{}`. There are several t
 
 Snippets are a way to type a prefix in a file and to write out some boilerplate in the code file. This is very useful if you find yourself copying and typing the same boilerplate over and over again.
 
-You can create workspace or global snippets by opening up the command pallete and selecting **create snippet**.
+You can create workspace or global snippets by opening up the command pallete and selecting **create snippet**. Then either a global snippet will be created that works across all workspaces, or you can create workspace-specific snippets inside the `.vscode` folder.
 
 ```json
 {
@@ -189,4 +189,121 @@ This is an example that puts the currently selected code in a try-catch block:
     ],
     "description": "Put copied text in a try catch block."
   }
+```
+
+## Workspace specific configuration with `.vscode`
+
+Let's talk about all the different files you can have in `.vscode`, which is the folder that contains all JSON configuration files for your workspace settings.
+
+Here are the different files you can have in your `.vscode`:
+
+| File                    | Purpose                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `settings.json`         | Overrides user settings specifically for this workspace.                      |
+| `launch.json`           | Configures debugging setups (e.g., how to launch a program, attach debugger). |
+| `tasks.json`            | Defines custom tasks (e.g., build scripts, linters, test runners).            |
+| `extensions.json`       | Recommends extensions for the current workspace.                              |
+| `c_cpp_properties.json` | (C/C++ only) Defines IntelliSense settings for the C/C++ extension.           |
+| **devcontainers**       | builds a devcontainer for the workspace from a `devcontainer.json`            |
+| **snippets**            | has workspace-level snippets                                                  |
+
+### `extensions.json`
+
+The `extensions.json` is going to look like this, and it shows up recommended extension to install for this workspace, which is super useful for collaboration.
+
+```json
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode"
+  ]
+}
+```
+
+### `tasks.json`
+
+**Tasks** in VsCode are essentially like npm scripts except they can be run from the command palette. You just list them in a `tasks.json` file first:
+
+```json title=".vscode/tasks.json"
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "tsc: build the project", // what shows up in command palette
+      "type": "shell",       // type of script to run (shell for linux)
+      "command": "tsc",      // the command to run
+      "problemMatcher": "$tsc", // use tsc tool to parse error output,
+      "group": {              // create group for additional organization
+        "kind": "build",
+        "isDefault": true,
+      },
+    }
+  ]
+}
+```
+
+> [!NOTE]
+> VSCode will automatically detect npm scripts from `package.json` and add them as recognizable tasks it can run.
+
+Here is another example of creating tasks:
+
+```json title=".vscode/tasks.json"
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Lint",
+      "type": "npm",
+      "script": "lint",
+      "group": "build", // Allows Run Build Task to trigger lint
+      "problemMatcher": ["$eslint-stylish"] // Highlights ESLint errors in Problems pane
+    },
+    {
+      "label": "Test",
+      "type": "shell",
+      "command": "npm run test", // Or a direct test runner command
+      "group": "test", // Allows Run Test Task to trigger tests
+      "problemMatcher": [] // (Attach a matcher if test output can be parsed for errors)
+    },
+    {
+      "label": "Build (Frontend)",
+      "type": "shell",
+      "command": "npm run build", // Runs Vite or tsc build for frontend
+      "problemMatcher": ["$tsc"] // Use TypeScript matcher to catch type errors
+    },
+    {
+      "label": "Dev Server (Frontend)",
+      "type": "npm",
+      "script": "dev", // Launches Vite dev server
+      "isBackground": true, // Mark as long-running background task
+      "problemMatcher": "$tsc-watch" // Treat TS compile errors during dev
+    }
+  ]
+}
+```
+
+#### Using variables
+
+When running a task, you can also display a VSCode quick picker to get user input from a list of choices and store that as a variabel you can use in your app:
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Deploy",
+      "type": "shell",
+      "command": "npm run deploy -- --env ${input:whichEnv}",
+    },
+  ],
+  "inputs": [
+    {
+      "id": "whichEnv",
+      "type": "pickString",
+      "description": "Select environment to deploy to",
+      "options": ["development", "staging", "production"],
+      "default": "development",
+    },
+  ],
+}
 ```

@@ -324,6 +324,120 @@ identify.on("exit", (code: number) => {
 });
 ```
 
+### Wrapper CLI class
+
+Here's a wrapper CLI class around all of that:
+
+### Using 3rd party libraries: zx
+
+Install like so:
+
+```bash
+npm i zx
+npm i -D @types/fs-extra @types/node
+```
+
+Just like how you can do bun shell scripting with `$`, you can do the exact same thing with google's `zx` library, which uses tagged template literal functions and escapes and sanitizes all input.
+
+```ts
+import { $ } from 'zx';
+
+await $`ls -la`;
+const branch = await $`git branch --show-current`;
+await $`mkdir -p ${branch}/src`;
+```
+
+- `$`: tagged template literal function that runs shell commands asynchronously and returns a `ProcessOptions` object
+- `$.sync`: tagged template literal function that runs shell commands synchronously and returns a `ProcessOptions` object
+
+Here is what the `ProcessOptions` object that is returned looks like, and you can just print it out with the `toString()` implementation.
+
+```ts
+class ProcessOutput {
+  readonly stdout: string
+  readonly stderr: string
+  readonly signal: string
+  readonly exitCode: number
+
+  toString(): string // Combined stdout & stderr.
+}
+```
+
+#### Not awaiting the promise
+
+The `$` async function doesn't return a normal promise. Rather it returns a wrapper aorund that promise called a `ProcessPromise`, which has extra utilities like seeing the duration of the promise, what stage it is in, and even getting data from the promise without outputting to the command line.
+
+When you don't await the promise, you can do stuff with it:
+
+```ts
+const p = $`echo 'foo\nbar'`
+
+await p.text()        // foo\n\bar\n
+await p.text('hex')   //  666f6f0a0861720a
+await p.buffer()      //  Buffer.from('foo\n\bar\n')
+await p.lines()       // ['foo', 'bar']
+await $`echo '{"foo": "bar"}'`.json() // {foo: 'bar'}
+```
+
+You can even consume it in an async generator fashion with a `for ... await` loop:
+
+```ts
+const p = $`echo "Line1\nLine2\nLine3"`
+for await (const line of p) {
+  console.log()
+}
+```
+
+You can use them in a stream-like fashion:
+
+```ts
+await $`echo "Hello, stdout!"`
+  .pipe('/tmp/output.txt') // pipes stream output to a file
+```
+
+You can also pipe shell commands together:
+
+```ts
+const greeting = await $`printf "hello"`
+  .pipe($`awk '{printf $1", world!"}'`)
+  .pipe($`tr '[a-z]' '[A-Z]'`)
+
+echo(greeting)
+```
+
+#### Advantages and niche features
+
+The zx library offers a couple of niche yet appreciated features that improves DX greatly:
+
+- No need to put anything like double quotes or single quotes, because anything interpolated with the tagged template literals `${...}` is automatically parsed and put in single quotes.
+- You can pass in an array of flags instead of joining them with spaces.
+
+
+```ts
+const flags = [
+  '--oneline',
+  '--decorate',
+  '--color',
+]
+await $`git log ${flags}`
+```
+
+Since zx escapes everything by default, you can't use glob syntax. Instead, you have to use this `glob()` function:
+
+```ts
+const files = await glob('./**/*.md')
+await $`ls ${files}`
+```
+
+Since zx escapes everything by default, you can't refer to the home directory with `~`. Rather, you must get it programmatically through something like `os.homedir()` 
+
+```ts
+await $`ls ${os.homedir()}/Downloads` // Correct
+```
+
+![assembling commands](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1748440241/image-clipboard-assets/cbr8kowzywcys6oawfvi.webp)
+
+
 ## PM2
 
 The `pm2` command line tool which you can install with `npm i -g pm2` allows you to run node programs as **daemon threads**, meaning that the will continue to run in the background perpetually until you yourself tell them to stop executing.

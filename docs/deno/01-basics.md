@@ -143,3 +143,11 @@ import * as fs from "node:fs";
 import * as http from "node:http";
 ```
 
+
+## Jupyter notebooks in deno
+
+You can add deno kernels to jupyter notebook with the `deno jupyter --install` command. Once you're there, yoiu can start running cells with Deno
+
+### Importing files
+
+The important thing to know about importing TS files into deno is that you can only import them via absolute path (NOT FILE URL).
