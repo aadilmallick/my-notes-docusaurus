@@ -91,6 +91,24 @@ The `docker run` command runs the container based on the instructions in the doc
 
 ### DockerFile
 
+#### Variables
+
+**environment variables**
+****
+
+You can specify environment variables with the `ENV` command and then provide a key value pair, like so:
+
+![](https://i.imgur.com/XDF9Obb.png)
+
+**args**
+
+The `ARGS` command in docker allows you to define variables in your dockerfile and then use template string interpolation with `${...}` to access those variables.
+
+![](https://i.imgur.com/GWwjPMO.png)
+
+
+
+
 #### Making secure containers
 
 When creating the docker file, remember that the default user is root.
@@ -742,7 +760,7 @@ services:
 
 The `services` key specifies the different containers to build as subkeys. Here we are making a `web` container from our dockerfile and and a `db` container from the mongo image from dockerhub.
 
-For each service, you can define the behavior of how to manage that container:
+For each service, you can define the behavior of how to manage that container. Here are the most important keys
 
 - `build` : the folder in which the `Dockerfile` is located. Use this if building a container from a dockerfile.
 - `ports` : the port forwarding list, in port string form where it’s `"<local-port>:<container-port>"`
@@ -750,10 +768,73 @@ For each service, you can define the behavior of how to manage that container:
 - `image` : use this key to specify a dockerhub image to build from. You cannot use this if `build` is already specified.
 - `links` : this key establishes network connections to other containers via docker neetworks. It also specifies dependency, meaning that the `web` container will not run until the `db` container builds first
 - `environment` : defines any environment variables.
+- `command`: overrides the `CMD` of the container. This should be an array of strings, each string representing a single word.
 
 #### Reading environment variables
 
 You can define key value pairs either from the `environment` key or get environment variables from an `.env` file with the `env_file` key. You can use both at the same time.
+
+```yaml
+services:
+  app:
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:password@db:5432/mydatabase
+      - API_KEY=${MY_API_KEY} # Read from host environment variable
+    env_file:              # Load environment variables from a file
+      - .env
+```
+
+#### Volumes and bind mounts
+
+You can specify volumes to use in docker compose, and the main advantage of docker compose with volumes is that you can create volumes on the fly, share volumes between services, and attach them easily.
+
+Here are the three ways you refer to bind mount and volumes with docker compose:
+
+- **Named Volumes**: `volume_name:/path/in/container`
+- **Bind Mounts**: `/path/on/host:/path/in/container`
+- **Bind Mount with Options**: `/path/on/host:/path/in/container:ro` (read-only)
+
+```yml
+services:
+  db:
+    volumes:
+      - db_data:/var/lib/postgresql/data # Use a named volume
+  app:
+    volumes:
+      - ./app:/usr/src/app              # Bind mount local source code
+      - /var/log/app_logs:/app/logs     # Bind mount host directory for logs
+```
+
+#### `depends_on`
+
+You can specify that a service needs another service to run before it before starting using the `depends_on` key. The main use case for this is a web app that needs the database to be up and running first.
+
+```yaml
+services:
+  app:
+    depends_on:
+      - db
+  web:
+    depends_on:
+      - app
+```
+
+#### restart policy
+
+the `restart` key configures the container's restart policy, which controls the restarting behavior of a container after it gets killed. Here are the different values you can pass:
+
+- `no`: Do not automatically restart.
+- `on-failure`: Restart only if the container exits with a non-zero exit code.
+- `always`: Always restart, even if the container exits cleanly.
+- `unless-stopped`: Always restart unless the container is stopped manually.
+
+```yaml
+services:
+  app:
+	command: ["sh", "exit"]
+    restart: unless-stopped
+```
 
 ### Docker compose CLI
 
@@ -768,6 +849,16 @@ Here's the compose reference:
 - `docker compose down`: stops all running containers
 - `docker compose ps`: lists all containers belonging to the current compose project
 - `docker compose logs`: shows the logs for all the running compose services
+
+You also have commands to run individual services instead of doing all at once, a great use case for testing out services instead of doing the whole shebang.
+
+- `docker compose run <service_name>`: runs the individual service
+- `docker compose run <service_name> <command>`: runs the individual service and overrides the `CMD` with the specified command.
+- `docker compose ps <service_name>`: provides detailed info about the specified service.
+
+![](https://i.imgur.com/Hx2ay5g.png)
+
+![](https://i.imgur.com/du6cBrf.png)
 
 ### Watch mode with docker compose
 
@@ -822,7 +913,7 @@ services:
 
 ```
 
-### Compose example
+### Compose examples
 
 #### Server with postgres
 

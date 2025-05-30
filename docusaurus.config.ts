@@ -214,6 +214,7 @@ export default async function createConfigAsync() {
         prism: {
           theme: prismThemes.github,
           darkTheme: prismThemes.dracula,
+          additionalLanguages: ["docker"],
         },
       },
   } satisfies Config;
