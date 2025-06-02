@@ -1,4 +1,153 @@
 
+## Keyboard shortcuts
+
+- `CTRL + A `– takes you to the beginning of the line
+- `CTRL + E` – takes you to the end of the line
+- `CTRL + K` – delete (yank) everything after the cursor
+- `CTRL + U` – delete (yank) everything before the cursor
+- `CTRL + Y` - "paste" everything you yanked (paste in quotes because it doesn't actually go into your system clipboard, only your bash clipboard).
+- `CTRL + L` - clear the screen
+- `CTRL + R` – reverse search through history
+- `CTRL + D` - exit bash shell
+
+
+## Bash History
+
+You can use the `history` command to see a record of all your bash history.
+
+## Learning about commands
+
+These are helper commands that help you learn about other commands:
+
+- `help <command>`: shows the MAN page for the specified command.
+- `which <command>`: shows the file location for the specified command.
+- `type <command>`: tells which type a specified command is. 
+
+For the `type` command, there are 4 types of things a command could be:
+
+1. executable “bin” commands
+2. built-in shell command
+3. shell function
+4. alias
+
+
+## Dealing with files
+
+### Getting file info
+
+To get information about the what resource a filepath actually is, use the `file` command:
+
+- `file <filepath>`: describes whether the filepath is a symlink, file, or directory.
+
+#### `wc`
+
+The `wc` command tells us the number of words, lines, or bytes in a file.
+- `wc <filename>` : outputs three numbers, where first is **number of lines**, **number of words**, and **number of bytes**.
+
+You also have these options:
+- `-l` : only outputs number of lines.
+- `-w` : only outputs word count
+
+### Reading files
+
+You can use the `cat` command to print out the contents of a file, or have a nice time reading the file using `less`.
+
+```bash
+cat <filename> # prints out file contents to stdout
+less <filename> # shows file content in dedicated reader
+```
+
+#### `cat`
+
+Here is basic usage of the `cat` commandL
+
+- `cat <filename>` : prints out the content of the file.
+- `cat FILES...` : concatenates the contents in all the specified files and prints them all out at once.
+
+You also have options on this command:
+-  `-n` : prints out line numbers along with text
+
+#### `less`
+
+You have these navigation commands while in the `less` reader:
+
+- **q** to quit
+- **space bar** to go down a page
+- **b** to go up a page
+- `/<pattern>` to search for a pattern
+
+You also have these options:
+
+- `-N` : displays line numbers along with text
+
+#### `head` and `tail`
+
+- `head <filename>` : prints out the first 10 lines of a file
+- `tail <filename>` : prints out the last 10 lines of a file
+- `head -n NUMLINES FILENAME` : prints out the first numlines lines of a file.
+- `tail -n NUMLINES FILENAME` : prints out the last numlines lines of a file.
+
+### Creating folders and files
+
+There are multiple ways to create folders and files. To make a folder, you would use the `mkdir` command:
+
+- `mkdir -p`: the `-p` option creates all subdirectories in the directory path.
+
+```bash
+mkdir new_dir
+mkdir -p new_dir/sub_dir/even_more_sub_dir
+```
+
+To create files, you would use the `touch` command or you would use redirection to a file:
+
+```bash
+touch <filename>
+```
+
+### Deleting folders and files
+
+To delete folders and files, you use the `rm` command, and you can pair that with extra options:
+
+```bash
+rm FILENAME...
+```
+
+- `rm <filepath>` : deletes the specified file or folder permanently
+- `rm -d <foldername>` : removes the empty directory
+- `rm -r <foldername>` : recursively deletes the directory and its contents.
+    - Pair the `-r` option with `-i` for extra safety, for the shell to prompt you for confirmation before deleting each file.
+    - Pair the `-r` option with `-f` to force deletion, to skip confirmation. Obviously be careful with this.
+- `rm -i <filepath>` : prompts the user for confirmation before deleting.
+- `rm -f <filepath>` : skips user confirmation when deleting.
+
+### Moving/Renaming folders and files
+
+The `mv` command does both renaming and moving of files and directories, but the key difference is that renaming only exists when using the `mv` command on one source at a time.
+
+- `mv <source> <destination>` : moves the specified file to the specified destination
+- `mv SOURCE... DESTINATION` : moves multiple files into the same folder at once
+- `mv <folder> <destination>` : moves the specified folder to the specified destination.
+    - The folders and destination must exist, otherwise it just renames folders.
+- `mv FOLDERS... DESTINATION` : moves multiple folders to the specified destination at once.
+    - The folders and destination must exist, otherwise it just renames folders.
+
+### Copying folders
+
+- `cp <source> <destination>` : copies the specified file to the specified destination.
+    - If destination does not exist, it will rename the copy.
+- `cp SOURCE... DESTINATION` : copies multiple files at once to the same destination.
+- `cp -r <folder> <destination>` : copies the directory recursively to the new destination.
+## Dealing with processes
+
+You can see all current processes running with `ps aux`. 
+
+### Killing processes
+
+You can kill any process in the foreground with `CTRL + D`, but you can also use the `kill` command to kill processes:
+
+- `kill -9 <pid>`: ungracefully kills a process, specified by the process id
+- `kill -l`: see options for the `kill` command
+
 ## Working with the shell environment
 
 ### Adding to path
