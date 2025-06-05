@@ -1,6 +1,4 @@
-import ConvertMarkdownBlock from "@site/src/components/examples/ConvertMarkdownBlock";
 
-<ConvertMarkdownBlock />
 
 ## mongodb shell
 

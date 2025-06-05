@@ -194,16 +194,16 @@ export function convertEmbedBlocks(): void {
 }
 
 // Auto-run conversion when DOM is ready
-if (typeof window !== "undefined") {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", convertEmbedBlocks);
-  } else {
-    // Document is already loaded
-    convertEmbedBlocks();
-  }
+// if (typeof window !== "undefined") {
+//   if (document.readyState === "loading") {
+//     document.addEventListener("DOMContentLoaded", convertEmbedBlocks);
+//   } else {
+//     // Document is already loaded
+//     convertEmbedBlocks();
+//   }
 
-  // Also run on route changes (for SPA navigation)
-  window.addEventListener("popstate", () => {
-    setTimeout(convertEmbedBlocks, 100);
-  });
-}
+//   // Also run on route changes (for SPA navigation)
+//   window.addEventListener("popstate", () => {
+//     setTimeout(convertEmbedBlocks, 100);
+//   });
+// }
