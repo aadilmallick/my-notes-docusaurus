@@ -367,6 +367,12 @@ docker cp data/. fluffy_waffle:/app/data
 
 ### CLI reference
 
+#### `docker build`
+
+- `docker build --file=<filename>`: points to a specific dockerfile for building an image. Useful if you have different dockerfiles for prod and dev.
+- `docker build --no-cache` : builds a docker image but without caching any layers or fetching from the cache.
+- `docker build --target=<stage-name>` : builds a docker image from the specified stage in the dockerfile, which is useful for debugging or dev vs prod purposes.
+
 #### Containers
 
 **container lifecycle**
