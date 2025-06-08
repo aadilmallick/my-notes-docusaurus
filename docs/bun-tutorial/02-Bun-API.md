@@ -1,18 +1,5 @@
 # 02: Bun API 
 
-## Environment variables 
-
-All environment variables from any `.env` files are automatically loaded into `process.env`, so just use `process.env` to access any environment variables. 
-
-You can also set environment variables in scripts, like so by setting it in front of the command you're trying to run.
-
-```json title="package.json"
-{
-  "scripts": {
-    "dev": "NODE_ENV=development bun run --watch index.ts"
-  }
-}
-```
 
 ## Bun utilities
 

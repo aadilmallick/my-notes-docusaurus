@@ -222,7 +222,7 @@ The `extensions.json` is going to look like this, and it shows up recommended ex
 
 ### `tasks.json`
 
-**Tasks** in VsCode are essentially like npm scripts except they can be run from the command palette. You just list them in a `tasks.json` file first:
+**Tasks** in VsCode are essentially like npm scripts except they can be run from the command palette. You just list them in a `tasks.json` file first and describe each individual task as an object in the `"tasks"` array:
 
 ```json title=".vscode/tasks.json"
 {
@@ -241,6 +241,25 @@ The `extensions.json` is going to look like this, and it shows up recommended ex
   ]
 }
 ```
+
+Here are the keys that make up a single task:
+
+- `"label"`: the task name
+- `"type"`: just use `"shell"` to run shell commands.
+- `"detail"`: the task description
+- `"command"`: the shell command to run
+- `"group"`: Defines the task's group and whether it's the default for that group.
+	- `"kind"`: A string indicating the group type. Common kinds include:
+		- `"build"`: For compilation or transpilation tasks.
+		- `"test"`: For running tests.
+		- `"clean"`: For cleaning build artifacts.
+		- `"none"`: No specific group.
+	- `"isDefault"`: A boolean. If true, this task will be executed when you run the group's default action (e.g., Terminal > Run Build Task...).
+- `"problemMatcher"`: This is a crucial property for integrating task output with VS Code's problem panel. It specifies how VS Code should parse the output of your task to identify errors, warnings, and information messages. you have three important types of problem matchers you can choose:
+	- `"$tsc"`: TypeScript compiler
+	- `"$tsc-watch"`: TypeScript compiler in watch mode
+	- `"$eslint"`: ESLint
+- `isBackground`: a boolean that if set to true, runs the task as a daemon in the background, like running a server.
 
 > [!NOTE]
 > VSCode will automatically detect npm scripts from `package.json` and add them as recognizable tasks it can run.
@@ -284,7 +303,36 @@ Here is another example of creating tasks:
 
 #### Using variables
 
+Here is how you can use variables in VSCode tasks:
+
+* `${workspaceFolder}`: The path to the folder opened in VS Code.
+* `${workspaceFolderBasename}`: The name of the folder opened in VS Code (without the path).
+* `${file}`: The current opened file.
+* `${relativeFile}`: The current opened file relative to `workspaceFolder`.
+* `${fileBasename}`: The current opened file's basename.
+* `${fileBasenameNoExtension}`: The current opened file's basename without its extension.
+* `${fileDirname}`: The current opened file's dirname.
+* `${fileExtname}`: The current opened file's extension.
+* `${lineNumber}`: The current selected line number in the active file.
+* `${selectedText}`: The current selected text in the active file.
+* `${pathSeparator}`: The path separator used by the operating system (`/` on Linux/macOS, `\` on Windows).
+* `${cwd}`: gets the current working directory in which the task is run from
+
+bESIDES the global variables, you also have three possible ways to interpolate different types of variables:
+
+* `${config:name}`: Reads a VS Code configuration setting (e.g., `${config:editor.tabSize}`).
+* `${env:VAR_NAME}`: Reads an environment variable (e.g., `${env:PATH}`).
+* `${input:variableName}`: Prompts the user for input (requires an `inputs` section in `tasks.json`).
+
+##### Input variables
+
 When running a task, you can also display a VSCode quick picker to get user input from a list of choices and store that as a variabel you can use in your app:
+
+Variables are defined in a separate `"inputs"` key and can therefore be used across all tasks and are not just task-specific.
+
+You can reference an input variable and extract its value using the `${input:variable_name}` syntax.
+
+- In this example below, we create a `whichEnv` variable that is a string type, and has three options for the possible values it can, and also provides and default value.
 
 ```json
 {
@@ -298,12 +346,64 @@ When running a task, you can also display a VSCode quick picker to get user inpu
   ],
   "inputs": [
     {
-      "id": "whichEnv",
-      "type": "pickString",
+      "id": "whichEnv", // variable name
+      "type": "pickString", // variable type
       "description": "Select environment to deploy to",
-      "options": ["development", "staging", "production"],
-      "default": "development",
+      "options": ["development", "staging", "production"], // enum options
+      "default": "development",  // default value
     },
   ],
 }
 ```
+
+
+
+##### ENV variables
+
+You can define env variables and other shell defaults to configure the shell environment before the task is run, using the `"options"` key:
+
+```json
+"options": {
+  "cwd": "${workspaceFolder}/src",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
+```
+
+#### Running compound tasks
+
+You can chain tasks together and run multiple tasks in a sequence before executing a task. Of course, you could just do the same thing in a bash script.
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Task A",
+      "type": "shell",
+      "command": "echo Task A"
+    },
+    {
+      "label": "Task B",
+      "type": "shell",
+      "command": "echo Task B"
+    },
+    {
+      "label": "Run A and B",
+      "dependsOn": ["Task A", "Task B"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    }
+  ]
+}
+```
+
+- `"dependsOn"`: an array of task labels which specifies the tasks you need to run before executing this task.
+- `"dependsOrder"`: if set to `"sequence"`, then it will execute the tasks in sequential order, not parallel. This is important if order of the tasks matters. The order will be the same as the order in the `"dependsOn"` key.
+
+There are three possible values you can have for the `"dependsOrder"` key, all with different behaviors:
+
+- `"sequence"`: the default, which runs dependent tasks in order
+- `"parallel"`: runs all tasks in parallel
+- `"any"`: runs all tasks in parallel, but the main task will start as soon as at least on of the dependent tasks finishes. This is useful for race conditions and the like.

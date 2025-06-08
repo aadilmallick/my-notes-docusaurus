@@ -1,7 +1,94 @@
 
 ## PostgreSQL
 
+### Database management
+
+The `CREATE DATABASE` command creates a database:
+
+```sql
+CREATE DATABASE message_boards;
+```
+
+You can then connect to the database with the `\\c <database-name>` command:
+
+```sql
+\c message_boards;
+```
+
+Here are all the basic slash commands you can do:
+
+- `\c <db-name>;` : connects to the specified database
+- `\l` : lists all databases
+- `\d` : lists all tables in the database
+- `\?` : help command
+- `\h` : lists all possible SQL queries you can do
+- `\q`: quits pgsql
+
 ### Basics
+
+#### Creating tables
+
+```sql
+CREATE TABLE users (
+	user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	username VARCHAR(25) UNIQUE NOT NULL,
+	email VARCHAR(50) UNIQUE NOT NULL,
+  full_name VARCHAR(50) NOT NULL,
+	last_login TIMESTAMP,
+	created_at TIMESTAMP NOT NULL
+);
+```
+
+- `PRIMARY KEY` : establishes field as the primary key of the table
+- `GENERATED ALWAYS AS IDENTITY` : basically autoincrement
+- `UNIQUE` : enforces a uniqueness constraint on the field
+- `NOT NULL` : enforces that the data not be null
+- `DEFAULT(value)` : gives a default value if a field is optional
+
+And here are the data types in sql:
+
+- `VARCHAR(n)` : string of max length `n` . Strings must be in single quotes `''`
+- `TEXT`: string of arbitrary length. This stores a lot of data, however.
+- `INTEGER` : an int
+- `TIMESTAMP` : a date timestamp
+
+
+#### Dropping tables
+
+You can delete tables with the `DROP TABLE` keywords, like so:
+
+```sql
+DROP TABLE tablename;
+```
+
+#### Altering tables
+
+The `ALTER TABLE` command changes the structure of a table, and is very expensive to do. This query has a high chance of failing when there is data already in this table, since the existing will have to adhere to the new table rules, which may not be possible.
+
+The basic syntax to alter a table is as follows:
+
+```sql
+ALTER TABLE table_name COMMAND
+```
+
+The `COMMAND` is basically what we want to alter about the table, whether to add columns or delete columns:
+
+- `ADD COLUMN col` : adds a column to the table. We also have to specify the constraints and data type of the column
+- `DROP COLUMN col_name` : deletes the specified column from the table.
+
+```sql
+-- add genre column, which is a string with default value of American
+ALTER TABLE ingredients ADD COLUMN genre VARCHAR(255) NOT NULL DEFAULT 'American';
+
+-- delete genre column
+ALTER TABLE ingredients DROP COLUMN genre;
+
+-- add image and type columns as strings
+ALTER TABLE ingredients
+ADD COLUMN image VARCHAR(100) NOT NULL,
+ADD COLUMN type VARCHAR(100) NOT NULL;
+```
+
 
 #### `WHERE` and conditionals
 
@@ -13,7 +100,7 @@ Here are basic conditional operators:
 - `=` : conditional equals
 - `OR` : or conditional operator
 - `AND` : and conditional operator
-- `>`, `<`, `>=`, `<=`: Mathematical comparison oeprators.
+- `>`, `<`, `>=`, `<=`: Mathematical comparison operators.
 
 ```sql
 SELECT * FROM ingredients WHERE type != 'vegetable' AND id > 5 LIMIT 10;
@@ -37,6 +124,11 @@ There are special characters we can use with the `LIKE` and `ILIKE` clauses:
 
 - `%` : represents any number of any characters - exactly like `.*` in regex.
 - `_` : matches exactly one character. Exactly like a single `.` in regex
+
+##### **Other conditionals**
+
+- `IS NULL`: returns true if the specified value is null
+- `IS NOT NULL`:  returns true if the specified value is not null
 #### Querying Data
 
 The basic of querying data is used with the `SELECT` keyword, where you have two basic forms:
@@ -60,13 +152,13 @@ All other querying tactics are built off these ones.
 -- group records based on their "type" field. 
 -- records with the same value for their "type" field are grouped together
 -- We return the count of the records, and the type column
-SELECT COUNT(*) AS count, type FROM ingredients GROUP BY type;
+SELECT COUNT(*), type FROM ingredients GROUP BY type;
 ```
 
 Below is the kind of result we get
 
 ```
-count  |   type    
+count(*)  |   type    
 -------+-----------
      9 | fruit
      3 | meat
@@ -105,28 +197,281 @@ Yehudi Menuhin
 Xis
 ```
 
+You can also use the `OFFSET <n>` keyword which pairs with limit to skip the specified **n** number of records. This makes pagination possible.
+
+```sql
+SELECT (Name) FROM Artist LIMIT 5 OFFSET 5;
+```
+
 
 > [!NOTE] 
 > `LIMIT` always comes at the end of a SELECT query since it needs to work after all the filtering.
 
+> [!IMPORTANT]
+> In practice, most people have their primary keys be autoincrementing numerical IDs since that speeds up pagination with `LIMIT` and `OFFSET` drastically. The `OFFSET` keyword works in linear time since it has to count a certain number of documents before getting to the `LIMIT`. To avoid this, we pair querying autoincrementing numerical IDs and then limiting based on that.
+
+In the example below, we query for the first 10 rows where its autoincrementing primary key is greater than 20.
+
+```sql
+SELECT *
+FROM ingredients
+WHERE id > 20
+LIMIT 10;
+```
+#### Advanced querying
+
+**column name remapping**
+
+Using the `AS <new-column-name>` syntax, you can temporarily rename a column for the query output. This is useful for producing human-readable column names. 
+
+```sql
+-- rename COUNT() column to num_users
+SELECT COUNT(username) AS num_users FROM users;
+```
+
+**dynamically creating columns**
+
+#### Inserting data
+
+Inserting data follows the standard in SQL, where you specify the columns to insert into, then a comma separated list of values corresponding to each column.
+
+```sql
+INSERT INTO ingredients (
+  title, image, type
+) VALUES
+  ( 'avocado', 'avocado.jpg', 'fruit' ),
+  ( 'banana', 'banana.jpg', 'fruit' )
+ON CONFLICT DO NOTHING;
+```
+
+However, there are additional modifiers you can do related to insertion:
+
+- `ON CONFLICT DO NOTHING`: if there is some column constraint that would make the insertion error out, just skip that individual row insertion.
+- `ON CONFLICT ... DO UPDATE`: if there is a conflict made by a column constraint based on the columns you specify, then perform an update.
+
+This is an example of how you would do an upsert in SQL:
+
+```sql
+INSERT INTO ingredients (
+  title, image, type
+) VALUES
+  ( 'watermelon', 'banana.jpg', 'this won''t be updated' )
+ON CONFLICT (title) DO UPDATE SET image = excluded.image;
+```
 #### Updating Data
+
+This is the basic syntax of an update:
+
+```sql
+UPDATE users SET full_name= 'Brian Holt' WHERE user_id = 2
+```
 
 #### Deleting Data
 
-#### Modifying Tables
-
-You can delete tables with the `DROP TABLE` keywords, like so:
+This is the basic syntax for delete: `DELETE FROM <table> WHERE <condition>`. We need a conditional to tell which rows to delete, else we’ll delete everything from the table.
 
 ```sql
-DROP TABLE tablename;
+DELETE FROM users WHERE user_id=1000;
 ```
 
-You can modify tables by adding or deleting columns with the `ALTER TABLE` keyword, with two possible behaviors:
+> [!WARNING]
+> The important thing to know is that deleted records are permanently deleted. You want to be cautious with deletion, or do a “soft delete” where you just set a `deleted` property to true.
 
-- **adding columns**: You can add columns with the `ADD COLUMN` keyword, and then specifying the column name, data type, and any modifiers on it.
-- **deleting columns**: You can delete columns with the `DROP COLUMN` keyword.
+
+
+#### `RETURNING`
+
+
+```sql
+UPDATE users SET full_name= 'Brian Holt', email = 'lol@example.com' 
+WHERE user_id = 2 RETURNING *;
+```
+
+Both updating and deleting data follow essentially the same syntax, but any data modification querying will have the ability to access the `RETURNING` keyword, which allows you to return the newly modified data from the modification query.
+
+- `RETURNING *` : returns the records after you update or delete them, so it’s kind like immediately running an implicit `SELECT` afterwards.
+
 ### Joins
 
+#### Foreign keys
+
+Foreign keys are used to provide constraints on how data in tables gets inserted, updated, or deleted in relation to other tables. They also automatically provide indices that speed up querying by those foreign keys.
+
+In the example below, we have three tables: `users`, `boards`, and `comments`. `comments` has two foreign keys here:
+
+- `user_id` : references the `user_id` field living in the `users` table. If a user gets deleted, any comment that had that specific user id for its `user_id` value will also get deleted because of the `ON DELETE CASCADE`
+- `board_id` : references the `board_id` field living in the `board` table. If a user gets deleted, any comment that had that specific board id for its `board_id` value will also get deleted because of the `ON DELETE CASCADE`
+
+```sql
+CREATE TABLE users (
+  user_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  username VARCHAR ( 25 ) UNIQUE NOT NULL,
+  email VARCHAR ( 50 ) UNIQUE NOT NULL,
+  full_name VARCHAR ( 100 ) NOT NULL,
+  last_login TIMESTAMP,
+  created_on TIMESTAMP NOT NULL
+);
+
+CREATE TABLE boards (
+  board_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  board_name VARCHAR ( 50 ) UNIQUE NOT NULL,
+  board_description TEXT NOT NULL
+);
+
+CREATE TABLE comments (
+  comment_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  
+  -- user_id field here connects to user_id field on users table
+  user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+  
+ -- board_id field here connects to board_id field on boards table
+  board_id INT REFERENCES boards(board_id) ON DELETE CASCADE,
+  comment TEXT NOT NULL,
+  time TIMESTAMP
+);
+```
+
+`REFERENCES <table>(field_name)` is the syntax to establish a foreign key by establishing what field in which table this field you are creating will connect with.
+
+You also have access to 4 foreign key modifiers that allow you to control what happens to the data if the object referenced by its foreign key gets deleted:
+
+- `ON DELETE CASCADE` : whenever the record you’re referencing gets deleted, so too will this record. Basically creates a link where if the thing you’re referencing gets deleted, this record will also autodelete.
+- `ON DELETE NO ACTION` : does not allow a referencing record to get deleted, errors out. The record that has the foreign key on it needs to get deleted first.
+- `ON DELETE SET NULL` : when deleting a referencing record, sets that field to null.
+- `ON DELETE SET DEFAULT <value>` : when deleting a referencing record, sets that field to a some default value.
+
+#### Intro to joins
+
+![](https://i.imgur.com/N8G0uXd.png)
+
+Joins are often a much more efficient way of combining multiple queries into one step.
+
+- The order in joins matter. The table name that comes after the `FROM` keyword we will call as the _querying table_, and the table name that we’re joining on we will call as the _joining table_.
+- The different types of joins have different behavior depending on which table is joining and which is querying.
+
+```sql
+-- get back comment id, user id, user name, and comment itself
+SELECT comment_id, comments.user_id, users.username, LEFT(comment, 20) AS user_comment 
+FROM comments 
+-- joins comments and users tables together on the below condition
+INNER JOIN users ON comments.user_id = users.user_id 
+-- specific condition to run before inner join: gets all comments with board_id=39
+WHERE board_id=39;
+```
+
+When using JOIN statements, we should use dot property syntax from each table like `table.column_name` to make it unambiguous to Postgres which field from which table we are referring to.
+
+**Types of joins**
+
+There are different types of joins, kind of based on a venn diagram. The order of joins on tables matter. For example, from the `FROM <table-a> INNER JOIN <table-b>` syntax, the table name we are selecting from is the first table and the table name we are joining on is the second table.
+
+- **inner join:** The join condition must be true for both tables
+- **left join:** Include all records from first table (the table after `FROM`) even if they don’t have a match in the second table
+- **right join:** Include all records from second table (the table after `ON`) even if they don’t have a match in the first table
+
+#### Inner joins
+
+#### Natural inner joins
+
+The `NATURAL INNER JOIN` syntax is a nice shortcut for inner joining by just skipping the join condition and finding the field on one table that references the one you’re trying to join with, and gets back the matching records.
+
+```sql
+-- foreign key is named user_id in comments table, 
+-- and that references primary key user_id in users table
+SELECT comment_id, comments.user_id, users.username, time, LEFT(comment, 20) 
+AS user_comment FROM comments NATURAL INNER JOIN users WHERE board_id=39;
+```
+
+However, this only works if the foreign key is named the exact same as the primary key for the table you are joining on. For this reason, it's better to be explicit and just use a normal inner join.
+
+In the example above, the foreign key for the `comments` table is named `user_id`, which references the primary key `user_id` in the `users` table. Since they are named the exact same, Postgres does simple matching and is able to do the natural inner join.
+
+
+#### Left join
+
+#### Right join
+### Aggregation
+
+### Dealing with data types
+
+#### Date and time
+
+Working with date time math in postgres is quite simple. We can directly do arithmetic with timestamps, and we can even convert english to timestamps with the `interval '1 month'` syntax, or something like that. There are also a couple of date functions:
+
+- `NOW()` : returns the current date timestamp
+
+Here is how you would perform date arithmetic:
+
+```sql
+SELECT username, created_on, last_login FROM users 
+	WHERE last_login - created_on > interval '2 months' 
+LIMIT 5;
+```
+#### Strings
+
+With strings, you have multiple string methods you can take advantage of:
+
+- `LEFT(field, n)` : limits the length of a string field to the first `n` characters. Useful for fields with long text.
+- `RIGHT(field, n)` : limits the length of a string field to the last `n` characters. Useful for fields with long text.
+- `CONCAT(string1, string2)` : returns a string that is just the concatenated version of both of these strings.
+- `LOWER(string)`: makes the string lowercase
+- `UPPER(string)`: makes the string uppercase
+
+#### JSON
+
+We can actually handle querying JSON data types in postgres through the `JSON` data type. There is a special operator we use to extract fields out of JSON, which is the `->` operator, used like `field -> property` .
+
+In the examples below, `rich_content` is a table that holds JSON information about reddit posts, and `content` is the name of a field that is a JSON object.
+
+```sql
+-- Return unique values for the "type" property from the content field. 
+SELECT DISTINCT content -> 'type' AS content_type FROM rich_content;
+
+-- get the 'dimensions` property, and only non-null values
+SELECT content -> 'dimensions' AS dimensions FROM rich_content 
+WHERE content -> 'dimensions' IS NOT NULL;
+
+-- get the dimensions.height property
+SELECT content -> 'dimensions' -> 'height' AS height FROM rich_content
+```
+
+- For deeply nested JSON properties, you can still continue with the `->` operator to extract those properties
+
+### Subqueries
+
+**Subqueries** are a way to run a SQL statement inside of another statement and essentially save that return result to return.
+
+The below example basically counts the number of albums made by AC/DC, which is accomplished through subqueries instead of joins.
+
+```sql
+SELECT COUNT(*) FROM Album 
+WHERE Album.ArtistId = 
+	-- gets artist id from artist with name AC/DC
+	(SELECT Artist.ArtistId FROM Artist WHERE Artist.Name = 'AC/DC');
+-- returns 2
+```
+
+### Indices
+
+We can check the performance of any query by putting the `EXPLAIN` keyword in front of it.
+
+If we get back a time higher than 50 or Postgres describes it as a sequential scan, we can be sure that our query needs to be indexed to improve performance.
+
+We create indices on individual fields, with the `CREATE INDEX ON table(field_name);` syntax, like the examples below:
+
+```sql
+-- create an index to make querying for comments by the board_id faster
+CREATE INDEX ON comments (board_id);
+
+-- create a unique index for the username field on the users table
+CREATE UNIQUE INDEX username_idx ON users(username);
+```
+
+> [!NOTE]
+> Keep in mind that it is expensive to create an index. You don’t want to go making them all the time.
+
+> [!TIP]
+> To find out which fields you need to index, look at what fields you use a lot in the `WHERE` conditionals. Some potential fields to index could be the id of a table, a user’s email, or their username.
 
 ### Views
 
@@ -230,6 +575,8 @@ GROUP BY
 -- 3. populate table with data
 WITH DATA;
 ```
+
+
 ## SQLite
 
 Sqlite is a database that writes to a file and doesn't have to go over to the network like to a cloud or local database. Therefore, it is blazingly fast. 

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import Layout from "@theme/Layout";
 import BrowserOnly from "@docusaurus/BrowserOnly";
+import useIsBrowser from "@docusaurus/useIsBrowser";
 
 const MyComponent = () => {
   class LoadingButton {

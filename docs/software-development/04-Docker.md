@@ -1,4 +1,46 @@
 
+## Containers from scratch
+
+In the past, companies used a **bare metal** approach to hosting servers online, where they owned all the infrastructure and machines. Here were the downsides:
+
+- Expensive
+- Not scalable
+- Sometimes your machines broke down
+
+Now companies moved away from bare metal and now do **virtual machines**, where they run multiple OSs on one machine, called _virtualization_. This allows you to run multiple servers in parallel on a single computer.
+
+While you don’t have to manage the infrastructure yourself, there are downsides to VMs:
+
+- You have to manage and update all the software yourself
+- Your have to install everything yourself.
+- People on the same VM can launch hack attacks against each other
+
+**containers**
+
+Containers solve this problem. All you have to do is tell what software you want to run and download in a container, and it will do it for you.
+
+Containers running on VMs are also more secure than running on a VM itself.
+
+#### chroot
+
+We can start making containers from scratch by running this docker command to enter the interactive shell on an ubuntu OS:
+
+```bash
+docker run -it --name docker-host --rm --privileged ubuntu:jammy
+```
+
+We can then see what version of the OS we are on by logging the `/etc/issue` file that all ubuntu machines have:
+
+```bash
+cat /etc/issue
+```
+
+You can create a a new folder and then run the `chroot` command to make that folder the root:
+
+```bash
+chroot <new-folder>
+```
+
 ## Docker Basics
 
 ### The absolute basics
@@ -115,6 +157,8 @@ When creating the docker file, remember that the default user is root.
 
 If you run a docker container with `docker run` and then override the main command with `whoami`, you’ll the see that the root user is active.
 
+In the below example, we take advtange of the `node` user already supplied on node images, as we use that user as the owner of all our app resources.
+
 ```dockerfile
 FROM node:18-alpine
 
@@ -135,9 +179,30 @@ CMD ["node", "index.js"]
 - `WORKDIR <path>` : creates the specified path and cd’s into it. The current working directory becomes that path in the container. It becomes the “root folder” for the rest of all the commands in the docker file.
 - `CMD <command>` : defines the main command for a container. The command is written in exec mode.
 
+You can also make custom users like so:
+
+```dockerfile
+FROM node:18-alpine
+
+# 1. create new user called new_user
+RUN useradd -ms /bin/bash new_user
+# 2. security practice: run as non-root user, prevent root user access
+USER new_user
+
+# 3. this becomes the new root folder for the rest of the commands
+WORKDIR /home/node/app
+
+COPY --chown=node:node index.js index.js
+
+CMD ["node", "index.js"]
+```
+
+
 We want the policy of least power for best security practices, so we’ll change the user:
 1. The node image gives us another user called `node` with limited privileges. Switch to this user using the `USER node` command.
 2. Supply cli-specific commands like `COPY` with `--chown=node:node` as the first argument to make the user the owner or executor of the action.
+
+The `--chown` command is redundant here because all commands after you set the user with `USER` will be run by the current user. It's good for just being explicit.
     
 ```dockerfile
 COPY --chown=node:node index.js index.js
@@ -214,6 +279,10 @@ The most important part here is dependencies. Before copying over any files, we 
 Doing the install early on ensures container caching and faster rebuilding as long as we don’t modify the contents of the package JSON.
 ### Running containers
 
+#### Naming containers
+
+You can name containers while running them to ensure easy ways to reference them later on. You do this through the `--name` tag.
+
 #### Supplying environment variables
 
 You can supply pairs of environment variables when running a container with the `--env` flag. This is useful for dynamically supplying environment variables instead of statically establishing them in the Dockerfile.
@@ -270,6 +339,12 @@ You specify the image to run, and then an optional command at the end called the
 
 - So `docker run alpine:3.10 ls` spins up alpine linux v3.10, and then runs the `ls` command in the root directory instead of just dropping you into a linux shell.
 
+If you want to inspect a container and execute commands on it while its already running another process, thats when you use the `docker exec` command, to avoid overriding the `CMD`.
+
+```
+docker exec <container> <command>
+```
+
 
 ### Copying files to containers
 
@@ -291,6 +366,12 @@ docker cp data/. fluffy_waffle:/app/data
 
 
 ### CLI reference
+
+#### `docker build`
+
+- `docker build --file=<filename>`: points to a specific dockerfile for building an image. Useful if you have different dockerfiles for prod and dev.
+- `docker build --no-cache` : builds a docker image but without caching any layers or fetching from the cache.
+- `docker build --target=<stage-name>` : builds a docker image from the specified stage in the dockerfile, which is useful for debugging or dev vs prod purposes.
 
 #### Containers
 
@@ -583,6 +664,220 @@ Here's an english high-level equivalent of what we did in the above example:
 - `docker network disconnect <network-name>` : Disconnect a container from a network
 
 
+
+
+### Advanced container configuration
+
+#### Alpine linux
+
+Alpine linux is a very small, barebones distribution of linux sitting around 5mb, which makes it not only ideal for production but also secure since it follows the least-power privelege
+
+`apk` is the package manager we use for alpine linux, and we use `apk add <package>` to add a package. 
+
+**Reducing size**
+
+Alpine linux with node makes the final container size around 80mb, which will still small, we can reduce to around 55mb following these steps:
+
+1. Build from alpine OS base image
+    - The `apk add --update <package>` command first updates the apk package manager, and then installs packages.
+    
+    ```dockerfile
+    FROM alpine:3.10
+    
+    RUN apk add --update nodejs npm
+    ```
+    
+2. Add a user called node
+    
+    ```dockerfile
+    RUN addgroup -S node && adduser -S node -G node
+    
+    USER node
+    ```
+    
+
+The final code looks like this: 
+
+```dockerfile
+FROM alpine:3.10
+
+RUN apk add --update nodejs npm
+
+RUN addgroup -S node && adduser -S node -G node
+
+USER node
+
+RUN mkdir /home/node/code
+
+WORKDIR /home/node/code
+
+COPY --chown=node:node package-lock.json package.json ./
+
+RUN npm ci
+
+COPY --chown=node:node . .
+
+CMD ["node", "index.js"]
+```
+
+> [!TIP]
+> Alpine is the **production image** - as coined by the industry - because it's so small, but in development, use a larger image that has all the linux utilities, like debian.
+
+#### Multistage builds
+
+We can use a concept called _multistage builds_, where each **stage** uses a different base image. 
+
+Each stage makes its own container, and then throws away the container at the end of the stage. Only the base image that is not a stage is what is actually built, but what makes this so useful is that we can use the `COPY --from=<stage-name>` option to hook into any stage's filesystem and copy over its files. 
+
+The basic syntax is like so:
+
+- `FROM <base_image> as <stage_name>`: creates a stage, pulling from the base image and naming it. The `as` keyword is what makes a container a stage instead of a normal container.
+- `COPY --from=<stage_name>` hooks into the specified stage's filesystem and allows you to copy files from there into the current stage or final container.
+
+```dockerfile
+FROM <base_image> as <stage_name>
+mkdir /build
+WORKDIR /build
+# ... install dependencies, copy project files
+
+FROM <production_base_image>
+WORKDIR /production_code
+
+# copy dependency files and source code into final container
+COPY --from=<stage_name> /build .
+```
+
+> [!NOTE]
+> The main use case for multi-stage builds would be to use a large image with lots of pre-installed tools as a stage, install dependencies, and then throw that away. Then you would use a small production container as your non-stage final container to just copy over all dependencies from the builder stage without having to install dependency management tools like `npm`, resulting in a smaller final image.
+
+For example, we could use a larger `node:20` image as the build stage to install our dependencies, throw that away, and then use a smaller `alpine` image to copy over the `node_modules` and source code from the builder stage without having to install `npm` and then run `npm install` in the alpine container. We essentially get to cut out `npm` for free, resulting in a ~10mb decrease in image size.
+
+
+
+```dockerfile
+# build stage: install dependencies
+FROM node:12-stretch as builder
+WORKDIR /build
+COPY package-lock.json package.json ./
+RUN npm ci
+COPY . .
+
+# runtime stage. Everything above is thrown away, but the files still remain
+FROM alpine:3.10
+
+# 1. add node
+RUN apk add --update nodejs
+RUN addgroup -S node && adduser -S node -G node
+USER node
+
+# 2. create work directory
+RUN mkdir /home/node/code
+WORKDIR /home/node/code
+
+# 3. copy files from builder stage into current directory
+COPY --from=builder --chown=node:node /build .
+CMD ["node", "index.js"]
+```
+
+Here is an example in depth, where we install npm dependencies and copy files over in a primary build stage, and then move on to using alpine in a runtime stage to just run the files with node.
+
+1. **build stage**: We create a build stage pulling from the massive `node:20` image, call it "node-builder".
+2. **build stage**: We then create a folder, cd into it, install dependencies, and then copy over all project files
+3. **runtime stage**: we use the tiny alpine linux image, install nodejs and omit npm to make the container size smaller.
+4. **runtime stage**: we create a new user for security reasons, create a working directory and cd into it.
+5. **runtime stage**: copy over all files from the `/build` folder from the build stage. We can now run our code.
+
+This approach where we install all dependencies and copy our source code into the container in the build stage is useful, because then we can just "delete" npm afterwards in the next container stage by never installing it in the runtime stage.
+
+```dockerfile
+# build stage
+FROM node:20 AS node-builder
+RUN mkdir /build
+WORKDIR /build
+COPY package-lock.json package.json ./
+RUN npm ci
+COPY . .
+
+# runtime stage
+FROM alpine:3.19
+RUN apk add --update nodejs
+RUN addgroup -S node && adduser -S node -G node
+USER node
+RUN mkdir /home/node/code
+WORKDIR /home/node/code
+# copy over all files from /build folder from node-builder container
+COPY --from=node-builder --chown=node:node /build .
+CMD ["node", "index.js"]
+```
+
+**final example**
+****
+This is the final example, where I show how to correctly use `USER` and `chown` to build secure, least-privilege containers:
+
+But first, we need to talk about when to run as a root and when to run as a user:
+
+- **root**: stay as the root user when you need to install things and create directories
+- **user**: change to a user when copying files to a folder you own, and when running commands from within a folder that the user owns. 
+
+The key thing that we do in the below code is first make the `/build` folder (which needs root permissions), and *then* change ownership of the folder to the `node` user and group with the `chown <user>:<group> <dirname>` command, which then lets us copy files to that folder and run commands as we please.
+
+After setting the current user going forward with `USER` and then cd'ing into a folder that the current user owns, you can now modify that folder (running commands, copying files) anyway you please without having to specify the `--chown` option.
+
+```dockerfile
+FROM alpine:3.21 AS builder
+
+# Install Node.js and npm
+RUN apk add --update nodejs npm
+
+# Create non-root user and group
+RUN addgroup -S node && adduser -S node -G node
+
+# Create directory and set ownership (do this as root)
+RUN mkdir /build && chown node:node /build
+
+# Switch to non-root user after setup is complete
+USER node
+WORKDIR /build
+
+# Copy package files with correct ownership
+COPY package*.json ./
+
+# Install dependencies as non-root user
+RUN npm install
+
+# Copy remaining files with correct ownership
+COPY . ./
+
+# Build the application
+RUN npm run build
+
+# Use nginx for serving static files
+FROM nginx:alpine
+
+# Copy only the built files to nginx
+COPY --from=builder /build/dist /usr/share/nginx/html
+```
+
+#### Distroless containers
+
+`debian-slim` might be a better option than `alpine` because `alpine` has a strange bug where it replaces the `glibc` linux library with `musl`, which may cause bugs in your code, especially in kubernetes. 
+
+All distroless containers are based off `debian-slim` and you can use them like so:
+
+```dockerfile
+# build stage
+FROM node:20 AS node-builder
+WORKDIR /build
+COPY package-lock.json package.json ./
+RUN npm ci
+COPY . .
+
+# runtime stage
+FROM gcr.io/distroless/nodejs20
+COPY --from=node-builder --chown=node:node /build /app
+WORKDIR /app
+CMD ["index.js"]
+```
 
 ## Dev containers
 

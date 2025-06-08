@@ -14,6 +14,20 @@ However, where it differs is in automatic support for watch mode and hot reload 
 
 The difference between watch mode and hot reload is that watch mode is *stateless*, meaning any state it has is reinitialized when it reloads the file, as opposed to hot reloading, which keeps the state. 
 
+### Environment variables 
+
+All environment variables from any `.env` files are automatically loaded into `process.env`, so just use `process.env` to access any environment variables. 
+
+You can also set environment variables in scripts, like so by setting it in front of the command you're trying to run.
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "NODE_ENV=development bun run --watch index.ts"
+  }
+}
+```
+
 ## `bun install`
 
 `bun install` is the stand-in replacement for `npm install`
