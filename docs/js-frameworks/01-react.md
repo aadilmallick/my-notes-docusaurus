@@ -466,6 +466,72 @@ export default function Posts({
 
 ### SSR from scratch in React
 
+**Step 1) typescript needs to be happy**
+****
+In your `tsconfig.json` or `deno,json`, make sure that React gets the appropriate syntax highlighting through these compiler options:
+
+```json title="tsconfig.json"
+"compilerOptions": {
+	"jsx": "react-jsx",
+	"jsxImportSource": "react"
+}
+```
+
+**Step 2) create React App entry point**
+****
+Create a react app, standard:
+
+```tsx
+import React from "react";
+// import { JSX } from "npm:react/jsx-runtime";
+
+const App = () => {
+  return (
+    <div>
+      <h1>Hello World</h1>
+    </div>
+  );
+};
+
+export default App;
+```
+
+**Step 3: render on the server**
+
+Using the `react-dom/server` package from npm, we can render react to HTML in two different ways:
+
+- **rendering to static markup**: Strips away all javascript and returns just the static HTML formed from the react pp.
+- **rendering with hydration**: Uses hydration to add in javascript once app is statically rendered.
+
+The `react-dom/server` package exposes two methods that let us tap into rendering either way:
+
+```tsx
+import { renderToString, renderToStaticMarkup } from "react-dom/server";
+import App from "./frontend/App.tsx";
+
+const hydratedHTML = renderToString(App());
+const staticHTML = renderToStaticMarkup(App());
+```
+
+- `renderToString(component)`: Renders the react app with hydration
+- `renderToStaticMarkup(component)`: Renders the react app completely statically.
+
+This is how you would do static rendering:
+
+```tsx
+import { DenoRouter } from "./DenoRouter.ts";
+import { renderToString } from "react-dom/server";
+import App from "./frontend/App.tsx";
+const router = new DenoRouter();
+
+router.get("/", (req, res) => {
+  const html = renderToString(App());
+  return router.renderHTML(html);
+});
+
+router.initServer(8000);
+```
+
 ## Custom components
 ### Boop
 
