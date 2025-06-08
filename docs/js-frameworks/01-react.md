@@ -464,6 +464,8 @@ export default function Posts({
 }
 ```
 
+### SSR from scratch in React
+
 ## Custom components
 ### Boop
 
