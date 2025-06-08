@@ -83,6 +83,7 @@ These are my references:
 ### **SVG generator tools**
 
 - https://haikei.app/generators/ : All in one SVG curves and blobs generator
+- https://svgl.app/: SVG collection
 - https://angrytools.com/blob-generator/ : blob svg generator
 - https://coolbackgrounds.io/ : cool svg backgrounds
 - https://getwaves.io/ : SVG wave generator

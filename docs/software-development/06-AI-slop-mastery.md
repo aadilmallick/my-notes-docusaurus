@@ -2,6 +2,10 @@
 
 ### Github Copilot
 
+You can also use copilot on the web here:
+
+[GitHub Copilot](https://github.com/copilot)
+
 **fix with copilot**
 
 You can highlight line(s), right click, and then use either **modify with copilot** or **review with copilot** to review the code, suggest any improvements, etc.
@@ -74,6 +78,45 @@ You can add certain websites' documentation to cursor, and cursor will index it 
 - Add when prompted to add a new documentation when typing the `@docs` command
 - Add in the cursor features settings.
 
+
+#### Cursor rules
+
+Cursor rules are a new way to enforce coding style and give cursor additional context when you're chatting with it. There are 4 ways to create rules:
+
+- Rules live in the `.cursor/rules` folder in your workspace, and are single text `.mdc` file. 
+- You can also create a rule in the command palette in cursor
+- You can ask cursor chat to create a rule for your project with the `/Generate cursor rules` slash command.
+- Go to cursor settings -> project settings -> and create rules.
+
+Here are the 4 types of rules you can have:
+
+![](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1748725456/image-clipboard-assets/to77vpbifewtffir4wte.webp)
+Here is an example of a cursor mdc rule, where yu can add in additional file context as well with @ symbols.
+
+```
+---
+description: RPC Service boilerplate
+globs: 
+alwaysApply: false
+---
+
+- Use our internal RPC pattern when defining services
+- Always use snake_case for service names.
+
+@service-template.ts
+```
+
+You can get a list of reusable rules for each language that makes working on your codebase even better:
+
+```embed
+title: "Cursor Directory"
+image: "https://pub-abe1cd4008f5412abb77357f87d7d7bb.r2.dev/opengraph-image-v2.png"
+description: "Find the best cursor rules for your framework and language"
+url: "https://cursor.directory/"
+favicon: ""
+aspectRatio: "52.5"
+```
+
 ## ChatGPT features
 
 ### Canvas mode
@@ -113,4 +156,514 @@ A good prompt consists of these 4 ingredients:
 All together, you should get something like this:
 
 > Act as an article summarizing assistant. I will provide you with the text of a news article, and I’d like you to generate a summary. **(step 1, initial context)** The summary should include a 2 sentence overall summary and then also include 4-6 bullet points summarizing the key points of the article.  **(step 2, instructions)** Your total output should not exceed 120 words. **(step 4, constraints)** Here is the text: **(then you do step 3, the input)**
+
+
+
+## AI Coding
+
+### Vercel AI
+
+The great thing about the `ai` npm package from vercel is that it is **model-agnostic**, meaning it's just plug and play with different models and no need to learn different APIs for google, claude, OpenAI, etc.
+
+You can create a simple model like so:
+
+```ts
+import { openai } from "@ai-sdk/openai";
+
+const model = openai("gpt-4o-mini")
+
+const { text } = await generateText({
+  model: model,
+  prompt: "What is the diameter of the sun?",
+  system: "you are a friendly AI assistant",
+});
+```
+
+#### Text features
+
+Here is a class wrapper around the AI library, providing abstractions over these different text generation methods from the `ai` package.
+
+- `generateText(options)`: takes in an object of options and returns the AI's response, complete with finish reason, tool calls, etc.
+- `streamText(options)`: takes in an object of options and streams back the AI's response.
+- `generateObject(options)`: takes in an object of options and a zod schema, and returns back an object as JSON conforming to that schema.
+
+```ts
+import {
+  generateText,
+  LanguageModelV1,
+  streamText,
+  CoreMessage,
+  generateObject,
+} from "npm:ai";
+import { google } from "npm:@ai-sdk/google";
+import { xai } from "npm:@ai-sdk/xai";
+import { openai } from "npm:@ai-sdk/openai";
+import process from "node:process";
+import fs from "node:fs/promises";
+import { z } from "npm:zod";
+
+const checkEnv = (key: string) => {
+  if (!Deno.env.get(key)) {
+    throw new Error(`${key} is not set`);
+  }
+};
+
+const models = {
+  get_openai: () => {
+    checkEnv("OPENAI_API_KEY");
+    return openai("gpt-4o-mini");
+  },
+  get_google: () => {
+    checkEnv("GOOGLE_GENERATIVE_AI_API_KEY");
+    return google("gemini-2.5-flash-preview-04-17");
+  },
+  get_xai: () => {
+    checkEnv("XAI_API_KEY");
+    return xai("grok-3-beta");
+  },
+};
+
+export class VercelAI {
+  constructor(public readonly model: LanguageModelV1) {}
+
+  async generateText(prompt: string, systemPrompt?: string) {
+    const response = await generateText({
+      model: this.model,
+      prompt,
+      system: systemPrompt,
+    });
+    return response.text;
+  }
+
+  generateTextStream(prompt: string) {
+    const { textStream } = streamText({
+      model: this.model,
+      prompt,
+    });
+    return textStream;
+  }
+
+  async getJSONFromPrompt<T extends z.ZodSchema>(
+    systemPrompt: string,
+    prompt: string,
+    schema: T
+  ) {
+    const response = await generateObject({
+      model: this.model,
+      system: systemPrompt,
+      prompt,
+      schema,
+    });
+    return response.object as z.infer<T>;
+  }
+
+  async getClassificationFromPrompt<T extends any[]>(
+    systemPrompt: string,
+    prompt: string,
+    enumValues: T
+  ) {
+    const response = await generateObject({
+      model: this.model,
+      system: systemPrompt,
+      prompt,
+      enum: enumValues,
+      output: "enum",
+    });
+    return response.object as T[number];
+  }
+}
+```
+
+**object example**
+
+```ts
+  // 3. JSON example:
+  const colorSchema = z.object({
+    color: z
+      .string()
+      .describe("The hex color code") // for prompt engineering
+      .refine((color) => color.match(/^#([0-9a-fA-F]{6})$/)),
+  });
+  const ai = new VercelAI(model);
+  const { color } = await ai.getJSONFromPrompt(
+    "You are a helpful assistant that generates colors in hexadecimal format as string, like #000000",
+    "Generate a random color",
+    colorSchema
+  );
+  console.log("Color: ", color);
+```
+
+**enum example**
+
+```ts
+  const enumValues = [
+    "red",
+    "very light blue",
+    "green",
+    "yellow",
+    "purple",
+  ] as const;
+  const ai = new VercelAI(model);
+  const classification = await ai.getClassificationFromPrompt(
+    "You are a helpful assistant that classifies colors.",
+    "What is the color of the sky?",
+    enumValues as unknown as string[]
+  );
+  console.log("Classification: ", classification); // prints "very light blue"
+```
+
+
+#### tOol calls
+
+Tool calls are pretty simple in vercel, but don't work with some providers, like google.
+
+The first step is to create a tool:
+
+```ts
+  const addNumbersTool = tool({
+    description: "Add two numbers together",
+    parameters: z.object({
+      a: z.number().describe("The first number to add"),
+      b: z.number().describe("The second number to add"),
+    }),
+    execute: async ({ a, b }) => {
+      return a + b;
+    },
+  });
+```
+
+Then you can use it like so, passing in `tools` to the generate text method, and specifying a `maxSteps` so that the AI can recurse on itself and print out actual text from the tool call.
+
+```ts
+async callWithTools(prompt: string, systemPrompt: string, tools: ToolSet) {
+    const { text, toolCalls, toolResults, steps } = await generateText({
+      model: this.model,
+      prompt,
+      system: systemPrompt,
+      tools,
+      toolChoice: "auto",
+      maxSteps: 3,
+    });
+    if (toolCalls.length > 0) {
+      console.log("tools called");
+      const lastToolResult = steps.at(-1);
+      if (!lastToolResult) {
+        return { text };
+      }
+      const { toolResults: results } = lastToolResult;
+      return {
+        text,
+        finalToolResult: (results.at(-1) as unknown as any)?.result,
+        toolCalls,
+        toolResults,
+      };
+    }
+    return { text };
+  }
+```
+
+#### Chat
+
+This is an abstraction over text chat, where it has the concept of persistent messages:
+
+```ts
+export class VercelAIChat {
+  constructor(
+    public readonly model: LanguageModelV1,
+    private messages: CoreMessage[] = []
+  ) {}
+
+  addSystemMessage(message: string) {
+    this.messages.push({
+      role: "system",
+      content: message,
+    });
+  }
+
+  async chat(message: string) {
+    this.messages.push({
+      role: "user",
+      content: message,
+    });
+    const response = await generateText({
+      model: this.model,
+      messages: this.messages,
+    });
+    this.messages.push({
+      role: "assistant",
+      content: response.text,
+    });
+    return response.text;
+  }
+
+  async chatWithTools(
+    message: string,
+    tools: ToolSet
+  ): Promise<{ text: string; toolResult?: any | undefined }> {
+    this.messages.push({
+      role: "user",
+      content: message,
+    });
+    const { text, toolCalls, steps } = await generateText({
+      model: this.model,
+      messages: this.messages,
+      tools,
+      maxSteps: 3,
+    });
+    // tool was called
+    if (toolCalls.length > 0) {
+      const lastToolResult = steps.at(-1);
+      if (!lastToolResult) {
+        return { text };
+      }
+      const { text: stepText, toolCalls, toolResults } = lastToolResult;
+      this.messages.push({
+        role: "assistant",
+        content: stepText,
+      });
+      return {
+        text: stepText,
+        toolResult: (toolResults.at(-1) as unknown as any)?.result,
+      };
+    }
+
+    return { text };
+  }
+
+  async streamChat(message: string, onChunk: (chunk: string) => Promise<void>) {
+    this.messages.push({
+      role: "user",
+      content: message,
+    });
+    const { textStream, text } = streamText({
+      model: this.model,
+      messages: this.messages,
+    });
+    for await (const chunk of textStream) {
+      await onChunk(chunk);
+    }
+    const finalText = await text;
+    this.messages.push({
+      role: "assistant",
+      content: finalText,
+    });
+    return finalText;
+  }
+
+  async saveChat(path: string) {
+    const newPath = z
+      .string()
+      .regex(/^.*\.(json|md)$/)
+      .parse(path);
+    const extension = newPath.split(".").pop();
+    const type = extension === "json" ? "json" : "markdown";
+    if (type === "json") {
+      await fs.writeFile(path, JSON.stringify(this.messages, null, 2));
+    } else {
+      await fs.writeFile(
+        path,
+        this.messages.map((m) => `\n**${m.role}**: \n\n${m.content}`).join("\n")
+      );
+    }
+  }
+}
+```
+## MCP
+
+MCP is a layer between tools available to the LLM and the LLM itself, making it very simple for the LLM to know what tools are available and when to use them. 
+
+![](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1748729351/image-clipboard-assets/xxdzjdbybr2xxsygm5xj.webp)
+
+![](https://i.imgur.com/2Vrt8Qk.png)
+
+
+Here is the terminology:
+
+- **MCP Hosts**: Programs like Claude Desktop, IDEs, or AI tools that want to access data through MCP
+- **MCP Clients**: Protocol clients that maintain 1:1 connections with servers, like Cursor, Claude Desktop.
+- **MCP Servers**: Lightweight programs that each expose specific capabilities through the standardized Model Context Protocol
+- **Local Data Sources**: Your computer’s files, databases, and services that MCP servers can securely access
+- **Remote Services**: External systems available over the internet (e.g., through APIs) that MCP servers can connect to
+
+There are two types of MCP servers you can set up:
+
+- **stdio server**: A server that bases the MCP protocol off of reading from stdin and stdout
+- **sse server**: A server that bases MCP protocol off of server sent events (SSE).
+![](https://i.imgur.com/LpyR9t2.png)
+
+
+### Creating MCP Servers
+
+There are three basic steps when creating MCP servers using the SDK:
+
+1. Create an MCP server that either runs on stdio or sse
+2. Register tools and optional resources
+3. Start the server
+
+You can create a server like so:
+
+```ts
+import { McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+// 1. create the server
+const server = new McpServer({
+	name: "my-mcp-server",
+	version: "1.0.0",
+	description: "My MCP Server",
+})
+
+// in between here register resources and tool calls ...
+
+// 2. create the transport (stdio in this case)
+const transport = new StdioServerTransport();
+
+// 3. start the server
+await server.connect(transport);
+```
+
+I created a class wrapper around this:
+
+```ts
+import { McpServer } from "npm:@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "npm:@modelcontextprotocol/sdk/server/stdio.js";
+
+export class MCPServerHandler {
+  constructor(public server: McpServer) {}
+
+  async startStdioServer() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+  }
+}
+```
+
+For a more in depth abstraction on how to use MCP, use my repo:
+
+
+
+#### Resources
+
+Resources are collections of data that provide tools easy access to them, if configured. Think of them as GET endpoints.
+
+You declare a resource with the `server.resource()` method, which takes in a resource name, the path to fetch the resource, and a callback where you do data fetching to path and return an object with a `contents` property, which is an array of text or blob contents.
+
+```ts
+export type TextResourceReturn = {
+  uri: string;
+  text: string;
+  mimeType: string;
+  [key: string]: any;
+};
+export type BlobResourceReturn = {
+  uri: string;
+  blob: string; // base64 encoded
+  mimeType: string;
+  [key: string]: any;
+};
+export type ResourceReturn = {
+  contents: (TextResourceReturn | BlobResourceReturn)[];
+};
+
+const path = "http://localhost:3000/dogs"
+const resource = server.resource("resource-name", path, async (uri) => {
+	let path = uri.href // uri is URL instance
+
+	return {
+		contents: [] as (TextResourceReturn | BlobResourceReturn)
+	}
+})
+
+// 2. enable the resource
+resource.enable()
+```
+
+#### Tools
+
+You create a tool with the `server.tool()` method, which takes in a name, description, an object of parameters to pass (which can be a zod schema), and then a callback where you return an object with a `content` property.
+
+Here is an example of the type you need to return in a tool call:
+
+```ts
+type ToolReturn = {
+    content: ({
+        [x: string]: unknown;
+        type: "text";
+        text: string;
+    } | {
+        [x: string]: unknown;
+        type: "image";
+        data: string;
+        mimeType: string;
+    } | {
+        [x: string]: unknown;
+        type: "audio";
+        data: string;
+        mimeType: string;
+    }
+}
+```
+
+And here's the tool call syntax:
+
+```ts
+const tool = server.tool("tool-name", "tool description", {
+		dogName: z.string()
+	}, 
+	async ({dogName}) => {
+		return {
+			content: [{type: "text", text: `dog name is ${dogName}`}]
+		}
+	}
+)
+tool.enable()
+```
+#### Troubleshooting and caveats
+
+This is a very new API, and maybe the python version will be a lot better, but for typescript, keep these tips in mind:
+
+- **no console logging**: Side effects are not allowed in this server - only when registering a tool - so you are not allowed to invoke `console.log()`
+- **resource for tools not available** : Returning a `type: "resource"` object does not work in tool calls. Just stick to text, image, audio. 
+
+### Deploying to MCP clients
+
+All MCP clients have the same way of deploying, which is listing the commands to run the MCP servers or the existing urls hosting MCP servers in a JSON file like so:
+
+```json
+{
+  "mcpServers": {
+    "local-mcp-server": {
+      "command": "deno",
+      "args": [
+        "run",
+        "-A",
+        "C:/Users/Waadl/OneDrive/Documents/aadildev/mcp/local-mcp-server/main.ts"
+      ],
+      "env": {
+        "GOOGLE_GENERATIVE_AI_API_KEY": "Eafsadfdsafasfdsafsd",
+        "OPENAI_API_KEY": "sk-pasfsafsadfaHfsadsfdEgsRIsaffdsDNVsafdfsdad"
+      }
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_FfadffdsasadRW9p"
+      }
+    }
+  }
+}
+```
+
+#### Claude desktop
+
+you can add MCP servers in the `~\AppData\Roaming\Claude\claude_desktop_config.json` path
+
+#### Cursor
+
+Go to cursor MCP settings and you can add MCP servers in the `~\.cursor\mcp.json` file, or you can just go to **cursor settings** -> **MCP settings**.
 

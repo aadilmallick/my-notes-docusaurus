@@ -166,7 +166,9 @@ DROP VIEW view_name
 
 #### Materialized Views
 
-A **materialized view** is a view that caches queries for extremely good performance while still retaining the utility benefits of being a view. Think of it as a cached view.
+A **materialized view** is a view that caches queries on your disk for extremely good performance while still retaining the utility benefits of being a view. Think of it as a cached view.
+
+You can invalidate this cache manually or automatically based on a schedule.
 
 > [!WARNING]
 > The only tradeoff is that the data will be slightly stale.
@@ -180,6 +182,28 @@ CREATE MATERIALIZED VIEW view_name AS <query> WITH DATA;
 - `view_name` : the name of the materialized view
 - `query` : the query code to make the view from. Also caches the view
 - `WITH DATA` : specifies you want to populate the view immediately, which may be slow. The alternative is `WITH NO DATA`, but you’ll have to populate the data later.
+
+To invalidate the cache and refresh the materialized view, you would use this command:
+
+```postgresql
+REFRESH MATERIALIZED VIEW tablename;
+```
+
+In summary, use materialized views in these situations:
+
+- Use materialized views when you have expensive queries that don't need real-time data.
+- Ideal for dashboards, reports, and analytics where "fresh enough" data is acceptable.
+- Not suitable for scenarios where you always need the latest data instantly.
+
+And materialized views have these limitations:
+
+- **Staleness**: Data can become outdated between refreshes.
+- **Storage**: Uses disk space to store the results.
+- **Maintenance**: Needs to be refreshed, which can be resource-intensive.
+
+**example**
+****
+
 
 ```postgresql
 -- 1. create materialized view and name it
