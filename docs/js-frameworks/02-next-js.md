@@ -1,5 +1,23 @@
 
+
+## Server components vs Client Components
+
+Server components cannot be nested inside client components except through a trick where you render them as children, like so:
+
+1. Make the client component you want to render accept a `children` prop
+2. Render the server component as a child of the client component.
+
+```tsx
+export const App = () => {
+  return (
+    <ClientComponent>
+	    <ServerComponent />
+    </ClientComponent>
+  )
+}
+```
 ## File-based routing
+
 
 File based routing on NextJS makes route names based on folders, and renders page content with the `page.tsx`. Besides that, there are several other special files in NextJS that live within a route folder:
 
@@ -171,22 +189,34 @@ export default config
 
 ### Fonts
 
-here is how you can load a google font.
+Next.js downloads font files at build time and hosts them with your other static assets. This means when a user visits your application, there are no additional network requests for fonts which would impact performance.
 
-```ts
-import { Geist } from 'next/font/google'
- 
-const geist = Geist({
-  subsets: ['latin'],
-})
- 
+here is how you can load a google font:
+
+```tsx
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={geist.className}>
+    <html 
+    lang="en"
+    className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+	>
       <body>{children}</body>
     </html>
   )
@@ -215,6 +245,29 @@ export default function RootLayout({
 }
 ```
 
+You can them use them in your CSS by referencing them as normal CSS variables:
+
+```css
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+```
 ### Metadata
 
 You can dynamically generate metadata for each route based like so in a `page.tsx`:
@@ -569,7 +622,7 @@ Here are the properties on the object returned from the `useFormStatus()` hook:
 
 ## Caching
 
-In NextJS 15, caching is heavily improved. To setup caching on the canary version of nextjs, do the following:
+In NextJS 15, caching is heavily improved. To setup caching on the canary version of nextjs, do the following and first install the canary version with `npm install next@canary`. You then need to enable **dynamicIO**.
 
 ```ts
 import type { NextConfig } from 'next'
@@ -696,6 +749,26 @@ import { revalidateTag } from 'next/cache'
 export const createIssue = async () => {
   // after issue db insert
   revalidateTag('issues')
+}
+```
+
+Here's a more detailed example:
+
+```ts
+import { unstable_cacheTag as cacheTag } from 'next/cache'
+ 
+interface BookingsProps {
+  type: string
+}
+ 
+export async function Bookings({ type = 'haircut' }: BookingsProps) {
+  async function getBookingsData() {
+    'use cache'
+    const data = await fetch(`/api/bookings?type=${encodeURIComponent(type)}`)
+    cacheTag('bookings-data', data.id)
+    return data
+  }
+  return //...
 }
 ```
 

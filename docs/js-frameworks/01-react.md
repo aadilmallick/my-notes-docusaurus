@@ -401,6 +401,29 @@ When a component uses some value from context, and the context value changes, th
 
 
 
+
+### `memo()`
+
+You can memoize a component by passing it into the `memo()` function from react, meaning that it won't rerender unless its props change.
+
+### `useMemo()` and `useCallback()`
+
+Objects are refferential and thus don't pass a strict equality check. Therefore you should use the two below hooks for optimizing and caching state that holds objects, class instances, or functions.
+
+- `useMemo(cb, deps)`: takes in a callback and a dependency array. The callback should return a value, and that callback will only get invoked again if any of the dependencies in the dependencies array changes. This returns the return value of the callback.
+- `useCallback(cb, deps)`: takes in a callback and a dependency array. The callback will only get invoked again if any of the dependencies in the dependencies array changes. This returns the callback itself.
+
+You should never use `useMemo()` for primitive values. Only for returning objects.
+
+The main difference between `useMemo()` and `useCallback()` is that `useMemo()` should be used for objects while `useCallback()` should be used to explicitly cache functions.
+
+However, `useCallback()` is just `useMemo()` but returning a function instead of a object - it's essentially just syntactic sugar.
+
+```ts
+// render and render2 are functionally equivalent
+const render = useMemo(() => (text) => marked.parse(text), []);
+const render2 = useCallback((text) => marked.parse(text), []);
+```
 ## React 19 changes
 
 The React 19 changes remove a lot of annoying optimization code we once had to write ourselves, like `useMemo()` or `useCallback()` or `memo()`. This is because the react compiler looks ahead of time at the correct optimizations to make. But besides this main feature, there are new changes:
@@ -464,6 +487,16 @@ export default function Posts({
 }
 ```
 
+### `useTransition`
+
+The `useTransition()` hook is used to keep the UI interactive while doing some asynchronous operation. It yields to the main thread while ensuring the final state change is correct.
+
+```ts
+export function Example() {
+	const [isPending, startTransition]
+}
+```
+
 ### SSR from scratch in React
 
 **Step 1) typescript needs to be happy**
@@ -516,20 +549,126 @@ const staticHTML = renderToStaticMarkup(App());
 - `renderToString(component)`: Renders the react app with hydration
 - `renderToStaticMarkup(component)`: Renders the react app completely statically.
 
-This is how you would do static rendering:
+This is how you would do completely static rendering:
 
 ```tsx
 import { DenoRouter } from "./DenoRouter.ts";
-import { renderToString } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import App from "./frontend/App.tsx";
 const router = new DenoRouter();
 
 router.get("/", (req, res) => {
-  const html = renderToString(App());
+  const html = renderToStaticMarkup(App());
   return router.renderHTML(html);
 });
 
 router.initServer(8000);
+```
+
+#### Hydration
+
+Hydration is a bit more difficult since you need to explicitly create a separate javascript client that gets loaded in and does the hydration (making the page interactive, which lets stuff like hooks work) for us. 
+
+The thing that hydrates our app is on the client side, the `hydrateRoot()` method from react dom. Below is the main javascript file we want to separately bundle as a javascript file that we then serve in the HTML:
+
+```ts title="client.ts"
+import { hydrateRoot } from "react-dom/client";
+import App from "./App.tsx";
+import React from "react";
+
+hydrateRoot(document.getElementById("root")!, React.createElement(App));
+```
+
+Then on the server, we'll do two important things:
+
+1. Make the client hydration JS file statically available on our server, serve it statically.
+2. Render the react app and enable the possibility of hydration with `renderToString()`, then serve it as HTML and referencing the client JS script to fetch
+
+
+```tsx
+import { DenoRouter } from "./DenoRouter.ts";
+import { renderToString } from "react-dom/server";
+import React, { createElement } from "react";
+import App from "./frontend/App.tsx";
+import { Intellisense } from "./is.ts";
+import path from "node:path";
+
+const router = new DenoRouter();
+
+const __filename = new URL(import.meta.url).pathname;
+const __dirname = path.dirname(__filename);
+
+// Serve the client-side bundle
+router.get("/client.js", async (req, res) => {
+  const clientCode = `
+import React from "https://esm.sh/react@19.1.0";
+import { hydrateRoot } from "https://esm.sh/react-dom@19.1.0/client";
+
+const App = () => {
+  const [count, setCount] = React.useState(0);
+  return React.createElement("div", null,
+    React.createElement("h1", null, "Hello World"),
+    React.createElement("button", { onClick: () => setCount(count + 1) }, "Click me"),
+    React.createElement("p", null, "Count: ", count)
+  );
+};
+
+hydrateRoot(document.getElementById("root"), React.createElement(App));
+  `;
+
+  return new Response(clientCode, {
+    headers: { "Content-Type": "application/javascript" },
+  });
+});
+
+router.get("/", (req, res) => {
+// 1. render static HTML
+  const html = renderToString(React.createElement(App));
+  return router.renderHTML(
+    Intellisense.html`
+      <head>
+        <title>Hello World</title>
+      </head>
+      <body>
+        <div id="root">${html}</div>
+        <! -- reference the client side bundle that does hydration -->
+        <script type="module" async defer src="/client.js"></script>
+      </body>
+    `
+  );
+});
+
+router.initServer(8000);
+```
+
+#### RSCs from scratch: react flight protocol
+
+The main difference between RSCs and SSR is that RSCs are just react components that only run on the server. SSR does the initial rendering on the server, and then client side rendering through hydration takes over. 
+
+With RSCs, there is no client side rendering nor hydration. However, you can nest client components within server components. 
+
+The main way RSCs get translated to actual HTML is through the **react flight protocol**, which is an HTTP request with content type `application/octet-stream` that is basically a JSON representation of the JSX to render. 
+
+```tsx
+const MANIFEST = readFileSync(
+  path.resolve(__dirname, "../dist/react-client-manifest.json"),
+  "utf8"
+);
+const MODULE_MAP = JSON.parse(MANIFEST);
+
+fastify.get("/react-flight", function reactFlightHandler(request, reply) {
+  try {
+    reply.header("Content-Type", "application/octet-stream");
+    const { pipe } = renderToPipeableStream(
+      React.createElement(App),
+      MODULE_MAP
+    );
+    pipe(reply.raw);
+  } catch (err) {
+    request.log.error("react-flight err", err);
+    throw err;
+  }
+});
 ```
 
 ## Custom components

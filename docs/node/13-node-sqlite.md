@@ -110,11 +110,71 @@ export class SqliteDatabase {
 
 Better SQLite is a node library that is completely synchronous yet faster than normal sqlite libraries.
 
+Install like so:
+
+```bash
+npm i better-sqlite3
+npm i --save-dev @types/better-sqlite3
+```
+
+Here is how to set up a database
+
 ```ts
 import Database from 'better-sqlite3';
 const db = new Database('foobar.db');
 db.pragma('journal_mode = WAL'); // turn on WAL mode
 ```
+
+To use better sqlite3, you need to understand the two main ways of running queries:
+
+1. **exec approach**: Using the `db.exec()` method, you can just straight up run SQL queries that don't require any parameters. Beware, this does not have SQL injection protection support.
+2. **statements**: You can create prepared statements that represent queries you can run again and again using the `db.prepare()` method.
+
+### Using statements
+
+With statements, there are two ways to inject parameters:
+
+- **anonymous parameters**: Declare placeholders with a `?` and then place arguments in an array to get injected.
+- **named parameters**: Declare named placeholders with a `$`, `:`, or `@` prefix and then place arguments in an object (key-value map) without the prefix to get injected.
+
+This is how using with anonoymous params works:
+
+```ts
+const stmt = this.db.prepare("SELECT age FROM cats WHERE name = ?");
+const cat = stmt.get(["Joey"]);
+```
+
+```ts
+const stmt = db.prepare('INSERT INTO people VALUES (?, ?, ?)');
+
+// The following are equivalent.
+stmt.run('John', 'Smith', 45);
+stmt.run(['John', 'Smith', 45]);
+stmt.run(['John'], ['Smith', 45]);
+```
+
+This is how using with named parameters works:
+
+```ts
+const stmt = db.prepare('INSERT INTO people VALUES (@name, @name, ?)');
+stmt.run(45, { name: 'Henry' });
+```
+`
+```ts
+// The following are equivalent.
+const stmt = db.prepare('INSERT INTO people VALUES (@firstName, @lastName, @age)');
+const stmt = db.prepare('INSERT INTO people VALUES (:firstName, :lastName, :age)');
+const stmt = db.prepare('INSERT INTO people VALUES ($firstName, $lastName, $age)');
+const stmt = db.prepare('INSERT INTO people VALUES (@firstName, :lastName, $age)');
+
+stmt.run({
+  firstName: 'John',
+  lastName: 'Smith',
+  age: 45
+});
+```
+
+### Class
 
 Here is how to use it:
 
@@ -124,21 +184,49 @@ Here is how to use it:
 import Database from "npm:better-sqlite3";
 
 export class BetterSQLite {
-  private db: Database.Database;
+  private db!: Database.Database;
+  private static instance: BetterSQLite | null = null;
 
-  constructor(dbPath: string) {
-    this.db = new Database(dbPath);
+  constructor(
+    dbPath: string,
+    options: {
+      enableLogging?: boolean;
+      enableSingleton?: boolean;
+    } = {}
+  ) {
+    if (options.enableSingleton) {
+      if (BetterSQLite.instance) {
+        return BetterSQLite.instance;
+      }
+      BetterSQLite.instance = this;
+    }
+
+    this.db = new Database(dbPath, {
+      verbose: (...args: any[]) => {
+        if (!options.enableLogging) {
+          return;
+        }
+        console.log("[Database log]", ...args);
+      },
+    });
     this.db.pragma("journal_mode = WAL");
-    // const stmt = this.db.prepare("SELECT age FROM cats WHERE name = ?");
-    // const cat = stmt.get("Joey");
+    this.db.pragma("foreign_keys = ON");
   }
 
   close() {
     this.db.close();
   }
 
-  prepare(query: string) {
-    return new SQLiteStatement(query, this.db);
+  runQuery(query: string, params: any[] | Record<string, any>) {
+    return this.db.prepare(query).run(params);
+  }
+
+  exec(query: string) {
+    return this.db.exec(query);
+  }
+
+  prepare<T extends any[] | Record<string, any>>(query: string) {
+    return new SQLiteStatement<T>(query, this.db);
   }
 }
 
@@ -177,8 +265,14 @@ class SQLiteStatement<T extends any[] | Record<string, any>> {
       }
     }
     if (typeof params === "object") {
-      if (!this.query.includes("@") && !this.query.includes("$")) {
-        throw new Error("You must use @ or $ to bind parameters in object");
+      if (
+        !this.query.includes("@") &&
+        !this.query.includes("$") &&
+        !this.query.includes(":")
+      ) {
+        throw new Error(
+          "You must use @ or $ or : to bind parameters in object"
+        );
       }
     }
   }
