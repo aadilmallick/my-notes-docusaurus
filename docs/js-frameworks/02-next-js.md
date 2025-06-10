@@ -543,6 +543,35 @@ export default function SignInPage() {
 }
 ```
 
+Here's a simpler example:
+
+```tsx
+  const [state, formAction, isPending] = useActionState<
+    ActionResponse,
+    FormData
+  >(
+	  // first argument is callback
+    async (prevState, formData) => {
+      const response = await addNoteAction(formData);
+      if (response.success) {
+        router.refresh();
+        return {
+          success: true,
+          message: "Note added successfully",
+          error: "",
+        };
+      }
+      return response;
+    },
+    // 2nd argument is initial state
+    {
+      success: false,
+      message: "",
+      error: "",
+    }
+  );
+```
+
 ### Other ways to use server actions
 
 Since server actions are just syntactic sugar for fetching an API route you make, you can invoke them anywhere, in any event handler like `onClick=` or as a result of a form submission with the `action=` prop.
@@ -567,6 +596,41 @@ import { createPost } from '@/app/actions'
 export function Button() {
   return <button formAction={createPost}>Create</button>
 }
+```
+
+You can also use a server action in an `onClick=` prop like so:
+`
+```ts title="actions.ts"
+export async function deleteNoteAction(id: number) {
+  "use server";
+  notesModel.deleteNote(id);
+  notesCacher.uncache();
+}
+```
+
+```tsx title="DeleteButton.tsx"
+"use client";
+
+import { deleteNoteAction } from "@/actions/actions";
+import { TrashIcon } from "@heroicons/react/24/outline";
+import React from "react";
+import { useRouter } from "next/navigation";
+
+export const TrashButton = ({ id }: { id: number }) => {
+  const router = useRouter();
+  return (
+    <button
+      className="text-sm text-gray-500 hover:text-red-500 cursor-pointer"
+      onClick={async () => {
+        await deleteNoteAction(id);
+        console.log("deleted");
+        router.refresh();
+      }}
+    >
+      <TrashIcon className="w-4 h-4" />
+    </button>
+  );
+};
 ```
 
 ### Things you can do in server actions

@@ -146,25 +146,6 @@ SELECT (column_name_1, column_name_2) FROM table_name;
 ```
 
 All other querying tactics are built off these ones.
-##### **Group by**
-
-```sql
--- group records based on their "type" field. 
--- records with the same value for their "type" field are grouped together
--- We return the count of the records, and the type column
-SELECT COUNT(*), type FROM ingredients GROUP BY type;
-```
-
-Below is the kind of result we get
-
-```
-count(*)  |   type    
--------+-----------
-     9 | fruit
-     3 | meat
-    13 | vegetable
-     5 | other
-```
 
 ##### `ORDER BY`
 
@@ -179,7 +160,7 @@ SELECT COUNT(*) AS count, type  FROM ingredients
 GROUP BY type ORDER BY COUNT(*) DESC;
 ```
 
-##### `LIMIT`
+##### `LIMIT` and `OFFSET`
 
 The `LIMIT <n>` keyword is used to limit the amount of rows returned based on the number you specify. This pairs well with the `ORDER BY` operator to get the top 5 of something.
 
@@ -218,18 +199,8 @@ FROM ingredients
 WHERE id > 20
 LIMIT 10;
 ```
-#### Advanced querying
 
-**column name remapping**
 
-Using the `AS <new-column-name>` syntax, you can temporarily rename a column for the query output. This is useful for producing human-readable column names. 
-
-```sql
--- rename COUNT() column to num_users
-SELECT COUNT(username) AS num_users FROM users;
-```
-
-**dynamically creating columns**
 
 #### Inserting data
 
@@ -293,7 +264,7 @@ Both updating and deleting data follow essentially the same syntax, but any data
 
 ### Joins
 
-#### Foreign keys
+ #### Foreign keys
 
 Foreign keys are used to provide constraints on how data in tables gets inserted, updated, or deleted in relation to other tables. They also automatically provide indices that speed up querying by those foreign keys.
 
@@ -340,11 +311,25 @@ You also have access to 4 foreign key modifiers that allow you to control what h
 - `ON DELETE SET NULL` : when deleting a referencing record, sets that field to null.
 - `ON DELETE SET DEFAULT <value>` : when deleting a referencing record, sets that field to a some default value.
 
+
+#### Primary keys in depth
+
+You can create primary keys from a combination of foreign keys like so, using the `CONSTRAINT` keyword. It guarantees the primary key will be a unique combination of the foreign keys.
+
+```sql
+CREATE TABLE ingredients (
+	recipe_id INT REFERENCES recipes(recipe_id) ON DELETE NO ACTION,
+	photo_id INT REFERENCES photos(photo_id) ON DELETE NO ACTION,
+	CONSTRAINT ingredients_primary_key PRIMARY KEY (recipe_id, photo_id)
+)
+```
 #### Intro to joins
 
 ![](https://i.imgur.com/N8G0uXd.png)
 
 Joins are often a much more efficient way of combining multiple queries into one step.
+
+**syntax**
 
 - The order in joins matter. The table name that comes after the `FROM` keyword we will call as the _querying table_, and the table name that we’re joining on we will call as the _joining table_.
 - The different types of joins have different behavior depending on which table is joining and which is querying.
@@ -356,10 +341,28 @@ FROM comments
 -- joins comments and users tables together on the below condition
 INNER JOIN users ON comments.user_id = users.user_id 
 -- specific condition to run before inner join: gets all comments with board_id=39
-WHERE board_id=39;
+WHERE board_id=39; 
 ```
 
-When using JOIN statements, we should use dot property syntax from each table like `table.column_name` to make it unambiguous to Postgres which field from which table we are referring to.
+There are also these 4 things to keep in mind when doing joins:
+
+- **dot property syntax**: When using JOIN statements, we should use dot property syntax from each table like `table.column_name` to make it unambiguous to Postgres which field from which table we are referring to.
+- **order of clauses**: The `WHERE` conditional clause always comes after joins. 
+- **multiple joins**: You can do multiple joins to join multiple tables together in the same query.
+- **rename tables**: You can also rename tables during join statements to make it less verbose. Below is the same query but renaming tables:
+
+
+```sql
+SELECT 
+	c.id AS comment_id, 
+	c.user_id AS user_id, 
+	u.username AS username, 
+	LEFT(c.comment, 20) AS user_comment 
+FROM comments c -- rename here
+	INNER JOIN users u -- rename here
+		ON c.user_id = u.user_id 
+	WHERE board_id=39; 
+```
 
 **Types of joins**
 
@@ -370,6 +373,62 @@ There are different types of joins, kind of based on a venn diagram. The order o
 - **right join:** Include all records from second table (the table after `ON`) even if they don’t have a match in the first table
 
 #### Inner joins
+
+
+
+Here's a toy example with multiple inner joins:
+
+```sql
+CREATE TABLE users (
+    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE lessons (
+    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title VARCHAR(100) NOT NULL,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE lessons_contents (
+    CONSTRAINT id PRIMARY KEY (lesson_id),
+    content TEXT DEFAULT('lorem ipsum'),
+    lesson_id INT REFERENCES lessons(id) ON DELETE CASCADE
+);
+
+INSERT INTO users (name) VALUES
+('aadil1'),
+('aadil2'),
+('aadil3'),
+('aadil4'),
+('aadil5');
+
+INSERT INTO lessons (title, user_id) VALUES
+('Title 1', 1),
+('Title 2', 1),
+('Title 3', 1),
+('Title 4', 4),
+('Title 5', 3);
+
+INSERT INTO lessons_contents (lesson_id) VALUES
+(1),
+(2),
+(3),
+(4),
+(5);
+
+SELECT 
+    u.name AS name,
+    l.title AS lesson_title,
+    lc.content AS lesson_content
+FROM users u
+INNER JOIN 
+    lessons l ON l.user_id = u.id
+INNER JOIN 
+    lessons_contents lc on lc.lesson_id = l.id
+WHERE
+    u.name = 'aadil1';
+```
 
 #### Natural inner joins
 
@@ -390,8 +449,156 @@ In the example above, the foreign key for the `comments` table is named `user_id
 #### Left join
 
 #### Right join
+
+### `CHECK`
+
+The `CHECK` keyword allows you to set constraints on columns, letting you do stuff like make enum types, etc.
+
+```sql
+ALTER TABLE users
+ADD CONSTRAINT indian_name
+CHECK
+	(name IN ('Arjun', 'it\'s mf gandhi', 'rohit'))
+```
+
+This constraint will make invalid insertions error out.
+
+### Advanced querying
+
+#### **column name remapping**
+
+Using the `AS <new-column-name>` syntax, you can temporarily rename a column for the query output. This is useful for producing human-readable column names. 
+
+```sql
+-- rename COUNT() column to num_users
+SELECT COUNT(username) AS num_users FROM users;
+```
+
+#### `SELECT DISTINCT`
+
+The `SELECT DISTINCT` pair of keywords help you select unique values of a field:
+
+```sql
+SELECT DISTINCT name FROM users;
+```
+
+You can combine this with joins to only select distinctly based on a field using the `DISTINCT ON` syntax:
+
+```sql
+-- get all unique user ids first before joining. 
+-- those unique user ids will be our "pool" for the joining possibilities.
+SELECT DISTINCT ON (l.user_id)
+    u.name AS name,
+    l.title AS lesson_title
+FROM users u
+INNER JOIN 
+    lessons l ON l.user_id = u.id;
+```
+
+#### `COALESCE()`
+
+The `COALESCE(column, value)` method takes in a field and default value to return if that field is null. 
+
+```sql
+SELECT DISTINCT ON (l.user_id)
+    COALESCE(u.name, 'nameless person') AS name,
+    l.title AS lesson_title
+FROM users u
+INNER JOIN 
+    lessons l ON l.user_id = u.id;
+```
 ### Aggregation
 
+Aggregation in SQL combines the `GROUP BY` clause with an aggregation function. Here are a list of the aggregation functions you have:
+
+- `COUNT()`: counts number of rows
+
+#### Basics: `GROUP BY`
+
+When using the `GROUP BY` clause, the most important thing to note is that you can only select columns of aggregations of columns that are included in the `GROUP BY` clause.
+
+- In the example below, we are grouping by the `type` column, therefore we can only include aggregations that include that field or the `type` column itself.
+
+```sql
+-- group records based on their "type" field. 
+-- records with the same value for their "type" field are grouped together
+-- We return the count of the records, and the type column
+SELECT COUNT(*), type FROM ingredients GROUP BY type;
+```
+
+Below is the kind of result we get
+
+```
+count(*)  |   type    
+-------+-----------
+     9 | fruit
+     3 | meat
+    13 | vegetable
+     5 | other
+```
+
+#### Basics: `HAVING`
+
+The `HAVING` clause is like conditionals for aggregation. Whenever you need to have a conditional clause that uses an aggregation function in the condition, you must use `HAVING`. Besides that, there is a certain order when it comes to conditional clauses in aggregation:
+
+- `WHERE`: all `WHERE` clauses happen BEFORE the aggregation takes place, therefore it can't have conditions that include aggregation functions. 
+- `HAVING`: the `HAVING` clauses does conditional filtering AFTER the aggregation takes place, and therefore can be used with aggregation functions in its conditions.
+
+> [!IMPORTANT]
+> - The `WHERE` clause CANNOT be used after a `GROUP BY` clause. 
+> - The `HAVING` clause can ONLY be used after a `GROUP BY` clause. 
+
+
+> [!IMPORTANT] 
+> - The `WHERE` clause CANNOT use an aggregation function in its condition.
+> - The `HAVING` clause can use an aggregation function in its condition.
+
+
+For a more in depth explanation, basically the below clause with `WHERE` would be illegal because we use an aggregation function in the condition. We mistakenly try to filter the results after aggregation, which is not what `WHERE` is used for - if we tried to filter before aggregation, then it would work.
+
+```sql
+SELECT user_id, COUNT(user_id) as num_lessons 
+FROM 
+	lessons 
+GROUP BY 
+	user_id 
+WHERE COUNT(user_id) > 1; -- errors out: can't filter after group by
+```
+
+By converting this to `HAVING`, we can filter the aggregation results correctly.
+
+```sql
+SELECT 
+	user_id, 
+	COUNT(user_id) as num_lessons 
+FROM 
+	lessons 
+GROUP BY 
+	user_id 
+HAVING COUNT(user_id) > 1;
+```
+
+#### `COUNT()`
+
+The `COUNT()` function takes in a field and counts how many non-null values there are of that field.
+
+```sql
+SELECT COUNT(*) FROM users;
+
+SELECT user_id, COUNT(user_id) as num_lessons FROM lessons GROUP BY user_id;
+```
+
+```sql
+SELECT 
+	user_id, 
+	COUNT(user_id) as num_lessons 
+FROM 
+	lessons 
+WHERE 
+	user_id=1
+GROUP BY 
+	user_id;
+```
 ### Dealing with data types
 
 #### Date and time
@@ -419,7 +626,12 @@ With strings, you have multiple string methods you can take advantage of:
 
 #### JSON
 
-We can actually handle querying JSON data types in postgres through the `JSON` data type. There is a special operator we use to extract fields out of JSON, which is the `->` operator, used like `field -> property` .
+We can actually handle querying JSON data types in postgres through the `JSON` or `JSONB` data types. This data type validates that a string you pass in would serialize to valid JSON, and you can even perform queries on it to extract properties and values from the JSON straight from SQL. Here are the differences between JSON and JSONB:
+
+- **JSON**: plain text, uncompressed JSON. Only useful and more performant if it's not meant to be queried, like JSON of logs or config data.
+- **JSONB**: the better, compressed JSON built for querying and modification. You want to use this in most cases, especially if querying the JSON for data frequently.
+
+There is a special operator we use to extract fields out of JSON, which is the `->` operator, used like `field -> property` . The property name must be in single quotes.
 
 In the examples below, `rich_content` is a table that holds JSON information about reddit posts, and `content` is the name of a field that is a JSON object.
 
@@ -428,14 +640,41 @@ In the examples below, `rich_content` is a table that holds JSON information abo
 SELECT DISTINCT content -> 'type' AS content_type FROM rich_content;
 
 -- get the 'dimensions` property, and only non-null values
-SELECT content -> 'dimensions' AS dimensions FROM rich_content 
+SELECT content -> 'dimensions' AS dimensions 
+FROM rich_content 
 WHERE content -> 'dimensions' IS NOT NULL;
 
--- get the dimensions.height property
-SELECT content -> 'dimensions' -> 'height' AS height FROM rich_content
+-- get the dimensions.height property as a numerical value
+SELECT content -> 'dimensions' ->> 'height' AS height FROM rich_content
 ```
 
 - For deeply nested JSON properties, you can still continue with the `->` operator to extract those properties
+- To extract the actual value from JSON instead of getting a string back, you can use the `->>` operator.
+
+**JSON arrays**
+
+To get a specific element from an array, you can use index-based syntax, like using the `->` operator with a numerical property without the quotes, like `jsonCol -> 'arrayKey' -> 1` to get the 2nd element in the array living under the `'arrayKey'` key.
+
+```sql
+SELECT 
+	metadata -> 'tags' ->> 0 AS primary_tag,
+	metadata -> 'tags' ->> 1 AS secondary_tag
+FROM 
+	posts;
+```
+
+To query for if an array contains a specific element, you use the `?` operator like so in a conditional `WHERE` clause:
+
+```sql
+-- get primary and secondary tags where the tags array has 'self development'
+SELECT 
+	metadata -> 'tags' ->> 0 AS primary_tag,
+	metadata -> 'tags' ->> 1 AS secondary_tag
+FROM 
+	posts
+WHERE metadata -> 'tags' ? 'self development'
+```
+
 
 ### Subqueries
 
@@ -451,11 +690,156 @@ WHERE Album.ArtistId =
 -- returns 2
 ```
 
+> [!NOTE]
+> Joins are going to be faster than subqueries most of the time, but subqueries help your SQL code be more readable.
+
+#### Subqueries and arrays
+
+If you subqueries return more than one value, then you need to put it inside an `ARRAY()` function, which will turn that result set into an array in postgres.
+
+The basic syntax is like so:
+
+```sql
+SELECT ARRAY(subquery) AS list_of_things FROM table_name;
+```
+
+Here is an example of how to use subqueries to get each user with a list of the lesson titles associated with them:
+
+```sql
+SELECT DISTINCT
+    u.name, 
+    u.id,
+    ARRAY(
+	    -- subquery, but you have to explicitly get from table
+        SELECT l.title FROM lessons l WHERE l.user_id = u.id
+    ) AS lesson_titles
+FROM 
+    users u
+LEFT JOIN 
+    lessons l ON l.user_id = u.id;
+```
+
+Then this is what is returned:
+
+```sql
+  name  | id |          lesson_titles          
+--------+----+---------------------------------
+ aadil1 |  1 | {"Title 1","Title 2","Title 3"}
+ aadil2 |  2 | {}
+ aadil3 |  3 | {"Title 5"}
+ aadil4 |  4 | {"Title 4"}
+ aadil5 |  5 | {}
+```
+### Functions and procedures
+
+#### Functions
+
+Functions in SQL are ways to create reusable, flexible queries that accept parameters and inject them when invoked. They are created using the `plpgsql` language, and look like so:
+
+```sql
+CREATE OR REPLACE FUNCTION
+	-- creates a function with the specified name, and accepts two integer args
+  get_recipes_with_ingredients(low INT, high INT) 
+RETURNS
+	-- returns string data essentially in a column
+  SETOF VARCHAR
+LANGUAGE
+	--- plpgsql is the language to create SQL functions
+  plpgsql
+-- AS block is where we write function code
+AS
+$$ -- $$ is same as single quote. Return a string
+BEGIN
+  RETURN QUERY  -- after this we write the query
+	
+	SELECT r.title FROM recipe_ingredients ri 
+	INNER JOIN recipes r ON r.recipe_id = ri.recipe_id
+	GROUP BY r.title
+  HAVING COUNT(r.title) 
+	-- using function parameters
+	BETWEEN low AND high;
+END;
+$$;
+```
+
+- `$$` are a replacement for single quotes, and lets you use single quotes in a string eithout escaping them.
+- `RETURNS SETOF VARCHAR`: means you are returning a set of strings, essentially one column of strings.
+
+> [!TIP]
+> You can check all the functions you’ve created with \df
+
+
+Functions are written in turing-complete programming languages and provide flexibility to your SQL querying, but they also have glaring drawbacks:
+
+- **don't live in application logic**: Functions live in the database and not in your application logic, so they are unpredictable.
+- **not committed to source code**: They can't be committed to source code.
+
+Only use functions if you can't do what you want in code.
+
+#### Procedures
+
+A procedure is like a less powerful function. It doesn't take any parameters, and it doesn't return anything. Procedures are used only for mutations, like updating, inserting, or deleting.
+
+You create a procedure like so:
+
+```sql
+CREATE PROCEDURE change_lesson_content()
+LANGUAGE SQL
+AS
+$$
+    UPDATE 
+        lessons_contents 
+    SET 
+        content = 'new lesson content'
+    WHERE 
+        lesson_id = 1;
+$$;
+```
+
+You can then call a procedure with the `CALL` keyword:
+
+```sql
+CALL change_lesson_content();
+```
+
+> [!NOTE]
+> Doing procedures is stupid. Just put this stuff in your application logic.
+
+#### Triggers
+
+Triggers are ways to run functions automatically on events, like inserting, updating, or deleting data.
+
 ### Indices
 
-We can check the performance of any query by putting the `EXPLAIN` keyword in front of it.
+#### Analysing query performance
+
+When searching for literal values, an O(n) search is performed.
+
+When querying by a primary key like an id, indexing is automatically performed and the performance is much better, on the scale of O(log n) by using a b-tree.
+
+Here are the different types of search performance keywords that postgre gives back:
+
+- **index scan:** Performant. The query uses an index, which is a b-tree
+- **sequential scan:** Not performant. This is linear search.
+
+> [!NOTE]
+>  Indices are useful because they create a B-tree to traverse record data for a field, yielding O(log n)
+
+If you want to see how a certain query performs, prefix the query with `EXPLAIN` or `EXPLAIN ANALYZE` for more in-depth info We can check the performance of any query by putting the `EXPLAIN` keyword in front of it.
+
+![](https://i.imgur.com/Bcmo2Kn.png)
+
 
 If we get back a time higher than 50 or Postgres describes it as a sequential scan, we can be sure that our query needs to be indexed to improve performance.
+
+**Postgres planner**
+
+The postgres planner is like a built-in mastermind that decides when or when not to use user-created indices.
+
+- If a database is small, postgres will just use sequential scan
+- If a database is large, postgres will use indicies
+
+#### Creating and deleting indices
 
 We create indices on individual fields, with the `CREATE INDEX ON table(field_name);` syntax, like the examples below:
 
@@ -467,12 +851,62 @@ CREATE INDEX ON comments (board_id);
 CREATE UNIQUE INDEX username_idx ON users(username);
 ```
 
+- `CREATE INDEX` : creates an index
+- `DROP INDEX` : deletes an index
+
 > [!NOTE]
 > Keep in mind that it is expensive to create an index. You don’t want to go making them all the time.
 
 > [!TIP]
 > To find out which fields you need to index, look at what fields you use a lot in the `WHERE` conditionals. Some potential fields to index could be the id of a table, a user’s email, or their username.
 
+Any field you add the `UNIQUE` constraint to automatically gets indexed. 
+
+**partial indices**
+
+You can create partial indices where you index on some rows but not others by just adding a conditional `WHERE` clause when creating an index:
+
+```sql
+CREATE INDEX 
+	idx_english_names 
+ON 
+	names(language) 
+WHERE 
+	language = 'english';
+```
+
+**indexing on derived columns**
+
+A **derived column** is any column that is produced dynamically through a SQL function on an actual field on your table. You can index derived columns if you query them frequently:
+
+```sql
+CREATE INDEX index_profit ON movies COALESCE(revenue - budget, 0);
+```
+
+#### Gin indices
+
+GIN means **general inverted index** and is used to index JSONB fields, but it can also be used for general text search with conditional operators like `ILIKE`.
+
+```sql
+-- 1. runs sequential scan
+EXPLAIN ANALYZE SELECT name FROM movies WHERE name ILIKE '%endgame%';
+
+-- 2. create text search index on name field in movies table using trigrams
+CREATE INDEX ON movies USING gin(name gin_trgm_ops);  
+
+-- 3. now runs bitmap index scan for better performance
+EXPLAIN ANALYZE SELECT name FROM movies WHERE name ILIKE '%endgame%';
+```
+
+So the general syntax for indexing on string fields for general text search is as follows, where you have two types of gin indices:
+
+- **normal gin index**: I have no idea what this does
+- **trigram gin index**: Splits up each string into all of its possible permutations and then indexes on those strings. Specified through `gin_trgm_ops`.
+
+```sql
+CREATE INDEX ON table_name USING gin(col_name) -- normal gin index
+CREATE INDEX ON table_name USING gin(col_name gin_trgm_ops) -- trigram gin index
+```
 ### Views
 
 Views in PostgreSQL are ways to simplify queries by storing the result of a query in a table that you can then use and reuse. You can create views from a `SELECT` statement, and can be very useful to avoid performing the same queries and joins over and over again. There are two different types of views:
@@ -486,6 +920,7 @@ Views are references to the original table(s) from the queries, so any modificat
 
 Before the `SELECT` statement, we add the `CREATE VIEW` command to create a view from whatever table the select query returns.
 
+Once you create a view, you can query it or even mutate it like any other table, which helps to simplify complex queries.
 
 The basic syntax is as follows:
 
@@ -496,12 +931,13 @@ CREATE VIEW view_name AS SELECT ... -- creates a view from the SELECT query
 Here is an example:
 
 ```postgresql
-CREATE VIEW simple_ingredients AS SELECT title, type FROM ingredients;
+CREATE VIEW simple_ingredients AS 
+SELECT 
+	title, type FROM ingredients;
+
+-- now you can do the following:
 SELECT * FROM simple_ingredients;
 ```
-
-> [!NOTE]
-> Because views are basically stand-ins for the tables they reference, you can use them to simplify joins and other things.
 
 To delete a view, use the `DROP VIEW` keywords:
 
@@ -576,6 +1012,19 @@ GROUP BY
 WITH DATA;
 ```
 
+
+
+### Transactions
+
+Transactions are useful for operations where it's all or nothing - no in the middle. It either succeeds or it fails. The main use case for transactions is where multiple operations need to happen in succession, and a partial failure of this operation pipeline would be unacceptable.
+
+Here are the main transaction-specific queries you need to learn:
+
+- `BEGIN;`: begins the transaction. Any subsequent SQL queries will be included in this transaction.
+- `ROLLBACK;`: cancels the transaction and rolls back to the original state of the database before the transaction. This statement can only be executed if you are still in the middle of a transaction.
+- `COMMIT;`: ends the transaction and commits it.
+
+If any queries in between a `BEGIN` and `COMMIT` statement fail, then the entire transaction will fail.
 
 ## SQLite
 

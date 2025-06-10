@@ -86,8 +86,7 @@ Rebase allows you to move the root commit of a branch to another commit, like mo
 > [!TIP]
 > A great advantage of rebase is that it prevents merge commits.
 
-- `git rebase <branch>` : rebases the specified branch onto the current branch you are on. 
-	- If you are working an a `feature` branch and want to rebase it onto `main`, then you can 
+ 
 
 ### Interactive rebasing
 

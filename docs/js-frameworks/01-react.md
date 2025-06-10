@@ -493,10 +493,59 @@ The `useTransition()` hook is used to keep the UI interactive while doing some a
 
 ```ts
 export function Example() {
-	const [isPending, startTransition]
+	const [isPending, startTransition] = useTransition()
 }
 ```
 
+- `isPending`: a boolean value representing the loading state
+- `startTransition()`: a function that takes in an async callback of some code you want to run. This will defer to the main thread while still running the callback.
+
+### Optimistic UI udpates: `useOptimistic()`
+
+An optimistic uI update is the UI updating to reflect the desired state of some server action before the server action is actually completed. 
+
+This can lead to the UI feeling snappy, but if the server action fails, you have to rollback the ui updates to reflect the true result of the server action. This can be confusing for a user who was led to believe that the server action succeeded because of the optimistic UI update.
+
+To use this hook you need two existing pieces of code:
+
+- **transitions**: You need to nest any optimistic update code inside a `startTransition()` invocation from the `useTransition()` hook.
+- **standard state**: You need to pass in a standard state to the `useOptimistic()` hook so it can perform automatic rollbacks to that state. 
+
+```ts
+export function Example() {
+	const [isPending, startTransition] = useTransition()
+	const [notes, setNotes] = useState<Note[]>([])
+	const [optimisticNotes, addOptimisticNote] = useOptimistic(
+		notes, 
+		(oldNotes, newNote) => {
+			return [...oldNotes, newNote]
+		}
+	)
+}
+```
+
+- The first argument we pass to the `useOptimistic()` hook is the base state, which will be the initial value of the `optimisticNotes` state and also the rollback value for when the true state changes with `setNotes()`
+- The second argument we pass to the `useOptimistic()` hook is a mutation callback.
+
+
+
+
+### `useDeferredValue()`
+
+In react, everything is marked a high priority render by default. If you want to change expensive computational state changes to low priority renders, then you have to explicitly mark them as low priority with the `useOptimistic()` nad `useDeferredValue()` hooks.
+
+The `useDeferredValue()` hook specifically is used for stuff like debouncing and throttling, where it only assumes the most recent state change after a rapid succession of state changes. It takes in a state variable as an argument:
+
+```ts
+const [state, setState] = useState()
+const deferredState = useDefrredValue(state)
+```
+
+You can then create a "debouncing" effect by preventing action when the original state is not equal to the deferred value:
+
+```ts
+const isUpdating = state !== deferredState
+```
 ### SSR from scratch in React
 
 **Step 1) typescript needs to be happy**
