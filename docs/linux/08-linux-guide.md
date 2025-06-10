@@ -1,4 +1,3 @@
-
 ## Keyboard shortcuts
 
 - `CTRL + A `– takes you to the beginning of the line
@@ -9,8 +8,6 @@
 - `CTRL + L` - clear the screen
 - `CTRL + R` – reverse search through history
 - `CTRL + D` - exit bash shell
-
-
 
 ## Editors
 
@@ -26,6 +23,7 @@ Here are some keyboard shortcuts that nano provides:
 
 - **ctrl + g :** to see all possible shortcuts and get help
 - **alt :** undo last action
+
 ### Vim
 
 To open vim, run the `vim <textfile.txt>` command to open up a specific command in vim.
@@ -47,18 +45,18 @@ Basic commands:
 
 #### Navigating a file
 
-- **Arrow keys** - move the cursor around
-- **j, k, h, l** - move the cursor down, up, left and right (similar to the arrow keys)
-- **^ (caret)** - move cursor to beginning of current line
-- **$** - move cursor to end of the current line
-- **nG** - move to the **n**th line (eg 5G moves to 5th line)
-- **G** - move to the last line
-- **w** - move to the beginning of the next word
-- **nw** - move forward n word (eg 2w moves two words forwards)
-- **b** - move to the beginning of the previous word
-- **nb** - move back n word
-- **{** - move backward one paragraph
-- **}** - move forward one paragraph
+- `Arrow keys` - move the cursor around
+- `j, k, h, l` - move the cursor down, up, left and right (similar to the arrow keys)
+- `^ (caret)` - move cursor to beginning of current line
+- `$` - move cursor to end of the current line
+- `nG` - move to the `n`th line (eg 5G moves to 5th line)
+- `G` - move to the last line
+- `w` - move to the beginning of the next word
+- `nw` - move forward n word (eg 2w moves two words forwards)
+- `b` - move to the beginning of the previous word
+- `nb` - move back n word
+- `{` - move backward one paragraph
+- `}` - move forward one paragraph
 
 #### Text editing
 
@@ -73,6 +71,7 @@ Here are commands that you have while in command mode that let you edit text qui
 
 - `set nu`: turns on line numbers for a file
 - `u`: undo last action
+
 ## Bash History
 
 You can use the `history` command to see a record of all your bash history.
@@ -83,7 +82,7 @@ These are helper commands that help you learn about other commands:
 
 - `help <command>`: shows the MAN page for the specified command.
 - `which <command>`: shows the file location for the specified command.
-- `type <command>`: tells which type a specified command is. 
+- `type <command>`: tells which type a specified command is.
 
 For the `type` command, there are 4 types of things a command could be:
 
@@ -91,7 +90,6 @@ For the `type` command, there are 4 types of things a command could be:
 2. built-in shell command
 3. shell function
 4. alias
-
 
 ## Dealing with files
 
@@ -129,15 +127,16 @@ Here is basic usage of the `cat` commandL
 - `cat FILES...` : concatenates the contents in all the specified files and prints them all out at once.
 
 You also have options on this command:
--  `-n` : prints out line numbers along with text
+
+- `-n` : prints out line numbers along with text
 
 #### `less`
 
 You have these navigation commands while in the `less` reader:
 
-- **q** to quit
-- **space bar** to go down a page
-- **b** to go up a page
+- `q` to quit
+- `space bar` to go down a page
+- `b` to go up a page
 - `/<pattern>` to search for a pattern
 
 You also have these options:
@@ -179,8 +178,8 @@ rm FILENAME...
 - `rm <filepath>` : deletes the specified file or folder permanently
 - `rm -d <foldername>` : removes the empty directory
 - `rm -r <foldername>` : recursively deletes the directory and its contents.
-    - Pair the `-r` option with `-i` for extra safety, for the shell to prompt you for confirmation before deleting each file.
-    - Pair the `-r` option with `-f` to force deletion, to skip confirmation. Obviously be careful with this.
+  - Pair the `-r` option with `-i` for extra safety, for the shell to prompt you for confirmation before deleting each file.
+  - Pair the `-r` option with `-f` to force deletion, to skip confirmation. Obviously be careful with this.
 - `rm -i <filepath>` : prompts the user for confirmation before deleting.
 - `rm -f <filepath>` : skips user confirmation when deleting.
 
@@ -191,14 +190,14 @@ The `mv` command does both renaming and moving of files and directories, but the
 - `mv <source> <destination>` : moves the specified file to the specified destination
 - `mv SOURCE... DESTINATION` : moves multiple files into the same folder at once
 - `mv <folder> <destination>` : moves the specified folder to the specified destination.
-    - The folders and destination must exist, otherwise it just renames folders.
+  - The folders and destination must exist, otherwise it just renames folders.
 - `mv FOLDERS... DESTINATION` : moves multiple folders to the specified destination at once.
-    - The folders and destination must exist, otherwise it just renames folders.
+  - The folders and destination must exist, otherwise it just renames folders.
 
 ### Copying folders
 
 - `cp <source> <destination>` : copies the specified file to the specified destination.
-    - If destination does not exist, it will rename the copy.
+  - If destination does not exist, it will rename the copy.
 - `cp SOURCE... DESTINATION` : copies multiple files at once to the same destination.
 - `cp -r <folder> <destination>` : copies the directory recursively to the new destination.
 
@@ -206,7 +205,7 @@ The `mv` command does both renaming and moving of files and directories, but the
 
 ### `tar`
 
-The `tar` command takes in a bunch of files and folders and compresses them into a single `.tar.gz` file. 
+The `tar` command takes in a bunch of files and folders and compresses them into a single `.tar.gz` file.
 
 **compressing to tar**
 
@@ -246,6 +245,7 @@ tar -tf <tarball>
 
 - `zip -r <zip-file-name> <folder>` : zips the folder you want into a zip file with the specified file name.
 - `unzip <zip-file>` : unzips the zip file into the current directory.
+
 ### `wget`
 
 The `wget` command downloads the contents of an online url and saves it to your local filesystem as a file. The syntax is as follows:
@@ -268,7 +268,7 @@ Basic usage is like so:
 curl <url>
 ```
 
- To write the response from the url to the specified file, you would use the `-o` option.
+To write the response from the url to the specified file, you would use the `-o` option.
 
 ```bash
 curl <url> -o <file>
@@ -294,14 +294,19 @@ You can then send request bodies with the `-d <data>` syntax, where data is a st
 curl -X POST -d "this is the post body" <url>
 ```
 
+```bash
+curl -X POST http://localhost:30000/api/website \
+-H "Content-Type: application/json" \
+-d '{"name": "test", "url": "https://www.google.com"}'
+```
+
 **cookies**
 
 The `-b` option allows you to create cookies with `-b "key=value"` type of synax. You can reuse this option several times to add several cookies.
-    
+
 ```bash
 curl -X POST -b "I_am_going_to_die_a_virgin=true" <url>
 ```
-
 
 **headers**
 
@@ -312,33 +317,34 @@ curl -H "Content-type: application/json"
 	 -H "Authorization: Bearer pleasegodwhyamisoalone"
 ```
 
-
 ### `date`
 
 The `date` command prints out the current date, but there are some useful modifiers you should know:
 
 - `date %s`: prints out number of seconds since Jan 1st, 1970
+
 ### text based commands
 
 #### `sort`
 
-the `sort <filename>` command sorts the file alphabetically and outputs it. 
+the `sort <filename>` command sorts the file alphabetically and outputs it.
 
 > [!NOTE]
 > Lowercase alphabetically comes before uppercase
 
 Here are the options
+
 - `-r` : reverses the output
 - `-n` : numeric sort
 - `-u` : sort, and output only unique values. Remove all the duplicates.
 
 **advanced sorting**
-****
-advanced sorting is based on sorting by columns. You can make columns by separating text with a space. 
+
+---
+
+advanced sorting is based on sorting by columns. You can make columns by separating text with a space.
 
 - `sort -n -k<num-column> <filename>` : sorts numerically by the specified column
-
-
 
 #### `wc`
 
@@ -347,6 +353,7 @@ The `wc` command tells us the number of words, lines, or bytes in a file or text
 - `wc <filename>` : outputs three numbers, where first is **number of lines**, **number of words**, and **number of bytes**.
 
 You also have these options:
+
 - `-l` : only outputs number of lines.
 - `-w` : only outputs word count
 
@@ -441,6 +448,7 @@ grep <pattern> <filename>
 **basic options**
 
 Here are some basic options you have with grep:
+
 - `-i` : case insensitive
 - `-w` : only matches full words instead of substrings.
 - `-c` : returns the count of the number of matches
@@ -451,7 +459,7 @@ Here are some basic options you have with grep:
 
 **recursive search**
 
- Using the `-r` option with grep searches rescursively throughout the entire folder for occurrences of the pattern, checking all subfolders and subfiles.
+Using the `-r` option with grep searches rescursively throughout the entire folder for occurrences of the pattern, checking all subfolders and subfiles.
 
 ```bash
 grep -r <pattern> <folder>
@@ -484,7 +492,6 @@ egrep 'or|is|go' mysampledata.txt
 > [!IMPORTANT]
 > Keep in mind the regex portion should be in single quotes to escape any metacharacters.
 
-
 ## Shell specific syntax
 
 ### Redirection
@@ -494,12 +501,13 @@ In linux, you have three concepts of input, output, and error:
 - **Standard output** controls where the output of a command goes, like to the terminal, a file, or a printer.
 - **Standard error** controls where any errors from a command goes, and you can redirect that stream to somewhere else.
 - **standard input** is where a program gets the commands from.
-    - By default, you type in commands through your keyboard, but it can come from a program or something else.
+  - By default, you type in commands through your keyboard, but it can come from a program or something else.
 
 #### Basic redirection
 
 **stdout redirection**
-****
+
+---
 
 To redirect to standard output, you would use the `>` operator:
 
@@ -527,7 +535,9 @@ cat < things.txt
 ```
 
 **stderr redirection**
-****
+
+---
+
 By default, stdout redirection with `>` only redirects the output of the command, not if it errors out. If you also want to get the contents of the error and redirect that, then you must use stderr redirection, which has its own operator.
 
 You can also redirect just the error output of a command to a file. In fact, stdout, stderr, and stdin can also be referred to by certain numbers:
@@ -571,8 +581,6 @@ I would think of this command as these two steps happening in sequence:
 
 **redirecting stdout and stderr**
 
-
-
 #### The `&>` operator
 
 `&>` is the operator used for redirecting both standard output and error at once. It is syntactic sugar over this sort of code:
@@ -585,6 +593,7 @@ Obviously, this syntax is neater
 
 - `command &> file` : redirects both the standard output and error streams to the specified file. Overwrites the file.
 - `command &>> file` : redirects both the standard output and error streams to the specified file. Appends to the file.
+
 ### Piping
 
 Piping redirects standard input and output from one command to the other. Piping is done via the `|` character and is used to chain commands together.
@@ -610,7 +619,6 @@ Here are some examples
 - `find -name "*pen15*" | xargs ls` : finds all files with “pen15” somewhere in them and runs `ls` on the output.
 - `echo hello world | xargs mkdir` : gets the strings “hello” and “world” and makes folders with their names.
 
-
 ### Meta characters
 
 **metacharacters**
@@ -629,6 +637,7 @@ Metacharacters in bash shells are special characters that have meaning and do st
 
 - **double quotes:** Allows metacharacters to be used. If you want to use metacharacters as actual text, you will need to escape them with a backslash.
 - **single quotes:** Escapes everything literally.
+
 ### Character Expansion
 
 There are certain special symbols in the shell language that have programmatic meaning, and have different behaviors in these types:
@@ -653,7 +662,8 @@ There are certain special symbols in the shell language that have programmatic m
 - `?` : matches exactly one single character
 
 **ranges**
-****
+
+---
 
 you can specify a range of characters to match inside brackets `[]` . Here are some basic rules:
 
@@ -692,9 +702,10 @@ And you would generate a range using the `..` syntax:
 - `{z..a}` : matches all characters from z-a
 
 #### arithmetic expansion
-You can evaluate arithmetic expressions in the command line by wrapping it in `$(())` 
- 
- - `echo $((3+5))` : returns 8
+
+You can evaluate arithmetic expressions in the command line by wrapping it in `$(())`
+
+- `echo $((3+5))` : returns 8
 
 #### Command expansion
 
@@ -703,18 +714,18 @@ If you wrap a command in `$()`, it will output it as a string, thus `$(command)`
 ```bash
 touch "$(date)".txt # Thu Jun  5 09:51:09 EDT 2025.txt
 ```
+
 ## Dealing with processes
 
 You can see all current processes running with the `ps` command. You can see all **background processes** running with the `jobs` command:
 
 - `ps`: lists all currently running processes along with their pid (process identifier)
 - `jobs`: lists all currently running background processes
-- `jobs -l`: lists all currently running background processes along with their PID.  
-
+- `jobs -l`: lists all currently running background processes along with their PID.
 
 ### How to run background processes
 
-By putting an `&` after a command, it makes that command run in the background. 
+By putting an `&` after a command, it makes that command run in the background.
 
 - For example, `sleep 10 &` will make the `sleep` command run in the background, which you can check by using the `ps` command to check all running processes.
 
@@ -725,7 +736,7 @@ However, using the `&` to put the job in the background will not print out the s
 You can check current background jobs running with the `jobs` command, and then based on the index of the background job, you can toggle between running that process in the foreground or background.
 
 - `bg <index>`: brings the specified job back to the background
-- `fg <index>`: brings the specified background job to the foreground 
+- `fg <index>`: brings the specified background job to the foreground
 
 > [!TIP ]
 > You can use the `CTRL + Z` shortcut to exit out of the foreground of a process and let it run in the background. This command does not straight up cancel the process.
@@ -737,12 +748,12 @@ You can kill any process in the foreground with `CTRL + D`, but you can also use
 - `kill -9 <pid>`: ungracefully kills a process, specified by the process id
 - `kill -l`: see options for the `kill` command
 
-
 ## Permissions
 
 Unix and Unix-like operating systems allow multiple users to access their computer with their own accounts, files, etc. Multiple users can actually be logged in at the same time.
 
 Here are the main rules of the permissions:
+
 - One user cannot view the files of another user.
 - If something is shared across all users, like the root directory, then every user can access it.
 - Some files are special and cannot be accessed.
@@ -759,6 +770,7 @@ sudo <command>
 ```
 
 The `sudo` keyword runs any command as the root user, requiring you to enter the root user password to authenticate yourself.
+
 ### File permissions
 
 You can see file permissions, which are described by the 10 characters you get when you use `ls -l` .
@@ -766,13 +778,13 @@ You can see file permissions, which are described by the 10 characters you get w
 ![](https://i.imgur.com/CECOCTT.png)
 
 - The first character describes the file type.
-    - `-` : normal file
-    - `d` : folder
+  - `-` : normal file
+  - `d` : folder
 - The other nine characters relate to permissions for the file owner, group owner, and the rest of the world.
 - Three characters are devoted to each category of owner. Group, and world. These are the read permission. The write permission, and the execute permission in order respectively.
-    - `r` for read permission granted, `-` if not granted.
-    - `w` for write permission granted, `-` if not granted.
-    - `x` for execute permission granted, `-` if not granted.
+  - `r` for read permission granted, `-` if not granted.
+  - `w` for write permission granted, `-` if not granted.
+  - `x` for execute permission granted, `-` if not granted.
 
 Let's go into the different modes:
 
@@ -796,7 +808,7 @@ If a folder is in write mode, the directory’s contents can be modified but onl
 
 ### Changing permissions with `chmod`
 
-The `chmod <mode> <filepath>`  command changes the specified mode of the file or folder.
+The `chmod <mode> <filepath>` command changes the specified mode of the file or folder.
 
 The mode is a three character combination that decides to which organization to set permissions for, whether to add or remove a permission, and which permission to remove or add.
 
@@ -825,8 +837,8 @@ You also have these tricks when it comes to permissions.
 - `sudo useradd <username>` : creates a new user
 - `sudo <username> passwd` : creates a new password for the user
 - `sudo usermod -aG sudo <username>` : adds the user to the sudo group, meaning you can now do any root commands by prefixing `sudo`
-    - The `-a` commands `--append`, or append
-    - The `-G` command means `--group` , or append to groups when paired with `-a`
+  - The `-a` commands `--append`, or append
+  - The `-G` command means `--group` , or append to groups when paired with `-a`
 
 You can add groups with these commands:
 
@@ -840,7 +852,7 @@ You can add groups with these commands:
 The `chown` command changes ownership of a file to the specified user, but you might have to have to use the `sudo` command to override if you get permission denied errors.
 
 ```bash
-chown <username>:<groupname> <file-or-folder> 
+chown <username>:<groupname> <file-or-folder>
 ```
 
 There are also three simple ways to change ownership of a file or folder for just the user:
@@ -868,7 +880,6 @@ You have access to these two commands to view a list of environment variables:
 
 Adding to the path is as easy as this, where you separate each directory path with a colon.
 
-
 ```bash
 expoprt PATH="path/to/folder:$PATH"
 ```
@@ -889,7 +900,7 @@ When booting up the shell, the shell looks at different files called **startup f
 
 For example, the `$PS1` variable is what is displayed on the command prompt, and you can modify it for quality of life stuff like showing the date and time, displaying the current git branch, and much more.
 
-The default PS1 variable is something like this: `WaadlPenguin@DESKTOP-IJFUEC4 MINGW64 ~` , where the command prompt reflects our username and current location. 
+The default PS1 variable is something like this: `WaadlPenguin@DESKTOP-IJFUEC4 MINGW64 ~` , where the command prompt reflects our username and current location.
 
 We can change it in the startup files.
 
@@ -910,7 +921,7 @@ git_branch() {
 
 # Add git branch to PS1 prompt with proper zsh syntax
 setopt PROMPT_SUBST  # Enable prompt substitution
-PS1="${PS1}$(git_branch) "  
+PS1="${PS1}$(git_branch) "
 ```
 
 **linux**
@@ -920,9 +931,10 @@ On linux, the default shell is bash, and the startup files are in `~/.bashrc` an
 **git bash**
 
 On git bash, the only startup file that is respected is `~/.bash_profile`.
+
 ### Aliases
 
-Aliases in linux are used as ways to shorten commands by pointing a made up command to other existing commands, and is great for simplifying typing and other things. 
+Aliases in linux are used as ways to shorten commands by pointing a made up command to other existing commands, and is great for simplifying typing and other things.
 
 The basic syntax is like so: using the keyword `alias` and then a key value pair:
 
@@ -945,7 +957,6 @@ You can temporarily write aliases to the shell session by putting these aliases 
 
 If you want aliases to persist, put them in the `.bashrc` or `.bash_profile` file.
 
-
 ## SSH
 
 For any virtual computer you want to connect to, make sure it has an `authorized_keys` file living in the `~/.ssh` directory.
@@ -953,7 +964,9 @@ For any virtual computer you want to connect to, make sure it has an `authorized
 This will be where you store all your public keys, and then when sshing, you will connect using the private key pair that matches up with one of those public keys.
 
 **creating ssh keys**
-****
+
+---
+
 You can create public and private key pairs using this command:
 
 ```bash
@@ -1007,6 +1020,7 @@ Here are some examples:
 put file.txt # transfers file.txt from local to remote
 put file.txt newfile.txt # transfers file.txt from local to remote, renames it
 ```
+
 #### `get`
 
 You can use the opposite of the `put` command, which is `get` to download files from the remote vm onto your machine. It syntactically works the same way as `put`.
@@ -1019,10 +1033,9 @@ get <remote-file-path>
 get <remote-file-path> <local-file-path>
 ```
 
-
 ## Cron
 
-Cron jobs run on a schedule and allow you to run command line tasks and run programs based on a schedule. 
+Cron jobs run on a schedule and allow you to run command line tasks and run programs based on a schedule.
 
 Here is where you can go to for getting cron syntax correct:
 
@@ -1076,7 +1089,6 @@ Here are some useful examples:
 0 * * * * <command> # runs command every hear on the dot, like 3:00, 4:00
 */5 * * * * <command> # runs command every 5 minutes
 0 7 * * 1-5 # runs a job at 7:00 am every weekday
-
 ```
 
 ### Running cron jobs

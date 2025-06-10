@@ -864,7 +864,9 @@ Any field you add the `UNIQUE` constraint to automatically gets indexed.
 
 **partial indices**
 
-You can create partial indices where you index on some rows but not others by just adding a conditional `WHERE` clause when creating an index:
+You can create partial indices where you index on some rows but not others by just adding a conditional `WHERE` clause when creating an index.
+
+This is useful whenever one column has the majority of its values as being one thing, with the minority as different things.
 
 ```sql
 CREATE INDEX 
@@ -883,6 +885,19 @@ A **derived column** is any column that is produced dynamically through a SQL fu
 CREATE INDEX index_profit ON movies COALESCE(revenue - budget, 0);
 ```
 
+```sql
+-- query to optimize
+EXPLAIN ANALYZE SELECT
+  name, date, revenue, budget, COALESCE((revenue - budget), 0) AS profit
+FROM
+  movies
+ORDER BY
+  profit DESC
+LIMIT 10;
+
+-- creating an index for the dynamic column COALESCE(...)
+CREATE INDEX idx_movies_profit ON movies (COALESCE((revenue - budget), 0));
+```
 #### Gin indices
 
 GIN means **general inverted index** and is used to index JSONB fields, but it can also be used for general text search with conditional operators like `ILIKE`.

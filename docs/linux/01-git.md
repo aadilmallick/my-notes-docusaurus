@@ -2,8 +2,78 @@
 
 ## The Basics
 
+### Branches
+
+- `git branch <branch-name>` : creates a new branch starting at the new commit
+- `git branch` : lists all the branches in your repo
+- `git branch -D <branch>` : deletes the specified branch
+- `git branch -m <branch-name>` : renames the current branch you are on to the specified name.
+- `git merge <branch>` : merges the specified branch into the current branch you are on
+
+**switching**
+
+You can use the `git switch` command to switch branches:
+
+- `git switch <branch>` : switches to the specified branch
+- `git switch -c <branch>` : creates and switches to the specified branch
+- `git switch -` : switches to the last branch you were previously on.
+
+
+### Referring to commits
+
+When doing stuff like traveling back to previous commits or undoing changes, you need a way to reference those commits. In fact, there are two ways to do so:
+
+- **relative to HEAD**: The `HEAD` reference just refers to the current commit you are on, and the `HEAD~<n>` way of referencing refers to the commit from HEAD `n` commits ago.
+- **commit hash**: Each commit has a commit hash that you can use to refer to.
+
+Here are some examples of referring to a commit:
+
+```bash
+HEAD # refers to current commit
+HEAD~1 # refers to 1 commit ago
+```
 ### Undoing changes
 
+#### `git checkout`
+
+The `git checkout` command is used to go into **detached head mode**, where you can move the `HEAD` pointer to different commits, branches, etc. 
+
+The basic syntax is as like so, where this goes back in time to view the specified commit. Changes are reflected in the working directory and detaches the head.
+
+```bash
+git checkout <commit>
+```
+
+To reattach from detached head mode, you need to switch to a branch using `git switch`.
+
+To undo changes with `git checkout`, you need to refer to a specific file to undo the changes. The below code is used to revert the specified file to the state it had in the specified commit:
+
+```bash
+git checkout <commit> <file>
+```
+
+- `git checkout HEAD <filename>` : reverts changes in unstaged files back to the most recent commit, where HEAD is.
+- `git checkout -- <filename>` : reverts changes in unstaged files back to the most recent commit, where HEAD is.
+
+#### `git restore`
+
+`git restore` is syntactic sugar over undoing changes with `git checkout`. The most basic use is reverting the contents of a file back to how it was in the most recent commit, `HEAD`.
+
+```bash
+git restore <filename>
+```
+
+To refer to the a specific commit to revert to, you would use the `--source` option:
+
+```bash
+git restore --source <commit-hash> <filename>
+```
+
+To unstage a specific file, you can use the `--staged` option:
+
+```bash
+git restore --staged <filename> to unstage the specified file.
+```
 #### `git commit --amend`
 
 If you made a mistake on the message your most recent commit, you can fix it by doing `git commit --amend` to change that message. This only works for the most recent commit, however.
@@ -16,8 +86,8 @@ git commit --amend -m "new message"
 
 The `git reset` command allows you to undo commits with three different behaviors:
 
-- **unstaging files**: Running `git reset` by itself just unstages any files you accidentally staged.
-- **soft reset**: A **soft reset** is when you delete commits but you don't undo the changes.
+- **unstaging files**: Running `git reset` by itself with no options just unstages any files you accidentally staged.
+- **soft reset**: A **soft reset** is when you delete commits but you don't undo the changes, useful for cleaning up history.
 - **hard reset**: A **hard reset** is when you delete commits and you undo the changes, making those changes permanent.
 
 To perform a soft reset, use the `--soft` option and point to a specific commit you want to go back to, deleting all previous commits:
@@ -29,7 +99,7 @@ git reset --soft <commit>
 To perform a hard reset, use the `--hard` option instead. 
 
 ```bash
-git reset --soft <commit>
+git reset --hard <commit>
 ```
 
 
@@ -45,6 +115,18 @@ git reset --soft <commit>
 git revert <commit>
 ```
 
+#### Summary
+
+- `git checkout <commit>` : goes back in time to view the specified commit. Changes are reflected in the working directory and detaches the head.
+- `git switch -` : switches back to the previous branch.
+- `git checkout HEAD <filename>` : reverts changes in unstaged files back to the most recent commit, where HEAD is.
+- `git checkout -- <filename>` : reverts changes in unstaged files back to the most recent commit, where HEAD is.
+- `git restore <filename>` : reverts changes in unstaged files back to the most recent commit, where HEAD is.
+- `git restore --source <commit> <filename>` : reverts changes back to the specified commit.
+- `git restore --staged <filename>` : unstages the specified file.
+- `git reset <commit>` : goes back to the specified commit, and all other commits that come afterward are removed from the commit history. Does not affect working directory.
+- `git reset --hard <commit>` : goes back to the specified commit, and all other commits that come afterward are removed from the commit history. Changes are reflected in the working directory.
+- `git revert <commit-hash>` : creates a new commit that undoes the changes in the specified commit. Does not affect commit history.
 ### Git Stashing
 
 When we try to switch to another branch without committing changes, there are two things that can happen:
