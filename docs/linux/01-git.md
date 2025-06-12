@@ -151,13 +151,25 @@ Here are some other useful commands:
 - `git stash drop <stash>`: deletes the specified stash and removes it from the stash stack without applying it.
 - `git stash clear` : clears the stash stack.
 
+### `git clone`
+
+- `git clone <git-url> <foldername>`: clones the repo but renames the root folder to what you want.
+
+You also have these options you can pass:
+
+- `--depth=<n>`: when you clone a repo, you also download the entire commit history, which can be expensive to clone. So this makes it possible to clone only the history of the `n` most recent commits.
+
 ## Rebasing
 
 ### Basic rebasing
 
 ![rebasing diagram](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1744405182/image-clipboard-assets/avoqmowdmvz96ad4lc4p.webp)
 
-Rebasing is a way of merging without using merge commits. It's basically a forced fast-forward that rewrites the entire commit history to move the rebasing branch to the tip of the branch that you're rebasing on.
+Rebasing is a way of merging without using merge commits. It's basically a forced fast-forward merge that rewrites the entire commit history to move the rebasing branch to the tip of the branch that you're rebasing on.
+
+You typically want to be on a feature branch, and then rebase the feature branch onto the master branch. You literally move the bottom node of the feature branch to the tip of the master branch.
+
+![](https://i.imgur.com/SLeJZF3.png)
 
 
 > [!TIP] 
@@ -167,8 +179,27 @@ Rebase allows you to move the root commit of a branch to another commit, like mo
 
 > [!TIP]
 > A great advantage of rebase is that it prevents merge commits.
-
  
+
+ **a rebase example**
+
+Let's say our commit graph looks like this, where `trunk` is the main branch and `foo` is our feature branch:
+
+![](https://i.imgur.com/ABpTHuK.png)
+
+To rebase trunk onto foo, the basic idea is that we use the `git rebase` command to point the first commit on the `foo` branch (the commit that the branch was created on) to `Y`, the last commit on the master branch, essentially making it a fast forward merge.
+
+> [!NOTE]
+> It's in the name: we "rebase" trunk onto foo, meaning that foo's new base will be the tip of the trunk branch.
+
+Here are the steps we follow:
+
+1. `git switch foo` : make sure you are on the feature branch
+2. `git rebase trunk`: recreates all commits from the `trunk` branch and rebases `foo` onto the tip of the `trunk` branch.
+
+
+
+
 
 ### Interactive rebasing
 

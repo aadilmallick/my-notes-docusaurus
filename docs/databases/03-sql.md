@@ -839,6 +839,14 @@ The postgres planner is like a built-in mastermind that decides when or when not
 - If a database is small, postgres will just use sequential scan
 - If a database is large, postgres will use indicies
 
+**indices summary**
+
+Indices are useful to speed up expensive queries you perform often, but there are some drawbacks with them:
+
+- **large space complexity**: Indices create B-trees under the hood, which takes up a lot of memory and is high in space complexity (adds megabytes to your db)
+- **computationally expensive**: It is computationally expensive to make an index on a table with lots of data. This could cause hours of downtime on tables with millions of rows.
+- **makes postgres planner slower**: Slows down a bit the querying for any queries you do because the postgres planner now has to choose from many indices instead of a few. The more indices you add to a table, the more time the planner takes to choose how to query.
+
 #### Creating and deleting indices
 
 We create indices on individual fields, with the `CREATE INDEX ON table(field_name);` syntax, like the examples below:

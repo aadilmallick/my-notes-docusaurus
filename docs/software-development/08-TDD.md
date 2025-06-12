@@ -83,6 +83,20 @@ Now, here is how to write testable code:
 
 Don't worry about DRY code when writing tests. Tests are meant to stand on their own individually, and writing abstractions to promote DRY code makes your code inflexible and your tests more complicated. Just repeat them.
 
+#### Use dependency injection
+
+The easiest way to write testable code is to just use dependency injection.
+
+Big fancy name, simple idea: **injecting dependencies** into a function or class rather than having the function or class create them itself.
+
+In plainer terms, instead of your function being that one-person army who goes and fetches everything it needs (knocking on doors like “hey, where’s my API data?”), you’re being a good teammate and saying, **“Hey, I’m going to give you everything you need upfront.”** No need for your function to run around asking for stuff.
+
+These are the three major benefits of dependency injection:
+
+- **Testability:** Yep, this is the big one. When your dependencies are injected, you can easily swap them out with mocks or stubs during testing. Compare that to the alternative—mocking out internal creation logic (gross) or actually hitting a live API (uhh… no thanks).
+- **Flexibility:** Changing a dependency becomes as simple as handing a new one to your class or function. No need to dive deep into the internals just to update an implementation, making your app more maintainable.
+- **Decoupling:** When your code doesn’t need to know _how_ things are created, it’s largely isolated from changes. Want to swap out `ApiClient` for something else? Just hand in the new dependency. No drama, no tears.
+
 ### TDD
 
 TDD is a programming paradigm where we write tests before writing code, essentially designing our entire codebase out of those tests. It follows a principle of **red-green-refactor**.
@@ -340,6 +354,8 @@ While both mocks and stubs replace the real implementation of functions, there a
 > [!IMPORTANT]
 > You should always prefer dependency injection to mocking or stubbing, since it becomes more flexible. The more you try to control the outer world (global variables and APIs), the less flexible your code becomes. 
 
+> [!NOTE]
+> Don’t get me wrong: mocking _has_ its place (and Vitest does make it super easy to mock things with `vi.fn()`), but it’s a scalpel, not a sledgehammer. Always ask yourself if you can test the real implementation first. _Real code means real results._ If you go this route, your tests will be more reliable, you’ll spend less time worrying about mocking intricacies, and you can laser-focus on breaking your code in ways only _real_ users would. Objectives aligned, mind at ease, testing purified.
 
 ### Spying
 
@@ -761,6 +777,18 @@ aspectRatio: "52.5"
 
 Use the mock service worker library `msw` to create a mock service worker that intercepts network requests and mocks them with fake data to simulate real API requests.
 
+Here's more information and a complete guide on how to use MSW:
+
+```embed
+title: "Using Mock Service Worker With Vitest For API Testing | Introduction to Testing | Steve Kinney"
+image: "https://stevekinney.com/open-graph?title=Using+Mock+Service+Worker+With+Vitest+For+API+Testing+%7C+Introduction+to+Testing&description=Learn+how+to+use+Mock+Service+Worker+with+Vitest+for+API+testing."
+description: "Learn how to use Mock Service Worker with Vitest for API testing."
+url: "https://stevekinney.com/courses/testing/testing-with-mock-service-worker"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+
 If you want to do it manually, you can just mock out the `fetch()` global function by setting `global.fetch` to a mock implementation.
 
 ```ts
@@ -934,3 +962,73 @@ You’d typically put these in an `afterEach` block within your test suite.
 - `vi.resetAllMocks`: Calls `.mockReset()` on all the spies. It will replace any mock implementations with an empty function.
 - `vi.restoreAllMocks`: Calls `.mockRestore()` on each and every mock. This one returns the world to it’s original state
 
+## Snapshot Testing
+
+Snapshot testing is a powerful technique in software testing that captures the output of a piece of code and compares it against a reference snapshot stored alongside the test. If the output changes, the test fails, alerting developers to unexpected changes in the codebase.
+
+Snapshot testing involves saving the output of a function or component and comparing it to a saved “snapshot” on subsequent test runs. It’s particularly useful for testing outputs that are complex or large, such as serialized objects, HTML structures, or API responses.
+
+### Basic Snapshot Testing
+
+Vitest provides built-in support for snapshot testing. When you run a test that includes `expect(value).toMatchSnapshot()`, Vitest will:
+
+1. Generate a snapshot file (if it doesn’t exist) containing the serialized value.
+2. On subsequent runs, compare the current value to the saved snapshot.
+3. Report any differences as test failures.
+
+Here's an example of using snapshot testing:
+
+```ts
+import { test, expect } from 'vitest';
+
+function formatUser(user) {
+  return `User: ${user.name}, Age: ${user.age}`;
+}
+
+test('formats user information correctly', () => {
+  const user = { name: 'Alice', age: 30 };
+  const formattedUser = formatUser(user);
+  expect(formattedUser).toMatchSnapshot();
+});
+```
+
+In the above code, we save the `formattedUser` object in a snapshot the first time we run the test, and we fail any subsequent tests if `formattedUser` takes on any different value than the one captured in the snapshot.
+
+**updating snapshots**
+
+You can update snapshots through the CLI using the `vitest -u` command.
+
+**snapshot best practices**
+
+Ensure that snapshot files are human-readable:
+
+- Avoid capturing unnecessary data.
+- Format complex objects for clarity.
+
+The best way to achieve this is to always stringify your objects into JSON before creating a snapshot from them:
+
+```ts
+expect(JSON.stringify(largeObject, null, 2)).toMatchSnapshot();
+```
+
+Large snapshots are harder to review and maintain:
+
+- Avoid snapshotting entire large objects or responses.
+- Focus on the relevant parts of the output.
+
+### Creating flexible snapshots
+
+To create flexible snapshots, you can use the `expect.any(type_constructor)` method, which kind of works like Zod to make sure that a variable adheres to a schema without being too stringent on an exact value:
+
+```ts
+const user = { name: 'Alice', id: 12345, createdAt: new Date() };
+expect(user).toMatchSnapshot({
+  id: expect.any(Number),
+  createdAt: expect.any(Date),
+});
+```
+
+There are two main benefits to this approach:
+
+- Focuses the snapshot on relevant data.
+- Prevents snapshot failures due to expected variability.
