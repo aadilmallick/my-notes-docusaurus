@@ -977,9 +977,9 @@ CREATE MATERIALIZED VIEW view_name AS <query> WITH DATA;
 
 - `view_name` : the name of the materialized view
 - `query` : the query code to make the view from. Also caches the view
-- `WITH DATA` : specifies you want to populate the view immediately, which may be slow. The alternative is `WITH NO DATA`, but you’ll have to populate the data later.
+- `WITH DATA` : specifies you want to populate the view immediately, which may be slow. The alternative is `WITH NO DATA`, but you’ll have to populate the data later with the `REFRESH` command.
 
-To invalidate the cache and refresh the materialized view, you would use this command:
+To invalidate the cache and refresh the materialized view, you would use this command, which also populates the data.
 
 ```postgresql
 REFRESH MATERIALIZED VIEW tablename;
@@ -1027,7 +1027,9 @@ GROUP BY
 WITH DATA;
 ```
 
+**indexing materialized views**
 
+You can also create indices on materialized views (since they can be referred to as normal tables), which translate to huge performance gains.
 
 ### Transactions
 

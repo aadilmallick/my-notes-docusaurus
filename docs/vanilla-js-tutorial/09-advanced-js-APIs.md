@@ -1867,6 +1867,30 @@ export function createReactiveProxyMultipleProps<T extends Record<string, any>>(
   return proxy;
 }
 
+// for more concise syntax, adding individual listeners
+export class StateManager<T extends Record<string, any>> {
+  private cbs: Record<keyof T, (newValue: T[keyof T]) => void> = {} as Record<
+    keyof T,
+    (newValue: T[keyof T]) => void
+  >;
+  constructor(state: T) {
+    this.state = createReactiveProxyMultipleProps(
+      state,
+      (state, propertyChanged, newValue) => {
+        if (this.cbs[propertyChanged]) {
+          this.cbs[propertyChanged](newValue);
+        }
+      }
+    );
+  }
+
+  onChange<K extends keyof T>(key: K, callback: (newValue: T[K]) => void) {
+    this.cbs[key] = callback as (newValue: T[keyof T]) => void;
+  }
+
+  state: T;
+}
+
 const state = createReactiveProxy("name", "John", (newValue) => {
   console.log("New value is", newValue);
 });
@@ -2090,9 +2114,6 @@ function arrayProxy<T extends string | number>(arr: T[]) {
 const animalsArr = arrayProxy(["dog", "cat", "mouse"]);
 console.log("dog" in animalsArr); // true
 ```
-
-
-
 
 
 #### Cache proxies

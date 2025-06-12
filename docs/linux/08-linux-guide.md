@@ -456,6 +456,7 @@ Here are some basic options you have with grep:
 - `-B <num-lines>` : for each occurrence, outputs a specified number of lines before the occurrence for context.
 - `-C <num-lines>` : for each occurrence, outputs a specified number of lines before and after for context.
 - `-n` : given line numbers
+- `-v`: returns everything except what the pattern matches. Useful for removing text you don't want.
 
 **recursive search**
 

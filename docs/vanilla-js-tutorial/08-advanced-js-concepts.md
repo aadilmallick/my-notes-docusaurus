@@ -1234,6 +1234,13 @@ export default Object.freeze({
 
 The observer pattern build son top of the registry pattern by storing an array of observables, with the ability to subscribe other observables into the observer store and notify all observers in the store.
 
+An observable object usually contains 3 important parts:
+
+- `observers`: an array of observers that will get notified whenever a specific event occurs
+- `subscribe()`: a method in order to add observers to the observers list
+- `unsubscribe()`: a method in order to remove observers from the observers list
+- `notify()`: a method to notify all observers whenever a specific event occurs
+
 ```typescript
 const observers = [];
 
@@ -1294,6 +1301,28 @@ blueBtn.addEventListener("click", () => {
 ```
 
 #### Classes
+
+Here is the most basic example you can get:
+
+```ts
+class Observable {
+  constructor() {
+    this.observers = [];
+  }
+
+  subscribe(func) {
+    this.observers.push(func);
+  }
+
+  unsubscribe(func) {
+    this.observers = this.observers.filter((observer) => observer !== func);
+  }
+
+  notify(data) {
+    this.observers.forEach((observer) => observer(data));
+  }
+}
+```
 
 And here is an example with typescript:
 

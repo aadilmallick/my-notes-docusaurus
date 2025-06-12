@@ -123,3 +123,192 @@ Many client-specific interfaces are better than one general-purpose interface.
 ### D: Dependency inversion principle
 
 One should depend on abstractions rather than details.
+
+## Enterprise Code
+
+### managing complexity
+
+#### The three rules
+
+When writing functions, there are three golden rules to follow:
+
+1. **make sure know what the function returns** at all times. The output should essentially be deterministic and known.
+2. **Make sure the code is reusable**
+3. **Make sure the code is testable**
+
+To remember these three rules better, ask yourself these three questions when writing a function:
+
+1. Do I know what this function returns?
+2. Can I reuse this function?
+3. Can I test this function? 
+
+#### Remove Hidden state
+
+**Hidden state** is the idea that a class property or global variable outside of the function influences the return value of that function or how that function executes. 
+
+Hidden state is extremely difficult to track and violates rule 1: *always know what your functions return.*
+
+Here is an example of code that uses hidden state and violates rule 1 through the `mode` property:
+
+![](https://i.imgur.com/6BpJJ8q.png)
+
+
+There are two ways to mitigate complexity brought by hidden state:
+
+- **dependency injection**: Accept class properties as parameters to functions or opt for a functional programming approach.
+- **extract to method**: Use your IDE to select a couple problematic lines and extract them to a method.
+
+#### Fine-grained code vs coarse-grained code
+
+These terms are based on SOLID design principle, specifically on the D for dependency-inversion principle.
+
+Here is an example of what coarse-grained code looks like:
+
+![](https://i.imgur.com/AYBRG8P.png)
+
+why is it that way? Because you have to mentally parse what each line of code is doing to say, "Ok, this is how it updates or deletes". Understanding of what the code is doing is not immediate since there are too many low level details in the same function.
+
+And here is find-grained code, where the immediate difference is you can understand exactly what the code is trying to do, depending on abstractions rather than details:
+
+![](https://i.imgur.com/4gkbhyu.png)
+
+### Reducer functions
+
+Reducer functions are important ways to manage state changes in a clean code way. Here is an example of what they do and how they look like:
+
+- **first parameter**: The first parameter is the **state** that the reducer handles
+- **second state**: The second parameter is the **action**, which includes `action.type` that specifies the state change event to trigger and `action.payload` for the data to pass into the state change.
+
+![](https://i.imgur.com/HMIITRQ.png)
+
+Here's a level 1 abstraction that's not so bad:
+
+```ts
+type ReducerTypes<
+  ActionTypes extends readonly string[],
+  State,
+  PayloadTypes extends Partial<Record<ActionTypes[number], unknown>>
+> = {
+  [K in ActionTypes[number]]: (
+    state: State,
+    action: {
+      // type: K;
+      payload: PayloadTypes[K] extends object ? PayloadTypes[K] : never;
+    }
+  ) => State;
+};
+
+type ActionTypes = ["ADD", "SQUARE", "CUBE"];
+
+type Reducer = ReducerTypes<
+  ActionTypes,
+  { a: number; b: number; c: number },
+  {
+    ADD: {
+      incrementBy: 1;
+    };
+  }
+>;
+
+const reducer: Reducer= {
+  ADD: (state, action) => {
+    return { ...state, a: state.a + action.payload.incrementBy };
+  },
+  SQUARE: (state, action) => {
+    return { ...state, c: state.c + 1 };
+  },
+  CUBE: (state, action) => {
+    return { ...state, b: state.b + 1 };
+  },
+};
+```
+
+Here's a level 2 abstraction that keeps track of state
+
+```ts
+// Simplified reducer types that work better with TypeScript
+type ReducerAction<T extends string, P = any> = {
+  type: T;
+  payload: P;
+};
+
+type ReducerFunction<State, ActionType extends string, Payload = any> = (
+  state: State,
+  action: ReducerAction<ActionType, Payload>
+) => State;
+
+type ReducerMap<State, Actions extends Record<string, any>> = {
+  // @ts-ignore
+  [K in keyof Actions]: ReducerFunction<State, K, Actions[K]>;
+};
+
+function createReducer<
+  State extends Record<string, any>,
+  PayloadMap extends Record<string, any>
+>(initialState: State, reducers: ReducerMap<State, PayloadMap>) {
+  let state = { ...initialState };
+
+  const getState = () => state;
+  const setState = (newState: State) => {
+    state = { ...newState };
+    observers.forEach((cb) => cb(state));
+  };
+
+  const dispatch = <K extends keyof PayloadMap>(
+    type: K,
+    payload: PayloadMap[K]
+  ): State => {
+    const reducer = reducers[type];
+    if (reducer) {
+      const newState = reducer(getState(), {
+        type: String(type) as K,
+        payload,
+      });
+      setState(newState);
+      return newState;
+    }
+    return getState();
+  };
+
+  // todo: add observers
+  const observers = new Map<string, (state: State) => void>();
+
+  const subscribe = (key: string, cb: (state: State) => void) => {
+    observers.set(key, cb);
+  };
+
+  const unsubscribe = (key: string) => {
+    observers.delete(key);
+  };
+
+  return {
+    getState,
+    dispatch,
+    reducers,
+    subscribe,
+    unsubscribe,
+  };
+}
+
+// Example usage with proper typing
+const simpleReducer = createReducer(
+  { a: 1, b: 2 },
+  {
+    SET_A: (state, action: ReducerAction<"SET_A", { value: number }>) => ({
+      ...state,
+      a: action.payload.value,
+    }),
+    SET_B: (state, action: ReducerAction<"SET_B", { value: number }>) => ({
+      ...state,
+      b: action.payload.value,
+    }),
+  }
+);
+
+// Test the reducer
+simpleReducer.dispatch("SET_A", { value: 10 });
+simpleReducer.dispatch("SET_B", { value: 20 });
+simpleReducer.dispatch("SET_A", { value: 30 });
+simpleReducer.dispatch("SET_A", { value: 40 });
+```
+
