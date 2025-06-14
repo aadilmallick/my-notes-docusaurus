@@ -180,6 +180,22 @@ Rebase allows you to move the root commit of a branch to another commit, like mo
 > [!TIP]
 > A great advantage of rebase is that it prevents merge commits.
  
+**solving rebase conflicts**
+
+The whole point of rebasing is to avoid merge commits, so when dealing with a rebase conflict, we use first solve the conflicts in the files, and then continue the rebase with `git rebase --continue`.
+
+1. Rebase with `git rebase <branch>`
+2. Fix the conflicts in the conflicting files
+3. Add the files to the staging area with `git add .`
+4. Continue the rebase with `git rebase --continue`
+
+**qutting the rebase**
+
+if everything goes horribly wrong, you can just quit the rebase:
+
+```bash
+git rebase --quit
+```
 
  **a rebase example**
 
@@ -396,3 +412,173 @@ Now when we run the `git l` alias, it will log our git logs in a *oneline* fashi
 ## Github Codespaces
 
 You can open up a github codespace for any repository by just pressing the period `.` on the repo page.
+
+## Github CLI
+
+Install the github CLI by going to the github cli page. To start with the github CLI, run `gh auth login` to login.
+
+### `gh auth`
+
+- `gh auth login`: logins to the cli
+- `gh auth logout`: logs out of the cli
+- `gh auth status`: shows current user info
+- `gh auth switch`: shows quickpicker for user to switch to
+- `gh auth refresh`: allows you to configure your read/write permissions on your account and for certain repos.
+
+```bash
+# Select what host and account to switch to via a prompt
+gh auth switch
+
+# Switch the active account on a specific host to a specific user
+gh auth switch --hostname enterprise.internal --user monalisa
+```
+
+
+```bash
+# Open a browser to add write:org and read:public_key scopes
+$ gh auth refresh --scopes write:org,read:public_key
+
+# Open a browser to ensure your authentication credentials have the correct minimum scopes
+$ gh auth refresh
+
+# Open a browser to idempotently remove the delete_repo scope
+$ gh auth refresh --remove-scopes delete_repo
+
+# Open a browser to re-authenticate with the default minimum scopes
+$ gh auth refresh --reset-scopes
+```
+
+### Actions specific commands
+
+These following commands are specific to github actions.
+#### `gh cache`
+
+The `gh cache` command lets you have CRUD funcitonality on your github actions caches.
+
+**listing caches**
+
+Use the `gh cache list` to list caches accountwide or for a specific repo:
+
+```bash
+# List caches for current repository
+$ gh cache list
+
+# List caches for specific repository
+$ gh cache list --repo cli/cli
+```
+
+**deleting caches**
+
+```bash
+# Delete a cache by id
+$ gh cache delete 1234
+
+# Delete a cache by key
+$ gh cache delete cache-key
+
+# Delete a cache by id in a specific repo
+$ gh cache delete 1234 --repo cli/cli
+
+# Delete all caches (exit code 1 on no caches)
+$ gh cache delete --all
+
+# Delete all caches (exit code 0 on no caches)
+$ gh cache delete --all --succeed-on-no-caches
+```
+
+
+#### `gh variable`
+
+The `gh variable` command lets you perform CRUD actions on your repo variables that you use in actions.
+
+On all of these CRUD commands, you have access to these important options:
+
+- `-e <environment-name>` or `--env <environment-name>`: if using *environments* in your repo, specifies from which environment to fetch variables from.
+- `--repo` or `-R`: the specific repo to pull variables from. By default, this is your current repo.
+
+**list variables**
+
+The `gh variable list` command lists all variables in your repo.
+
+```bash
+gh variable list
+gh variable ls
+```
+
+**set variables**
+
+```bash
+gh variable set <variable-name> <value>
+```
+
+**get variables**
+
+```bash
+gh variable get <variable-name>
+```
+
+### `gh run`
+
+#### `gh run download` : download artifacts
+
+The `gh run download` command downloads any artifacts.
+
+```
+gh run download [<run-id>] [flags]
+```
+### `gh api`
+
+The `gh api` command is used as a CLI interface to the github API. Basic usage is as follows:
+
+```bash
+gh api <url>
+```
+
+Here are important options to set:
+
+- `--cache <duration>`: Cache the response, e.g. "3600s", "60m", "1h"
+- `-F`, `--field <key=value>`: Add a typed parameter in key=value format
+- `-H`, `--header <key:value>`: Add a HTTP request header in key:value format
+- `-f`, `--raw-field <key=value>`
+- `-X`, `--method <METHOD>`: changes the REST API method. The default is GET.
+- `-f`, `--raw-field <key=value>`: Add a string parameter in key=value format
+- `--verbose`: Include full HTTP request and response in the output
+
+```bash
+# List releases in the current repository
+$ gh api repos/{owner}/{repo}/releases
+
+# Post an issue comment
+$ gh api repos/{owner}/{repo}/issues/123/comments -f body='Hi from CLI'
+```
+
+### `gh browse`
+
+The `gh browse` command is a really cool command that lets you navigate your repo in the browser through just a few keystrokes. It opens up github on your browser and navigate the current repo.
+
+```bash
+# Open the home page of the current repository
+$ gh browse
+
+# Open the script directory of the current repository
+$ gh browse script/
+
+# Open issue or pull request 217
+$ gh browse 217
+
+# Open commit page
+$ gh browse 77507cd94ccafcf568f8560cfecde965fcfa63
+
+# Open repository settings
+$ gh browse --settings
+
+# Open main.go at line 312
+$ gh browse main.go:312
+
+# Open main.go with the repository at head of bug-fix branch
+$ gh browse main.go --branch bug-fix
+
+# Open main.go with the repository at commit 775007cd
+$ gh browse main.go --commit=77507cd94ccafcf568f8560cfecde965fcfa63
+```
+

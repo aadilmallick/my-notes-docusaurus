@@ -605,6 +605,92 @@ const Post = model<IPost>("Post", postSchema);
 export default Post;
 ```
 
+#### schema custom class
+
+```ts
+import mongoose, {
+  Schema,
+  Document,
+  model,
+  IfAny,
+  ObtainDocumentType,
+  ResolveSchemaOptions,
+  DefaultSchemaOptions,
+  Default__v,
+} from "mongoose";
+import { constants } from "../../utils/constants";
+
+export class SchemaWrapper<T extends Document> {
+  constructor(public schema: Schema<T>) {}
+
+  onBeforeSave(cb: (doc: T) => boolean | Promise<boolean>) {
+    this.schema.pre("save", async function (this, next) {
+      const doc = this as T;
+      const shouldSave = await cb(doc);
+      if (!shouldSave) {
+        next(new Error("Document not saved"));
+      } else {
+        next();
+      }
+    });
+  }
+
+  onAfterSave(cb: (doc: T) => boolean | Promise<boolean>) {
+    this.schema.post("save", async function (doc, next) {
+      const shouldSave = await cb(doc as T);
+      if (!shouldSave) {
+        next(new Error("Document not saved"));
+      } else {
+        next();
+      }
+    });
+  }
+
+  //   createVirtual(name: string, options: mongoose.VirtualTypeOptions) {
+  //     this.schema.virtual(name, options);
+  //   }
+
+  createVirtual<K extends keyof T>(
+    name: K,
+    options: {
+      get: (doc: T) => T[K];
+      set?: (doc: T, value: T[K]) => void;
+    }
+  ) {
+    this.schema.virtual(name as string, {
+      get: function (this) {
+        const doc = this as T;
+        return options.get(doc);
+      },
+      set: function (this, value: T[K]) {
+        const doc = this as T;
+        options.set?.(doc, value);
+      },
+    });
+  }
+}
+
+export class DBMongoose {
+  static async connect(mongoUri: string) {
+    try {
+      await mongoose.connect(mongoUri);
+      return true;
+    } catch (error) {
+      console.error("Error while connecting:", error);
+      return false;
+    }
+  }
+
+  static async disconnect() {
+    await mongoose.disconnect();
+  }
+
+  static async onDisconnect(cb: () => void) {
+    mongoose.connection.on("disconnected", cb);
+  }
+}
+```
+
 ### CRUD with mongoose
 
 All CRUD methods in mongoose are asynchronous. The following esamples will use this schema, which has complete

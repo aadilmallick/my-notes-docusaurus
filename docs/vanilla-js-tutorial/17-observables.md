@@ -88,9 +88,6 @@ class Observer<U> {
     element: V,
     observer: Observer<HTMLElementEventMap[T]>
   ) {
-    // return new Observer(element, event, (event) => {
-    //   return event.target as V;
-    // });
     const handler = (e: HTMLElementEventMap[T]) => {
       try {
         observer.onNext(e);

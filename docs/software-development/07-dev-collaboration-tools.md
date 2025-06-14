@@ -114,3 +114,40 @@ npx lint staged
 echo "hello"
 echo "brrruuh"
 ```
+
+## Prettier
+
+First install prettier as a dev dependency:
+
+```bash
+npm install -D prettier
+```
+
+Then you can add your rules to a `.prettierrc` file:
+
+```json title=".prettierrc"
+{
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "bracketSameLine": false
+}
+```
+
+Then you can add the prettier scripts to your `package.json`
+
+```json
+{
+  //…
+  "scripts": {
+    //…
+    "format:check": "prettier . --check --ignore-path .gitignore",
+    "format:fix": "prettier . --check --ignore-path .gitignore"
+  }
+  //…
+}
+```
