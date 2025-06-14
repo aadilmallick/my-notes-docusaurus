@@ -194,6 +194,27 @@ console.log(yellow("this text is yellow"));
 console.log(bgRed("this text has a red background"));
 ```
 
+### CLI utilities
+
+Deno offers basic global methods that help with s
+
+```ts
+export async function promptYesOrNo(
+  message: string,
+  cbs: {
+    success: () => void | Promise<void>;
+    fail: () => void | Promise<void>;
+  }
+) {
+  const action = confirm(`${message}`);
+  if (action) {
+    await cbs.success();
+  } else {
+    await cbs.fail();
+  }
+}
+```
+
 ## From Web To Deno
 
 There are numerous built in functions in Deno that are adapted from the web and fit to the command line environment.
