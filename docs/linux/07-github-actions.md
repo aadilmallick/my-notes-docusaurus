@@ -805,7 +805,24 @@ deploy:
 					# downloads the artifact with the vite-website identifier
           name: vite-website
 ```
-## Releases
+## Using docker
+
+### Building a runner environment from docker
+
+If you need extra configuration or software that doesn't come with popular github actions (stuff like deno or bun), then you can configure your runner to pull from a base docker image and use that as its base.
+
+You specify the container configuration through the `container` key on the `jobs.<job-name>` level:
+
+- `container`: container configuration for the job's runner
+	- `image`: the base image to pull from
+	- `env`: a list of environment variables to pass into the container.
+
+```yaml
+jobs:
+	job-name:
+		container:
+			image: node:20
+```
 
 ### Running jobs with containers
 
@@ -1171,12 +1188,88 @@ Similar to building a composite action, this is how to register a JavaScript act
 
 This is what the API looks like for javascript actions:
 
+- You need to install the three dependencies below, and you need to commit a separate node modules folder that has the dependencies of your custom js action.
+
 ```ts
 const core = require('@actions/core');
+const github == require('@actions/github');
+const exec = require('@actions/exec');
+
 console.log('Hello from JS Action!');
 core.setOutput('greeting', 'Hello from JS Action!');
 ```
 
+**logging**
+
+```ts
+core.info('Info message');      // Standard log
+core.warning('Warning message'); // Yellow warning
+core.error('Error message');     // Red error
+
+core.startGroup('Group title');
+core.info('This is grouped');
+core.endGroup();
+```
+
+- `core.notice(message)`: logs a message to the github actions logs
+- `core.info(message)`: logs the message
+
+**processes**
+
+```ts
+core.exportVariable('MY_ENV', 'value'); // Sets $MY_ENV for following steps
+core.setFailed('Something went wrong'); // Marks the step as failed
+process.exit(1); // Also marks as failed, but less graceful
+```
+
+- `core.setFailed(message)`: fails the action and logs the error message
+- `core.exportVariable(key, value)`: exports the env variable to the shell so that subsequent steps can access that env variable
+
+**inputs and outputs**
+
+You can programmatically accept action inputs and produce action outputs through js as well.
+
+```ts
+const name = core.getInput('name');
+core.setOutput('greeting', `Hello, ${name}!`);
+```
+
+- `core.getInput(key)`: gets the specified action input
+- `core.setOutput(key, value)`: creates an action/step output
+
+#### `github` context object
+
+the `@actions/github` library lets you access the `github` context object and also make requests to the github API using octokit.
+
+**getting github context**
+
+```ts
+const context = github.context;
+console.log(context.payload.pull_request.title); // If event is pull_request
+console.log(context.repo.owner, context.repo.repo);
+```
+
+**rest api**
+
+```ts
+const token = core.getInput('github-token');
+const octokit = github.getOctokit(token);
+
+const { data: issues } = await octokit.rest.issues.listForRepo({
+  owner: context.repo.owner,
+  repo: context.repo.repo,
+  state: 'open'
+});
+issues.forEach(issue => core.info(`#${issue.number}: ${issue.title}`));
+```
+
+#### Running shell commands
+
+with the `@actions/exec` library, we can run shell commands in our runner through javascript:
+
+```ts
+exec.exec("echo 'hello world'")
+```
 ## Integrations
 
 ### Sending email notifications

@@ -497,6 +497,7 @@ In short, let's summarize:
 - `${array[0]}`: gets the first value of the array
 - `${array[*]}`: gets all values of the array
 - `${#array[*]}`: gets the length of the array
+- `${array[@]}`: returns the entire array at once
 
 **Piping to arrays**
 ****
@@ -535,6 +536,28 @@ Here are some useful options:
 readarray -s 1 my_array < my_file.txt # skips 1st line
 
 readarray -n 5 my_array < my_file.txt # reads frist 5 lines
+```
+
+There is a different way to read in strings with newline characters as an array of strings:
+
+The basic syntax is like so:
+
+```bash
+arr=($STRING_WITH_NEWLINES)
+```
+
+```bash
+ENV_NAMES=$(cut -d '=' -f 1 .env)
+ENV_VALUES=$(cut -d '=' -f 2 .env)
+
+# create arrays from the strings
+arr_names=($ENV_NAMES)
+arr_values=($ENV_VALUES)
+
+for ((i = 0; i < ${#arr_names[@]}; i++))
+do
+    echo "first value is ${arr_names[i]} and second value is ${arr_values[i]}"
+done
 ```
 
 #### Functions

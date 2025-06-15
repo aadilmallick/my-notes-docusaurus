@@ -451,6 +451,40 @@ $ gh auth refresh --reset-scopes
 ### Actions specific commands
 
 These following commands are specific to github actions.
+
+#### `gh secret`
+
+In all CLI commands involing secrets, you have these options:
+
+- `-e <environment-name>` or `--env <environment-name>`: if using *environments* in your repo, specifies from which environment to fetch variables from.
+- `--repo` or `-R`: the specific repo to pull variables from. By default, this is your current repo.
+
+**getting secrets**
+
+You can get secrets through the `gh secret list` command, which lists all repo-wide secrets in the current repository. Here are the options you can pass:
+
+
+**setting secrets**
+
+The `gh secret set` command is used to set secrets on your repo or organization-wide for actions. By default, it just sets secrets in your current repo.
+
+The command below sets the specified secret and waits for user input to securely paste in the secret value.
+
+```bash
+gh secret set <secret-name>
+```
+
+To set secrets programmatically, you can use the `--body` option to pass in a value:
+
+```bash
+gh secret set <secret-name> --body <value>
+```
+
+You can also just set them from a `.env` file using the `-f` or `--file` option:
+
+```bash
+gh secret set -f .env
+```
 #### `gh cache`
 
 The `gh cache` command lets you have CRUD funcitonality on your github actions caches.
@@ -597,5 +631,5 @@ gh repo view --web # opens the current repo in the web
 This command renames the current repo to the new repo name
 
 ```bash
-gh repo rename
+gh repo rename <new-name>
 ```
