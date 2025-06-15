@@ -471,6 +471,20 @@ Here are the guidelines to follow to make a pure function:
 - DOn't mutate your parameters in any way
 - Don't have any side effects in your code
 
+> [!NOTE]
+> Pure functions are the goal of making a perfect function: a function that returns an output given an input, something with no side effects, which makes a function's behavior predictable
+
+#### Idempotence
+
+**idempotence** is the concept of making a function deterministic - given the same inputs, it will return the same output every time. This makes a function predictable and easy to test.
+
+#### arity
+
+**arity** is just a fancy term for referring to the number of arguments a function accepts. 
+
+> [!TIP]
+> The main rule regarding arity is that the less arity a function has, the easier it is to use.
+
 ### Partial functions
 
 Partial functions are when you bake in some parameters into a function, creating another version of that function with some parameters already hardcoded in.

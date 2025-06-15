@@ -98,6 +98,7 @@ echo "The current version is $versionbeta"
 > [!NOTE]
 > A major point to keep in mind is that all variables are casted to be a string in bash, although you can still do arithmetic with them if they are numbers.
 
+
 **getting the length of a string**
 
 If you want to find how many characters are in a certain string/variable, use this syntax:
@@ -159,6 +160,30 @@ num2=20
 sum=$((num1 + num2))
 echo "The sum of $num1 and $num2 is: $sum"
 ```
+
+#### Incredibly important: word splitting
+
+The most important thing to understand here is that is a difference between doing variable expansion with double quotes and without.
+
+The `$IFS` env variable represents the three delimiters that bash respects to split strings on, which is the tab, newline, and space characters. Whenever you do variable expansion without double quotes, bash will split that string on those delimiters (if the string has those).
+
+- `$VARIABLE` or `${VARIABLE}`: if the variable is a string with spaces, tabs, or newlines, then bash splits the string on those delimiters.
+- `"$VARIABLE"` or `"${VARIABLE}"`: even if the variable is a string with spaces, tabs, or newlines, bash will NOT split the string on those delimiters.
+
+An advanced tip is that if you want to avoid the default behavior of splitting on tabs, spaces, and newlines, you can override the `IFS` variable to some other delimiter:
+
+```bash
+IFS=":" # now will not split on spaces.
+```
+
+#### expansion
+
+linux character expansion is indispensable for writing bash scripts. I will give you a crash course, but make sure to go [here](https://threejsnotes.netlify.app/docs/linux/linux-guide/#character-expansion) to learn more:
+
+- `$VARIABLE_NAME`: variable expansion
+- `${VARIABLE_NAME}`: also variable expansion
+- `{1..6}`: creates a range of numbers
+- `{1..6..2}`: creates a range of numbers skipping by 2
 
 #### **reading user input**
 
@@ -473,7 +498,9 @@ arrayName=(val1 val2 val3)
 
 Access array values with the `${}` syntax, like `${arrayname[0]}` for index-based access.
 
-Use the `*` operator for the index to refer to the whole array, and use the `#` operator as a prefix to say that you want the length, and join it like so: `${#arrayname[*]}` to get the length of the specified array.
+- Use the `*` or `@` operator for the index to refer to the whole array
+- Use the `#` operator as a prefix to say that you want the length, and join it like so: `${#arrayname[*]}` to get the length of the specified array.
+- Use the `!` operator as a prefix to get the index of the specified value(s), like so to get the list of indices of the array: `${!arrayname[*]}`
 
 ```bash
 #! /bin/bash
@@ -497,7 +524,55 @@ In short, let's summarize:
 - `${array[0]}`: gets the first value of the array
 - `${array[*]}`: gets all values of the array
 - `${#array[*]}`: gets the length of the array
-- `${array[@]}`: returns the entire array at once
+- `${array[@]}`: gets all values of the array
+- `${#array[@]}`: gets the length of the array.
+-  `${!arrayname[*]}`: gets the list of indices of the array
+-  `${!arrayname[@]}`: gets the list of indices of the array
+
+> [!NOTE]
+> if you try to access an index or range out of bounds of the array length, then you won't get an error. rather, you'll just get an empty string for those position(s).
+
+**negative indexing**
+
+You have the ability to do negative indexing on arrays to start from the end.
+
+```bash
+echo ${arr[-1]}
+```
+
+**slicing syntax**
+
+You even have slicing syntax, which includes the start index and excludes the end index. If you omit the end index, it includes the rest of the array in the slice.
+
+```bash
+${arr[@]:<start-index>:<end-index>}
+```
+
+You can then use it like so:
+
+```bash
+years=(2016 2021 2022 2024 2025)
+echo ${years[@]:1:4} # get the worst years of my life
+```
+
+**adding and deleting elements**
+
+To append items or concat an array to the end of another array, you can use the `+=` operator:
+
+```bash
+years=(2016 2017 2018)
+years+=(2019 2020)
+```
+
+To delete an item from an array, you can use the `unset` command. 
+
+```bash
+unset arr[1]
+```
+
+> [!WARNING]
+> Beware, however, that indices do not automatically shift when you use `unset` to delete an element. Thus if you want to delete elements, it's more preferred to use something like declarative arrays where numerical indices don't matter and are just treated like strings.
+
 
 **Piping to arrays**
 ****
@@ -520,10 +595,13 @@ for FILE in $FILES
 
 **reading to arrays**
 ****
-If you want to read a file and store its contents in an array, you would use the `readarray` command, which reads from stdin.
+If you want to read a file and store its contents in an array, you would use the `readarray` command, which reads from stdin. To do this, you often need to use process substitution to convert a file's contents into stdin.
 
 ```bash
+# these are equivalent:
+
 readarray my_array < my_file.txt
+readarray my_array < <(cat my_file.txt)
 ```
 
 Here are some useful options:
@@ -559,6 +637,41 @@ do
     echo "first value is ${arr_names[i]} and second value is ${arr_values[i]}"
 done
 ```
+
+**declarative arrays: dictionaries**
+
+tHe concept of dictionaries in bash is much like in python, except these are really just a special type of array called **declarative arrays**. In declarative arrays, indices are treated as strings rather than numbers which makes them dictionary-like.
+
+You can create a declarative array like so:
+
+```bash
+declare -A <arr-name>
+```
+
+You can then index them and use them like a dictionary:
+
+```bash
+# 1. create declarative array called "userdata"
+declare -A userdata 
+
+# 2. set key-value
+userdata[username]="aadil" 
+
+# 3. get value from key
+echo ${userdata[username]}
+
+# 4. get all values, like Object.values()
+echo ${userdata[@]}
+
+# 5. get all keys, like Object.keys()
+echo ${!userdata[@]}
+```
+
+Here is the syntax for all important operations:
+
+- `arr[key]`: accesses the value under the specified key
+- `${userdata[@]}`: accesses the list of all values in the array
+- `${!userdata[@]}`: accesses the list of all keys/indices in the array
 
 #### Functions
 

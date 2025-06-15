@@ -385,6 +385,20 @@ tr a-z A-Z   # replaces all lowercase letters with uppercase letters
 The `sed` command uses regex to substitute text in a file or string. The basic use is like so:
 
 ```bash
+sed '<sed-command>' <file>
+```
+
+There are several types of sed commands that do different things.
+
+**replacing old text with new text**
+
+The most basic way is to replace old text with new text:
+
+```bash
+sed 's/oldtext/newtext' example.txt
+```
+
+```bash
 sed 's/oldtext/newtext/g' example.txt
 ```
 
@@ -394,6 +408,12 @@ You essentially have 4 components in the “sed string” you have to pass in, e
 - `oldtext` : the text to replace, or a regex pattern to match
 - `newtext` : the text or regex pattern to replace the oldtext with
 - `g` : any regex flags, like g for global
+
+You can use different delimiters instead of `/`, which is useful when the pattern or replacement contains slashes:
+
+```bash
+echo "/path/to/file" | sed 's#/path/to#/new/path/to#'
+```
 
 #### `awk`
 
@@ -702,18 +722,32 @@ And you would generate a range using the `..` syntax:
 - `{a..z..2}` : matches all characters a-z but skips every other character
 - `{z..a}` : matches all characters from z-a
 
-#### arithmetic expansion
+#### arithmetic substitution
 
 You can evaluate arithmetic expressions in the command line by wrapping it in `$(())`
 
 - `echo $((3+5))` : returns 8
 
-#### Command expansion
+#### Command substitution
 
 If you wrap a command in `$()`, it will output it as a string, thus `$(command)` will output the result of the command as a string.
 
 ```bash
 touch "$(date)".txt # Thu Jun  5 09:51:09 EDT 2025.txt
+```
+
+#### Process substitution
+
+Process substitution is useful in bash scripts where a command needs to read from stdin. The basic operator syntax looks like so, where you wrap a command in `<()`.
+
+```bash
+<(command)
+```
+
+Here is an example of using process substitution to feed in stdin into `grep`:
+
+```bash
+grep "bruh" < <(echo "bruh")
 ```
 
 ## Dealing with processes

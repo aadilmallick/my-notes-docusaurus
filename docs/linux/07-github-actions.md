@@ -223,7 +223,7 @@ You can define environment variables using the `env` key, and you can define it 
     		  NODE_ENV: production
     ```
     
-- **step level:** The environment variable is local to that step
+- **step level:** The environment variables is local to that step and if using an action, those env variables will be supplied to those actions.
     
     ```yaml
     name: "Deploy"
@@ -993,6 +993,10 @@ Custom actions are `action.yaml` files that you can use in your workflow code. E
 		- `'docker'` for docker
 		- `'node18'`: for node 18 actions
 
+You also have these additional keys you can set on the root level of creating a custom action:
+
+- `env`: any environment variable pairs to pass into the action and make available.
+
 Here's basic decision making for when to use each:
 
 | Type      | Runs on             | Language/Env | Use Case                         |
@@ -1166,6 +1170,218 @@ jobs:
 
 ### Custom actions with docker
 
+With custom docker actions, you can create a custom action that builds and runs a Docker container. This has the following advantages:
+
+- Being able to create custom actions in any language you want, not just javascript.
+- Being able to download other software to use in the custom action
+
+#### Creating the custom action
+
+When writing the dockerfile, use these basic rules:
+
+- Do not use the `WORKDIR` command. GIthub does that behind the scenes.
+- Only focus on installation of dependencies, and instead run a bash file for the docker container entrypoint.
+
+And here are the steps:
+
+1. Create a `action.yaml` file, make sure to specify it uses docker
+    
+    ```yaml
+    # .github/actions/test/action.yaml
+    name: 'Custom docker action'
+    description: 'Installs code and runs a test on it'
+    
+    runs:
+    	using: 'docker'     # specifies we want to make a docker action
+    	image: 'Dockerfile' # path to dockerfile
+    ```
+    
+2. Create a dockerfile that the action will use. It’s common practice to copy over a bash script into the container and then run it.
+    
+    ```dockerfile
+    FROM node:20-alpine as builder
+    
+    # 1. essential downloads
+    RUN apk update
+    RUN apk add bash
+    RUN apk add curl
+    RUN apk --no-cache add ca-certificates wget
+    RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub <https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub>
+    RUN wget <https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.28-r0/glibc-2.28-r0.apk>
+    RUN apk add --no-cache --force-overwrite glibc-2.28-r0.apk
+    
+    # 2. install bun
+    RUN npm install -g bun
+    
+    # 3. install python, ffmpeg, and yt-dlp
+    RUN apk add --no-cache python3 py3-pip
+    RUN apk add --no-cache ffmpeg
+    RUN apk -U add yt-dlp
+    
+    # 4. copy entrypoint.sh, which we will run
+    COPY entrypoint.sh /entrypoint.sh
+    
+    # 5. copy everything in my project folder into the container
+    COPY ../../../* ./
+    
+    # 6. run bash script
+    ENTRYPOINT [ "bash", "/entrypoint.sh" ]
+    ```
+    
+3. Create the bash script that does stuff
+    
+    ```bash
+    bun install
+    npm install --prefix frontend
+    bun test
+    ```
+
+And then this is how you would use that custom action in your workkflow:
+
+```yaml
+name: "first workflow in a while: running and testing"
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - uses: ./.github/actions/test  # run custom docker action
+```
+
+#### Using environment variables
+
+You can set environment variables for a custom action by using the `env` key. These are then plugged in as environment variables your container will have.
+
+```yaml
+name: "Test API code"
+description: "Run tests on the API code"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    SERVER_MODE: "development"
+    PORT: "3000"
+    VITE_API_URL_DEV: "<http://localhost:3000>"
+    GITHUB_WORKSPACE: "${{ github.workspace }}"
+```
+
+#### Build outputs
+
+
+THe working directory everything is set in is the `/github/workspace` directory. Here are the basic things we do:
+
+1. Specify the output keys we will create in the custom action
+    
+    ```yaml
+    name: "Test API code"
+    description: "Run tests on the API code"
+    
+    runs:
+      using: "docker"
+      image: "Dockerfile"
+      env:
+        SERVER_MODE: "development"
+        PORT: "3000"
+        VITE_API_URL_DEV: "<http://localhost:3000>"
+        
+    # specify single output as frontend-build-path
+    outputs:
+      frontend-build-path:
+        description: "The path to the frontend build"
+    ```
+    
+2. Provide a value for the output keys in our code that gets run in the container using special syntax.
+    
+    1. The `echo "name=value" >> $GITHUB_OUTPUT` syntax is how we add outputs to a custom action, where `name` is the output key name, and `value` is the value to set for that specific output key.
+    2. In the example below, we set the `frontend-build-path` output key to the vite build destination.
+    
+    ```bash
+    echo "PWD is $(pwd)"
+    
+    bun install
+    npm install --prefix frontend
+    bun test
+    
+    npm run build --prefix frontend
+    
+    echo "building was success. Here is path to frontend dist: $(pwd)/dist"
+    # assign value to frontend-build-path output key
+    echo "frontend-build-path=$(pwd)/dist" >> $GITHUB_OUTPUT
+    ```
+    
+3. GRab out the value of the otuput by assigning an id to the step that used the custom action.
+    
+    ```yaml
+    - uses: ./.github/actions/test
+    	# 1. assign id
+      id: testing-docker   
+      
+    - name: "testing output"
+    	# 2. use steps.<id>.outputs.<output-name> syntax
+    	run: "the output is ${{ steps.testing-docker.outputs.frontend-build-path}}"
+    ```
+    
+
+**artifacts**
+
+
+
+#### Artifacts
+
+To create an artifact from a path we create during the custom docker action, we can only download an artifact of the folderpath living in the `$GITHUB_WORKSPACE` environment variable or `github.workspace` context object. This is the only way, so we often do some cleanup by deleting files and folders we don’t want to be included int he artifact beforehand.
+
+1. Artifact code
+    
+    ```bash
+    name: "first workflow in a while: running and testing"
+    on: push
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+        steps:
+          - name: "Checkout code"
+            uses: actions/checkout@v4
+            # 1. use custom action, which runs bash file
+          - uses: ./.github/actions/test
+            id: testing-docker
+            # 2. use actions/upload-artifact@v4 to upload artifact
+          - name: download vite build
+            uses: actions/upload-artifact@v4
+            id: download-artifact
+            with:
+    	        # 3. this must always be path
+              path: ${{ github.workspace }}
+              name: vite-build
+    ```
+    
+2. Delete unwanted files and folders in `entrypoint.sh`
+    
+    ```bash
+    echo "PWD is $(pwd)"
+    
+    bun install
+    npm install --prefix frontend
+    bun test
+    
+    npm run build --prefix frontend
+    
+    echo "building was success. Here is path to frontend dist: $(pwd)/dist"
+    echo "frontend-build-path=$(pwd)/dist" >> $GITHUB_OUTPUT
+    echo "GITHUB OUTPUT: $GITHUB_OUTPUT"
+    
+    # remove all files except dist directory
+    rm -rf .devcontainer
+    rm -rf api
+    rm -rf .github
+    rm -rf routes
+    rm -rf tests
+    rm -rf frontend/node_modules
+    rm -rf node_modules
+    find . -maxdepth 1 -type f -not -name 'dist' -exec rm -rf {} \\;
+    ```
 ### Custom actions with javascript
 
 JavaScript actions point to a javascript file, and will run the code in that file as the action.
