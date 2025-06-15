@@ -582,3 +582,20 @@ $ gh browse main.go --branch bug-fix
 $ gh browse main.go --commit=77507cd94ccafcf568f8560cfecde965fcfa63
 ```
 
+### `gh repo`
+
+#### `gh repo view`
+
+This command lets you view a repo in the web browser
+
+```bash
+gh repo view --web # opens the current repo in the web
+```
+
+#### `gh repo rename`
+
+This command renames the current repo to the new repo name
+
+```bash
+gh repo rename
+```

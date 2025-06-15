@@ -196,9 +196,61 @@ console.log(bgRed("this text has a red background"));
 
 ### CLI utilities
 
-Deno offers basic global methods that help with s
+Deno offers basic global methods that help with scaffolding CLIs:
+
+- `confirm(text: string)`: pulls up a yes/no picker in the command line and records the response as a boolean.
+- `prompt(text: string)`: reads user input from the command line and records the response as a string.
+- `alert(text: string)`: shows the user a message and waits for the user to press **enter** to continue.
+
+But besides those, we have helpful CLI utilities from npm:
 
 ```ts
+
+import ora from "npm:ora";
+import { pastel } from "npm:gradient-string";
+import figlet from "npm:figlet";
+import inquirer from "npm:inquirer";
+
+export async function showQuickPick<T extends readonly string[]>(
+  choices: T,
+  message?: string,
+  defaultChoice?: T[number]
+) {
+  const result = await inquirer.prompt({
+    name: "template",
+    type: "list",
+    message: message ?? "Choose an option:",
+    choices,
+    default: () => {
+      return defaultChoice ?? choices[0];
+    },
+  });
+  return result.template as T[number];
+}
+
+export const showLoader = (text: string) => {
+  const spinner = ora({
+    text,
+    color: "cyan",
+  }).start();
+
+  return {
+    stop: () => spinner.stop(),
+    succeed: (text?: string) => spinner.succeed(text),
+    fail: (text?: string) => spinner.fail(text),
+    update: (text: string) => (spinner.text = text),
+  };
+};
+
+export function gradientText(text: string) {
+  return new Promise((resolve, reject) => {
+    figlet(text, (err: unknown, data: string) => {
+      console.log(pastel.multiline(data));
+      resolve(data);
+    });
+  });
+}
+
 export async function promptYesOrNo(
   message: string,
   cbs: {
@@ -213,6 +265,7 @@ export async function promptYesOrNo(
     await cbs.fail();
   }
 }
+
 ```
 
 ## From Web To Deno
