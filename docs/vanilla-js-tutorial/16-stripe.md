@@ -126,11 +126,349 @@ async function submitCart() {
 
 ### Checkout with subscriptions
 
+to checkout with subscriptions, you use the same stripe checkout API but this time you'll do two different things:
+
+1. Use a product/price that references a recurring subscription
+2. change the `mode` to `"subscription"`
+3. Use webhooks to listen for customer subscription created, updated, deleted
+4. Handle billing portal for users to cancel their subscription.
+
+The main difference for subscriptions is that Stripe creates a **customer** object in the backend, and a subscription is always tied to a customer.
+
+#### **creating the subscription**
+
+The `stripe.checkout.sessions.create()` method works the same for subscription but we have to change a few things in the options object:
+
+- `mode`: set this to `"subscription"` for recurring payments
+- `customer_email`: you must provide the customer's email so that a *customer* object is created behind the scenes in stripe.
+
+Then instead of getting back a url, you can get back a session id from the `session.id` object and pass that to the frontend to redirect to the subscription checkout page.
+
+```ts
+import { NextResponse } from 'next/server';
+import { stripe } from '@/utils/stripe';
+
+export async function POST(request: Request) {
+    try {
+        const { priceId, email, userId } = await request.json();
+
+        const session = await stripe.checkout.sessions.create({
+            metadata: {
+                user_id: userId,
+            },
+            customer_email: email,
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    // base subscription
+                    price: priceId,
+                },
+                {
+                    // one-time setup fee
+                    price: 'price_1OtHdOBF7AptWZlcPmLotZgW',
+                    quantity: 1,
+                },
+            ],
+            mode: 'subscription',
+            success_url: `${request.headers.get('origin')}/success`,
+            cancel_url: `${request.headers.get('origin')}/cancel`,
+        });
+
+        return NextResponse.json({ id: session.id });
+    } catch (error: any) {
+        console.error(error);
+        return NextResponse.json({ message: error.message }, { status: 500 });
+    }
+}
+```
+
+Now in the frontend, follow these steps:
+
+1. load the client-side stripe library
+2. fetch your create subscription endpoint and retrieve the session id
+3. use the `stripe.redirectToCheckout()` method, passing in the session id to redirect the user to the subscription checkout page.
+
+```ts
+import { loadStripe } from '@stripe/stripe-js';
+
+async function goToCheckout() {
+	// 1. load stripe
+    const stripe = await loadStripe(
+	    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+	);
+	
+	// 2. fetch create subscription endpoint, which returns session
+    const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId: 'price_1OtHkdBF7AptWZlcIjbBpS8r', userId: data.user?.id, email: data.user?.email }),
+      });
+    const session = await response.json();
+    
+    // 3. redirect via session id
+    await stripe?.redirectToCheckout({ sessionId: session.id });
+}
+```
+#### **webhooks**
+
+In your webhooks, these are the 4 events you'll want to listen for:
+
+- `"checkout.session.completed"`: the user buys the subscription
+- `"customer.subscription.created"`: the subscription is created and becomes active.
+- `"customer.subscription.updated"`: the subscription is updated, like is set for cancellation or something else.
+- `"customer.subscription.deleted"`: the subscription is cancelled - the user is no longer subscribed.
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '@/utils/stripe';
+import { supabaseAdmin } from '@/utils/supabaseServer';
+import Stripe from 'stripe';
+
+export async function POST(request: NextRequest) {
+    try {
+      const rawBody = await request.text();
+      const signature = request.headers.get('stripe-signature');
+  
+      let event;
+      try {
+        event = stripe.webhooks.constructEvent(rawBody, signature!, process.env.STRIPE_WEBHOOK_SECRET!);
+      } catch (error: any) {
+        console.error(`Webhook signature verification failed: ${error.message}`);
+        return NextResponse.json({ message: 'Webhook Error' }, { status: 400 });
+      }
+  
+      // Handle the checkout.session.completed event
+      if (event.type === 'checkout.session.completed') {
+        const session: Stripe.Checkout.Session = event.data.object;
+        console.log(session);
+        const userId = session.metadata?.user_id;
+
+        // Create or update the stripe_customer_id in the stripe_customers table
+        const { error } = await supabaseAdmin
+        .from('stripe_customers')
+        .upsert({ 
+            user_id: userId, 
+            stripe_customer_id: session.customer, 
+            subscription_id: session.subscription, 
+            plan_active: true, 
+            plan_expires: null 
+        })
+
+
+      }
+  
+      if (event.type === 'customer.subscription.updated') {
+
+      }
+  
+      if (event.type === 'customer.subscription.deleted') {
+
+      }
+  
+      return NextResponse.json({ message: 'success' });
+    } catch (error: any) {
+      return NextResponse.json({ message: error.message }, { status: 500 });
+    }
+  }
+```
+
+#### Billing portal
+
+The billing portal is just a stripe-managed URL you can redirect the user to. Use the `stripe.billingPortal.sessions.create()` method, passing in the customer id and the return url to grab a billing portal session and the url off of that.
+
+You can then manually redirect the user to the billing portal URL.
+
+```ts
+import { stripe } from "@/utils/stripe";
+
+
+export async function createPortalSession(customerId: string) {
+    const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `http://localhost:3000`,
+      });
+  
+      return { id: portalSession.id, url: portalSession.url };
+}
+```
+
+### Embedded checkout sessions
+
+**embedded checkout sessions** give you the flexibility of handling payments through your UI without users being redirected to Stripe. It offers a better user experience and more customization of how the payment looks like. 
+
+There are a few steps to follow:
+
+1. Create a POST handler on your server to create the stripe payment
+	- Create a checkout session as usual but with `ui_mode` property set to `"embedded"` to enable embedded payments in stripe.
+	- From the checkout session, get the session id and the session client secret and serve that as the response.
+2. In the frontend, use the Stripe client SDK to render stripe provided components, passing the client secret and session id.
+3. In your backend, handle the return URL and optionally check the session status to see if the payment went through.
+
+**step 1**
+
+```ts
+import { NextResponse } from 'next/server';
+import { stripe } from '@/utils/stripe';
+
+export async function POST(request: Request) {
+    try {
+        const { priceId } = await request.json();
+
+        const session = await stripe.checkout.sessions.create({
+            ui_mode: 'embedded',
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: priceId,
+                },
+            ],
+            mode: 'subscription',
+            // make sure to handle this later
+            return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}`,
+        });
+
+		// must return session id and client secret
+        return NextResponse.json({ id: session.id, client_secret: session.client_secret });
+    } catch (error: any) {
+      console.error(error);
+        return NextResponse.json({ message: error.message }, { status: 500 });
+    }
+}
+```
+
+**step 2**
+
+```tsx
+"use client";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  EmbeddedCheckoutProvider,
+  EmbeddedCheckout,
+} from "@stripe/react-stripe-js";
+import { useCallback, useRef, useState } from "react";
+
+export default function EmbeddedCheckoutButton() {
+  const stripePromise = loadStripe(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+  );
+  const [showCheckout, setShowCheckout] = useState(false);
+  const modalRef = useRef<HTMLDialogElement>(null);
+
+  const fetchClientSecret = useCallback(() => {
+    // Create a Checkout Session
+    return fetch("/api/embedded-checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ priceId: "price_1OtHkdBF7AptWZlcIjbBpS8r" }),
+    })
+      .then((res) => res.json())
+      .then((data) => data.client_secret);
+  }, []);
+
+  const options = { fetchClientSecret };
+
+  const handleCheckoutClick = () => {
+    setShowCheckout(true);
+    modalRef.current?.showModal();
+  };
+
+  const handleCloseModal = () => {
+    setShowCheckout(false);
+    modalRef.current?.close();
+  };
+
+  return (
+    <div id="checkout" className="my-4">
+      <button className="btn" onClick={handleCheckoutClick}>
+        Open Modal with Embedded Checkout
+      </button>
+      <dialog ref={modalRef} className="modal">
+        <div className="modal-box w-100 max-w-screen-2xl">
+          <h3 className="font-bold text-lg">Embedded Checkout</h3>
+          <div className="py-4">
+            {showCheckout && (
+              <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            )}
+          </div>
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn" onClick={handleCloseModal}>
+                Close
+              </button>
+            </form>
+          </div>
+        </div>
+      </dialog>
+    </div>
+  );
+}
+```
+
+**step 3**
+
+```tsx
+import { stripe } from "@/utils/stripe";
+
+async function getSession(sessionId: string) {
+  const session = await stripe.checkout.sessions.retrieve(sessionId!);
+  return session;
+}
+
+export default async function CheckoutReturn({ searchParams }) {
+  const sessionId = searchParams.session_id;
+  const session = await getSession(sessionId);
+
+  console.log(session);
+
+  if (session?.status === "open") {
+    return <p>Payment did not work.</p>;
+  }
+
+  if (session?.status === "complete") {
+    return (
+      <h3>
+        We appreciate your business! Your Stripe customer ID is:
+        {(session.customer as string)}.
+      </h3>
+    );
+  }
+
+  return null;
+}
+```
 ## Stripe Webhooks
 
 ### Stripe CLI
 
-The Stripe CLI is an easy way to test out webhooks locally.
+The Stripe CLI is an easy way to test out webhooks locally. here is how to install:
+
+#### Installation
+
+**windows**
+
+```bash
+scoop bucket add stripe https://github.com/stripe/scoop-stripe-cli.git
+scoop install stripe
+```
+
+**mac**
+
+```bash
+brew install stripe/stripe-cli/stripe
+```
+
+**docker**
+
+```bash
+docker run --rm -it stripe/stripe-cli:latest
+```
+#### Starting webhook local development
 
 The first step to use the stripe CLI is to run the `stripe login` command.
 
@@ -142,6 +480,8 @@ stripe listen -e checkout.session.completed --forward-to http://localhost:3000/w
 ```
 
 3. After successfully listening, copy the outputted webhook secret into your `.env` and use it for testing your webhooks.
+
+The `-e` flag specifies the events you want to listen to, but by default if you omit this option, stripe forwards all events to your webhook.
 
 ### Stripe webhooks
 
@@ -184,7 +524,9 @@ app.post("/stripe/webhook", async (req) => {
 })
 ```
 
-## Custom Stripe Class
+## Custom Stripe Class + API
+
+### Checkout sessions
 
 ```ts
 import { Stripe } from "npm:stripe";
@@ -432,3 +774,7 @@ class StripeManager {
 }
 
 ```
+
+### customers
+
+### subscriptions

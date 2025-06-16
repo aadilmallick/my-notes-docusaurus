@@ -633,3 +633,15 @@ This command renames the current repo to the new repo name
 ```bash
 gh repo rename <new-name>
 ```
+
+### `gh pr`
+
+The `gh pr` command lets you perform CRUD operations with pull requests.
+
+**creating pull requests**
+
+tHe `gh pr create` command creates a pull request of the current branch in the current repo. This will only work if the current branch is already pushed up to remote.
+
+```bash
+gh pr create
+```
