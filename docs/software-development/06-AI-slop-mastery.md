@@ -133,6 +133,15 @@ You can ask ChatGPT to execute code in a python repl to give you back exact math
 - **graphs**: ask for perfect graphs using matplotlib
 - **qr codes**: ask to make qr codes from a link using the `qrcode` python package
 
+### Tasks
+
+In the chatgpt pro plan, you can ask o3-mini model to create recurring tasks for you that get executed everyday and notify you via email.
+
+For example, you could ask gpt to send you the latest ai news every morning
+
+## Microsoft copilot
+
+Microsoft copilot is cool because it has AI sidebar integration in the edge browser to analyze the contents of a website.
 ## Prompt engineering
 
 ### Prompt Engineering in a nutshell
