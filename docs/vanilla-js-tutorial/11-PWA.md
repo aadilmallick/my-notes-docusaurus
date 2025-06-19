@@ -318,15 +318,71 @@ With service workers, you will be mainly focusing on caching assets. You have tw
 - **indexedDB**: A large-asynchronous storage that can store any type of JavaScript object. Can be used from the service worker and frontend.  
 
 You cannot use browser-only storage techniques like LocalStorage.
+
+
+**an event driven architecture**
+
+Much like background scripts in manifest v3 for chrome extensions, service workers are not long-lived and are rather event driven. 
+
+This means that any code you have in global scope will be offloaded and is ephemeral. Rather, put all your code inside the event listeners.
 #### Service worker lifecycle
 
 The service worker lifecycle follows three stages: 
 
-1. Registration: occurs when the client side page registers the service worker
-2. Installation: occurs when the service worker is first installed. Fires the `"install"` event.
+1. **Registration**: occurs when the client side page registers the service worker
+2. **Installation**: occurs when the service worker is first installed. Fires the `"install"` event.
 	- It can use this for pre-caching resources (e.g., populate cache with long-lived resources like logos or offline pages).
-3. Activation: occurs when the service worker has finished installing. Fires the `"activate"` event.
+3. **Activation**: occurs when the service worker has finished installing. Fires the `"activate"` event.
 	- This service worker can now do clean up actions (e.g., remove old caches from prior version) and ready itself to handle functional events. If there is an old service worker in play, you can use `self.clients.claim()` to immediately replace the old service worker with your new one.
+
+You also have several other events for service workers: 
+
+- `"fetch"`: This event is triggered each time the website requests a resource over the internet, like HTML, CSS, JS, fonts, images, etc. 
+	- The most common use case here is to implement a caching strategy for resources
+- `"message"`: This event is triggered when the frontend sends a message to the service worker. Use this event for inter-process communication. 
+- `"activate"`: when the new service worker gets activated
+- `"install"`: when the new service worker gets installed for the first time
+
+
+##### **registering a service worker**
+
+You register a service worker with the `navigator.serviceWorker.register(url)` method, which returns a **service worker registration** object.
+
+```ts
+const swRegistration = await navigator.serviceWorker.register('/sw.js')
+```
+
+There can only ever be one **active** service worker, which leads us into the lifecycle:
+
+Once you register a service worker, it can be in one of three states:
+
+- **installing**: the service worker is installing for the first time, fetched by the `swRegistration.installing` property.
+- **waiting**: the service worker is waiting for the old service worker to step down, fetched by the `swRegistration.waiting` property.
+- **active**: the service worker is active and completely installed, fetched by the `swRegistration.active` property.
+
+Here are methods to deal with registration lifecycle on the client side:
+
+```ts
+export class PWAModel {
+  static async registerWorker(url: string) {
+    return await navigator.serviceWorker.register(url, {
+      type: "module",
+      scope: "/",
+    });
+  }
+
+  static async getCurrentWorker() {
+    return await navigator.serviceWorker.ready;
+  }
+
+  static async onWorkerChange(cb: (worker: ServiceWorker) => void) {
+    navigator.serviceWorker.addEventListener("controllerchange", (event) => {
+      cb(event.target as ServiceWorker);
+    });
+  }
+}
+```
+##### **updating service workers**
 
 Service workers won't update to their newest version by default, so it's important to add this code during development to make sure the service worker always updates itself. 
 
@@ -336,12 +392,35 @@ self.addEventListener('activate', event => {
 });
 ```
 
-You also have several other events for service workers: 
+When you're updating a service worker, you'll also often want to delete old caches or at least update the cache. There's more info in the caching section below:
 
-- `"fetch"`: This event is triggered each time the website requests a resource over the internet, like HTML, CSS, JS, fonts, images, etc. 
-	- The most common use case here is to implement a caching strategy for resources
-- `"message"`: This event is triggered when the frontend sends a message to the service worker. Use this event for inter-process communication. 
+```ts
+const cachename = "v1"
+sw.addEventListener("activate", (event) => {
 
+  async function cleanCache() {
+	    // gets all cache store names
+	    const keys = await caches.keys();
+	    keys
+	      .filter((key) => key !== cachename)
+	      .forEach(async (key) => {
+	        // deletes cache store with the specified name
+	        await caches.delete(key);
+	      });
+  }
+
+  async function updateServiceWorker() {
+    sw.clients.claim();
+  }
+
+  async function onActivate() {
+	  await cleanCache()
+	  await updateServiceWorker()
+  }
+  
+  event.waitUntil(onActivate());
+});
+```
 #### Caching
 
 We use the `caches` Web API to cache HTTP responses and return them during the `"fetch"` event of the service worker. 
@@ -393,9 +472,9 @@ export async function cacheImage(
 
 ##### App shell caching: Precaching
 
-A common pattern is to fetch and cache critical resources for offline usage during installation, like HTML, CSS, and JS, so that the app works offline.
+A common pattern is to fetch and cache critical resources for offline usage during installation, like HTML, CSS, and JS, so that the app works offline. You also have to cache network assets you use in your app, like fonts, external scripts, and external CSS like tailwind.
 
-We listen to the `"install"` event on the service worker, and then add critical resources to the cache.
+We listen to the `"install"` event on the service worker, and then add critical resources to the cache. 
 
 
 > [!WARNING] A common caching mistake
@@ -410,7 +489,7 @@ sw.addEventListener("install", (event) => {
     "/app.js",
     "/icons/icon-512.png",
     "/icons/icon-1024.png",
-    "<https://fonts.gstatic.com/s/materialicons/v67/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2>",
+    "https://fonts.gstatic.com/s/materialicons/v67/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2",
   ];
   const cacheAppShell = async () => {
     const appShellCache = await caches.open("pwa-app-shell");
@@ -420,7 +499,12 @@ sw.addEventListener("install", (event) => {
 });
 ```
 
+If it seems insane to try and think of all the URLs to cache, but luckily in your service worker you can just ping your hosting server through `fetch()` to query the filesystem and find all necessary items to cache, then return that.
+
 ##### Cache-first
+
+![](https://i.imgur.com/Jj3MNdU.png)
+
 
 The cache-first strategy follows these steps: 
 
@@ -491,17 +575,46 @@ sw.addEventListener("fetch", (event) => {
 
 ##### Network first
 
+![](https://i.imgur.com/1oIHJyC.png)
+
+
 1. Fetch from the network 
 2. Update the cache
 3. If the network request from step 1 failed, return the response from the cache. 
 
 
-##### Advanced caching architecture
+```ts
+async function networkFirst(request: Request, cacheStorage: CacheStorageModel) {
+	try {
+		// 1. fetch from network
+	  const response = await fetch(request);
+	  if (!response.ok) {
+		throw new Error("Network response was not ok");
+	  }
+	  // 2. udpate cache
+	  await cacheStorage.put(request, response.clone());
+
+		// 3. return network response
+	  return response;
+	} catch (e) {
+	// 1a) if network fails, return from cache
+	  const cacheResponse = await cacheStorage.match(request);
+	  if (cacheResponse) {
+		return cacheResponse;
+	  }
+	  throw e;
+	}
+}
+```
+
+
+##### Advanced caching architecture + clearing cache
 
 
 Advanced caching requires also knowing when to invalidate the cache intentionally. You can do this by smartly naming your caches and putting different types of resources into different cache stores. 
 
-Also use semantic versioning to make invalidating previous caches easier so you can free up space.
+> [!NOTE]
+> Also use semantic versioning to make invalidating previous caches easier so you can free up space.
 
 **Step 1: create cache names**
 
@@ -522,6 +635,13 @@ const sw_caches = {
 ```
 
 **Step 2: Invalidate old cache versions in "activate" event**
+
+The `"activate"` event is activated when the previous service worker is relieved of its post and is not using resources anymore. 
+
+> [!NOTE]
+> It would be a bad idea to try and clear caches in the `"install"` event when the previous worker is still active, so it's better to do it now in the `"activate"` event
+
+
 
 ```ts
 // Update service worker
@@ -554,6 +674,8 @@ sw.addEventListener("activate", (event) => {
 
 **Step 3: selectively cache based on resource type**
 
+Instead of updating the cache for our app all at once, we selectively update the cache based on the request url that is coming in. 
+
 ```ts
 sw.addEventListener("fetch", (event) => {
   async function cache() {
@@ -578,7 +700,7 @@ sw.addEventListener("fetch", (event) => {
 ```
 
 
-#### Service worker boilerplate
+#### Service worker development
 
 
 ##### SW boilerplate
@@ -621,6 +743,65 @@ sw.addEventListener("fetch", (event) => {
 
 ```
 
+Here's a more in depth boilerplate:
+
+```ts
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+/// <reference lib="webworker" />
+
+import { CacheStrategist } from "./sw-utils/CacheManager";
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
+
+const APP_SHELL = ["/"];
+
+// * change this to update the cache
+const version = "v1";
+const APP_CACHE_NAME = `app-${version}`;
+
+const cacheManager = new CacheStrategist(APP_CACHE_NAME);
+
+sw.addEventListener("install", (event) => {
+  const cacheAppShell = async () => {
+    try {
+      await cacheManager.cacheAppShell(APP_SHELL);
+    } catch (e) {
+      console.error(e);
+      console.log("failed to cache app shell");
+    }
+    await sw.skipWaiting();
+  };
+  event.waitUntil(cacheAppShell());
+});
+
+sw.addEventListener("fetch", (event) => {
+  function isValidCacheableRequest(request: Request) {
+    const booleansThatRepresentInvalidURLStates = [
+      event.request.url.startsWith("chrome"),
+      event.request.url.startsWith("chrome-extension"),
+    ];
+    return (
+      request.method === "GET" &&
+      booleansThatRepresentInvalidURLStates.every((b) => !b)
+    );
+  }
+
+  // only cache GET requests that are not chrome or chrome-extension
+  if (isValidCacheableRequest(event.request)) {
+    event.respondWith(cacheManager.staleWhileRevalidate(event.request));
+  }
+});
+
+sw.addEventListener("activate", (event) => {
+  const activate = async () => {
+    const deleted = await cacheManager.cacheStorage.deleteOldCaches();
+    await sw.clients.claim();
+  };
+  event.waitUntil(activate());
+});
+```
+
 ##### Custom cache class
 
 ```ts
@@ -637,6 +818,12 @@ export class CacheStorageModel {
   private async openCache() {
     const cache = await caches.open(this.cacheName);
     return cache;
+  }
+
+  async deleteOldCaches() {
+    const cacheNames = await caches.keys();
+    const oldCaches = cacheNames.filter((name) => name !== this.cacheName);
+    return await Promise.all(oldCaches.map((name) => caches.delete(name)));
   }
 
   async addAll(requests: string[]) {
@@ -674,6 +861,17 @@ export class CacheStorageModel {
     return this.cache.delete(request);
   }
 
+  async deleteMatching(predicate: (request: Request) => boolean) {
+    if (!this.cache) {
+      this.cache = await this.openCache();
+    }
+    const allKeys = await this.cache.keys();
+    const keysToDelete = allKeys.filter(predicate);
+    return await Promise.all(
+      keysToDelete.map((key) => this.cache!.delete(key))
+    );
+  }
+
   async keys(request: Request) {
     if (!this.cache) {
       this.cache = await this.openCache();
@@ -693,14 +891,43 @@ export class CacheStorageModel {
  * A class for implementing caching strategies with service workers
  */
 export class CacheStrategist {
-  static async cacheAppShell(cacheName: string, appShell: string[]) {
-    const appShellStorage = new CacheStorageModel(cacheName);
-    await appShellStorage.addAll(appShell);
+  public cacheStorage: CacheStorageModel;
+  constructor(public readonly cacheName: string) {
+    this.cacheStorage = new CacheStorageModel(cacheName);
   }
 
-  static async cacheFirst(request: Request, cacheName: string) {
-    const cacheStorage = new CacheStorageModel(cacheName);
+  async getOfflinePage(url: string) {
+    const response = await this.cacheStorage.match(new Request(url));
+    if (response) {
+      return response;
+    }
+    return fetch(url);
+  }
 
+  async cacheFirst(request: Request) {
+    return CacheStrategist.cacheFirst(request, this.cacheStorage);
+  }
+
+  async staleWhileRevalidate(request: Request) {
+    return CacheStrategist.staleWhileRevalidate(request, this.cacheStorage);
+  }
+
+  async cacheAppShell(appShell: string[]) {
+    return CacheStrategist.cacheAppShell(this.cacheStorage, appShell);
+  }
+
+  static async cacheAll(cacheStorage: CacheStorageModel, requests: string[]) {
+    await cacheStorage.addAll(requests);
+  }
+
+  static async cacheAppShell(
+    cacheStorage: CacheStorageModel,
+    appShell: string[]
+  ) {
+    await cacheStorage.addAll(appShell);
+  }
+
+  static async cacheFirst(request: Request, cacheStorage: CacheStorageModel) {
     // 1. go to cache
     const cacheResponse = await cacheStorage.match(request);
     // 2. if cache-hit, return response
@@ -709,14 +936,33 @@ export class CacheStrategist {
     }
     // 3. if cache-miss, go to network and update cache
     else {
-      const response = await fetch(request);
-      await cacheStorage.put(request, response.clone());
-      return response;
+        const response = await fetch(request);
+        await cacheStorage.put(request, response.clone());
+        return response;
     }
   }
 
-  static async staleWhileRevalidate(request: Request, cacheName: string) {
-    const cacheStorage = new CacheStorageModel(cacheName);
+  static async networkFirst(request: Request, cacheStorage: CacheStorageModel) {
+    try {
+      const response = await fetch(request);
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      await cacheStorage.put(request, response.clone());
+      return response;
+    } catch (e) {
+      const cacheResponse = await cacheStorage.match(request);
+      if (cacheResponse) {
+        return cacheResponse;
+      }
+      throw e;
+    }
+  }
+
+  static async staleWhileRevalidate(
+    request: Request,
+    cacheStorage: CacheStorageModel
+  ) {
     const cacheResponse = await cacheStorage.match(request);
     // 1. go to cache
     // 2. if cache-hit, update cache in the background and return cache response
@@ -733,13 +979,263 @@ export class CacheStrategist {
     }
     // 3. if cache-miss, go to network and update cache
     else {
-      const response = await fetch(request);
-      await cacheStorage.put(request, response.clone());
-      return response;
+  
+        const response = await fetch(request);
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        await cacheStorage.put(request, response.clone());
+        return response;
+ 
     }
   }
 }
 ```
+
+##### Messaging utilities
+
+You can use this messaging class as a wrapper around creating structured messages. This makes it so that both the client and the service worker will have type safety when messaging each other:
+
+```ts
+export class MessageSystem<T extends Record<string, any>> {
+  getDispatchMessage<K extends keyof T>(key: K, payload: T[K]) {
+    return {
+      type: key,
+      payload,
+    };
+  }
+
+  messageIsOfType<K extends keyof T>(
+    key: K,
+    message: any
+  ): message is {
+    type: K;
+    payload: T[K];
+  } {
+    if (!message || !message.type) {
+      return false;
+    }
+    return message.type === key;
+  }
+
+  getPayload<K extends keyof T>(key: K, message: any) {
+    if (!message || !message.type) {
+      return null;
+    }
+    return message.payload as T[K];
+  }
+}
+```
+
+You would then export a message system specific to your app:
+
+```ts
+export const appMessageSystem = new MessageSystem<{
+  ping: {
+    ping: string;
+  };
+}>();
+```
+##### Custom Service Worker Class (Client)
+
+```ts
+export class PWAServiceWorkerClient {
+  static async registerWorker(url: string) {
+    return await navigator.serviceWorker.register(url, {
+      type: "module",
+    });
+  }
+
+  static async getCurrentWorker() {
+    return await navigator.serviceWorker.ready;
+  }
+
+  static async onWorkerChange(cb: (worker: ServiceWorker) => void) {
+    navigator.serviceWorker.addEventListener("controllerchange", (event) => {
+      cb(event.target as ServiceWorker);
+    });
+  }
+
+  static postMessage(message: any) {
+    navigator.serviceWorker.controller?.postMessage(message);
+  }
+}
+```
+
+##### Custom Service Worker Class
+
+```ts
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+/// <reference lib="webworker" />
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
+
+export class ServiceWorkerModel {
+  static onInstall(onInstall: (event: ExtendableEvent) => Promise<void>) {
+    sw.addEventListener("install", (event) => {
+      event.waitUntil(
+        (async () => {
+          await onInstall(event);
+          await sw.skipWaiting();
+        })()
+      );
+    });
+  }
+
+  static onFetch(onRequest: (req: Request) => Promise<Response>) {
+    sw.addEventListener("fetch", (event) => {
+      event.respondWith(onRequest(event.request));
+    });
+  }
+
+  static onActivate(onActivate: (event: ExtendableEvent) => Promise<void>) {
+    sw.addEventListener("activate", (event) => {
+      const activate = async () => {
+        await onActivate(event);
+        await sw.clients.claim();
+      };
+      event.waitUntil(activate());
+    });
+  }
+
+  static onMessage(
+    onMessage: (event: ExtendableMessageEvent) => Promise<void>
+  ) {
+    sw.addEventListener("message", (event) => {
+      event.waitUntil(onMessage(event));
+    });
+  }
+
+  static async notifyClients(cb: (client: WindowClient) => any) {
+    const clients = await sw.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    });
+    clients.forEach((client) => {
+      const message = cb(client);
+      client.postMessage(message);
+    });
+  }
+
+  static isValidCacheableRequest(
+    request: Request,
+    predicates?: ((request: Request) => boolean)[]
+  ) {
+    const booleansThatRepresentInvalidURLStates = [
+      request.url.startsWith("chrome"),
+      request.url.startsWith("chrome-extension"),
+    ];
+    return (
+      request.method === "GET" &&
+      booleansThatRepresentInvalidURLStates.every((b) => !b) &&
+      (predicates?.every((p) => p(request)) ?? true)
+    );
+  }
+}
+```
+
+Here's an example that uses everything together:
+
+```ts
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+/// <reference lib="webworker" />
+
+import { appMessageSystem } from "./frontend/messageHelpers";
+import { CacheStrategist } from "./sw-utils/CacheManager";
+import { ServiceWorkerModel } from "./sw-utils/ServiceWorkerModel";
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
+
+const APP_SHELL = ["/", "/offline.html"];
+
+// * change this to update the cache
+const version = "v2";
+const APP_CACHE_NAME = `app-${version}`;
+
+const cacheManager = new CacheStrategist(APP_CACHE_NAME);
+
+ServiceWorkerModel.onInstall(async (event) => {
+  await cacheManager.cacheAppShell(APP_SHELL);
+  await sw.skipWaiting();
+});
+
+ServiceWorkerModel.onFetch(async (request) => {
+  if (ServiceWorkerModel.isValidCacheableRequest(request)) {
+    try {
+      console.log("trying to fetch", request.url);
+      const response = cacheManager.staleWhileRevalidate(request);
+
+      // only delete js chunks if online
+      if (navigator.onLine) {
+        cacheManager.cacheStorage.deleteMatching((r) => {
+          // always delete js chunks
+          return r.url.includes("_bun") && r.url.includes(".js");
+        });
+      }
+      return response;
+    } catch (error) {
+      console.error("No network and cache miss!", error);
+      return cacheManager.getOfflinePage("/offline.html");
+    }
+  }
+  return fetch(request);
+});
+
+ServiceWorkerModel.onActivate(async (event) => {
+  const deleted = await cacheManager.cacheStorage.deleteOldCaches();
+});
+
+ServiceWorkerModel.onMessage(async (event) => {
+  if (appMessageSystem.messageIsOfType("ping", event.data)) {
+    console.log("ping received", event.data.payload.ping);
+  }
+});
+```
+
+
+##### Building on the server
+
+When you are rolling out your own server, there are some things to keep in mind on how to host service workers:
+
+1. You must serve all assets statically on your server, including the service worker JS
+
+```ts
+import { $ } from "bun";
+import { join } from "path";
+import html from "./frontend/index.html";
+import offline from "./frontend/offline.html";
+
+await $`rm -rf ${join(__dirname, "dist")}`;
+
+await Bun.build({
+  entrypoints: [join(__dirname, "sw.ts")],
+  outdir: join(__dirname, "dist"),
+  target: "browser",
+  format: "esm",
+  sourcemap: "inline",
+  minify: false,
+  naming: "[name].[ext]",
+  throw: true,
+});
+
+const server = Bun.serve({
+  port: 3000,
+  routes: {
+    "/": html,
+    "/sw.js": (req) => {
+      return new Response(Bun.file(join(__dirname, "dist", "sw.js")));
+    },
+    "/offline.html": offline,
+  },
+  development: true,
+});
+
+console.log(`Server is running on ${server.url}`);
+```
+
+
 #### Background sync
 
 Background sync is a way for service workers to resume doing something once the user has internet connectivity again, like syncing local changes to the cloud. 
@@ -864,6 +1360,20 @@ self.addEventListener('message', (event) => {
 
 ##### Service worker to frontend
 
+Since a single service worker oversees all instances of a page, we send messages only to one service worker and it can send messages to multiple clients at a time.
+
+Here's how we can fetch all clients or just specific clients and then send messages to those clients:
+
+```ts
+const clients = await self.clients.matchAll()
+clients.forEach(client => {
+	client.postMessage({ 
+		type: 'CACHE_UPDATED', 
+		url: event.request.url 
+	})
+})
+```
+
 1. Fetch a client using the `self.clients.get()` method
 ```ts
 const client = await self.clients.get(event.clientId);
@@ -939,12 +1449,11 @@ async function detectSWUpdate() {
 ```
 3. Display a toast message telling a user that a new version of the app can be installed. Then when the user allows the new version to be installed, send a message to the service worker to update the cache and then reload the user's page. 
 
-We can also
 #### Developing with service workers
 
-You can see all your registered service workers at the `chrome://serviceworker-internals/` link.
-
-You should also check the **update on reload** checkbox to make sure that your service workers update when you reload them. 
+- You can see all your registered service workers at the `chrome://serviceworker-internals/` link.
+- You should also check the **update on reload** checkbox to make sure that your service workers update when you reload them. 
+- To bypass the service worker on a reload, you can hold the `shift` key while you try to reload.
 
 ## Web Storage
 
@@ -1234,6 +1743,7 @@ Use the vite PWA plugin to easily turn your app into a PWA.
 
 1. `npm install -D vite-plugin-pwa`
 2. Add the plugin to the vite config: 
+
 ```ts
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -1249,12 +1759,152 @@ export default defineConfig({
 })
 ```
 
+To make your app offline capable, you need to add PWA meta tags to your HTML and also specify a manifest:
+
+```html
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Awesome App</title>
+  <meta name="description" content="My Awesome App description">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+  <link rel="mask-icon" href="/mask-icon.svg" color="#FFFFFF">
+  <meta name="theme-color" content="#ffffff">
+</head>
+```
+
+Then you can specify a manifest like so:
+
+- The icons are fetched specifically with vite, so instead of `public/icon.png`, it just becomes `/icon.png`.
+- We specify what assets to precache through the `workbox.globOptions` key
+
+```ts
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+    VitePWA({
+      registerType: "autoUpdate",
+      manifest: {
+        name: "PWA App",
+        short_name: "PWA App",
+        description: "PWA App",
+        theme_color: "#2d73a6",
+        background_color: "#ffffff",
+        start_url: "/",
+        display: "standalone",
+        icons: [
+          {
+            src: "/icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false,
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"], // precaches all assets
+      },
+    }),
+  ],
+});
+```
+
+The final step is to add a `public/robots.txt` file:
+
+```
+User-agent: *
+Allow: /
+```
+##### Basics
+
+Inside the `VitePWA` plugin, you have access to these options:
+
+- `registerType`: can be one of two values:
+	- `"autoUpdate"`: if set to this, then the service worker will update automatically when it gets modified.
+	- `"prompt"`: the default behavior. The user will be prompted if they want to update to a new service worker.
+- `devOptions.enabled`: if set to true, you will be able to use the service worker in development as well, which is useful for debugging.
+
+##### Workbox options
+
+IN the `workbox` key you can provide all sorts of caching strategies to assets and routes. It is basically like using workbox without having to write the code yourself. 
+
+- `workbox.globPatterns`: a list of glob patterns to precache as the app shell
+
+```ts
+VitePWA({
+  registerType: 'autoUpdate',
+  injectRegister: 'auto',
+  workbox: {
+    globPatterns: ['**/*.{js,css,html,ico,png,svg}'], // precache all relevant files
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'google-fonts-cache',
+          expiration: {
+            maxEntries: 10,
+            maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+          },
+          cacheableResponse: {
+            statuses: [0, 200]
+          }
+        }
+      },
+      {
+        urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'gstatic-fonts-cache',
+          expiration: {
+            maxEntries: 10,
+            maxAgeSeconds: 60 * 60 * 24 * 365
+          },
+          cacheableResponse: {
+            statuses: [0, 200]
+          }
+        }
+      }
+    ]
+  }
+})
+```
+
+
 #### Vite PWA Assets plugin
 
 Use the vite PWA assets plugin to dynamically generate icons of different sizes for your PWA. 
 
 1. `npm install -D @vite-pwa/assets-generator`
 2. `pwa-assets-generator --preset minimal-2023 <icon-file-path>`
+
+```bash
+pwa-assets-generator --preset minimal-2023 public/logo.svg
+```
+
+#### Creating icons automatically
+
+Go to this great site to create 20+ PWA images just from one image:
+
+```embed
+title: "Favicon Generator | Favicon InBrowser.App"
+image: "data:image/webp;base64,UklGRqACAABXRUJQVlA4TJMCAAAvC0IVAK/CKpJkJ3P3Hjn8IgAn+Nf0hiSCQSRJTubunhxMUBjBvyVuHESS7Cp94WfABE7wryje/NdBpw5EQAQEERCFRoOiwECa/AYFERAdCo1C4h9+lo2A4BBsFJoGIR8EQYCBBEAQgqB/x5vIt1LlfJ7qaNf3EhEiwrjuIkJmqqNFhGHZ1NH6eVVHK1UiQj+vtutuvx8y07yfIoJCurVNhiTF2LZtta3xrH3/F9OOqD9frqIiIvrvSJIkp8nCg/QA7L0UFPrvv7+wJI7WF6rDBFNa9Y3jRETdbipBlppHcGltkGDLNBExO4RdthcpywRfK9GRnCEA81RUOEGY9y5nlo35rBCIaan38u7OZZdgbL/UTwX3Ytn6d0dA1u8JDpbDV5G0VpLujqBMpW1gyaRNYEmFXROYXcvaRpN2U8zzWkSTdpPlPu2NptmupzK4j0TTpOg8JjQNd9sDq28vHQy8+069120dVV8b9lxvG98a9z95lGNUfW6YPbR6M7NHHllYxV/M7FPTBzN7qvHIC8Bq8X3bWOfazA+uoX2M6ASuwcxe68Slwg+wQeOYTR5bH9uFmBUPCofEQeGP8kHhHFcxMJz7Bvma2C+u6yAYXyv/EdVr5ajFpRgUxGGBBwXZoEArQWFzPijIBpufpfHkoo/64+lG0jmeLiTfGXaEpxPJl8ft4Gm3Z0XV/i3habm349MZVY7NQ3gaFjzylADtXM4qotbkznCNIspcyhZBmkt9+XAIU56QoQRqGyIuCdZU4iMFI7gaVX5TBGzT7BYJ2paj9VFUqD+ZmnCCt5kEm6sxArjxK6YvJa8RyG0kGa59bA8TzOmO97fldH2MoG58XdO9SF2fHWzNEeTN++HZddtP6X8RxQA="
+description: "Generate Favicon. Fully runs in your browser. No server-side code."
+url: "https://favicon.inbrowser.app/tools/favicon-generator"
+favicon: ""
+aspectRatio: "16.412213740458014"
+```
 
 
 ### PWA builder 
@@ -1425,6 +2075,16 @@ Here is what a typical PWA manifest looks like:
     - `"fullscreen"` : registers as fullscreen app. Only supported on Android
     - `"minimal-ui"` : halfway between browser and full-fledged PWA. Not supported by IOS
 
+#### adding autocomplete
+
+You can add autocomplete and language support to your `app.webmanifest` or `manifest.json` by adding this schema:
+
+```json
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json"
+}
+```
+
 #### Icons
 
 The `"icons"` key in the manifest sets up the icons for your app. It is an array of objects, where each object is info about the icon. You are required to provide three icons: 
@@ -1493,6 +2153,29 @@ The `shortcuts` member is an array of `shortcut` objects, which can contain 
 - `description`: A string description of the shortcut.
 - `icons`: A set of icons used to represent the shortcut. This array must include a 96x96 icon.
 
+#### Richer PWA install UI
+
+To get a cool looking install UI like this one below from squoosh, we have to put additional details in our manifest, which includes screenshots.
+
+
+![](https://i.imgur.com/41wn7l1.jpeg)
+
+
+You do this through adding an array of `"screenshots"`
+
+```json
+{
+	// ...
+    "screenshots": [
+        {
+            "src": "icons/screenshot.png",
+            "sizes": "1170x2532",
+            "type": "image/png"
+        }
+    ]
+}
+```
+
 ### PWA UX
 
 For a good UX, a PWA should feel as much like a native app as possible. When users install a PWA on their phone, they expect app-like behavior.
@@ -1512,6 +2195,27 @@ const badgeNumber = 10
 navigator.setAppBadge(badgeNumber);
 ```
 
+Here's a custom class:
+
+```ts
+export class PWABadger {
+  static isBadgeSupported() {
+    return "setAppBadge" in navigator && "clearAppBadge" in navigator;
+  }
+
+  static async setBadge(badge: number) {
+    if (navigator.setAppBadge) {
+      await navigator.setAppBadge(badge);
+    }
+  }
+
+  static async clearBadge() {
+    if (navigator.clearAppBadge) {
+      await navigator.clearAppBadge();
+    }
+  }
+}
+```
 #### Targeting displays 
 
 You can style different PWA experiences depending on their `"display_mode"` manifest key. Do it using media queries: 
@@ -1522,20 +2226,6 @@ You can style different PWA experiences depending on their `"display_mode"` mani
 }
 ```
 
-#### Detecting whether user has installed app as PWA
-
-Below is some code for how to detect whether the user is using your PWA as a web app or if they installed it: 
-
-```jsx
-window.addEventListener('DOMContentLoaded', () => {
-  let displayMode = 'browser tab';
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    displayMode = 'standalone';
-  }
-  // Log launch display mode to analytics
-  console.log('DISPLAY_MODE_LAUNCH:', displayMode);
-});
-```
 
 #### Disabling text selection
 
@@ -1566,13 +2256,55 @@ However, once you request covering the viewport, you should make sure to pad you
 }
 ```
 
-### Installing the PWA
+You can also add default values if you are not on an IPhone:
 
-On Apple, the user can only download the PWA from Safari, and custom PWA installation will not work. It is also recommended to have this icon in your main HTML: 
+```css
+.container {
+  padding: env(safe-area-inset-top, 5px) 
+          env(safe-area-inset-right, 5px) 
+          env(safe-area-inset-bottom, 5px) 
+          env(safe-area-inset-left, 5px) !important;
+}
+```
+
+#### Changing status bar style
+
+You can change the status bar style using a meta tag:
+
+```html
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"
+```
+
+This is the difference between `black` and `black-translucent`:
+
+
+![](https://i.imgur.com/5pmbl0D.jpeg)
+
+
+
+#### Check if in PWA
+
+Below is some code for how to detect whether the user is using your PWA as a website or if they installed it and are using it as a PWA.
+
+```jsx
+window.addEventListener('DOMContentLoaded', () => {
+  let displayMode = 'browser tab';
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    displayMode = 'standalone';
+  }
+  // Log launch display mode to analytics
+  console.log('DISPLAY_MODE_LAUNCH:', displayMode);
+});
+```
+
+#### Installing the PWA and checking installation
+
+On Apple, the user can only download the PWA from Safari, and custom PWA installation will not work. It is also recommended to have this icon in your main HTML to enable PWA installation.
 
 ```html
 <link rel="apple-touch-icon" href="/icons/ios.png">
 ```
+
 
 You can check for if the user already installed the PWA by listening to the `"appinstalled"` event on the window. This is useful to remove any custom install buttons. 
 
@@ -1584,9 +2316,12 @@ window.addEventListener('appinstalled', () => {
   console.log('INSTALL: Success');
 });
 ```
-#### Custom PWA installation
 
 Using the code below, you can attach the behavior of prompting the user to install the PWA to a button click: 
+
+1. We listen for the `"beforeinstallprompt"` event on the `window` and store that event as a global variable called `bipEvent`
+2. On a user gesture, we call the `bipEvent.prompt()` async method to bring up the installation prompt. This returns an outcome of `'accepted'` (user installed) or `'dismissed'` (user rejected).
+
 
 ```ts
 // 1. create an event variable
@@ -1599,9 +2334,9 @@ window.addEventListener("beforeinstallprompt", (event) => {
 });
 
 // 3. prompt for app installation with bipEvent.prompt()
-document.querySelector("#btnInstall")!.addEventListener("click", (event) => {
+document.querySelector("#btnInstall")!.addEventListener("click", async (event) => {
   if (bipEvent) {
-    bipEvent.prompt();
+    await bipEvent.prompt();
     const {outcome} = await bipEvent.userChoice
     // must reset afterwards
     bipEvent = null
@@ -1621,7 +2356,157 @@ document.querySelector("#btnInstall")!.addEventListener("click", (event) => {
 });
 ```
 
-### PWA hardware integrations
+You can check all your installed PWAs at the chrome://apps/ link.
+
+#### Custom PWA class
+
+Here is a custom PWA class that handles the javascript side of PWA ux:
+
+```ts
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
+export class PWAModel {
+  static async registerWorker(url: string) {
+    return await navigator.serviceWorker.register(url, {
+      type: "module",
+      scope: "/",
+    });
+  }
+
+  static isInPWA() {
+    let displayMode = "browser tab";
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      displayMode = "standalone";
+    }
+    return displayMode === "standalone";
+  }
+
+  /**
+   * runs when the app is installed
+   * @param cb callback function to run when the app is installed
+   */
+  static onAppInstalled(cb: () => void) {
+    window.addEventListener("appinstalled", cb);
+  }
+
+  static installPWA() {
+    let bipEvent: BeforeInstallPromptEvent | null = null;
+
+    return {
+      install: async () => {
+        if (bipEvent) {
+          await bipEvent.prompt();
+          const choiceResult = await bipEvent.userChoice;
+          console.log(bipEvent);
+          return choiceResult.outcome === "accepted";
+        } else {
+          throw new Error("Install prompt not available");
+        }
+      },
+      setupInstallPrompt: () => {
+        // if the app is not in display mode, and the install prompt is available, then we can install
+        window.addEventListener("beforeinstallprompt", (event: Event) => {
+          //   event.preventDefault();
+          bipEvent = event as BeforeInstallPromptEvent;
+        });
+      },
+    };
+  }
+
+  static showInstallPromptBanner({
+    banner,
+    installButton,
+    onInstallSuccess,
+    onInstallFailure,
+    onAlreadyInstalled,
+  }: {
+    banner: HTMLElement;
+    installButton: HTMLButtonElement;
+    onInstallSuccess?: () => void;
+    onInstallFailure?: () => void;
+    onAlreadyInstalled?: () => void;
+  }) {
+    banner.style.display = "block";
+    const { setupInstallPrompt, install } = PWAModel.installPWA();
+
+    // 1. register the install prompt with event listener
+    setupInstallPrompt();
+
+    if (!PWAModel.isInPWA()) {
+      // 2. add event listener to button for installation, remove banner on success.
+      const controller = new AbortController();
+      installButton.addEventListener(
+        "click",
+        async () => {
+          const success = await install();
+          if (success) {
+            banner.remove();
+            controller.abort();
+            onInstallSuccess?.();
+          } else {
+            onInstallFailure?.();
+          }
+        },
+        {
+          signal: controller.signal,
+        }
+      );
+
+      // 3. add the banner to the body if it's not already there
+      if (!document.body.contains(banner)) {
+        document.body.appendChild(banner);
+      } else {
+        banner.style.display = "block";
+      }
+    } else {
+      onAlreadyInstalled?.();
+    }
+  }
+}
+```
+
+You can then install a PWA like this:
+
+```ts
+const appBanner = DOM.createDomElement(html`
+  <div
+    class="fixed bottom-4 left-4 bg-white/75 py-2 px-8 text-center rounded-lg shadow-lg space-y-2 z-50 border-2 border-gray-300"
+  >
+    <p class="text-sm">Install App?</p>
+    <button
+      class="bg-blue-500 text-white px-4 py-2 rounded-md text-sm cursor-pointer"
+    >
+      Install
+    </button>
+  </div>
+`);
+
+const appBanner$throw = DOM.createQuerySelectorWithThrow(appBanner);
+
+PWAModel.showInstallPromptBanner({
+  banner: appBanner,
+  installButton: appBanner$throw("button")!,
+  onAlreadyInstalled: () => {
+    Toaster.info("already installed");
+  },
+  onInstallFailure: () => {
+    Toaster.danger("user refused to install");
+  },
+  onInstallSuccess: () => {
+    Toaster.info("user installed our malware successfully!");
+  },
+});
+```
+
+
+### PWA APIs
 
 #### Share API
 
@@ -1639,3 +2524,4 @@ await navigator.share({
 - `text` : the description of what you’re sharing
 - `title` : the share title
 - `files` : an array of `File` objects to share.
+

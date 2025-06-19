@@ -704,6 +704,36 @@ app.getWithLocalMiddleware("/", [userAuthLocalMiddleware], (req) => {
 - `serveStatic(path)` - Serve static directory
 - `serveFile(path, filepath)` - Serve single file found at filepath to the specified path on the server.
 
+### Web sockets
+
+web sockets in Deno are super easy to implement because deno offers a helper method for upgrading a HTTP request to a websocket connection. On the frontend, you use web standards to interact with web sockets.
+
+The method to use is `Deno.upgradeWebSocket(req)` which takes in a web standard `Request` and returns an object of two important pieces of data: the websocket instance and the response.
+
+```ts
+const { socket, response } = Deno.upgradeWebSocket(request);
+```
+
+You then use the socket for messaging, and you'll return the response in your HTTP handler to handle the websocket upgrade request accordingly.
+
+```ts
+app.get("/websocket", (request) => {
+  const { socket, response } = Deno.upgradeWebSocket(request);
+
+  socket.onopen = () => {
+	console.log("CONNECTED");
+  };
+  socket.onmessage = (event) => {
+	console.log(`RECEIVED: ${event.data}`);
+	socket.send("pong");
+  };
+  socket.onclose = () => console.log("DISCONNECTED");
+  socket.onerror = (error) => console.error("ERROR:", error);
+
+  return response;
+});
+```
+
 ### JSX Server Side
 
 Here are the steps to setup JSX in Deno:

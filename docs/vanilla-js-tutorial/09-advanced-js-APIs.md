@@ -375,6 +375,73 @@ window.addEventListener("resize", () => {
 
 ## Other APIs
 
+### Aborting fetch requests
+
+We can use the `AbortController` class to abort fetch requests if they are taking too long.
+
+The main steps are these:
+
+1. Instantiate an abort controller with `new AbortController()`
+2. Connect the abort controller to our fetch call by attaching the `signal` property of the abort controller to the `signal` property of the fetch options object.
+3. Call `abort()` on the abort controller after a certain amount of time. The previous connection through the `signal` property will cause the fetch request to abort.
+
+```javascript
+async function fetchWithTimeout(
+  url: string,
+  // RequestInit is the interface for the fetch options object
+  options: RequestInit = {},
+  timeout = -1
+) {
+  // user has specified they want a timeout for fetch
+  if (timeout > 0) {
+    let controller = new AbortController();
+    // connect controller to our fetch request through the options object and on options.signal
+    options.signal = controller.signal;
+
+    setTimeout(() => {
+      // this aborts the controller and any connected fetch requests
+      controller.abort();
+    }, timeout);
+  }
+
+  // need to pass options into fetch so that we get signal connection to abort controller
+  return fetch(url, options);
+}
+
+// fetches google with a timeout of 1 second, aborting the request if it takes any longer
+fetchWithTimeout("https://google.com", {}, 1000);
+```
+
+Here is a simpler example: 
+
+```ts
+let abortController = new AbortController();
+ 
+fetch('wikipedia.zip', { signal: abortController.signal })
+  .catch(() => console.log('aborted!'));
+ 
+// Abort the fetch after 10ms
+setTimeout(() => abortController.abort(), 10);
+```
+
+#### `AbortSignal.any()`
+
+The `AbortSignal.any(signals)` method takes in an array of `AbortSignal[]` and returns a new signal that if any of the provided signals in the array get aborted, the enw signal also gets aborted.
+
+The main use case for this is if you want to automatically abort something conditionally based on the abortion of another signal.
+
+```ts
+const { signal: firstSignal } = new AbortController();
+fetch("https://example.com/", { signal: firstSignal });
+
+const { signal: secondSignal } = new AbortController();
+fetch("https://example.com/", { signal: secondSignal });
+
+// Cancels if either `firstSignal` or `secondSignal` is aborted
+const signal = AbortSignal.any([firstSignal, secondSignal]);
+await fetch("https://example.com/slow", { signal });
+```****
+
 ### Web Payments API
 
 Here is how to use the web payments api:

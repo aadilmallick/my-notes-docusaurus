@@ -1479,7 +1479,7 @@ class ResizeObserverModel {
 }
 ```
 
-### MutationObserver
+### `MutationObserver`
 
 #### Executing code once an element is mounted
 
@@ -1509,6 +1509,35 @@ observer.observe(document.body, {
 });
 ```
 
+Here is the most basic reusable way to use this API by just listening for changes on the `document.body` element:
+
+```ts
+function observeChildElement<T extends HTMLElement>(
+	selector: string, 
+	onMutation: (element : T) => void,
+	rootElement : HTMLElement = document.body
+) {
+	const domObserver = new MutationObserver(() => {
+	  const element = document.querySelector(selector);
+	
+	  if (element) {
+	    onMutation(element)
+	  }
+	});
+
+	return {
+		subscribe: () => {
+			domObserver.observe(rootElement, { 
+				childList: true, 
+				subtree: true 
+			});
+		},
+		unsubscribe: () => {
+			domObserver.unobserve(rootElement)
+		}
+	}
+}
+```
 #### Basics
 
 Here are the methods you have on the `observer` object:

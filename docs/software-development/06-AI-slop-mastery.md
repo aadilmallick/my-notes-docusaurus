@@ -6,9 +6,13 @@ You can also use copilot on the web here:
 
 [GitHub Copilot](https://github.com/copilot)
 
-**fix with copilot**
+#### Main use cases
 
-You can highlight line(s), right click, and then use either **modify with copilot** or **review with copilot** to review the code, suggest any improvements, etc.
+- **fix with copilot**: You can highlight line(s), right click, and then use either **modify with copilot** or **review with copilot** to review the code, suggest any improvements, etc.
+- **regex**: you can ask copilot to do regex for you
+- **generate commit messages for you**: using the github GUI in vscode, you can commit AI-generated messages
+
+
 
 #### Attaching context
 
@@ -36,6 +40,20 @@ Here are the most useful ones:
 - `/doc`: creates documentation for the selected code, like JSdoc
 - `/tests`: creates unit tests for the selected code
 - `/explain`: explains the selected code
+
+#### Github copilot CLI
+
+The gh copilot CLI can be installed like so:
+
+```bash
+gh extension install github/gh-copilot
+```
+
+You can then use it to generate terminal commands:
+
+```bash
+gh copilot suggest "create a basic nextjs app"
+```
 
 #### Copilot Extensions
 
@@ -117,6 +135,19 @@ favicon: ""
 aspectRatio: "52.5"
 ```
 
+
+## Vibe coding mastery
+
+### tech stack
+
+The "gooner tech stack" as I like to call it helps with vibe coding and consists of NextJS, tailwind, typescript, supabase, shadcn.
+
+### Workflow
+
+1. Tell chat about your idea and ask it to make a PRD (project requirements document) so that you can input it into cursor.
+2. Copy a standard cursor rules for nextjs, tyepscript, react, enable it for project.
+3. Paste in your PRD into cursor and ask it to create a landing page for you.
+
 ## ChatGPT features
 
 ### Canvas mode
@@ -142,6 +173,25 @@ For example, you could ask gpt to send you the latest ai news every morning
 ## Microsoft copilot
 
 Microsoft copilot is cool because it has AI sidebar integration in the edge browser to analyze the contents of a website.
+
+## Local LLMs
+
+You can use local LLMs in a chat interface either with LMStudio desktop app or the Ollama CLI. 
+
+**quantization** is the idea of precision in model parameters, either letting each parameter have a floating point precision (more precise) or an integer precision (less precise). 
+
+Although it sounds like being more precise would lead to better results - which it does - it also adds up more space to download local models and requires more RAM. To use a model for inference, it has to get loaded into memory, and even the smallest LLM has over 1 billion parameters. Higher precision leads to higher RAM requirements:
+
+- A model with float32 quantization for parameters means each parameter is 32 bits, or 4 bytes, meaning a model with 2 billion parameters would need 8GB of RAM.
+
+Thus quantization allows us to mathematically round the floating point precision parameters to integers, either int4 (4 bit) or int8 (8 bit) to cut down the RAM usage of a model:
+
+- A model quantized with int4 quantization for parameters means each parameter is 4 bits, or 0.5 bytes, meaning a model with 2 billion parameters would only need 1GB of RAM.
+
+> [!TIP]
+> quantization allows us toi achieve up to 1/2 or 1/4 cutting of RAM usage.
+
+You can download quantized models off of hugging face.
 ## Prompt engineering
 
 ### Prompt Engineering in a nutshell
@@ -166,6 +216,103 @@ All together, you should get something like this:
 
 > Act as an article summarizing assistant. I will provide you with the text of a news article, and I’d like you to generate a summary. **(step 1, initial context)** The summary should include a 2 sentence overall summary and then also include 4-6 bullet points summarizing the key points of the article.  **(step 2, instructions)** Your total output should not exceed 120 words. **(step 4, constraints)** Here is the text: **(then you do step 3, the input)**
 
+This is formally known as the **RGC** prompt:
+
+- **RGC prompting:** A type of prompting that can be universally used to generate detailed output. It has these following attributes:
+    - **role:** Tell chatgpt who to act as
+    - **result:** Tell chatgpt what kind of output you want back
+    - **goal:** What is the purpose that the output is supposed to serve? What are you trying to accomplish here?
+    - **context:** Provide what or who the output is for
+    - **constraint:** Guidelines for the response.
+- You are an expert `[role]`. Create `[result]`. The goal is `[end goal]`. The content is for `[context]`. Your guidelines for writing are `[constraints]`.
+
+### Basic techniques
+
+#### Shot prompting
+
+The concept of a **shot** is providing the model context that is an example of a response you want to get back or of what you want the model to do.
+
+> [!NOTE]
+> The main use case of shot prompting is to inject a bit of determinism into the AI so we can get a predictable response back. This is useful if you need the response to be in a certain style, format, etc.
+
+There are three types of "shot" prompting:
+
+- **zero-shot**: you don't give the AI any examples of the response you want back.
+- **one-shot**: you give the AI one example of the response you want back.
+- **few-shot**: you  give the AI many examples of the response you want back.
+
+The structure of a shot prompting prompt should be as follows to ensure the AI follows it correctly:
+
+1. At the beginning, give general background context and instructions  and say something like "below you have examples."
+2. paste the examples delimited by xml tags like `<example-1>` to clearly delineate where an example starts and ends.
+3. Put your main instructions at the end
+
+#### Chain of thought
+
+For complex mathematical calculations, you can ask the ai  to walk through a solution step by step:
+
+```
+think step by step, outline your solution process (in detail), and derive the solution step by step.
+```
+
+#### Ask before answer
+
+**ask before answer prompting** is where before telling chatgpt what to do, you tell it to ask any questions for clarification it needs before answering the prompt in the best way possible.
+
+This lets chatgpt ask its own questions so you can give it context and form the best possible prompt.
+
+#### Rephrase the question
+
+By asking the AI to rephrase and expand the question before responding, it gives you a glimpse into what the AI thinks you're asking and fleshes it out, thus increasing the probability of producing a better response.
+
+![](https://i.imgur.com/8GrllW8.png)
+
+The basic prompt formula is like so:
+
+```
+{Your question} 
+Rephrase and expand the question, and respond.
+```
+
+There are some limitations:
+
+- While rephrasing can help clarify ambiguous questions, it can also make straightforward queries unnecessarily complex.
+- Rephrasing can sometimes inadvertently alter the original question's intent or focus, leading to a response that doesn’t fully address the user's needs.
+
+#### reverse prompt engineering
+
+Telling chatgpt to pretend it is a prompt engineer, and you give it a piece of content and tell it to reverse-engineer it and give you back a prompt that would produce that type of content.
+
+#### The order of prompts
+
+Here is a basic guideline of the order to follow when prompting the AI:
+
+1. Examples (if needed)
+2. Additional Information
+3. Role
+4. Directive
+5. Output Formatting
+
+### Image prompting
+
+#### Basics
+
+with any llm chat that supports creating images like ChatGPT, you have the ability to use the chat interface to improve image generation. Here are the specific things you can do:
+
+- **provide aspect ratio**: You can tell gpt to set the image's aspect ratio to something like 16:10 or 4:3.
+- **refine the image**: Since images are saved as part of the chat history, you can ask gpt to refine the image and change certain parts of the image.
+- **base off of a previous image**: If you find an image you like, you can ask chat to create an image in that exact same style.
+
+### prompt resources
+
+```embed
+title: "prompts.chat"
+image: "https://github.com/user-attachments/assets/e0d0e32d-d2ce-4459-9f37-e951d9f4f5de"
+description: "This repo includes ChatGPT prompt curation to use ChatGPT and other LLM tools better."
+url: "https://prompts.chat/"
+favicon: ""
+aspectRatio: "30.126582278481013"
+```
 
 
 ## AI Coding
@@ -682,6 +829,16 @@ export class VercelAIChat {
   }
 }
 ```
+
+## Rag and Cag
+
+RAG stands for **retrieval augmented generation** while **CAG** stands for **cache-augmented generation**.
+
+- **RAG**: search documents related to query, and then inject most similar documents into query.
+	- More complex and prone to error, but allows for smaller context window.
+- **CAG**: fetch all possibly relevant documents and then inject into prompt. 
+	- Needs a large context window but less complex
+
 ## MCP
 
 MCP is a layer between tools available to the LLM and the LLM itself, making it very simple for the LLM to know what tools are available and when to use them. 
@@ -881,3 +1038,57 @@ you can add MCP servers in the `~\AppData\Roaming\Claude\claude_desktop_config.j
 
 Go to cursor MCP settings and you can add MCP servers in the `~\.cursor\mcp.json` file, or you can just go to **cursor settings** -> **MCP settings**.
 
+## AI resources
+
+### Voice
+
+```embed
+title: "#1 Free AI Voice Generator, Text to Speech, & AI Voice Over"
+image: "https://play.ht/PlayAI-VoiceAI-LLM-TTS-ASR-STT-OGcard.png"
+description: "The Best AI Voice Generator with 200+ realistic AI voices. PlayAI is the voice platform for creators & enterprises. See our low latency Text to Speech API."
+url: "https://play.ht/"
+favicon: ""
+aspectRatio: "52.33333333333333"
+```
+
+```embed
+title: "AI Voice Generator and Deepfake Detection for Enterprise | Resemble AI"
+image: "https://www.resemble.ai/wp-content/uploads/2025/06/resemble-16x9-1-scaled.jpg"
+description: "Resemble AI | Create AI voices and stop deepfakes with models built for enterprise scale and security."
+url: "https://www.resemble.ai/"
+favicon: ""
+aspectRatio: "56.25"
+```
+
+```embed
+title: "Free AI Voice Generator & Text to Speech Software | Murf AI"
+image: "https://cdn.prod.website-files.com/66b3765153a8a0c399c70981/670584e2dab709883eed3793_Home.webp"
+description: "Choose form 200+ AI voices and generate speech in 20+ languages. Murf's AI Voice Generator and Text to Speech software lets you create ultra-realistic AI voiceovers in seconds."
+url: "https://murf.ai/"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+### image
+
+This lets you create shirts:
+
+```embed
+title: "T-shirt Templates - Playground"
+image: "https://playground.com/api/og/design/c/t-shirt/opengraph-image"
+description: "Discover thousands of customizable T-shirt templates. Perfect for creating unique logos, t-shirts, posters, and more for Etsy, Printify, Stickermule, and beyond!"
+url: "https://playground.com/design/c/t-shirt"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+lexica, stable diffusion search engine:
+
+```embed
+title: "Lexica"
+image: "https://lexica.art/lexica-meta.png"
+description: "The state of the art AI image generation engine."
+url: "https://lexica.art/"
+favicon: ""
+aspectRatio: "60"
+```

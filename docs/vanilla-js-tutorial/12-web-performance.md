@@ -138,6 +138,10 @@ We can set images in LCP with a `fetchpriority="high"` to immediately download t
 
 ### Resizing and optimizing images
 
+#### HTML way
+
+#### Resizing way
+
 The first step is to create multiple copies of our images, all resized for different viewport sizes. 
 
 ```js
@@ -230,6 +234,24 @@ await imagemin(['public/assets/img/min/**/*.png', 'public/assets/img/*.png'], {
   plugins: [
     imageminWebp({ quality: 50 })
   ]
+});
+```
+
+#### Using sharp
+
+You can use the `sharp` npm package as a way to programmatically resize images and transform them really quick.
+
+```ts
+import sharp from "sharp";
+import fs from "fs";
+const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+sizes.forEach((size) => {
+  sharp("public/favicon.svg")
+    .resize(size, size)
+    .png()
+    .toFile(`public/icon-${size}x${size}.png`, (err) => {
+      if (err) console.error(err);
+    });
 });
 ```
 ## Get better at performance

@@ -435,6 +435,25 @@ Both these methods return the same object, but with different behavior.
 - `Object.seal(obj)` : seals an object, meaning you can't add or remove properties from it, but you can still modify the existing properties
 - `Object.freeze(obj)` : freezes an object, meaning you can't add, remove, or modify any properties on it
 
+### Object entries and values
+
+These are the basic static methods exposed on the `Object` class to get keys, values, and pairs of keys and values to iterate over in an array-like fashion:
+
+- `Object.keys(obj)`: returns an array of the keys of the object.
+- `Object.values(obj)`: returns an array of the keys of the object.
+- `Object.entries(obj)`: returns an array of arrays representing the object, where each sub-array represents a key value pair like `[key, value]`.
+
+To serialize back from an array into an object, you can do `Object.fromEntries()`:
+
+```ts
+type EntriesType<T = string, V = any> = [T, V][]
+const entries : EntriesType = [ ["key1", "val1"], ["key2", 'val2'] ]
+
+const obj = Object.fromEntries(entries)
+```
+
+
+
 ### `Object.defineProperty()`
 
 The `Object.defineProperty()` method allows you to have more fine-grain controlled over object property access and writability. 
@@ -457,6 +476,146 @@ Object.defineProperty(object, propertyname, {
 	- `writable`: if set to true, trying to reassign the property to a new value will throw an error. Basically makes the property readonly if true.
 	- `enumerable`: if set to false, the property will not show up in for loops. 
 	- `configurable`: if set to false, then trying to delete the property will throw an error.
+
+### `Object.assign()`
+
+To merge two objects together, you use the `Object.assign(target, source)` method. This copies over all unique properties from `target` object into the `source` object and returns a new object that is the combination of both.
+
+## Arrays
+
+### `Array.from()`
+
+The `Array.from()` method takes in an iterable and returns an array from that iterable. An iterable can be a set, string, object, etc.
+
+```javascript
+const set = new Set([1, 2, 3]);
+const arr = Array.from(set); // returns [1, 2, 3]
+```
+
+There's also a second argument you can pass, which is a callback that accepts each entry of the array as an argument, and whatever you return becomes the new entry, much like `map()`:
+
+```javascript
+const set = new Set([1, 2, 3]);
+const arr = Array.from(set, (num) => num * 2); // returns [2, 4, 6]
+```
+
+We can take advantage of the fact that there is an `Array.length` property, and manually specify that beforehand to generate a big array size, and then loop through with the callback to fill the entries:
+
+```javascript
+const arr = Array.from({ length: 10 }, (e, i) => i + 1); // returns [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+```
+
+## Maps
+
+Maps are hash tables under the hood that are far more performant than simple javascript objects. Here are the main point of benefit maps have over objects:
+
+- can handle a lot of data
+- can store any javascript object as a key, storing by reference
+
+## Sets
+
+```ts
+const set = new Set()
+```
+
+- `set.add(value)` : adds value to set
+- `set.delete(value)` : deletes value to set
+
+## Memory management
+
+A **strong reference** is when you set a variable equal to an obj, like so:
+
+```jsx
+// strong reference
+let obj = {msg: "hello"}
+
+// strong reference
+let obj2 = obj
+```
+
+Strong references cannot be cleaned up by the garbage collector, which can lead to excessive memory usage. The only way to clean up a strong reference is to manually set the obj and all reference variables that point to that object to null:
+
+```ts
+obj = null // -1 strong reference
+obj2 = null // -1 strong reference, now no references and can be garbage collected.
+```
+
+Once there are no references to an object, it's marked for garbage collection, but doing this manually is terrible. Rather, we can use weak references.
+
+You can instead make **weak references** using three javascript classes, all of which will prevent holding onto an object once it has been marked null (dereferenced).
+
+- `WeakRef`: make any object or value a weak reference
+- `WeakSet`: a set where any values/objects it refers to will be weak references
+- `WeakMap`: a map where any values/objects it refers to will be weak references
+
+### `WeakRef`
+
+A **weak reference** is something you can create using the `WeakRef()` class that allows you to essentially create a pointer to an object. It doesn’t inhibit garbage-collection: if the strong reference becomes null, so too will the weak reference.
+
+The `weakRef.deref()` method returns the object that thew weak reference pointer is pointing too, and `null` if the object was garbage-collected.
+
+```jsx
+let target = weakRef.deref();
+if (target !== null) {
+  // The target object is still alive.
+}
+```
+
+This is best combined with registering an event listener for garbage collection through `FinalizationRegistry`.
+
+### `WeakSet`
+
+any objects you add to a weak set will have a weak reference pointing to it, and if you set the object to null, then it will get dereferenced. 
+
+```ts
+let object = {}
+const weakSet = new WeakSet([object])
+
+object = null
+weakSet.size // 0, since automatically gets rid of weak reference
+```
+
+### `WeakMap`
+
+a weakmap allows you to use any object as a key just like normal maps, but using weak maps provides performance benefits as it will be garbage collected once all references to that object cease to exist.
+
+```html
+<span id="thing" class="thing">a thing.</span>
+
+<script>
+const myWeakMap = new WeakMap();
+
+// Set a value to a specific node reference.
+myWeakMap.set(document.getElementById('thing'), 'some value');
+
+// Access that value by passing the same reference.
+console.log(myWeakMap.get(document.querySelector('.thing')); // 'some value'
+</script>
+```
+
+To create a new weak map, you can use the `WeakMap.new()` static method:
+
+```ts
+const weakmap = WeakMap.new();
+```
+
+### `FinalizationRegistry`
+
+The `FinalizationRegistry` class in javascript allows you to apply the observer pattern to watch for garbage collected instances that you subscribe to. Here's an example:
+
+```ts
+const listMap = new WeakMap();
+
+listMap.set(document.getElementById('item2'), 'item2')
+
+const registry = new FinalizationRegistry((heldValue) => {
+	// Garbage collection has happened!
+	console.log('After collection:', heldValue);
+});
+
+registry.register(document.getElementById('item2'), listMap);
+```
+
 ## Functional Programming
 
 ### Pure functions
@@ -776,30 +935,6 @@ function throttle<T extends (...args: any[]) => void>(
 }
 ```
 
-## Miscellaneous
-
-### `Array.from()`
-
-The `Array.from()` method takes in an iterable and returns an array from that iterable. An iterable can be a set, string, object, etc.
-
-```javascript
-const set = new Set([1, 2, 3]);
-const arr = Array.from(set); // returns [1, 2, 3]
-```
-
-There's also a second argument you can pass, which is a callback that accepts each entry of the array as an argument, and whatever you return becomes the new entry, much like `map()`:
-
-```javascript
-const set = new Set([1, 2, 3]);
-const arr = Array.from(set, (num) => num * 2); // returns [2, 4, 6]
-```
-
-We can take advantage of the fact that there is an `Array.length` property, and manually specify that beforehand to generate a big array size, and then loop through with the callback to fill the entries:
-
-```javascript
-const arr = Array.from({ length: 10 }, (e, i) => i + 1); // returns [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-```
-
 ## Async methods
 
 All the below methods take in an array of promises and return a single promise as a result, which resolves either to an array of data or a single data.
@@ -810,6 +945,81 @@ All the below methods take in an array of promises and return a single promise a
 - `Promise.race()`: Given an array of promises, this returns the first promise in the array that gets fulfilled. It doesn't matter whether it resolves or rejects. All the promises race against each other to finish, hence the name.
 - `Promise.any()`: Given an array of promises, this returns the first promise in the array that resolves successfully. If all the promises reject, then the promise returned by `Promise.any()` rejects.
 
+**with resolvers**
+
+There is a new way to promisify functions without going into `new Promise(res, rej)` callback hell: use `Promise.withResolvers()`:
+
+This method synchronously returns an object with these properties:
+
+- `promise`: A blank promise
+- `resolve`: the resolver function for the promise. Pass as many args as you want.
+- `reject`: the rejector function for the promise.
+
+```ts
+const { promise, resolve, reject } = Promise.withResolvers();
+```
+
+Now here's a much more concise way of flipping a coin:
+```ts
+function flipCoin() {
+	const { promise, resolve, reject } = Promise.withResolvers();
+
+	setTimeout(() => {
+	  if (Math.random() < 0.5) {
+	    resolve('Resolved!');
+	  } else {
+	    reject('Rejected!');
+	  }
+	}, 1000);
+}
+
+flipCoin()
+  .then((resolvedValue) => {
+    console.log(resolvedValue);
+  })
+  .catch((rejectedValue) => {
+    console.error(rejectedValue);
+  });
+
+```
+
+Using this method offers new ways to organize your code and have separation of concerns:
+
+```ts
+const worker = new Worker("/path/to/worker.js");
+
+function triggerJob() {
+  worker.postMessage("begin job");
+  
+  return Promise.withResolvers();
+}
+
+function listenForCompletion({ resolve, reject, promise }) {
+  worker.addEventListener('message', function (e) {
+    resolve(e.data);
+  });
+
+  worker.addEventListener('error', function (e) {
+     reject(e.data);
+  });
+
+  worker.addEventListener('messageerror', function(e) {
+     reject(e.data);
+  });
+  
+  return promise;
+}
+
+const job = triggerJob();
+
+listenForCompletion(job)
+  .then((result) => {
+    console.log("Success!");
+  })
+  .catch((reason) => {
+    console.error("Failed!");
+  })
+```
 ## Decorators
 
 Decorators in javascript work just like they do in Python. They are syntactic sugar around functions that return wrapper functions and add some extra reusable functionality. 
@@ -838,9 +1048,114 @@ Generators in JS follow the same exact concept as in python, where you can itera
 
 The `yield` statement in a generator essentially returns a value and **pauses the execution** of the function, and only resumes execution once the programmer forces the generator to go to the next yield statement using the `generator.next()` method.
 
+#### Iterators and iterables
+
+Before we learn about generators, we need to learn about iterators and iterables.
+
+- **iterator**: an object with a `next()` method, which when invoked, returns an object in the shape of `{value: any, done: boolean}`.
+- **iterable**: an object with a `[Symbol.iterator]()` method implemented that returns an iterator object. This lets an object be iterated over.
+
+**basic example of an iterator**
+
+The iterator below is an object with a `next()` method that returns an object with two properties: `value` and `done`.
+
+```ts
+const gospelIterator = {
+  index: -1,
+
+  next() {
+    const gospels = ["Matthew", "Mark", "Luke", "John"];
+    this.index++;
+
+    return {
+      value: gospels.at(this.index),
+      done: this.index + 1 > gospels.length,
+    };
+  },
+};
+
+gospelIterator.next(); // {value: 'Matthew', done: false}
+gospelIterator.next(); // {value: 'Mark', done: false}
+gospelIterator.next(); // {value: 'Luke', done: false}
+gospelIterator.next(); // {value: 'John', done: false}
+gospelIterator.next(); // {value: undefined, done: true}
+```
+
+**basic example of an iterable**
+
+In our iterable, we implement the `[Symbol.iterator]()` method to return an iterator object with the `next()` method implemented.
+
+```ts
+const gospelIteratable = {
+  [Symbol.iterator]() {
+    return {
+      index: -1,
+
+      next() {
+        const gospels = ["Matthew", "Mark", "Luke", "John"];
+        this.index++;
+
+        return {
+          value: gospels.at(this.index),
+          done: this.index + 1 > gospels.length,
+        };
+      },
+    };
+  },
+};
+```
+
+The concepts of iterables returning iterators is useful because it allows us to have good practices for memory:
+
+```ts
+function isLeapYear(year) {
+  return year % 100 === 0 ? year % 400 === 0 : year % 4 === 0;
+}
+
+const leapYears = {
+  [Symbol.iterator]() {
+    return {
+      startYear: 1900,
+      currentYear: new Date().getFullYear(),
+      next() {
+        this.startYear++;
+
+        while (!isLeapYear(this.startYear)) {
+          this.startYear++;
+        }
+
+        return {
+          value: this.startYear,
+          done: this.startYear > this.currentYear,
+        };
+      },
+    };
+  },
+};
+
+for (const leapYear of leapYears) {
+  console.log(leapYear);
+}
+```
+
+> [!NOTE]
+> Notice that we don't need to wait for the _entire sequence_ of years to be built ahead of time. All state is stored within the iterable object itself, and the next item is computed _on demand_. That's worth camping out on some more.
 ### Basic generators
 
-Create a generator function in JS using the `function*` syntax, which is syntactic sugar over a regular generator function. Then you can use the yield keyword to yield values. 
+Create a generator function in JS using the `function*` syntax, which is syntactic sugar over a regular generator function. It essentially is a function with `return` and `yield` statements which returns an iterable under the hood. 
+
+- Using `function*` syntax makes the function a function that returns 
+- Using the `yield <value>` keyword in a generator function basically creates the `{value, done}` object and is what will be returned 
+
+Invoking a `function*` function is syntactic sugar for converting that function into a normal generator function that returns an object with these methods:
+
+- `generator.next()`: gets the value next yield statement in the generator function. This always returns an object with the `value` and `done` properties:
+	- `value`: the yielded value
+	- `done`: returns a **boolean** of whether or not the generator has any more yield statements. If it does, then `done` is false, otherwise it's `true`
+- `generator.return(value)`: ends generator iteration and returns an object like so: 
+	- `value`: the return value you passed in
+	- `done`: true, since you stopped execution
+- `generator.throw(err)`: allows you to throw a custom error which you can handle in the generator function. 
 
 ```ts
 // 1. create generator function
@@ -865,16 +1180,6 @@ console.log(`yielded value is ${value}, generator is done: ${done}`)
 // 4. you can use generator.throw() to throw an error
 generator.throw(new Error("idk bro"))
 ```
-
-Invoking a `function*` function is syntactic sugar for converting that function into a normal generator function that returns an object with these methods:
-
-- `generator.next()`: gets the value next yield statement in the generator function. This always returns an object with the `value` and `done` properties:
-	- `value`: the yielded value
-	- `done`: returns a **boolean** of whether or not the generator has any more yield statements. If it does, then `done` is false, otherwise it's `true`
-- `generator.return(value)`: ends generator iteration and returns an object like so: 
-	- `value`: the return value you passed in
-	- `done`: true, since you stopped execution
-- `generator.throw(err)`: allows you to throw a custom error which you can handle in the generator function. 
 
 Whenever iteration stops, meaning you have no more yield statements or you purposely stop execution early, the `generator.next()` method will always return `{value: undefined, done: true}`
 
@@ -933,7 +1238,7 @@ function* nTimes(n) {
 }
 ```
 
-### Iterating over a generator
+### Iterating over a generator + generator methods
 
 The main use case of a generator is to iterate over large datasets (like numbers from 1-100000) without actually using the memory to store a data structure that large. 
 
@@ -955,8 +1260,29 @@ let nums = [...range(3)]; // [0, 1, 2]
 let max = Math.max(...range(100)); // 99
 ```
 
+You also have access to generator methods that a generator object has on its prototype:
+
+- `generator.map(cb)`: maps every yielded value to some new value
+- `generator.forEach(cb)`: does something for every yielded value
+- `generator.find(cb)`: returns the first yielded value that passes the predicate
+- `generator.filter(cb)`: only yields the values that pass the predicate
+- `generator.take(n)`: only yields the first `n` values.
+- `generator.drop(n)`: skips the first `n` values and yields the rest.
+
+```ts
+function* range(start: number, end: number): Generator<number> {
+  for (let i = start; i < end; i++) {
+    yield i;
+  }
+}
+
+const result = range(3, 5).map((x) => x * 2);
+result.next(); // { value: 6, done: false }
+```
 
 ### Async Iterators
+
+Async iterators let you iterate over the generator in a `for await` loop, since the `generator.next()` function will become asynchronous.
 
 ```ts
 /**
@@ -976,6 +1302,55 @@ for await (let number of delayedRange(10)) {
 }
 ```
 
+Here is an example of changing websockets into a way they can be consumed in a stream-like fashion:
+
+```ts
+// Conceptual example for WebSocket
+async function* webSocketMessageStream(url) {
+  const ws = new WebSocket(url);
+  const messageQueue = [];
+  let resolveNextMessage = null;
+
+  ws.onmessage = (event) => {
+    if (resolveNextMessage) {
+      resolveNextMessage(event.data);
+      resolveNextMessage = null;
+    } else {
+      messageQueue.push(event.data);
+    }
+  };
+
+  await new Promise((resolve) => (ws.onopen = resolve));
+  console.log('WebSocket connected.');
+
+  try {
+    while (true) {
+      if (messageQueue.length > 0) {
+        yield messageQueue.shift();
+      } else {
+        yield new Promise((resolve) => {
+          resolveNextMessage = resolve;
+        });
+      }
+    }
+  } finally {
+    ws.close();
+    console.log('WebSocket closed.');
+  }
+}
+
+// Example usage (run in a browser context or with a WebSocket library)
+// (async () => {
+//   const stream = webSocketMessageStream('ws://echo.websocket.org');
+//   for await (const message of stream) {
+//     console.log('Received WS message:', message);
+//     // Simulate sending a message back
+//     if (message === 'Hello') {
+//       ws.send('World'); // You'd need a reference to 'ws' or a method for this
+//     }
+//   }
+// })();
+```
 ### Generator use cases
 
 #### Iterating over object keys
@@ -993,6 +1368,72 @@ let o = {
 console.log([...o.g()])
 ```
 
+#### Async generators for pagination
+
+If your API has pagination options, you can fetch page data in a generator loop, constantly yielding the API response and then fetching the next one in a loop.
+
+```ts
+async function* fetchAllItems() {
+  let currentPage = 1;
+
+  while (true) {
+    const data = await requestFromApi(currentPage);
+
+    if (!data.hasMore) return;
+
+    currentPage++;
+
+    yield data.items;
+  }
+}
+
+for await (const items of fetchAllItems()) {
+  // Do stuff.
+}
+```
+
+#### Infinite destructuring / factory
+
+Since generators are iterables (can be converted to arrays), they can be destructured with array destructing. You can even create factories from generators because an infinite generator with a `while (true) {...}` loop is essentially an infinite iterable that can be infinitely destructured.
+
+```ts
+function* getElements(tagName = 'div') {
+  while (true) yield document.createElement(tagName);
+}
+
+const [el1, el2, el3] = getElements('div');
+```
+
+We can abstract this to any factory:
+
+```ts
+function* factory<T>(numElements: number, factory: (index: number) => T) {
+  for (let i = 0; i < numElements; i++) {
+    yield factory(i);
+  }
+}
+
+const dogs = [...factory(3, (i) => `dog number ${i}`)];
+console.log(dogs); // [ "dog number 0", "dog number 1", "dog number 2" ]
+```
+
+We can also port this to work asynchronously:
+
+```ts
+async function* asyncFactory<T>(
+  numElements: number,
+  factory: (index: number) => Promise<T>
+) {
+  for (let i = 0; i < numElements; i++) {
+    yield await factory(i);
+  }
+}
+
+const awaitedDogs = await Array.fromAsync(
+  asyncFactory(3, async (i) => `dog ${i}`)
+);
+console.log(awaitedDogs);
+```
 ## Super weird performance tips
 
 ### Don't create objects in loops
@@ -1152,6 +1593,81 @@ const counter = (() => {
     increment: () => count++,
   };
 })();
+```
+
+### Value-object pattern
+
+The value object pattern is the idea of overloading operators or overriding equality to make objects behave like primitive values. Equality would be based on the object's structure and values rather than by reference.
+
+The main use cases for this would be to represent and do basic operations with things like coordinates, dates, employee representations, etc.
+
+The most basic implementation would be exposing a `equals()` method on a class to have a way to check value-equality instead of referential equality:
+
+```ts
+export class TodoItem {
+    constructor(text) {
+        this.text = text;
+    }
+    equals(other) {
+        return this.text == other.text;
+    }
+}
+```
+
+### Memento Pattern
+
+The memento pattern saves the original state of an object and exposes methods to either save the new modified version as the source truth or rollback/restore to the original version. 
+
+The most basic version would use closures:
+
+```ts
+function memento(obj: object) {
+	const original = {...obj}
+	let source = {...obj}
+	return {
+		save: (newobj: object) => source = {...newobj},
+		restore: () => source = {...original},
+		obj: source
+	}
+}
+```
+
+### Command pattern
+
+Command pattern helps us make our click handlers reusable/modifiable by helping us create an object that encapsulates all data and info needed to do something on an event trigger. 
+
+The pattern has two main components:
+
+- **command**: a single command represents an encapsulation of some function logic
+- **command executor**: what actually runs the command. It takes in a command and some data and executes the command with that data.
+
+Here is the most basic version of the pattern:
+
+```tsx
+  export class Command<T> {
+    constructor(
+      public name: string,
+      public cb: (data: T) => void
+    ) {}
+  
+    equals(command: Command<T>) {
+      return this.name === command.name;
+    }
+  }
+  
+  export class CommandExecutor {
+    static execute<T>(command: Command<T>, data: T) {
+      command.cb(data);
+    }
+  }
+  
+  const add = new Command("add", ({ id } : { id : number }) => {
+    console.log("adding to database");
+  });
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    CommandExecutor.execute(add, {id: 3});
+  });
 ```
 
 ### Singleton Pattern
@@ -1314,6 +1830,37 @@ blueBtn.addEventListener("click", () => {
 });
 ```
 
+Here's an even simpler observer abstraction by using sets for deduping instead of splicing with arrays.
+
+```ts
+  // Observer Design Pattern
+export const observerMixin = {
+    observers: new Set<() => void>(),
+    addObserver(obs : () => void) { this.observers.add(obs) },
+    removeObserver(obs: () => void) { this.observers.delete(obs)},
+    notify() { this.observers.forEach(obs=>obs()) }
+}
+```
+
+and you can even make it generic:
+
+```ts
+// Observer Design Pattern
+export function observerMixin<T extends (...args: any[]) => void>() {
+  return {
+    _observers: new Set<T>(),
+    addObserver(obs: T) {
+      this._observers.add(obs);
+    },
+    removeObserver(obs: T) {
+      this._observers.delete(obs);
+    },
+    notify() {
+      this._observers.forEach((obs) => obs());
+    },
+  };
+}
+```
 #### Classes
 
 Here is the most basic example you can get:
@@ -1481,7 +2028,52 @@ Now you don't have to worry about allocating memory for the bark method on an ob
 
 ### Mixin Pattern
 
-The mixin pattern is a way to add reusable custom logic to different objects/classes by adding methods and properties on their prototype. 
+The mixin pattern is a way to add reusable custom logic to different objects/classes by adding methods and properties on their prototype, and creating a new object from that. Think of it as a way of combining objects together in a generic, reusable way.
+
+But in the end, there are two ways to do mixins:
+
+- **method 1 - add to prototype**: By applying a mixin on the class's prototype, you will add those properties and methods from the mixin directly onto the object instance rather than them being static.
+- **method 2 - add to class**: By applying a mixin on a class, you are applying that mixin statically and all those properties and methods from the mixin object will appear statically on the new object.
+
+To merge two objects together, you use the `Object.assign(obj1, obj2)` method.
+
+Here's an example showcasing both methods:
+
+```ts
+// Observer Design Pattern
+export function observerMixin<T extends (...args: any[]) => void>() {
+  return {
+    _observers: new Set<T>(),
+    addObserver(obs: T) {
+      this._observers.add(obs);
+    },
+    removeObserver(obs: T) {
+      this._observers.delete(obs);
+    },
+    notify() {
+      this._observers.forEach((obs) => obs());
+    },
+  };
+}
+
+class _Todos {
+  public data = [] as string[];
+}
+
+// returns a class
+const mixinOnClass = () => Object.assign(_Todos, observerMixin());
+// returns an object
+const mixinOnObject = () => Object.assign(new _Todos(), observerMixin());
+
+class Todos extends mixinOnClass() {
+  addTodo(todo: string) {
+    this.data.push(todo);
+    Todos.notify()
+  }
+}
+```
+
+
 
 I found out about a cool way to apply the mixin pattern and get type intellisense at the same time. Follow these steps: 
 
@@ -1574,3 +2166,88 @@ There are three important attributes that you should know when dealing with scri
 - `async` : the script will be downloaded asynchronously, and executed as soon as it is available. The HTML parsing will not wait for the script to be downloaded and executed.
 - `defer` : the script will be downloaded asynchronously, and executed only after the entire web page has loaded
 - `type: "module"`: makes this script a module type, allowing you to import and export variables, but also makes the script behave as if it had a `defer` attribute, downloading script asynchronously and executing it after the entire web page has loaded.
+
+### `import.meta`
+
+- `import.meta.url`: gives you the filepath as a file URL of the filename the code is in.
+- `import.meta.path`: gives you the filepath as a normal filepath of the filename the code is in.
+- `import.meta.dir`: gives you the directory path of the current directory the code is in.
+- `import.meta.file`: gives you the filename of the current file.
+- `import.meta.main`: a boolean that returns true if this code is being executed as an entrypoint rather than as a module. Think of this as the python equivalent of `__name__ == "__main__"`.
+
+
+
+```ts
+import.meta.dir;   // => "/path/to/project"
+import.meta.file;  // => "file.ts"
+import.meta.path;  // => "/path/to/project/file.ts"
+import.meta.url;   // => "file:///path/to/project/file.ts"
+import.meta.main;  // `true` if this file is directly executed by `bun run`
+```
+
+## Cool Hacks
+
+### Template interpolation
+
+A super cool hack to do is interpolation like from langchain:
+
+What if you wanted to declaratively insert values into HTML just like you can with JSX? Well you can use this hacky method to do so with an HTML string.
+
+```tsx
+function interpolate (str, params) {
+    let names = Object.keys(params);
+    let values = Object.values(params);
+    return new Function(...names, `return \\`${str}\\`;`)(...values);
+}
+
+const HTML = "<p>${price}</p>"
+
+const parsed = interpolate(HTML, {
+  price: 49
+})
+console.log(parsed) // <p>49</p>
+```
+
+You can combine this with webcomponent templates to easily insert values into the shadow DOM.
+
+And here is how we do it with a webcomponent:
+
+1. Create the template. `title` is the variable to swap
+    
+    ```tsx
+    <div class="container">
+      <h1>${title}</h1>
+      <slot></slot>
+    </div>
+    ```
+    
+2. Do this
+    
+    ```tsx
+    // any templating we have in our HTML template
+    interface HTMLParams {
+      title: string;
+    }
+    
+    const newHTML = WebComponent.interpolate<HTMLParams>(HTMLContent, {
+      title: "Content Script UI",
+    })
+    ```
+
+Here's an even cooler version of using template interpolation to interpolate anything in curly braces:
+
+```tsx
+function interpolate(str: string, params: Record<string, string>) {
+  const newTemplate = str.replace(/\{([A-Za-z0-9_]+)\}/g, (match, p1) => {
+    return params[p1] || match;
+  });
+
+  return newTemplate;
+}
+
+const test = interpolate("Hello {name}", {
+  name: "Aadil",
+});
+
+console.log(test);
+```

@@ -602,54 +602,6 @@ export class TextEncodingManager {
   }
 }
 ```
-## Aborting fetch requests
-
-We can use the `AbortController` class to abort fetch requests if they are taking too long.
-
-The main steps are these:
-
-1. Instantiate an abort controller with `new AbortController()`
-2. Connect the abort controller to our fetch call by attaching the `signal` property of the abort controller to the `signal` property of the fetch options object.
-3. Call `abort()` on the abort controller after a certain amount of time. The previous connection through the `signal` property will cause the fetch request to abort.
-
-```javascript
-async function fetchWithTimeout(
-  url: string,
-  // RequestInit is the interface for the fetch options object
-  options: RequestInit = {},
-  timeout = -1
-) {
-  // user has specified they want a timeout for fetch
-  if (timeout > 0) {
-    let controller = new AbortController();
-    // connect controller to our fetch request through the options object and on options.signal
-    options.signal = controller.signal;
-
-    setTimeout(() => {
-      // this aborts the controller and any connected fetch requests
-      controller.abort();
-    }, timeout);
-  }
-
-  // need to pass options into fetch so that we get signal connection to abort controller
-  return fetch(url, options);
-}
-
-// fetches google with a timeout of 1 second, aborting the request if it takes any longer
-fetchWithTimeout("https://google.com", {}, 1000);
-```
-
-Here is a simpler example: 
-
-```ts
-let abortController = new AbortController();
- 
-fetch('wikipedia.zip', { signal: abortController.signal })
-  .catch(() => console.log('aborted!'));
- 
-// Abort the fetch after 10ms
-setTimeout(() => abortController.abort(), 10);
-```
 
 ## Everything you need to know about CORS
 
@@ -791,10 +743,143 @@ subscribe();
 > [!TIP] 
 > Long polling works great in situations when messages are rare. Otherwise if messages from the server to client are frequent, then it's better to use websockets. 
 
+#### The thundering herd
+
+The worst case scenario is what we called the thundering herd. I've discussed this previously in my databases courses when talking about caches and how you can overwhelm your servers when your cache misses and every user directly hits your server. This is a similar problem we can cause with polling where we have an error in our polling so every user immediately makes another request to try to recover.
+
+To avoid making requests all at once and retrying all at once, you can implement **backoff**, which waits a certain period of time before requesting the API route to your server again. 
+
+```ts
+function longPoll( onFetch: () => Promise<boolean>, options?: {
+	backoff? : number,
+	maxFailedTries?: number,
+	onMaxFailedTriesReached?: () => void
+} ) {
+	let timeToMakeNextRequest = 0;
+	let failedTries = 0;
+	const BACKOFF = options?.backoff || 5000
+	async function rafTimer(time) {
+	  // failed more times than we alotted
+	  if (failedTries > maxFailedTries) {
+		  options?.onMaxFailedTriesReached?.()
+	  }
+
+	  if (timeToMakeNextRequest <= time) {
+	    const failed = await onFetch();
+	    failedTries = failed ? (failedTries + 1) : 0
+	    timeToMakeNextRequest = time + INTERVAL + failedTries * BACKOFF;
+	  }
+	  requestAnimationFrame(rafTimer);
+	}
+
+	let animationId : number | undefined;
+
+	return {
+		startPolling: () => {
+			animationId = requestAnimationFrame(rafTimer);
+		},
+		stopPolling: () => {
+			animationId && clearAnimationFrame(animationId)
+		}
+	}
+}
+```
+
+Here's an example of how we would implement it:
+
+```ts
+// function with try catch
+async function getNewMsgs() {
+  try {
+    const res = await fetch("/poll");
+    const json = await res.json();
+
+    if (res.status >= 400) {
+      throw new Error("request did not succeed: " + res.status);
+    }
+
+    allChat = json.msg;
+    render();
+    return true // succeeded
+  } catch (e) {
+    // back off
+    toast("hhmmmm something isn't working rn ... hold tight")
+    return false // failed
+  }
+}
+
+const {startPolling, stopPolling} = longPoll(getNewMsgs, {
+	maxFailedTries: 5,
+	onMaxFailedTries: () => {
+		stopPolling()
+		console.log("WTFF U FAILED")
+	}
+})
+```
+
+
 
 ### Websockets
 
-Websockets are done by connecting to the secure `wss` or the insecure `ws` protocol.
+Websockets are done by connecting to the secure `wss` or the insecure `ws` protocol. They start in 4 stages:
+
+- **Handshake:** Starts as an HTTP request, then upgrades to WebSocket.
+- **Open Connection:** Client and server can now send messages independently.
+- **Message Exchange:** Messages are exchanged in real time.
+- **Close:** Either side can close the connection.
+
+Let's go through the first step, which is the handshake. 
+
+**handshake**
+****
+The first thing that needs to happen is the client sends an HTTP request to the server with these headers, asking the server to pretty please switch to a websockets protocol.
+
+This is done through javascript using the native `WebSocket` class, where the client tries to request an upgrade to the websocket protocol at the server route URL you pass in.
+
+```ts
+const webSocket = new WebSocket("ws://localhost:8000/websocket")
+```
+
+Since we instantiated a `WebSocket` instance at `ws://localhost:8000/websocket`, that makes an HTTP request with a **websocket upgrade request** to `http://localhost:8000/websocket`.
+
+Here is what the request constructed behind the scenes would look like:
+
+![](https://i.imgur.com/eGJohYL.png)
+
+For example, the complete request would look like this:
+
+```http
+GET /chat HTTP/1.1
+Host: example.com:8000
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+Sec-WebSocket-Version: 13
+```
+
+The server gets to choose how to respond, either agreeing to upgrade the websocket connection or by refusing to upgrade. 
+
+If the server agrees, it will send back a response with these headers:
+
+![](https://i.imgur.com/Qnq3LZq.png)
+
+The complete response would look like this:
+
+```http
+HTTP/1.1 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+```
+
+Additionally, the server can decide on extension/subprotocol requests here; see [Miscellaneous](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#miscellaneous) for details. The `Sec-WebSocket-Accept` header is important in that the server must derive it from the [`Sec-WebSocket-Key`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Key) that the client sent to it. To get it, concatenate the client's `Sec-WebSocket-Key` and the string `"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"` together (it's a "[magic string](https://en.wikipedia.org/wiki/Magic_string)"), take the [SHA-1 hash](https://en.wikipedia.org/wiki/SHA-1) of the result, and return the [base64](https://en.wikipedia.org/wiki/Base64) encoding of that hash.
+
+After the correct values are sent over, the handshake is complete.
+
+**keeping track of clients**
+
+This doesn't directly relate to the WebSocket protocol, but it's worth mentioning here: your server must keep track of clients' sockets so you don't keep handshaking again with clients who have already completed the handshake. The same client IP address can try to connect multiple times. However, the server can deny them if they attempt too many connections in order to save itself from DDOS attacks.
+#### Creating client connection
 
 You can connect to a websocket URL by instantiating the `WebSocket` class:
 
@@ -802,7 +887,7 @@ You can connect to a websocket URL by instantiating the `WebSocket` class:
 let socket = new WebSocket("wss://javascript.info/article/websocket/demo/hello")
 ```
 
-And then the websocket has access to 4 total events:
+And then the websocket has access to 4 total events, which can all also be translated to their event listener flavor if you desire to manage multiple event listeners instead of just one true one.
 
 ```ts
 let socket = new WebSocket("wss://javascript.info/article/websocket/demo/hello");
@@ -832,6 +917,10 @@ socket.onerror = function(error) {
 };
 ```
 
+- `socket.onopen`: Triggered when the socket connection is successfully open
+- `socket.onmessage`: Triggered on a message to the client
+- `socket.onclose`: Triggered when the socket connection is closed.
+- `socket.onerror`: Triggered on a connection error.
 #### Sending Messages
 
 Use `socket.send(data)` to send a message. You can send either a string or binary data, which will get encoded into a Blob. 
@@ -854,6 +943,207 @@ socket.onclose = event => {
   // event.reason === "Work complete"
   // event.wasClean === true (clean close)
 };
+```
+
+#### Client class
+
+This is a fully type-safe abstraction over using websockets in the client:
+
+```ts
+type Payloads<
+  SendPayload extends Record<string, unknown>,
+  ReceivePayload extends Record<string, unknown>
+> = {
+  sendMessagePayload: SendPayload;
+  receiveMessagePayload: ReceivePayload;
+};
+
+// WebSocket client for real-time communication
+class WebSocketClient<T extends Record<string, Payloads<any, any>>> {
+  private socket: WebSocket | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000; // 1 second
+  private handleMessageListeners: Record<
+    keyof T,
+    (payload: T[keyof T]["receiveMessagePayload"]) => void
+  > = {} as Record<
+    keyof T,
+    (payload: T[keyof T]["receiveMessagePayload"]) => void
+  >;
+
+  constructor(private url: string) {}
+
+  public get connected() {
+    return this.socket?.readyState === WebSocket.OPEN;
+  }
+
+  async connect() {
+    try {
+      this.socket = new WebSocket(this.url);
+      await this.setupEventListeners();
+    } catch (error) {
+      console.error("Failed to connect to WebSocket server:", error);
+      await this.handleReconnect();
+    }
+  }
+
+  private setupEventListeners() {
+    if (!this.socket) return;
+
+    return new Promise<void>((resolve, reject) => {
+      this.socket!.onopen = () => {
+        console.log("Connected to WebSocket server");
+        this.reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+        resolve();
+      };
+
+      this.socket!.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as {
+            type: keyof T;
+            payload: T[keyof T]["receiveMessagePayload"];
+          };
+          this.handleMessage(data);
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+          reject(error);
+        }
+      };
+
+      this.socket!.onclose = () => {
+        console.log("Disconnected from WebSocket server");
+        this.#connected = false;
+        this.handleReconnect();
+        reject(new Error("WebSocket connection closed"));
+      };
+
+      this.socket!.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        reject(error);
+      };
+    });
+  }
+
+  private handleMessage(data: {
+    type: keyof T;
+    payload: T[keyof T]["receiveMessagePayload"];
+  }) {
+    this.handleMessageListeners[data.type](data.payload);
+  }
+
+  onMessage<K extends keyof T>(
+    key: K,
+    listener: (payload: T[K]["receiveMessagePayload"]) => void
+  ) {
+    this.handleMessageListeners[key] = listener;
+  }
+
+  private async handleReconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      console.log(
+        `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
+      );
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.reconnectDelay * this.reconnectAttempts)
+      ); // Exponential backoff
+
+      await this.connect();
+    } else {
+      console.error(
+        "Max reconnection attempts reached. Please refresh the page."
+      );
+    }
+  }
+
+  sendMessage<K extends keyof T>(key: K, message: T[K]["sendMessagePayload"]) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({ type: key, payload: message }));
+    } else {
+      console.error("WebSocket is not connected");
+    }
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+  }
+}
+
+```
+
+And here's how you would use it:
+
+```ts
+// Initialize the WebSocket client when the page loads
+
+const wsClient = new WebSocketClient<{
+  MESSAGE_TYPE1: {
+    sendMessagePayload: { message: string };
+    receiveMessagePayload: { message: string };
+  };
+}>("ws://localhost:8000/websocket");
+wsClient
+  .connect()
+  .then(() => {
+    wsClient.onMessage("MESSAGE_TYPE1", (payload) => {
+      console.log(payload);
+    });
+    wsClient.sendMessage("MESSAGE_TYPE1", { message: "Hello, world!" });
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+```
+
+#### Websockets on the server: express
+
+Here is an example of an express app that uses websockets:
+
+```ts
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+
+const app = express();
+const server = http.createServer(app);
+
+const wss = new WebSocket.Server({ server });
+
+// Store connected clients
+const clients = new Set();
+
+wss.on('connection', (ws) => {
+  clients.add(ws);
+  console.log('Client connected');
+
+  ws.on('message', (message) => {
+    console.log(`Received: ${message}`);
+    // Echo or broadcast the message
+    ws.send(`Server received: ${message}`);
+  });
+
+  ws.on('close', () => {
+    clients.delete(ws);
+    console.log('Client disconnected');
+  });
+
+  ws.on('error', (err) => {
+    console.error('WebSocket error', err);
+  });
+});
+
+app.get('/', (req, res) => {
+  res.send('WebSocket server is running.');
+});
+
+server.listen(3000, () => {
+  console.log('Listening on http://localhost:3000');
+});
 ```
 
 ### Server Sent Events

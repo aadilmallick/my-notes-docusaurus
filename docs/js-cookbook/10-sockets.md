@@ -21,7 +21,7 @@ const app = express();
 // 2. create http server
 const server = http.createServer(app);
 
-// 3. create web socket server
+// 3. create web socket server with cors options
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
@@ -54,7 +54,14 @@ const socket = io("http://localhost:3000");
 
 ## Socket api
 
-Both apis for client and server side are pretty similar.
+Both apis for client and server side are pretty similar. On the server side, you have both the `io` and `socket` objects, while on the client you only have the individual `socket` instance.
+
+Here is the difference between the two:
+
+- `io`: represents the server's connection to all connected clients/sockets
+- `socket`: represents an individual socket from the client.
+
+Here are the basic methods exposed on the `io` and `socket` objects:
 
 - `socket.emit(channel : string, data : any)` : sends a message to the specified channel passing the data. THe data has to be JSON-parseable.
 - `socket.on(channel : string, cb: (...args) => any)` : listens for the message on the specified channel and runs a callback once the message is received, along with any data emitted by the sending end.
@@ -64,64 +71,146 @@ Both apis for client and server side are pretty similar.
 
 ## Utility classes
 
-```ts
-type ForbiddenChannels =
-  | "connect"
-  | "disconnect"
-  | "connect_error"
-  | "disconnect_error";
-export type Channels = "message:hello";
+These utility classes and types are meant to be separated into different files as to separate client from server effectively. They share the same typesafe API.
 
-type Payloads = {
-  [K in Channels]: K extends "message:hello"
-    ? { message: string }
-    : K extends ForbiddenChannels
-    ? never
-    : void;
+```ts title="socket-io.types.ts"
+export type SocketIOPayloads<
+  SendPayload extends Record<string, unknown>,
+  ReceivePayload extends Record<string, unknown>
+> = {
+  sendMessagePayload: SendPayload;
+  receiveMessagePayload: ReceivePayload;
 };
-
-export type Payload<T extends Channels> = Payloads[T];
 ```
 
 ```ts
-export default class ServerSocket {
+import { Socket } from "socket.io";
+import { SocketIOPayloads } from "./socketio.types";
+
+export default class ServerSocket<
+  T extends Record<string, SocketIOPayloads<any, any>>
+> {
   constructor(public socket: Socket) {}
 
   onDisconnect(cb: () => void) {
     this.socket.on("disconnect", cb);
   }
-
-  on<T extends Channels>(channel: T, cb: (payload: Payload<T>) => void) {
-    type thingy = typeof this.socket.on;
-    this.socket.on(channel as string, cb);
-  }
-
-  emit<T extends Channels>(channel: T, payload: Payload<T>) {
-    this.socket.emit(channel, payload);
-  }
-}
-```
-
-```ts
-export default class ClientSocket {
-  constructor(public socket: Socket) {}
 
   onConnect(cb: () => void) {
     this.socket.on("connect", cb);
   }
 
-  onDisconnect(cb: () => void) {
-    this.socket.on("disconnect", cb);
-  }
-  on<T extends Channels>(channel: T, cb: (payload: Payload<T>) => void) {
+  on<K extends keyof T>(
+    channel: K,
+    cb: (payload: T[K]["receiveMessagePayload"]) => void
+  ) {
     type thingy = typeof this.socket.on;
     this.socket.on(channel as string, cb);
   }
 
-  emit<T extends Channels>(channel: T, payload: Payload<T>) {
-    this.socket.emit(channel, payload);
+  emit<K extends keyof T>(channel: K, payload: T[K]["sendMessagePayload"]) {
+    this.socket.emit(channel as string, payload);
   }
 }
+```
+
+```ts
+import { Socket, io } from "socket.io-client";
+import { SocketIOPayloads } from "./socketio.types";
+
+export default class ClientSocket<
+  T extends Record<string, SocketIOPayloads<any, any>>
+> {
+  public socket: Socket;
+  constructor(url: string) {
+    this.socket = io(url);
+  }
+
+  onDisconnect(cb: () => void) {
+    this.socket.on("disconnect", cb);
+  }
+
+  onConnect(cb: () => void) {
+    this.socket.on("connect", cb);
+  }
+
+  on<K extends keyof T>(
+    channel: K,
+    cb: (payload: T[K]["receiveMessagePayload"]) => void
+  ) {
+    type thingy = typeof this.socket.on;
+    this.socket.on(channel as string, cb);
+  }
+
+  emit<K extends keyof T>(channel: K, payload: T[K]["sendMessagePayload"]) {
+    this.socket.emit(channel as string, payload);
+  }
+}
+```
+
+
+Then you can use it like so on the server:
+
+```ts title="server.ts"
+// 1. create express app
+const app = express();
+
+// 2. create http server
+const server = http.createServer(app);
+
+// 3. create web socket server with cors options
+const io = new Server(server, {});
+
+io.on("connection", (socket) => {
+  const serverSocket = new ServerSocket<{
+    ping: {
+      sendMessagePayload: { ping: string };
+      receiveMessagePayload: { ping: string };
+    };
+  }>(socket);
+
+  serverSocket.onConnect(() => {
+    console.log(`WTF! a user with ${serverSocket.socket.id} connected`);
+  });
+
+  serverSocket.onDisconnect(() => {
+    console.log(`WTF! a user with ${serverSocket.socket.id} disconnected`);
+  });
+
+  serverSocket.on("ping", ({ ping }) => {
+    console.log("got ping", ping);
+
+    serverSocket.emit("ping", {
+      ping: "ping",
+    });
+  });
+});
+```
+
+and on the client:
+
+```ts
+const clientSocket = new ClientSocket<{
+  ping: {
+    sendMessagePayload: { ping: string };
+    receiveMessagePayload: { ping: string };
+  };
+}>("http://localhost:3000");
+
+clientSocket.onConnect(() => {
+  console.log("connected");
+  clientSocket.emit("ping", {
+    ping: "WTF Beeaaanns",
+  });
+});
+
+clientSocket.onDisconnect(() => {
+  console.log("diconnected");
+});
+
+clientSocket.on("ping", ({ ping }) => {
+  console.log("from server:", ping);
+});
 ```
 
 ## WIth React
