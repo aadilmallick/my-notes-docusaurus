@@ -325,6 +325,61 @@ You cannot use browser-only storage techniques like LocalStorage.
 Much like background scripts in manifest v3 for chrome extensions, service workers are not long-lived and are rather event driven. 
 
 This means that any code you have in global scope will be offloaded and is ephemeral. Rather, put all your code inside the event listeners.
+
+#### Service worker clients
+
+ **1. What are "Clients"?**
+
+Clients are the windows, tabs, or web workers that your service worker controls. Each client represents an active instance of your web app.
+
+A `Client` instance represents a generic client, while a `WindowClient` instance represents a browser tab that runs your web app, and exposes additional methods.
+
+**2. service worker clients**
+
+You can access all clients belonging to the current service worker through the `self.clients` property. It's not an array of clients, but it's an object for querying clients:
+
+- **`self.clients.matchAll(options?)`** - Returns an array of clients that matches the query specifications. Here are the keys of the option object you can pass in:
+	- `type`: the type of client you want to query. Use `'window'` to only get back `WindowClient` instances.
+	- `includeUncontrolled`: a boolean that if true, will also include all clients that do not have the current service worker controlling it yet.
+- **`self.clients.get(id)`** - Gets a specific client by its client ID
+- **`self.clients.openWindow(url)`** - Opens a new window/tab
+- **`self.clients.claim()`** - Takes control of uncontrolled clients, updates the service worker on those clients (used in the "activate" event).
+
+```ts
+async function getWindowClients() : WindowClient[] {
+	return await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+}
+
+async function getAllClients(): Client[] {
+	return await self.clients.matchAll()
+}
+```
+
+
+**3. Client Object Properties:**
+
+These are the properties on a generic `Client`
+
+- `client.id` - Unique identifier
+- `client.url` - Current URL of the client
+- `client.focused` - Whether the client has focus
+- `client.visibilityState` - 'visible', 'hidden', or 'prerender'
+- `client.frameType` - 'auxiliary', 'top-level', 'nested'
+
+**4. Client methods**
+
+These are the methods on a generic `Client`
+
+- `client.postMessage(data)` - Sends message to the client. See more in the [messaging section](#messaging)
+
+
+**5. wiNDOW Client Methods:**
+
+- `client.focus()` - Brings the client to foreground
+- `client.navigate(url)` - Navigates the client to a new URL
 #### Service worker lifecycle
 
 The service worker lifecycle follows three stages: 
@@ -1235,7 +1290,30 @@ const server = Bun.serve({
 console.log(`Server is running on ${server.url}`);
 ```
 
+#### Beacon API
 
+The `navigator.sendBeacon(url, data)` method is a way to just send a mutation request to the server without waiting back for a response. The beacon is always guaranteed to be sent as soon as the network connection is stable, so this API is robust to connectivity changes.
+
+However, the weird thing is that you can't send standard `Request` objects, so there is no way to attach headers. To attach content-typoe specific data, you just need to send a `Blob` instance and set the appropriate content type:
+
+```ts
+class Beacon {
+  static sendJSON(url: string, data: any) {
+    navigator.sendBeacon(
+      url,
+      this.toBlob(JSON.stringify(data), "application/json")
+    );
+  }
+
+  static sendBlob(url: string, data: Blob) {
+    navigator.sendBeacon(url, data);
+  }
+
+  private static toBlob(data: any, mimeType: string) {
+    return new Blob([data], { type: mimeType });
+  }
+}
+```
 #### Background sync
 
 Background sync is a way for service workers to resume doing something once the user has internet connectivity again, like syncing local changes to the cloud. 
@@ -1247,14 +1325,22 @@ async function registerSyncEvent() {
   await registration.sync.register("sync-event");
 }
 ```
-2. The service worker should listen for the `"sync"` event. Based on the event name, you can provide different methods to execute. 
+2. The service worker should listen for the `"sync"` event. Based on the event name you can get through `event.tag`, you can provide different methods to execute. 
 ```ts
+
+async function syncOperation() {
+	// send data to server here ...
+	console.log("sent to server!")
+}
+
 sw.addEventListener("sync", (e) => {
   if (e.tag === "sync-event") {
-    console.log("Sync event fired");
+    e.waitUntil(syncOperation())
   }
 })
 ```
+
+You should wrap your sync operation in a `e.waitUntil()` because you don't want to shut down the service worker before it executes.
 
 #### Background Fetch
 
@@ -1273,7 +1359,6 @@ Even when the web app is closed, these file and fetch transactions will go throu
     ```jsx
     await registration.backgroundFetch.fetch(fetchName, urlsArray, metadata)
     ```
-    
     - `fetchName` : a name to give to this background fetch
     - `urlsArray` : an array of urls to fetch and send the requests to the service worker. These coudl be files
     - `metadata` : an object that controls how the file donwload dialog UI looks
@@ -1285,7 +1370,8 @@ Even when the web app is closed, these file and fetch transactions will go throu
       // files is an array of objects, each with .request property
     });
     ```
-    
+
+Here's a complete example of the client sending a background fetch request to the service worker.
 
 ```jsx
 const currentlyRegisteredServiceWorker = await navigator.serviceWorker.ready;
@@ -1423,6 +1509,627 @@ navigator.serviceWorker.addEventListener("message", (event) => {
   console.log(event.data.msg, event.data.url);
 });
 ```
+
+
+#### Push notifications
+
+Push notifications are a way for your server to request a push server to send notifications to a service worker. Here are the components of a push notification setup:
+
+- **push server**: A server dedicated for sending push notifications to a device. The browser owns this server
+- **web client**: The client side on the web requests your server for subscription details, using your server's public key
+- **server**: A server you setup with the purpose of delivering subscription details and public key to the browser and asking push server to send notification.
+- **service worker**: The service worker receives push notifications sent by a push server through listening to the `"push"` event.
+
+Here is the high-level overview:
+
+1. Client registers for a push subscription using your server's API key
+2. Client then sends push subscription details to your server via `POST` request so server can store the subscription info in a database
+3. When the server wants to send a push notification, it queries stored subscription data to find the users it wants to ping, creates messages and encrypts them with private key, and sends those messages to the push server and also sends its public key.
+4. The push server verifies authenticity by decrypting the messages with your public key, and then triggers the `"push"` event on the service worker. 
+5. The service worker receives the `"push"` event, and then creates the notification. It can handle notification logic like it being clicked or closed.
+
+##### client side
+
+On the client side, there are two steps you need to do:
+
+1. Get server's public key
+2. Request the notifications permission through the `Notification` web API
+3. Subscribe to push notifications using server's public key. This returns subscription info
+4. Send the subscription info to the server so it can store it in a database.
+
+You can generate a public and private key pair for push notifications using this command:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Here is the basic API for dealing with push notifications client side, all of which live on a  `ServiceWorkerRegistration` instance
+
+- `serviceWorkerRegistration.pushManager.subscribe(options)`: subscribes to push notifications. Needs a valid public key
+- `serviceWorkerRegistration.pushManager.getSubscription()`: gets the current subscription, if any.
+
+Then subscribing to push is as simple as using this method:
+
+```ts
+const sw = await navigator.serviceWorker.ready;
+const publicKey = "BEKleK9DGqPES0ONZTL-2WcHe50Gy22OTf8rEHbPv-JZ7i0tg_sLZStvcb9_PJHi6sGpK8HVXNy4Tz1qS0Ev6Qc"
+
+const pushSubscription = sw.pushManager.subscribe({
+  userVisibleOnly: true,
+  applicationServerKey: publicKey,
+});
+```
+
+The subscription method returns a `PushSubscription` instance, which has these properties and methods:
+
+- `pushSubscription.toJSON()`: returns a JSON representation of the push subscription
+- `pushSubscription.unsubscribe()`: unsubs from the push notifications, invalidates the push endpoint.
+
+
+After successfully subscribing, we need to add custom application logic to add the push subscription info to our server's db. We do this via a fetch request, but first, we can get the important subscription info from the `subscription.toJSON()` convenience method.
+
+The subscription data returned from `subscription.toJSON()` looks like this:
+
+```json
+{
+    "endpoint": "https://fcm.googleapis.com/fcm/send/dY6NbGBHmAo:APA91bHmGXpsUB6imlfX_WEQ6Nq9TB8nOXiJJ7ywYXUS-On4OU3-paUVqpgF7UNNKkbXqfwkIk2IOZ_-THReGKmORYtBf0C0zaxR5kfwhm780xekNWB8lomgyvpZ33sOlpHYpfrTHNv7",
+    "expirationTime": null,
+    "keys": {
+        "p256dh": "BP0xZjc331Gv72TnbzRWbmZ31ai1W-4xdqI8ZSb32YGgmUVYgMaVx6FHppvQ4GDg_w-uT562EPAmGbMQWcH9Gbw",
+        "auth": "B7S5SBfDcvsitJrZJUomrA"
+    }
+}
+```
+
+- `"endpoint"`: unique for each device. This endpoint points to a push server and will be used to make the push notification.
+- `"expirationTime"`: if set on the server, there will be an expiration time for the push subscription.
+- `"keys"`: the necessary keys for encryption that you pass to the server, and then the server will pass to the push server.
+
+Here's a full code example on the client side:
+
+```ts
+document
+  .getElementById("request-push-permission")
+  ?.addEventListener("click", async () => {
+	// 0. request permission
+    const status = await PushNotificationManager.requestPermission();
+    if (status === "granted") {
+      // 1. grab the current worker
+      const currentWorker = await PWAServiceWorkerClient.getCurrentWorker();
+      if (!currentWorker) {
+        throw new Error("No worker found");
+      }
+      // 2. grab the public key from the server
+      const response = await fetch("/api/public-key");
+      const { publicKey } = await response.json();
+      if (!publicKey) {
+        throw new Error("No public key found");
+      }
+      // 3. subscribe to push
+      const subscription = await PushNotificationManager.subscribeToPush(
+        currentWorker,
+        publicKey
+      );
+
+      // 4. send the subscription data to the server
+      const parsedInfo = subscription.toJSON();
+      const subscribeResponse = await fetch("/api/subscribe", {
+        method: "POST",
+        body: JSON.stringify(parsedInfo),
+      });
+      const data = await subscribeResponse.json();
+      console.log("data", data.message);
+    }
+  });
+```
+
+
+And here is a custom class:
+
+```ts
+export class PushNotificationManager {
+  static getPushSubscription(sw: ServiceWorkerRegistration) {
+    return sw.pushManager.getSubscription();
+  }
+
+  static async sendPushInfoToServer(
+    subscription: PushSubscription,
+    url: string
+  ) {
+    const parsedInfo = subscription.toJSON();
+    return await fetch(url, {
+      method: "POST",
+      body: JSON.stringify(parsedInfo),
+    });
+  }
+
+  static subscribeToPush(sw: ServiceWorkerRegistration, publicKey: string) {
+    return sw.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: publicKey,
+    });
+  }
+
+  static requestPermission() {
+    return Notification.requestPermission();
+  }
+
+  static get permissionIsGranted() {
+    return Notification.permission === "granted";
+  }
+
+  static get permissionIsDenied() {
+    return Notification.permission === "denied";
+  }
+}
+```
+
+##### Server side
+
+The server's main job is to sign messages we want to send with a private key, and then when we send that message to the push server, we give them the public key and if they can successfully decrypt our message, they will know that the integrity and authenticity of that message is reliable.
+
+Let's go over the main routes we want to have in our application (arbitrarily named):
+
+- `/push/subscribe`: this is a POST route that accepts subscription info from the client and should save it to a database
+- `/push/send`: this is a POST route that accepts subscription info from the client, queries a matching record in the database, and sends a push notification
+- `/push/broadcast`: this is a POST route that queries all push subscriptions from the database and sends a push notification to each one.
+
+This is what the data that comes to your routes will look like, and how webpush expects the data to look like for representing a subscription.
+
+```ts
+interface Subscription {
+    endpoint: string;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+}
+```
+
+And here's a class I made that encapsulates the logic of using web push from the `web-push` library:
+
+- `webpush.setVapidDetails(mailto, private_key, public_key)`: initializes VAPID for push messaging.
+- `webpush.sendNotification(subscription, body, options?)`: sends a push notification based on the information from the subscription. Here are the options you have:
+	- 
+
+```ts
+import webpush from "web-push";
+
+export class WebPushVAPID {
+  public publicKey: string;
+  public privateKey: string;
+
+  constructor(options: { privateKey?: string; publicKey?: string } = {}) {
+    const privateKey = options.privateKey || import.meta.env.VAPID_PRIVATE_KEY;
+    const publicKey = options.publicKey || import.meta.env.VAPID_PUBLIC_KEY;
+    if (!privateKey || !publicKey) {
+      throw new Error("VAPID_PRIVATE_KEY or VAPID_PUBLIC_KEY is not set");
+    }
+    this.privateKey = privateKey;
+    this.publicKey = publicKey;
+    this.setVAPID()
+  }
+
+
+  setVAPID() {
+    webpush.setVapidDetails(
+      "mailto:somethingsomething@gmail.com",
+      this.publicKey,
+      this.privateKey
+    );
+  }
+
+	// for sending notification with payload.
+  async sendNotification(
+    subscription: {
+      endpoint: string;
+      keys: {
+        p256dh: string;
+        auth: string;
+      };
+    },
+    body: Record<string, unknown>
+  ) {
+    const result = await webpush.sendNotification(
+      subscription,
+      JSON.stringify(body)
+    );
+    return result;
+  }
+}
+```
+
+and here's a helper class I wrote that saves the push data to a sqlite database in bun:
+
+```ts
+class WebPushDBError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "WebPushDBError";
+  }
+}
+
+interface SubscriptionDB {
+  endpoint: string;
+  subscription_data: {
+    endpoint: string;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+  };
+}
+
+export class WebPushDB {
+  private db: Database;
+  private getSubscriptionQuery: ReturnType<Database["prepare"]>;
+
+  constructor() {
+    this.db = new Database("web-push.db");
+    this.createTable();
+    this.getSubscriptionQuery = this.db.prepare(
+      "SELECT * FROM subscriptions WHERE endpoint = ?"
+    );
+  }
+
+  private createTable() {
+    this.db.run(
+      "CREATE TABLE IF NOT EXISTS subscriptions (endpoint TEXT PRIMARY KEY, subscription_data TEXT)"
+    );
+  }
+
+  static isWebPushDBError(error: unknown): error is WebPushDBError {
+    return error instanceof WebPushDBError;
+  }
+
+  getAllSubscriptions() {
+    const subscriptions = this.db
+      .prepare("SELECT * FROM subscriptions")
+      .all() as {
+      endpoint: string;
+      subscription_data: string;
+    }[];
+    const parsedSubscriptions = subscriptions.map((subscription) => ({
+      endpoint: subscription.endpoint,
+      subscription_data: JSON.parse(subscription.subscription_data),
+    })) as Subscription[];
+    return parsedSubscriptions;
+  }
+
+  addSubscription(subscription: {
+    endpoint: string;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+  }) {
+    try {
+      this.db.run(
+        "INSERT INTO subscriptions (endpoint, subscription_data) VALUES (?, ?) ON CONFLICT(endpoint) DO UPDATE SET subscription_data = ?",
+        [subscription.endpoint, JSON.stringify(subscription)]
+      );
+    } catch (error) {
+      if (WebPushDB.isWebPushDBError(error)) {
+        throw error;
+      }
+      throw new WebPushDBError(error as string);
+    }
+  }
+
+  getSubscription(endpoint: string) {
+    const subscription = this.getSubscriptionQuery.get(endpoint) as {
+      endpoint: string;
+      subscription_data: string;
+    };
+    if (!subscription) {
+      return null;
+    }
+    return {
+      endpoint: subscription.endpoint,
+      subscription_data: JSON.parse(subscription.subscription_data),
+    } as Subscription;
+  }
+}
+```
+
+**POST /push/subscribe**
+
+```ts
+import {z} from "zod"
+
+
+// Endpoint to save subscription from client
+app.post('/push/subscribe', (req, res) => {
+  // 1. parse subscription from request body
+  const subscription = req.json() as Subscription
+
+	// 2. add subscription to database
+  addSubscriptionToDB(subscription)
+  
+  console.log('New subscription:', subscription);
+  res.status(201).json({ message: 'Subscription saved' });
+});
+```
+
+**POST: sending messages**
+
+```ts
+app.post('/broadcast', async (req, res) => {
+  const { title, body, icon, badge } = req.body;
+
+  // 1. construct 
+  const payload = JSON.stringify({
+    title: title || 'Default Title',
+    body: body || 'Default body',
+    icon: icon || '/icon-192x192.png',
+    badge: badge || '/badge-72x72.png',
+    // Optional: add custom data
+    data: {
+      url: '/', // URL to open when notification is clicked
+      timestamp: Date.now()
+    }
+  });
+
+	// 2. get all subscriptions
+  const subscriptions = webPushDB.getAllSubscriptions();
+
+	// 3. for each subscription, send notification
+  for (const subscription of subscriptions) {
+	await webPushVAPID.sendNotification(subscription.subscription_data, {
+	  body: "test notification",
+	  title: "test title",
+	  text: "test text",
+	});
+  }
+  
+	res.send("done")
+})
+```
+
+##### Service worker side
+
+You can test out your push notifications triggering the `"push"` event in the dev console:
+
+![](https://i.imgur.com/7JMPNXF.png)
+
+There are 4 events you can listen to on the service worker related to push subscriptions:
+
+- `"push"`: when a push notification is sent to the service worker
+- `"notificationclicked"`: when the notification is clicked
+
+**push event**
+
+The event that is received is a `PushEvent` instance, which has these properties:
+
+- `event.data.json()`: returns the data in a JSON format
+
+You can then show a notification with the `self.registration.showNotification()` method, whose basic syntax is like so:
+
+```ts
+self.registration.showNotification(title, options)
+```
+
+- `title`: the title of the notification.
+- `options`: the same exact options as the normal web [notifications](vanilla-js-tutorial/09-advanced-js-APIS#notification) api
+
+> [!NOTE]
+> Keep in mind that since a notification takes time to show and is asynchronous, you need to wrap it in an `event.waitUntil()` call to make sure the service worker stays alive.
+
+```ts
+sw.addEventListener("push", async (event) => {
+  const pushEvent = event as PushEvent;
+  if (pushEvent.data) {
+	  // 1. get data
+    const data = pushEvent.data.json();
+
+	// 2. wait until
+    pushEvent.waitUntil(
+	    // 3. show notification
+      sw.registration.showNotification(data.title, {
+        body: data.body,
+        icon: "/icon.png",
+        requireInteraction: true,
+        silent: false,
+      })
+    );
+  }
+});
+```
+
+**on notification click**
+
+On notification click, a common pattern is to try and refocus to the web page or open the web page. We can do this through querying for **service worker clients**
+
+
+> [!IMPORTANT] 
+> The `notificationclick` event in a service worker is the ONLY event in which you are allowed to open urls or refocus on a client.
+
+Here is an example of this code:
+
+```ts
+sw.addEventListener("notificationclick", (event) => {
+  // 1. grab the notification
+  const notification = event.notification;
+
+	// 2. close the notification
+  notification.close();
+  const url = "/";
+
+	// 3. wrap all async methods in event.waitUntil()
+  event.waitUntil(
+    (async () => {
+		// 4. grab all window clients
+      const clients = await sw.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+	  // 5. if browser tab of our webpage is open already, focus it
+      if (clients.length > 0) {
+        return clients[0].focus();
+      }
+      // 6. else open our webpage.
+      return sw.clients.openWindow(url);
+    })()
+  );
+});
+```
+
+**custom class example**
+
+```ts
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+/// <reference lib="webworker" />
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
+
+export class ServiceWorkerModel {
+  static onInstall(onInstall: (event: ExtendableEvent) => Promise<void>) {
+    sw.addEventListener("install", (event) => {
+      event.waitUntil(
+        (async () => {
+          await onInstall(event);
+          await sw.skipWaiting();
+        })()
+      );
+    });
+  }
+
+  static onFetch(onRequest: (req: Request) => Promise<Response>) {
+    sw.addEventListener("fetch", (event) => {
+      event.respondWith(onRequest(event.request));
+    });
+  }
+
+  static onActivate(onActivate: (event: ExtendableEvent) => Promise<void>) {
+    sw.addEventListener("activate", (event) => {
+      const activate = async () => {
+        await onActivate(event);
+        await sw.clients.claim();
+      };
+      event.waitUntil(activate());
+    });
+  }
+
+  static onMessage(
+    onMessage: (event: ExtendableMessageEvent) => Promise<void>
+  ) {
+    sw.addEventListener("message", (event) => {
+      event.waitUntil(onMessage(event));
+    });
+  }
+
+  static async notifyClients(cb: (client: WindowClient) => any) {
+    const clients = await sw.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    });
+    clients.forEach((client) => {
+      const message = cb(client);
+      client.postMessage(message);
+    });
+  }
+
+  static isValidCacheableRequest(
+    request: Request,
+    predicates?: ((request: Request) => boolean)[]
+  ) {
+    const booleansThatRepresentInvalidURLStates = [
+      request.url.startsWith("chrome"),
+      request.url.startsWith("chrome-extension"),
+    ];
+    return (
+      request.method === "GET" &&
+      booleansThatRepresentInvalidURLStates.every((b) => !b) &&
+      (predicates?.every((p) => p(request)) ?? true)
+    );
+  }
+
+  static onPush(
+    onPush: (eventData: PushEvent["data"] | null) => Promise<void>
+  ) {
+    sw.addEventListener("push", (event) => {
+      if (event.data) {
+        event.waitUntil(onPush(event.data));
+      }
+    });
+  }
+
+  static getAllWindowClients() {
+    return sw.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    });
+  }
+
+  static getAllClients() {
+    return sw.clients.matchAll();
+  }
+
+  static openTab(url: string) {
+    return sw.clients.openWindow(url);
+  }
+
+  static onNotificationClick(
+    onNotificationClick: (notification: Notification) => Promise<any>
+  ) {
+    sw.addEventListener("notificationclick", (event) => {
+      event.waitUntil(onNotificationClick(event.notification));
+    });
+  }
+
+  static showNotification(title: string, options: NotificationOptions) {
+    return sw.registration.showNotification(title, options);
+  }
+
+  static showBasicNotification(title: string, body: string, icon?: string) {
+    return sw.registration.showNotification(title, {
+      body,
+      icon,
+      requireInteraction: true,
+      silent: false,
+    });
+  }
+
+  static getNotificationClickHelpers(notification: Notification) {
+    return {
+      closeNotification: () => notification.close(),
+      focusOrOpenTab: async (url: string) => {
+        const clients = await sw.clients.matchAll({
+          type: "window",
+          includeUncontrolled: true,
+        });
+        if (clients.length > 0) {
+          return clients[0].focus();
+        }
+        return sw.clients.openWindow(url);
+      },
+    };
+  }
+}
+```
+
+And here's how to use them:
+
+```ts
+ServiceWorkerModel.onPush(async (eventData) => {
+  console.log("Received a push message", eventData);
+  const data = eventData?.json();
+  console.log("data from push", data);
+  ServiceWorkerModel.showBasicNotification(data.title, data.body, "/icon.png");
+});
+
+ServiceWorkerModel.onNotificationClick(async (notification) => {
+  console.log("Received a notification click", notification);
+  const data = notification.data;
+  console.log("data from notification", data);
+  const { closeNotification, focusOrOpenTab } =
+    ServiceWorkerModel.getNotificationClickHelpers(notification);
+  closeNotification();
+  return await focusOrOpenTab("/");
+});
+```
+
 
 #### Updating service workers
 

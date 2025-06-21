@@ -413,13 +413,18 @@ Two concepts that are vital to downloading essential resources ahead of time are
 - **preloading**: Downloads resources ahead of time and prioritizes them. Putting a `<link rel="preload" />` tag in your HTML preloads that resource ahead of time and puts it in the beginning of the network waterfall.
 - **prefetching**: Downloads an entire URL ahead of time, which would be something like a website URL. This is useful for pre-downloading the next page in your site you think the user is going to click on.
 
+> [!NOTE]
+> The key difference here: preloading is used for resources (CSS, images, JS) while prefetching is used for pages (HTML, URLs)
+
 **preloading**
 ****
+[**Preload**](https://developer.mozilla.org/docs/Web/HTML/Preloading_content) is a declarative fetch request that tells the browser to request a resource that is otherwise not discoverable by the browser's [preload scanner](https://web.dev/articles/preload-scanner), such as an image referenced by the [`background-image` property](https://developer.mozilla.org/docs/Web/CSS/background-image).
+
 It's important to preload resources on the internet, like google fonts, CDNs, and external stylesheets, all these external or internal resources that are needed for the functionality and appearance of your web app.
 
 Here are the attributes you should put on a `<link>` tag to make it preload a resource:
 
-- `rel="preload"` : declares the link tag as a preload link
+- `rel="preload"` : declares the link tag as a preload link, which the browser will then download and store it in the cache.
 - `href=` : the resource to preload
 - `as=` : tells the browser what type of resource you are preloading, like `"image"` , `"css"` , or `"font"`
 - `crossorigin`: needed if you are requesting a resource over the internet. Otherwise it should be omitted. 
@@ -445,14 +450,16 @@ If you are trying to preload a javascript file, it's better to use think link be
 Preload rules:
 
 1. When everything is important, nothing is important. Only use preload to improve LCP, like preloading the hero image or preloading 
-2. Do not preload anything that is visible in your HTML file. The browser already knows about it.
+2. Do not preload anything that is visible in your HTML file like an inline `<img>` tag. The browser already knows about it.
 
 
 > [!TIP] 
 > If you have `fetchpriority="high"` on an image, then you don't need to preload that image. 
 
 
+By telling the browser that you’d like to preload a certain resource, you’re telling the browser that you would like to fetch it sooner than the browser would otherwise discover it! Preloading is a great way to optimize the time it takes to load resources that are critical for the current route.
 
+Although preloading resources are a great way to reduce the amount of roundtrips and optimize loading time, pushing too many files can be harmful. The browser’s cache is limited, and you may be unnecessarily using bandwidth by requesting resources that weren’t actually needed by the client.
 #### Lazy loading JS
 
 To lazy load JS and prevent it from being render blocking, put on it the `type="module"` or `defer` attribute.
@@ -492,40 +499,7 @@ You nest `<source>` and `<img>` elements in a picture element.
 - `<source>` : a conditional image that will render an image based on the media query provided in `media` and the filepath provided in `srcset`.
 - `<img>` : the default fallback for when none of the media queries match the source tags.
 
-### yield back to main thread
 
-Use `await scheduler.yield()` to break up long tasks, even if async, and yield back to the main thread. This helps keep the website responsive even as a long-running task is going on. 
-
-![diagram example](https://www.webpagescreenshot.info/image-url/FRHJUMmwG)
-
-```ts
-async function this_func_takes_10_secs() {
-	// do some work
-	await scheduler.yield()
-	// do some work
-	await scheduler.yield()
-	// do some more work
-}
-```
-
-Here is a way to batch jobs and run them one at a time, yielding every 50ms:
-
-```ts
-async function runJobs(jobQueue : Function[], deadline=50) {
-  let lastYield = performance.now();
-
-  for (const job of jobQueue) {
-    // Run the job:
-    job();
-
-    // If it's been longer than the deadline, yield to the main thread:
-    if (performance.now() - lastYield > deadline) {
-      await scheduler.yield()
-      lastYield = performance.now();
-    }
-  }
-}
-```
 
 ### use speculation rules
 
@@ -667,6 +641,113 @@ if (HTMLScriptElement.supports &&
 }
 ```
 
+
+## Performance Patterns
+
+### PRPL pattern
+
+PRPL is an acronym that describes a pattern used to make web pages load and become interactive, faster:
+
+- **Preload** the late-discovered resources.
+- **Render** the initial route as soon as possible.
+- **Pre-cache** remaining assets.
+- **Lazy load** other routes and non-critical assets.
+
+The PRPL pattern focuses on four main performance considerations:
+
+- Pushing critical resources efficiently, which minimizes the amount of roundtrips to the server and reducing the loading time.
+- Rendering the initial route soon as possible to improve the user experience
+- Pre-caching assets in the background for frequently visited routes to minimize the amount of requests to the server and enable a better offline experience
+- Lazily loading routes or assets that aren’t requested as frequently
+
+> [!IMPORTANT]
+> The main goal of the PRPL pattern is having critical speed to support slow internet connections. To reach this end, the goal is to **minimize the amount of round-trips to the server,** which is the main bottleneck for bad connections and low-end devices.
+
+Here are the main tactics used in the PRPL pattern:
+
+- **use HTTP 2**: uses the streaming capabilities of HTTP 2 to let the server continuously push data to the client without having to make multiple requests to the server.
+- **use service workers**: Uses service workers to cache assets for speed. 
+- **preloads critical resources**: Uses the `preload=` HTML attribute to preload critical resources like CSS and LCP images.
+- **uses code splitting**: Splits up javascript into many small bundles and preloads the critical first-page bundles. Caches the bundles as well.
+
+### RAIL pattern
+
+RAIL is a user-centric performance model that structures an app’s life cycle into four actionable areas: **Response**, **Animation**, **Idle**, and **Load**.
+
+Each area has a main goal that centers focus around a quantifiable metric to improve.
+
+| Stage     | User Expectation          | Technical Budget             | Strategy                                     |
+| --------- | ------------------------- | ---------------------------- | -------------------------------------------- |
+| Response  | Instant feedback          | ≤100 ms (handler <50 ms)     | Lightweight handlers, defer heavy tasks      |
+| Animation | Smooth 60fps              | ≤16 ms frame (script <10 ms) | CSS transitions, rAF, minimize layout shifts |
+| Idle      | Efficient background work | ≤50 ms chunks                | requestIdleCallback, task chunking           |
+| Load      | Page usable quickly       | <5 s initial, <2 s repeat    | Preload critical assets, defer others        |
+
+#### Response
+
+The RAIL model says that each response should take no longer than 100ms. This means that the thread should never be frozen doing some synchronous work for more than 100ms. 
+
+> Goal: to keep blocks of synchronous work time on a single thread under 100ms, and yield back to UI afterwards. Complete a transition initiated by user input within 100 ms, so users feel like the interactions are instantaneous.
+
+Keeping a small response time and constantly yielding back to the main thread helps the uI feel fast and snappy for the user and improves UX.
+
+Here are the two main strategies:
+
+- Keep event handlers light
+- Defer heavy work using setTimeout, requestIdleCallback
+
+
+```ts
+button.addEventListener('click', e => {
+  // Quick response
+  showSpinner();
+
+  // Heavy lifting deferred
+  requestIdleCallback(() => performComplexTask());
+});
+
+```
+
+**Guidelines**:
+
+- To ensure a visible response within 100 ms, process user input events within 50 ms. This applies to most inputs, such as clicking buttons, toggling form controls, or starting animations. This does not apply to touch drags or scrolls.
+    
+- Though it may sound counterintuitive, it's not always the right call to respond to user input immediately. You can use this 100 ms window to do other expensive work, but be careful not to block the user. If possible, do work in the background.
+    
+- For actions that take longer than 50 ms to complete, always provide feedback
+
+#### Animation
+
+To make animations feel buttery smooth, they should maintain **60 fps**, meaning each frame must complete in **≤16 ms**, with ~10 ms for script and <6 ms for rendering
+
+>Goal: maintain animations in 60fps
+
+The main strategy we have to achieve this is to use performant animation techniques like CSS transforms and make sure to do animation work in the `requestAnimationFrame()` function.
+
+#### Idle
+
+To make a page responsive to user input as quickly as possible, we need to defer all non-critical CSS and JS to load during idle time, and for all application logic work to also run during idle time.
+
+>**Goal:** Maximize idle time and use idle time to pre-load non-critical tasks in chunks ≤50 ms
+
+```ts
+let queue = heavyTasks.slice();
+
+function processQueue(deadline) {
+  while (deadline.timeRemaining() > 0 && queue.length) {
+    doSmallPiece(queue.shift());
+  }
+  if (queue.length) {
+    requestIdleCallback(processQueue);
+  }
+}
+requestIdleCallback(processQueue);
+```
+
+#### Load
+
+>**Goal:** Interactive content ready **<5 s** on mid-range 3G, subsequent views in **<2 s** .
+
 ## Improving JavaScript Performance
 
 ### Memory Leaks in Js
@@ -684,3 +765,237 @@ You can discover memory leaks in the devtools in the **memory** pane. It will lo
 
 - **shallow size**: how much memory the object itself is taking up
 - **retained size**: how much memory you would get back if you dereferenced that object, which includes calculations of how many references you have pointing to that same object.
+
+### Main thread work optimizations
+
+Both the `scheduler.yield()` and `requestIdleCallback()` APIs are used as ways to break up long chunks of synchronous work happening on the main thread so that the thread can be yielded back to the user to make the UI feel responsive and snappy.
+
+These two methods are a huge component in making great, responsive UIs.
+#### yield back to main thread
+
+Use `await scheduler.yield()` to break up long tasks, even if async, and yield back to the main thread. This helps keep the website responsive even as a long-running task is going on. 
+
+>Imagine you're cooking dinner (your code). You pause briefly to stir a pot (UI tasks), then resume cooking. `scheduler.yield()` lets the kitchen staff handle faster, urgent tasks before you continue, but puts you back _to the front of the line_ when you're ready.
+
+```ts
+async function this_func_takes_10_secs() {
+	// do some work
+	await scheduler.yield()
+	// do some work
+	await scheduler.yield()
+	// do some more work
+}
+```
+
+Here is a way to batch jobs and run them one at a time, yielding every 50ms:
+
+```ts
+async function runJobs(jobQueue : Function[], deadline=50) {
+  let lastYield = performance.now();
+
+  for (const job of jobQueue) {
+    // Run the job:
+    job();
+
+    // If it's been longer than the deadline, yield to the main thread:
+    if (performance.now() - lastYield > deadline) {
+      await scheduler.yield()
+      lastYield = performance.now();
+    }
+  }
+}
+```
+
+#### Run during idle time
+
+`requestIdleCallback()` is a browser API that allows you to **schedule non-urgent work** to be executed **during the browser’s idle time** on the main thread.
+
+>Imagine you're at a coffee shop (the browser). The barista (main thread) is busy making drinks (rendering, layout, user interactions).  You want to ask the barista a low-priority question (e.g., "Do you have WiFi?"). Instead of interrupting, you say:  "Answer me when you’re not busy."  
+> That’s `requestIdleCallback()`.
+
+The method below is the syntax for how it works, where the method accepts a callback to be run during idle time, and an object of options with these properties:
+
+- `timeout`: the maximum amount of time in milliseconds the callback can wait before execution. If the timeout is exceeded, then an error is thrown.
+
+The `requestIdleCallback()` invocation returns a `callbackId` which you can use to cancel the idle callback execution with the `cancelIdleCallback(callbackId)` method.
+
+```ts
+const callbackId = requestIdleCallback(cb, options);
+```
+
+Here is a basic example of how to use something like this:
+
+```ts
+const callbackId = requestIdleCallback(
+  () => {
+    console.log("idle");
+  },
+  {
+    timeout: 3000,
+  }
+);
+```
+
+Here are the main use cases for work that we would want to run in idle time:
+
+- Analytics tracking
+- Logging
+- Background cache warming
+- Preloading assets or routes
+- Scheduling large DOM queries (like `getBoundingClientRect`)
+- Syncing non-urgent data with localStorage or IndexedDB
+
+Here are tasks that we should NOT run in idle time:
+
+- **Rendering UI**: Too slow/unpredictable.
+- **Responsive feedback**: Use `requestAnimationFrame` or `setTimeout(...)`.
+- **Critical I/O or fetches**: Use standard promises or worker threads.
+
+**deadline**
+****
+
+In the callback we pass to `requestIdleCallback()` function, that callback automatically passes one argument it is populated with: `deadline`. This argument represents the current state of the idle task and has these properties:
+
+- `deadline.timeRemaining()` → approx. milliseconds of idle time left
+- `deadline.didTimeout` → was the callback forced to run due to timeout?
+
+```ts
+const thing = requestIdleCallback(
+  (deadline) => {
+    console.log(deadline.didTimeout);
+    console.log(deadline.timeRemaining);
+    console.log("idle");
+  },
+  {
+    timeout: 3000,
+  }
+);
+```
+
+Here is a small, reusable code example:
+
+```ts
+function doIdleWork(
+  cb: (options?: { timedOut: boolean }) => void,
+  timeout?: number
+) {
+  const callbackId = requestIdleCallback(
+    (deadline) => {
+      cb({
+        timedOut: deadline.didTimeout,
+      });
+    },
+    {
+      timeout,
+    }
+  );
+
+  return {
+    cancel: () => cancelIdleCallback(callbackId),
+  };
+}
+```
+
+
+And here is a full example:
+
+```ts
+function updateDomElementsInChunks(elements, chunkSize = 10) {
+  let index = 0;
+
+  function processChunk(deadline) {
+    // While we have idle time and work to do
+    while (index < elements.length && deadline.timeRemaining() > 0) {
+      const end = Math.min(index + chunkSize, elements.length);
+      for (let i = index; i < end; i++) {
+        const el = elements[i];
+        
+        // ⚠️ This forces a layout reflow, be careful with batching!
+        const rect = el.getBoundingClientRect();
+        
+        // Apply some non-blocking style changes
+        el.style.opacity = rect.top < window.innerHeight ? '1' : '0.5';
+      }
+
+      index += chunkSize;
+    }
+
+    // If there's still work left, schedule next idle callback
+    if (index < elements.length) {
+      requestIdleCallback(processChunk);
+    }
+  }
+
+  requestIdleCallback(processChunk);
+}
+
+```
+
+##### class
+
+IN this idle callback class, we expose methods to create a standard idle callback, and to do work in chunks recursively with the idle callback.
+
+```ts
+export class IdleCallback {
+  doIdleWork(cb: (options?: { timedOut: boolean }) => void, timeout?: number) {
+    const callbackId = requestIdleCallback(
+      (deadline) => {
+        cb({
+          timedOut: deadline.didTimeout,
+        });
+      },
+      {
+        timeout,
+      }
+    );
+
+    return {
+      cancel: () => cancelIdleCallback(callbackId),
+    };
+  }
+
+  createIdleChunkProcessor<T>(
+    elements: T[],
+    cb: (element: T) => void,
+    options: {
+      chunkSize?: number;
+      timeout?: number;
+    } = {}
+  ) {
+    const { chunkSize = 10, timeout } = options;
+    let index = 0;
+    let currentCallbackId: number | null = null;
+    let cancelled = false;
+
+    function cancel() {
+      cancelled = true;
+      if (currentCallbackId !== null) {
+        cancelIdleCallback(currentCallbackId);
+      }
+    }
+
+    function start() {
+      cancelled = false;
+      index = 0;
+
+      function processChunk(deadline: IdleDeadline) {
+        while (!cancelled && index < elements.length && !deadline.didTimeout) {
+          const end = Math.min(index + chunkSize, elements.length);
+          for (let i = index; i < end; i++) {
+            cb(elements[i]);
+          }
+          index += chunkSize;
+        }
+
+        if (!cancelled && index < elements.length) {
+          currentCallbackId = requestIdleCallback(processChunk, { timeout });
+        }
+      }
+
+      currentCallbackId = requestIdleCallback(processChunk, { timeout });
+    }
+
+    return { start, cancel };
+  }
+}
+```

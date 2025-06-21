@@ -424,6 +424,38 @@ However, `useCallback()` is just `useMemo()` but returning a function instead of
 const render = useMemo(() => (text) => marked.parse(text), []);
 const render2 = useCallback((text) => marked.parse(text), []);
 ```
+
+### Using virtualized lists
+
+JUst like `<FlatList>` component in react native, we can virtualize lists of elements to make them more performant. In react we do this through the `react-window` library from npm:
+
+```ts
+import React from "react";
+import ReactDOM from "react-dom";
+import { FixedSizeList as List } from "react-window";
+
+const itemsArray = [...]; // our data
+
+const Row = ({ index, style }) => (
+  <div className={index % 2 ? "ListItemOdd" : "ListItemEven"} style={style}>
+    {itemsArray[index].name}
+  </div>
+);
+
+const Example = () => (
+  <List
+    className="List"
+    height={150}
+    itemCount={itemsArray.length}
+    itemSize={35}
+    width={300}
+  >
+    {Row}
+  </List>
+);
+
+ReactDOM.render(<Example />, document.getElementById("root"));
+```
 ## React 19 changes
 
 The React 19 changes remove a lot of annoying optimization code we once had to write ourselves, like `useMemo()` or `useCallback()` or `memo()`. This is because the react compiler looks ahead of time at the correct optimizations to make. But besides this main feature, there are new changes:

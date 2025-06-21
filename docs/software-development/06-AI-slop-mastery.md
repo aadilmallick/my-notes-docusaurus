@@ -189,9 +189,307 @@ Thus quantization allows us to mathematically round the floating point precision
 - A model quantized with int4 quantization for parameters means each parameter is 4 bits, or 0.5 bytes, meaning a model with 2 billion parameters would only need 1GB of RAM.
 
 > [!TIP]
-> quantization allows us toi achieve up to 1/2 or 1/4 cutting of RAM usage.
+> quantization allows us to achieve up to 1/2 or 1/4 cutting of RAM usage, while still having only a negligible difference in performance from the more precise unquantized models.
 
-You can download quantized models off of hugging face.
+You can download quantized models off of hugging face or in LM Studio itself.
+
+### Lm studio
+
+#### CLI
+
+- `lms ls`: lists all downloaded models
+- `lms ps`: lists all currently loaded models in memory
+- `lms load <model-id>`: loads a specific model
+- `lms unload <model-id>`: unloads a specific model
+
+**listing models**
+
+Show all downloaded models using the `lms ls` command. You have 4 options to consider:
+
+- `--llm`: lists only llm models
+- `--json`: lists info in JSON
+- `--detailed`: lists details info
+- `--embeddings`: prints only embedding models
+
+```
+lms ls
+```
+
+Example output:
+
+```
+You have 47 models, taking up 160.78 GB of disk space.
+
+LLMs (Large Language Models)                       PARAMS      ARCHITECTURE           SIZE
+lmstudio-community/meta-llama-3.1-8b-instruct          8B         Llama            4.92 GB
+hugging-quants/llama-3.2-1b-instruct                   1B         Llama            1.32 GB
+mistral-7b-instruct-v0.3                                         Mistral           4.08 GB
+zeta                                                   7B         Qwen2            4.09 GB
+
+... (abbreviated in this example) ...
+
+Embedding Models                                   PARAMS      ARCHITECTURE           SIZE
+text-embedding-nomic-embed-text-v1.5@q4_k_m                     Nomic BERT        84.11 MB
+text-embedding-bge-small-en-v1.5                     33M           BERT           24.81 MB
+```
+
+
+List only LLM models:
+
+```
+lms ls --llm
+```
+
+List only embedding models:
+
+```
+lms ls --embedding
+```
+
+Get detailed information about models:
+
+```
+lms ls --detailed
+```
+
+Output in JSON format:
+
+```
+lms ls --json
+```
+
+You can show all currently loaded models with `lms ps`.
+
+Get the list in machine-readable format:
+
+```
+lms ps --json
+```
+
+
+**loading into memory**
+
+Load a model into memory by running the following command:
+
+```
+lms load <model_key>
+```
+
+You can find the `model_key` by first running [`lms ls`](https://lmstudio.ai/docs/cli/ls) to list your locally downloaded models. You also have access to these options:
+
+
+![](https://i.imgur.com/v3faHML.jpeg)
+
+**unloading from memory**
+
+Unload a single model from memory by running:
+
+```
+lms unload <model_key>
+```
+
+If no model key is provided, you will be prompted to select from currently loaded models.
+
+To unload all currently loaded models at once:
+
+```
+lms unload --all
+```
+
+**Server CLI**
+
+You use the `lms server start` command to start the LM studio server
+
+- `lms server start`: starts server with default settings on port 1234
+- `lms server start --port <port>`: starts server on specific port
+- `lms server start --cors`: opens CORS for all web apps to access
+
+You can use the `lms server stop` command to stop the LM studio server.
+
+You use the `lms server status` command to see the status of the LM studio server
+
+```bash
+lms server start # start server
+lms server status # get status
+lms server stop # stop server
+```
+
+You also have these options:
+
+![](https://i.imgur.com/EcHQo7l.png)
+
+Get the status in machine-readable JSON format:
+
+```
+lms server status --json --quiet
+```
+
+Example output:
+
+```json
+{"running":true,"port":1234}
+```
+
+**seeing logs**
+
+`lms log stream` allows you to inspect the exact input string that goes to the model.
+
+```
+lms log stream
+```
+
+Here would be the example output:
+
+
+![](https://i.imgur.com/yr5QsPH.jpeg)
+
+
+#### Programming
+
+You can hit API endpoints for models that your load onto the LM studio server, which runs on `localhost:1234`.
+
+There are three different ways to run the LMS studio server and hit up the endpoints:
+
+1. Basic rest API
+2. Open AI SDK (compatibility version)
+3. LM studio Python SDK
+4. LM studio TS SDK
+
+##### Open AI Compatibility
+
+Using models with LM studio is completely compatible with the openAI sdk. All you have to do is to pass the `base_url` parameter and point that to the LM studio server endpoint, like so:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+  base_url="http://localhost:1234/v1", # LM Studio endpoint on port 1234
+  api_key="something-doesnt-matter", # doesn't matter, but should pass value
+)
+```
+
+And here is an example showing just how simple and compatible the OpenAI SDK is to use with LM studio models
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+  base_url="http://localhost:1234/v1",
+  api_key="something-doesnt-matter",
+)
+
+response = client.chat.completions.create(
+  model="gemma-3-12b-it-qat",
+  messages=[
+    {
+      "role": "system",
+      "content": "You are a helpful and friendly assistant."
+    },
+    {
+      "role": "user",
+      "content": "What is the meaning of life?"
+    }
+  ],
+  temperature=0.7,
+)
+
+print(response.choices[0].message.content)
+```
+
+##### LM studio TS sdk
+
+fIrst install with this:
+
+```bash
+npm install @lmstudio/sdk --save
+```
+
+And here's a quickstart:
+
+```ts
+import { LMStudioClient } from "@lmstudio/sdk";
+const client = new LMStudioClient();
+
+const model = await client.llm.model("llama-3.2-1b-instruct");
+const result = await model.respond("What is the meaning of life?");
+
+console.info(result.content);
+```
+
+### OLlama
+
+OLLama is a CLI tool for installing and running local models. Here is an example that automatically installs and runs llama 3.2
+
+```bash
+ollama run llama3.2
+```
+
+In fact, here's a list of all CLI commands you can run:
+
+![](https://i.imgur.com/acwfO9j.jpeg)
+
+#### rUnning models
+
+When chatting with ollama models, you have access to these slash commands:
+
+```
+Available Commands:
+  /set            Set session variables
+  /show           Show model information
+  /load <model>   Load a session or model
+  /save <model>   Save your current session
+  /clear          Clear session context
+  /bye            Exit
+  /?, /help       Help for a command
+  /? shortcuts    Help for keyboard shortcuts
+```
+
+Since you have to chat using the CLI in a purely text based ways, there are a few caveats to keep iin mind when trying to chat with OLLama:
+
+- **multiline text**: ANy multiline text needs to be encased in triple double quotes
+- **images**: To refer to images or files, you just write out the relative path to that file in your prompt. Any filepaths you refer to MUST MUST MUST be at the end of your prompt, after any text.
+- **system message**: run the `/set system <message>` command to change the model's system message for the chat duration
+
+**saving chats**
+
+To save chats, you can use the `/save <chat-name>` and `/load <chat-name>` to load a chat. These commands save and load the chat respectively with the hyperparameters, chat history, and system message all set and saved.
+
+**/show command**
+
+```
+Available Commands:
+  /show info         Show details for this model
+  /show license      Show model license
+  /show modelfile    Show Modelfile for this model
+  /show parameters   Show parameters for this model
+  /show system       Show system message
+  /show template     Show prompt template
+```
+
+If you run the `/show system` command, you can see the system message for the model.
+
+**/set command**
+
+```
+>>> /set
+Available Commands:
+  /set parameter ...     Set a parameter
+  /set system <string>   Set system message
+  /set history           Enable history
+  /set nohistory         Disable history
+  /set wordwrap          Enable wordwrap
+  /set nowordwrap        Disable wordwrap
+  /set format json       Enable JSON mode
+  /set noformat          Disable formatting
+  /set verbose           Show LLM stats
+  /set quiet             Disable LLM stats
+  /set think             Enable thinking
+  /set nothink           Disable thinking
+```
+
+- `/set system <message>` : changes the model's system message for the chat duration
+- `/set parameter`: shows the parameters of the model you can change
+
 ## Prompt engineering
 
 ### Prompt Engineering in a nutshell
@@ -316,6 +614,17 @@ aspectRatio: "30.126582278481013"
 
 
 ## AI Coding
+
+### LLM hyperparameters
+
+These are the important LLM hyperparameters you can tweak:
+
+- **temperature**: the "randomness" of the model, a value between 0-2. The higher this vallue, the more random the model will be, and the lower the value, the less random.
+	- If temperature is set to 0, you will get back the same output every single time.
+- **top k**: Used to configure that the LLM will only choose from the top `k` candidates with the highest probability of being the next token.
+	- The lower this value, like 1 (the lowest it can be), the more deterministic the LLM is, selecting only the most likely token every single time.
+- **top p**: a value between 0-1 representing the percentage of cumulative probability you need in the candidate pool. The higher this value, the more tokens will be considered. The lower this value, the less tokens will be considered as candidates.
+	- For example, if you set top p to 90%, then the LLM will consider as many tokens as it takes until their cumulative likeliness probability for being the next token reaches the threshold of 90%.
 
 ### OpenAI API
 

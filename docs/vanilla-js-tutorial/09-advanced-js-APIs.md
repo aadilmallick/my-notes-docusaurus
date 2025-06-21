@@ -96,6 +96,8 @@ export default class EyedropperManager {
 
 ## Notification
 
+### creating notifications
+
 The `Notification` class allows to us to create notifications and check the permissions. As soon as you instantiate an instance, a notification is created. We can create a notification like this:
 
 ```javascript
@@ -125,6 +127,8 @@ async function displayNotification() {
 displayNotification();
 ```
 
+### permissions
+
 - `Notification.requestPermission()`: Requests the user to turn on notifications. This returns a promise that resolves to the permission of the notification. This can be one of the following values:
   - `"granted"`: The user has granted permission.
   - `"denied"`: The user has denied permission.
@@ -134,11 +138,17 @@ displayNotification();
   - `"denied"`: The user has denied permission.
   - `"default"`: The user has not yet made a decision.
 
-### Methods
+### Notification object
+
+We get back a notification object from the `Notification` class that lets us control behavior on that nofitication instance.
+
+```ts
+const notification = new Notification()
+```
+
+For example, we get access to these methods:
 
 - `notification.close()`: closes the notification.
-
-### Events
 
 We can listen for events that happen to the notification using the `addEventListener()` syntax:
 
@@ -156,6 +166,94 @@ Here are the events we can listen for:
 
 - `click`: This is fired when the user clicks on the notification.
 - `close`: This is fired when the user closes the notification.
+- `show`: This is fired when the user is shown the notification.
+- `error`: This is fired if an error occurs.
+
+### Custom class
+
+```ts
+class WebNotifications {
+  constructor(public notification: Notification) {}
+
+  static async displayBasicNotificationAsync(title: string, body: string) {
+    if (!WebNotifications.permissionIsGranted) {
+      await WebNotifications.requestPermission();
+    }
+    // user denied permission or blocked.
+    if (!WebNotifications.permissionIsGranted) {
+      return null;
+    }
+    const notification = new Notification(title, {
+      body,
+    });
+    return new WebNotifications(notification);
+  }
+
+  static displayBasicNotification(title: string, body: string) {
+    // user denied permission or blocked.
+    if (!WebNotifications.permissionIsGranted) {
+      return null;
+    }
+    const notification = new Notification(title, {
+      body,
+    });
+    return new WebNotifications(notification);
+  }
+
+  static async displayNotificationAsync(cb: () => Notification) {
+    if (!WebNotifications.permissionIsGranted) {
+      await WebNotifications.requestPermission();
+    }
+    // user denied permission or blocked.
+    if (!WebNotifications.permissionIsGranted) {
+      return null;
+    }
+    const notification = cb();
+    return new WebNotifications(notification);
+  }
+
+  static displayNotification(cb: () => Notification) {
+    // user denied permission or blocked.
+    if (!WebNotifications.permissionIsGranted) {
+      return null;
+    }
+    const notification = cb();
+    return new WebNotifications(notification);
+  }
+
+  static async requestPermission() {
+    return Notification.requestPermission();
+  }
+
+  static getPermission() {
+    return Notification.permission;
+  }
+
+  static get permissionIsGranted() {
+    return Notification.permission === "granted";
+  }
+
+  close() {
+    this.notification.close();
+  }
+
+  onClick(cb: () => void) {
+    this.notification.onclick = cb;
+  }
+
+  onClose(cb: () => void) {
+    this.notification.onclose = cb;
+  }
+
+  onShow(cb: () => void) {
+    this.notification.onshow = cb;
+  }
+
+  onError(cb: () => void) {
+    this.notification.onerror = cb;
+  }
+}
+```
 
 ## Performance
 
@@ -1633,39 +1731,6 @@ const displayError = (err) => {
 };
 ```
 
-### user media
-
-```javascript
-async function getMedia() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-    });
-    const videoElement = document.querySelector("#videoElement");
-    videoElement.srcObject = stream;
-  } catch (e) {
-    console.log("permission denied");
-  }
-}
-```
-
-The async `navigator.mediaDevices.getUserMedia()` method returns a promise that resolves to a `MediaStream` object. This takes an object as an argument, which specifies the type of media to get. This object can have the following properties:
-
-- `audio`: Whether to get audio, **Boolean**.
-- `video`: Whether to get video, **Boolean**.
-- `screen`: Whether to get the screen, **Boolean**.
-- `displaySurface`: The type of display surface to get. This can be one of the following values:
-  - `"browser"`: The entire browser window.
-  - `"monitor"`: The entire screen.
-  - `"window"`: The entire window.
-  - `"application"`: The application window.
-
-```javascript
-const stream = await navigator.mediaDevices.getUserMedia(options);
-```
-
-With this stream, you can then set this stream as the source of some video or audio element in your HTML.
-
 ### Intersection Observer
 
 THe intersection observer API is used to asnychronously run some functionality when observed elements are visible in the viewport. Here are some possible use cases:
@@ -1732,6 +1797,39 @@ const observer = new IntersectionObserver(
 );
 ```
 
+
+### user media
+
+```javascript
+async function getMedia() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+    });
+    const videoElement = document.querySelector("#videoElement");
+    videoElement.srcObject = stream;
+  } catch (e) {
+    console.log("permission denied");
+  }
+}
+```
+
+The async `navigator.mediaDevices.getUserMedia()` method returns a promise that resolves to a `MediaStream` object. This takes an object as an argument, which specifies the type of media to get. This object can have the following properties:
+
+- `audio`: Whether to get audio, **Boolean**.
+- `video`: Whether to get video, **Boolean**.
+- `screen`: Whether to get the screen, **Boolean**.
+- `displaySurface`: The type of display surface to get. This can be one of the following values:
+  - `"browser"`: The entire browser window.
+  - `"monitor"`: The entire screen.
+  - `"window"`: The entire window.
+  - `"application"`: The application window.
+
+```javascript
+const stream = await navigator.mediaDevices.getUserMedia(options);
+```
+
+With this stream, you can then set this stream as the source of some video or audio element in your HTML.
 
 ### Navigation
 
@@ -1871,6 +1969,155 @@ You can the load fonts locally in CSS by using the `@font-face` CSS rule, which 
 ```
 
 You can also set fonts styling dynamically using javascript. 
+
+### MediaSession API
+
+The media session API gives the OS access to control the current audio or video playback, like Apple carplay. For example, on a MACOS this is what implementing the API would look like:
+
+![](https://i.imgur.com/2BnMQNF.png)
+
+
+The API is split up into two main parts:
+
+1. **metadata**: the metadata portion of the api lets you show an album image representing the audio/video, the artist, the title, etc.
+2. **listeners**: Lets you hook into the audio playback controls that the OS provides so that it controls your audio playback through javascript.
+
+Here's an example of how to set up the metadata and how to hook up event listeners:
+
+```ts
+if ("mediaSession" in navigator) {
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: "Unforgettable",
+    artist: "Nat King Cole",
+    album: "The Ultimate Collection (Remastered)",
+    artwork: [
+      {
+        src: "https://dummyimage.com/96x96",
+        sizes: "96x96",
+        type: "image/png",
+      },
+      {
+        src: "https://dummyimage.com/128x128",
+        sizes: "128x128",
+        type: "image/png",
+      },
+      {
+        src: "https://dummyimage.com/192x192",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "https://dummyimage.com/256x256",
+        sizes: "256x256",
+        type: "image/png",
+      },
+      {
+        src: "https://dummyimage.com/384x384",
+        sizes: "384x384",
+        type: "image/png",
+      },
+      {
+        src: "https://dummyimage.com/512x512",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+  });
+
+  navigator.mediaSession.setActionHandler("play", () => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("pause", () => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("stop", () => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("seekbackward", () => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("seekforward", () => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("seekto", (e) => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("previoustrack", () => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("nexttrack", () => {
+    /* Code excerpted. */
+  });
+  navigator.mediaSession.setActionHandler("skipad", () => {
+    /* Code excerpted. */
+  });
+}
+```
+
+Here are the events you can listen to:
+
+ - `"play"`: when the user hits the play button
+ - `"pause"`: when the user hits the pause button
+ - `"stop"`: when the user stops the recording
+ - `"seekbackward"`: when the user wants to seek backward, like 10 seconds
+ - `"seekforward"`: when the user wants to seek forward, like 10 seconds
+ - `"seekto"`: when the user tries to seek to a specific point
+
+For information on how to get this API to work on a playlist, go here:
+
+https://googlechrome.github.io/samples/media-session/audio.html
+
+
+#### Custom class
+
+```ts
+class MediaSessionManager {
+  constructor(metadata: MediaMetadata) {
+    if (!MediaSessionManager.isAPIAvailable()) {
+      throw new Error("MediaSession API is not available");
+    }
+    navigator.mediaSession.metadata = metadata;
+  }
+
+  static isAPIAvailable() {
+    return "mediaSession" in navigator;
+  }
+
+  onPlay(cb: () => void) {
+    navigator.mediaSession.setActionHandler("play", cb);
+  }
+
+  onPause(cb: () => void) {
+    navigator.mediaSession.setActionHandler("pause", cb);
+  }
+
+  onStop(cb: () => void) {
+    navigator.mediaSession.setActionHandler("stop", cb);
+  }
+
+  onSeekBackward(cb: () => void) {
+    navigator.mediaSession.setActionHandler("seekbackward", cb);
+  }
+
+  onSeekForward(cb: () => void) {
+    navigator.mediaSession.setActionHandler("seekforward", cb);
+  }
+
+  onSeekTo(cb: (event: MediaSessionActionDetails) => void) {
+    navigator.mediaSession.setActionHandler("seekto", cb);
+  }
+
+  onPreviousTrack(cb: () => void) {
+    navigator.mediaSession.setActionHandler("previoustrack", cb);
+  }
+
+  onNextTrack(cb: () => void) {
+    navigator.mediaSession.setActionHandler("nexttrack", cb);
+  }
+}
+```
+
+
 ## Proxies
 
 Proxies in javascript allow you to do reactive programming. They give hooks into common operations concerning data, like getting or setting a property, and allow you to hook into that behavior and define it yourself. 

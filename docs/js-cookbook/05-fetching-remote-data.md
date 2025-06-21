@@ -695,7 +695,7 @@ Then sending credentials will only work if the server has the `Access-Control-Al
 
 This is only a problem if authentication is done via cookies, but having authorization be done via HTTP headers like bearer token on requests with the `Authorization` header is much better.
 
-## Requesting data from a server
+## Requesting realtime data from a server
 
 There are three basic ways of doing several back-and-forth requests between a client and server: 
 
@@ -817,7 +817,9 @@ const {startPolling, stopPolling} = longPoll(getNewMsgs, {
 })
 ```
 
+### HTTP 2
 
+You can use HTTP 2 **server push** technique to stream a unidirectional data flow to the client. The client chooses how to consume the continuous flow of data.
 
 ### Websockets
 
@@ -1150,12 +1152,17 @@ server.listen(3000, () => {
 
 Server sent events are like websockets except the connections are one-way for the server sending data to the client, it's HTTP based, and data is always sent as plain text. 
 
+> [!WARNING]
+>  When **not used over HTTP/2**, SSE suffers from a limitation to the maximum number of open connections, which can be especially painful when opening multiple tabs, as the limit is _per browser_ and is set to a very low number (6).
+
 All data sent from the server to the client will be in the form `data: <some-string>`, and we basically just parse the string that comes after the `data: ` prefix. We can get clever and just send JSON as some string. 
 
 1. Instantiate an `new EventSource(url)` object that connects to your server route that specifically sends back a 200 status response and must send back the `Content-Type: text/event-stream` on this route. 
 
 ```ts
-const eventSource = new EventSource("/events/subscribe");
+const eventSource = new EventSource("/events/subscribe", {
+	withCredentials: true
+});
 ```
 
 2. Listen for messages from the `"message"` event on the event source:
@@ -1174,14 +1181,14 @@ There are three events you can add listeners for on the event source object:
 - `open` – the connection is open.
 - `error` – the connection could not be established, e.g. the server returned HTTP 500 status.
 
-#### Example
+#### Server side
 
 Here is a full example of sending server-sent data from a server to a client. 
 
 The **server side** must comply with these rules:
 
 1. Must send back a `ReadableStream` as a response
-2. Must send back these headers:
+2. Must send back these headers, with a `text/event-stream` content type.
 
 ```ts
     headers: {
@@ -1240,6 +1247,8 @@ app.get("/realtime/:id", async (_req, info, params) => {
 });
 ```
 
+#### Consuming from frontend
+
 And this is how you would consume from the frontend:
 
 ```ts
@@ -1247,14 +1256,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
     console.log('realtime script loaded')
     const pathParts = window.location.pathname.split('/');
     const shortCode = pathParts[pathParts.length - 1]; 
+
+	// 1. create event source listening to route on current origin
     const eventSource = new EventSource('/realtime/' + shortCode);
 
+	// 2.  create handle message handler
     eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
         console.log(data)
         document.getElementById('clickCount').innerText = data.clickCount
     };
 
+	// 3. create handle error handler
     eventSource.onerror = (error) => {
         console.error('EventSource failed:', error);
         eventSource.close();
