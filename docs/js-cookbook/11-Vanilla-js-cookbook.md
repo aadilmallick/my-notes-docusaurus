@@ -1379,7 +1379,7 @@ function addOptionalProperties<T extends Record<string, any>>(
 }
 
 const objec : {name: string; age?: number} = {
-    name: "aadil"
+    name: "aasdfil"
 }
 
 const newObj = addOptionalProperties(objec, 2 > 1, {

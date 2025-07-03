@@ -935,7 +935,9 @@ function throttle<T extends (...args: any[]) => void>(
 }
 ```
 
-## Async methods
+## Async 
+
+### Async methods
 
 All the below methods take in an array of promises and return a single promise as a result, which resolves either to an array of data or a single data.
 
@@ -945,7 +947,7 @@ All the below methods take in an array of promises and return a single promise a
 - `Promise.race()`: Given an array of promises, this returns the first promise in the array that gets fulfilled. It doesn't matter whether it resolves or rejects. All the promises race against each other to finish, hence the name.
 - `Promise.any()`: Given an array of promises, this returns the first promise in the array that resolves successfully. If all the promises reject, then the promise returned by `Promise.any()` rejects.
 
-**with resolvers**
+### **with resolvers**
 
 There is a new way to promisify functions without going into `new Promise(res, rej)` callback hell: use `Promise.withResolvers()`:
 
@@ -1020,6 +1022,119 @@ listenForCompletion(job)
     console.error("Failed!");
   })
 ```
+
+### Cancelling async operations
+
+In javascript, there is not built in way to cancel async operations.
+
+#### Manual cancellation
+
+Here is the poor man's way of aborting an async operation:
+
+1. Create a boolean that if true, signals abortion/cancellation, and if false, signals that the operation should not be cancelled yet.
+2. Create a **race condition** of two promises - an async operation and a promise that rejects if the "signal" boolean is true. Execute the race with `Promise.race(promise_arr)`
+3. Whenever you want to cancel the operation, just toggle the boolean signal to be true.
+
+```ts
+let isAborted = false;
+
+let operation = new Promise((resolve, reject) => {
+    setTimeout(() => resolve('operation complete'), 5000);
+});
+
+let cancel = new Promise((resolve, reject) => {
+    if (isAborted) {
+        reject('operation cancelled');
+    } 
+});
+
+Promise.race([operation, cancel])
+.then(data => console.log(data))
+.catch(error => console.error(error));
+
+// toggle isAborted to cancel operation
+isAborted = true;
+```
+
+You can make this a bit more tractable by abstracting away this behavior to work for any async operation:
+
+```ts
+function makeCancelable<T>(promise: T){
+    let isCanceled = false;
+    
+    const cancelablePromise = new Promise<T>((resolve, reject) => {
+        promise.then(val => {
+            isCanceled ? reject({isCanceled, val}) : resolve(val);
+        });
+        promise.catch(error => {
+            isCanceled ? reject({isCanceled, error}) : reject(error);
+        });
+    });
+    
+    return {
+        promise: cancelablePromise,
+        cancel() {
+            isCanceled = true;
+        },
+    };
+}
+```
+
+However, you might notice a glaring flaw with this solution:
+
+- This pattern doesn't truly cancel the operation, it merely ignores the result
+- If the promise is already settled, the cancellation method has no effect
+
+#### Cancelling with generators
+
+We can short circuit a long running generator to stop with `generator.return()`.
+
+```ts
+function* generatorFn() {
+    // simulate long-running task
+    for (let i = 0; i < 1e6; i++) {
+        yield i;
+    }
+} 
+
+const generator = generatorFn();
+
+// initiate long-running task
+let nextIteration;
+do {
+    nextIteration = generator.next();
+    // simulate work
+    console.log(nextIteration.value);
+} while (!nextIteration.done);
+
+// at some point - we want to stop
+generator.return();
+```
+
+Here is an abstraction around running a one-time async operation in a generator, and then being able to cancel at any time:
+
+```ts
+
+function createCancelablePromise<T>(asyncCb: () => Promise<T>) {
+  async function* generator() {
+    const result = await asyncCb();
+    yield result;
+  }
+
+  const generatorInstance = generator();
+
+  return {
+    awaitValue: async () => {
+      const { value } = await generatorInstance.next();
+      return value;
+    },
+    cancel: async () => {
+      await generatorInstance.return();
+    },
+  };
+}
+```
+
 ## Decorators
 
 Decorators in javascript work just like they do in Python. They are syntactic sugar around functions that return wrapper functions and add some extra reusable functionality. 
@@ -2246,7 +2361,7 @@ function interpolate(str: string, params: Record<string, string>) {
 }
 
 const test = interpolate("Hello {name}", {
-  name: "Aadil",
+  name: "josh",
 });
 
 console.log(test);

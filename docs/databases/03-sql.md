@@ -397,11 +397,11 @@ CREATE TABLE lessons_contents (
 );
 
 INSERT INTO users (name) VALUES
-('aadil1'),
-('aadil2'),
-('aadil3'),
-('aadil4'),
-('aadil5');
+('bruh1'),
+('bruh2'),
+('bruh3'),
+('bruh4'),
+('bruh5');
 
 INSERT INTO lessons (title, user_id) VALUES
 ('Title 1', 1),
@@ -427,7 +427,7 @@ INNER JOIN
 INNER JOIN 
     lessons_contents lc on lc.lesson_id = l.id
 WHERE
-    u.name = 'aadil1';
+    u.name = 'bruh1';
 ```
 
 #### Natural inner joins
@@ -724,11 +724,11 @@ Then this is what is returned:
 ```sql
   name  | id |          lesson_titles          
 --------+----+---------------------------------
- aadil1 |  1 | {"Title 1","Title 2","Title 3"}
- aadil2 |  2 | {}
- aadil3 |  3 | {"Title 5"}
- aadil4 |  4 | {"Title 4"}
- aadil5 |  5 | {}
+ bruhgicious1 |  1 | {"Title 1","Title 2","Title 3"}
+ bruhgicious2 |  2 | {}
+ bruhgicious3 |  3 | {"Title 5"}
+ bruhgicious4 |  4 | {"Title 4"}
+ bruhgicious5 |  5 | {}
 ```
 ### Functions and procedures
 
@@ -1105,7 +1105,7 @@ Inserting data works the exact same as in postgres, where you specify which colu
 
 ```sql
 INSERT INTO Artist (Name) Values 
-('aadil mallick'),
+('bruhdiu k'),
 ('Wopziano');
 ```
 #### Querying Data

@@ -367,13 +367,6 @@ const userToEmailMap = z.record(
   z.string().min(6).max(40).endsWith("@gmail.com")
 );
 
-/*
-const userToEmails = {
-	"kjflasdkjfka-asfnjaskd": "waadlingaadil@gmail.com",
-	// ...
-}
-*/
-
 ```
 
 For a more performant solution concerning dealing with objects with an immense number of keys, you can use maps with `z.map()`:

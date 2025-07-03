@@ -808,6 +808,16 @@ In the example above, a `body < p` would have higher specificity than the `.text
 > [!NOTE] Tip
 > Having base styles be the first layer and utility class layers be the last is a great away to avoid specificity headaches.
 
+### Logic
+
+#### `if()` and `attr()`
+
+The `attr()` function lets you get the value of an HTML attribute name and then convert it to any CSS type.
+
+The `if()` function lets you do conditional logic and is basically a ternary operator.
+
+![](https://i.imgur.com/Ck2xhnb.png)
+
 ## Dark Mode
 
 Dark mode is a simple technique that only requires a few steps. It involves setting global CSS variables that you use everywhere in your application for styling, and then creating a class that overrides those CSS variables when applied.

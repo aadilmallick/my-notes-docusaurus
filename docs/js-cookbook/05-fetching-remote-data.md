@@ -322,11 +322,126 @@ fileReader.addEventListener("error", (e) => {
 
 ## Streams and binary data
 
-
-
 ### Readable Streams
 
-Readable streams stream data in chunks as to avoid large file overhead. You can only read a stream once, but there is a concept called **teeing** that allows you to copy a stream and therefore read it twice. 
+#### Basics
+
+Readable streams can be created through the `ReadableStream()` constructor, which accepts an object of methods you need to implement:
+
+- `start(controller)`: Called when the stream is created. It allows you to initialize the stream and start the data source.
+	- **This method is called only once.**
+	-  Inside this method, you should include code that sets up the stream functionality, e.g., beginning generation of data or otherwise getting access to the source.
+- `pull(controller)`: Called repeatedly when the stream needs more data, when iterating through the stream. 
+	- **This method is called every time a new chunk is consumed**
+	- This is where you fetch or generate the next chunk of data and enqueue it using `controller.enqueue(chunk)`.
+- `cancel(reason)`: Called when the stream is cancelled via an abort controller or with `stream.cancel()`. This allows you to clean up any resources associated with the stream.
+
+```ts
+const readable = new ReadableStream({
+  start(controller) {
+    controller.enqueue('Hello');
+    controller.enqueue('World');
+    controller.close();
+  },
+  pull(controller) {
+    // Called when consumer wants more data
+  },
+  cancel(reason) {
+    // Called if consumer aborts
+  }
+});
+
+// consume in for-wait loop
+for await (const chunk of readable) {
+  console.log(chunk);
+}
+```
+
+**controller**
+
+The controller is the same for all writable, readable, and transform stream creations. It has these methods:
+
+- `controller.enqueue(chunk)`: writes a chunk to the stream
+- `controller.close()`: closes the streaming of data, prevents any more chunks in the data flow.
+- `controller.error(err)`: errors out.
+
+**consuming a stream**
+
+To consume a readable stream, you have two methods:
+
+- **async iteration**: You can iterate over it like an async generator.
+- **getting the reader**: A readable stream exposes a `readable.reader` object whihc lets you manually read the stream.
+
+**async iteration**
+
+**getting the reader**
+
+You can get a reader using the `readableStream.getReader()` method:
+
+```ts
+const reader = readableStream.getReader()
+```
+
+You then have access to these methods on the reader, all of which are async.
+
+- `reader.read()`: an iterator method that returns an object with the two proeprties `value` and `done`, just like an `iterator.next()` call.
+- `reader.cancel()`: cancels the readable stream consumption and triggers the `cancel()` method override when creating a readable stream.
+- `reader.closed`: a promise that if you await for it, blocks the thread until the stream is successfully closed.
+
+```ts
+const reader = readable.getReader()
+await reader.read()
+await reader.cancel()
+await reader.closed
+```
+
+The basic syntax of consuming a stream through a reader uses an infinite loop:
+
+```ts
+async function readData(url) {
+  const response = await fetch(url);
+  const reader = response.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      // Do something with last chunk of data then exit reader
+      return;
+    }
+    // Otherwise do something here to process current chunk
+  }
+}
+```
+
+Here's an example that shows how to iterate through a reader in a `while` loop, breaking when there is no more data left to read:
+
+```ts
+// Create the readable stream
+const movieStream = createReadableStream();
+
+// Function to process and log the output from the stream
+const processStream = async () => {
+  const reader = movieStream.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      console.log("Stream ended");
+      break;
+    }
+    console.log(value);
+  }
+};
+```
+
+**locked streams**
+
+Only one reader can read a stream at a time; when a reader is created and starts reading a stream (an **active reader**), we say it is **locked** to it. If you want another reader to start reading your stream, you typically need to cancel the first reader before you do anything else.
+
+You can manually release a lock that a `reader` object using the `reader.releaseLock()` method:
+
+```ts
+reader.releaseLock()
+```
+#### Fetching
 
 The `response.body` from a `fetch()` call is a `ReadableStream` object, which allows us to do some stuff.
 
@@ -373,7 +488,6 @@ async function readData(url) {
   }
   // Exit when done
 }
-
 ```
 
 You can also craft a response from a readable stream, by passing it into the constructor like `Response(readableStream)` which is useful for accessing response methods to get usable data like `response.blob()`, `response.arrayBuffer()`, etc.
@@ -384,10 +498,11 @@ async function streamToResponse(stream: ReadableStream) {
 }
 ```
 
-Here are some useful methods on a stream: 
+#### Teeing
 
-- `stream1.pipeThrough(stream2)`: basically writes the contents from stream1 to stream2, copying stream1 to stream2.
-- `stream.tee()`: returns a two copies of the same unconsumed stream.
+The issue of streams being locked by one consumer leads us to **teeing**, which duplicates a stream and lets you consume the copy.
+
+- `stream.tee()`: returns a two copies of the same unconsumed stream as a tuple of streams.
 
 Teeing a stream is especially useful if you need multiple consumers of the same stream. A stream can only be consumed once, so `stream.tee()` makes copies of the unconsumed stream.
 
@@ -404,6 +519,133 @@ When reading from streams, keep in mind to support canceling fetch requests and 
 
 
 ### Writable streams
+
+#### Basics
+
+Writable streams are created through instantiating the `WritableStream` class with an object of options. These are the 4 methods you can override:
+
+- `start(controller)`: Called when the stream is created. It allows you to initialize the stream and prepare the sink.
+	- **this method is only called once**.
+- `write(chunk, controller)`: Called when a new chunk of data is available. This is where you write the chunk to the sink.
+	- **this method is called every time the writable stream writes data, implicitly or manually**
+- `close(controller)`: Called when the stream is closed. This allows you to finalize the writing process and clean up any resources.
+- `abort(reason)`: Called when the stream is aborted. This allows you to handle errors and clean up resources.
+
+```ts
+const writableStream = new WritableStream({
+  start(controller) {
+    // Initialize the stream (e.g., open a file)
+    console.log("Writable stream started");
+  },
+  async write(chunk, controller) {
+    // Write the chunk to the sink (e.g., write to a file)
+    console.log("Writing chunk:", chunk);
+    // Simulate an asynchronous write operation
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  },
+  close(controller) {
+    // Finalize the writing process (e.g., close the file)
+    console.log("Writable stream closed");
+  },
+  abort(reason) {
+    // Handle errors (e.g., delete the partially written file)
+    console.error("Writable stream aborted:", reason);
+  },
+});
+```
+
+Here is an example of creating a writable that writes data with a delay:
+
+```ts
+
+const squareTransform = new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(chunk * chunk);
+  },
+});
+
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+// create a writable that streams data.
+function createStreamingWritable(ms: number) {
+  const writable = new WritableStream({
+    async write(chunk, controller) {
+      await delay(ms);
+      console.log(chunk);
+    },
+    close() {
+      console.log("Stream closed");
+    },
+    abort(err) {
+      console.error("Stream aborted", err);
+    },
+    start(controller) {
+      console.log("stream started");
+    },
+  });
+  return writable;
+}
+
+let stream = getNumberStream(1, 10);
+const delayStream = createStreamingWritable(1000);
+stream
+	.pipeThrough(squareTransform) // apply transform
+	.pipeTo(delayStream); // apply writable.
+``` 
+
+**locking**
+
+When a writer is created and starts writing to a stream (an **active writer**), it is said to be **locked** to it. Only one writer can write to a writable stream at one time. If you want another writer to start writing to your stream, you typically need to abort it before you then attach another writer to it.
+
+You can do this through the `writer.abort()` method.
+
+#### writable stream methods
+
+You can get a manual writer from a writable stream using the `writable.getWriter()` method, which is the second method of writing a writable stream if you don't pipe a readable stream to a writable stream.
+
+```ts
+const writer = writable.getWriter();
+```
+
+And here are the methods you have on a writer:
+
+```ts
+const writer = writable.getWriter();
+await writer.ready;
+
+await writer.write('Hello');
+await writer.write('World');
+await writer.close();
+await writer.abort();
+```
+
+- `writer.ready`: an asynchronous promise if you resolve, it will wait until the writable is ready.
+- `writer.write(chunk)`: manually writes a chunk
+- `writer.close()`: closes the writable stream, stops writing.
+- `writer.abort()`: aborts the writable stream, releasing the lock.
+
+#### Queuing strategies and backpressure
+
+the chunks in a stream that have not yet been processed and finished with are kept track of by an internal queue.
+
+- In the case of readable streams, these are the chunks that have been enqueued but not yet read
+- In the case of writable streams, these are chunks that have been written but not yet processed by the underlying sink.
+
+Internal queues employ a **queuing strategy**, which dictates how to signal backpressure based on the **internal queue state.**
+
+The calculation performed is like so, where **high water mark** is the maximum size in bytes a chunk can be.
+
+```
+highWaterMark - total size of chunks in queue = desired size
+```
+
+The **desired size** is the number of chunks the stream can still accept to keep the stream flowing but below the high water mark in size. Here is the effect desired size has on backpressure:
+
+- If the desired size is above 0, then that means we are writing faster than we are reading, and there is no backpressure
+- If the desired size is below 0, then that means it means that chunks are being generated faster than the stream can cope with, which results n backpressure.
+#### Custom class
+
+And here is a class that abstracts over writing chunks of data to a writable stream:
 
 ```ts
 class WritableStreamManager<T extends Uint8Array<ArrayBufferLike>> {
@@ -422,9 +664,38 @@ class WritableStreamManager<T extends Uint8Array<ArrayBufferLike>> {
   }
 }
 ```
-### Stream Compression API
 
-The `CompressionStream` and `DecompressionStream` classes are used to create compressed and decompressed streams respectively.
+### Transform stream
+
+You can create a transform stream by instantiating the `TransformStream` class, whose constructor accepts an object of options. You should override these methods:
+
+- `transform(chunk, controller)`: how you should transform the chunk that's coming from a readable stream, and enqueue that with a controller.
+
+```ts
+const squareTransform = new TransformStream({
+  transform(chunk: number, controller) {
+    controller.enqueue(chunk * chunk);
+  },
+});
+```
+
+A transform stream gets applied to a readable stream through this syntax, as you'll see in the pipeline section:
+
+```ts
+const transformedReadableStream = readableStream.pipeThrough(transformStream)
+```
+#### Built in transform streams
+
+JS offers some built in transform streams that inherit from the `TransformStream` class:
+
+- `TextDecoderStream`: a transform stream that decodes uint8arrays into plain text.
+- `TextEncoderStream`: a transform stream that encodes text into uint8arrays
+- `CompressionStream`: a transform stream that compresses a stream based on the GZIP algorithm
+- `DecompressionStream`: a transform stream that compresses a stream based on the GZIP algorithm
+
+#### Stream Compression API
+
+The `CompressionStream` and `DecompressionStream` classes are used to create compressed and decompressed streams respectively, which are both transform streams.
 
 ```ts
 const compressionStream = new CompressionStream("gzip")
@@ -451,8 +722,8 @@ Here are both ways to respectively compress and decompress the same readable str
 
   async function getDecompressedStream(stream: ReadableStream) {
     const ds = new DecompressionStream("gzip");
-    const decompressedStream = stream.pipeThrough(ds);
-    return decompressedStream;
+    const decompressedReadbleStream = stream.pipeThrough(ds);
+    return decompressedReadableStream;
   }
 
 const response = await fetch("bruh.png")
@@ -461,11 +732,53 @@ const compressedStream = await getCompressedStream(response.body)
 // get back decompressed readable stream
 const decompressedStream = await getDecompressedStream(compressedStream)
 ```
-### Text encoding
+
+
+### Pipeline
+
+Now that we know how to make transform streams, we can put readable streams, transform streams, and writable streams in a pipeline together:
+
+```ts
+const upperCase = new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(chunk.toUpperCase());
+  }
+});
+
+const readable = new ReadableStream({
+  start(controller) {
+    controller.enqueue('hello');
+    controller.enqueue('world');
+    controller.close();
+  }
+});
+
+const writable = new WritableStream({
+  write(chunk) {
+    console.log('Transformed:', chunk);
+  }
+});
+
+readable
+  .pipeThrough(upperCase) // pipeThrough() applies transform stream
+  .pipeTo(writable);  // pipeTo() finishes pipeline, piping to readable
+```
+
+To form a pipeline, you use these methods on a readable stream: `readable.pipeThrough()` and `readable.pipeTo()`
+
+- To apply transform streams, you use the `readable.pipeThrough()` method and pass in a transform stream, and you can chain as many of these as you want.
+- To finish the pipeline, you use the `readable.pipeTo()` method and pass in a writable stream. You can have only one of these per pipeline.
+
+Here are the differences between these two methods:
+
+- `readable.pipeThrough(transformStream)`: accepts a transform stream, applies it, and returns a `ReadableStream`
+- `readable.pipeTo(writableStream)`: accepts a writable stream and pipes to it fully, returning nothing and fully consuming the readable stream
+
+### Text encoding and decoding
 
 Binary data is easy to work with, but text needs encoding and decoding. 
 
-Here is how to use the `TextEncoder()` and `TextDecoder()` classes:
+Here is how to use the `TextEncoder()` and `TextDecoder()` classes, both of which encode and decode `utf8` by default.
 
 ```ts
 async function encodeText (text: string) {
@@ -478,6 +791,38 @@ async function decodeText (data: Uint8Array) {
 	return decoder.decode(data); // returns string
 }
 ```
+
+#### Encoders
+
+You can create a text encoder through the `TextEncoder` class, optionally passing in a text encoding type, which defaults to `"utf-8"`.
+
+```ts
+const encoder = new TextEncoder(); // Defaults to UTF-8
+// Or, specify an encoding:
+const encoder = new TextEncoder('ISO-8859-1'); // Latin-1
+const encoder = new TextEncoder('UTF-16LE'); // UTF-16 Little Endian
+```
+
+The encoder has two available methods for encoding strings and returning them as binary data represented by an `UInt8Array` instance:
+
+- `encoder.encode(str)`: encodes the string to a uint8array
+- `encoder.stream(str)`: encodes the string to a `ReadableStream` that streams chunks of the uint8array.
+
+#### Decoders
+
+You can create a text decoder that decodes uint8arrays to strings through the `TextDecoder` class, optionally passing in a text encoding type, which defaults to `"utf-8"`.
+
+```ts
+const decoder = new TextDecoder(); // Defaults to UTF-8
+// Or, specify an encoding:
+const decoder = new TextDecoder('ISO-8859-1'); // Latin-1
+const decoder = new TextDecoder('UTF-16LE'); // UTF-16 Little Endian
+```
+
+The decoder has two available methods for decoding the uint8arrays and returning them as strings.
+
+- `decoder.decode(unit8array)`: decodes the array to a string
+- `decoder.stream(uint8array)`: decodes the array to a `ReadableStream` that streams chunks of the string.
 
 ### ArrayBuffers
 
@@ -1102,9 +1447,30 @@ wsClient
   });
 ```
 
-#### Websockets on the server: express
 
-Here is an example of an express app that uses websockets:
+#### Websockets on the server: express + WS
+
+The `ws` package offers primitives for creating a websocket server:
+
+```ts
+const WebSocket = require('ws');
+
+// setup a new WebSocket Server
+const wss = new WebSocket.Server({ port: 8080 }, () => {
+    console.log('Server is running');
+});
+
+// setup connection and message listeners
+wss.on('connection', ws => {
+    ws.on('message', message => {
+        console.log('received: %s', message);
+        ws.send(`Hello, you sent -> ${message}`);
+    });
+});
+```
+
+
+Here is an example of an express app that uses websockets, combining with the `ws` package
 
 ```ts
 const express = require('express');
@@ -1116,25 +1482,22 @@ const server = http.createServer(app);
 
 const wss = new WebSocket.Server({ server });
 
-// Store connected clients
-const clients = new Set();
 
-wss.on('connection', (ws) => {
-  clients.add(ws);
+wss.on('connection', (client) => {
   console.log('Client connected');
 
-  ws.on('message', (message) => {
+  client.on('message', (message) => {
     console.log(`Received: ${message}`);
     // Echo or broadcast the message
-    ws.send(`Server received: ${message}`);
+	client.send(`Server received: ${message}`);
   });
 
-  ws.on('close', () => {
+  client.on('close', () => {
     clients.delete(ws);
     console.log('Client disconnected');
   });
 
-  ws.on('error', (err) => {
+  client.on('error', (err) => {
     console.error('WebSocket error', err);
   });
 });
@@ -1145,6 +1508,16 @@ app.get('/', (req, res) => {
 
 server.listen(3000, () => {
   console.log('Listening on http://localhost:3000');
+});
+```
+
+You can access all connected clients through the `wss.clients` property, and broadcoast messages to all clients like so:
+
+```ts
+wss.clients.forEach((client) => {
+	if (client.readyState === WebSocket.OPEN) {
+		client.send(msg);
+	}
 });
 ```
 
@@ -1197,6 +1570,52 @@ The **server side** must comply with these rules:
       Connection: "keep-alive",
     },
 ```
+
+Here is a basic, reusable example that lets you create a readable stream and not worry about formatting the data:
+
+```ts
+const getControllerHelpers = (
+  controller: ReadableStreamDefaultController<any>
+) => {
+  return {
+    addTextStreamData(data: Record<string, any>) {
+      const rawEventStreamMessage = `data: ${JSON.stringify(data)}\n\n`;
+      // const encodedMessage
+      controller.enqueue(rawEventStreamMessage);
+    },
+    close() {
+      controller.close();
+    },
+  };
+};
+
+function createTextEventStream(options: {
+  onStart: (helpers: ReturnType<typeof getControllerHelpers>) => Promise<void>;
+  onPull?: (helpers: ReturnType<typeof getControllerHelpers>) => Promise<void>
+}) {
+  const textEncoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      await options.onStart(getControllerHelpers(controller));
+    },
+    async pull(controller) {
+      await options.onPull?.(getControllerHelpers(controller));
+    },
+    cancel() {
+      stream.cancel();
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+```
+
+And here's a complete example:
 
 ```ts
 app.get("/realtime/:id", async (_req, info, params) => {
@@ -1273,4 +1692,86 @@ document.addEventListener('DOMContentLoaded', (event) => {
         eventSource.close();
     };
 });
+```
+
+#### COmplete example:
+
+send from server like so:
+
+```ts
+const getControllerHelpers = (
+  controller: ReadableStreamDefaultController<any>
+) => {
+  return {
+    addTextStreamData(data: Record<string, any>) {
+      const rawEventStreamMessage = `data: ${JSON.stringify(data)}\n\n`;
+      // const encodedMessage
+      controller.enqueue(rawEventStreamMessage);
+    },
+    close() {
+      controller.close();
+    },
+  };
+};
+
+function createTextEventStream(options: {
+  onStart: (helpers: ReturnType<typeof getControllerHelpers>) => Promise<void>;
+  onPull?: (helpers: ReturnType<typeof getControllerHelpers>) => Promise<void>;
+}) {
+  const textEncoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      await options.onStart(getControllerHelpers(controller));
+    },
+    async pull(controller) {
+      await options.onPull?.(getControllerHelpers(controller));
+    },
+    cancel() {
+      stream.cancel();
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+
+const server = Bun.serve({
+  port: 3000, // Optional; defaults to process.env.PORT || 3000
+  routes: {
+    "/": appHTML,
+    "/event-stream": (req) => {
+      const eventResponse = createTextEventStream({
+        onStart: async ({ addTextStreamData, close }) => {
+          addTextStreamData({ dog: "bruh" });
+          addTextStreamData({ dog: "bruh2" });
+          addTextStreamData({ dog: "bruh3" });
+          close();
+        },
+      });
+      return eventResponse;
+    },
+  },
+})
+```
+
+COnsume like so:
+
+```ts
+const eventSource = new EventSource("/event-stream");
+
+// 2.  create handle message handler
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log("data from stream", data);
+};
+
+// 3. create handle error handler
+eventSource.onerror = (error) => {
+  console.error("EventSource failed:", error);
+  eventSource.close();
+};
 ```

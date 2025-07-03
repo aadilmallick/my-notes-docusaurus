@@ -32,7 +32,7 @@ To clean up an property value on an object, just set that to null instead of man
 
 ```ts
 const person = {
-	name: "Aadil",
+	name: "asdfasfsadf",
 	height: "5'10"
 }
 
@@ -105,7 +105,7 @@ Accessing properties on an object is $O(n)$ performance because it has to look t
 
 ```ts
 const obj = {
-	name: "Aadil"
+	name: "Afasdfasd"
 }
 
 obj.name // bad! O(n)

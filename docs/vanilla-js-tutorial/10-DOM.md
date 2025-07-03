@@ -1557,7 +1557,9 @@ Here are the methods you have on the `observer` object:
 
 To observe changes to element text content with the `"characterData"` attribute, you have to observe the child node of the text element, since text is a node in HTML.
 
-### URL
+### URL and URLPattern
+
+#### URL
 
 ```ts
 let url = new URL("https://example.com:8000/path/name?q=term#fragment");
@@ -1573,6 +1575,36 @@ url.search; // => "?q=term"
 url.hash; // => "#fragment"
 ```
 
+#### URLPattern
+
+The `URLPattern` class is used as a way to programmatically test if URLs match a certain schema. It's like a wrapper around regex for URLs.
+
+```ts
+// A pattern matching some fixed text
+const pattern = new URLPattern({ pathname: "/books" });
+console.log(pattern.test("https://example.com/books")); // true
+console.log(pattern.exec("https://example.com/books").pathname.groups); // {}
+```
+
+```ts
+// A pattern matching with a named group
+const pattern = new URLPattern({ pathname: "/books/:id" });
+console.log(pattern.test("https://example.com/books/123")); // true
+console.log(pattern.exec("https://example.com/books/123").pathname.groups); // { id: '123' }
+```
+
+You pass an object of options into the constructor:
+
+```ts
+const pattern = new URLPattern(options)
+```
+
+Here are the options:
+
+- `pathname`: the string matcher for the pathname (everything after the origin, with root being `/`). You can either hardcode the path, use regex, or use route params for matching.
+- `protocol`: the string matcher for the protocol you want the URL to be on.
+- `hash`: the string matcher for the hash (everything after the `#`)
+- `hostname`: the string matcher for the domain name
 ### View Transitions
 
 You can do a view transitions between changing pages (frontend version) by using the `document.startViewTransition(cb)` method.
@@ -2237,6 +2269,146 @@ dialog {
 }
 ```
 
+### `commandfor` attribute
+
+The `commandfor=` HTML attribute is used on buttons as a way of declaratively creating interaction and onclick listeners for buttons to do things that would otherwise require javascript, like opening popovers and dialogs.
+
+The two important attributes you need to understand are these:
+
+- `commandfor=`: this button attribute should be set to the ID of the element 
+- `command=`: the string action that determines the behavior of the onclick. There are built-in ones for opening and closing popovers and modals, but you can also provide custom commands for which you imperatively define their behavior in javascript.
+
+> [!NOTE]
+> The main benefit of using the command API instead of manually adding click listeners is that more memory-efficient, automatically targets specific elements without having to do DOM querying bullshittery, and offers a declarative, readable way of creating click listeners.
+
+#### Basic use
+
+**opening and closing a popover**
+
+For opening and closing a popover, you set the `commandfor=` attribute on a button set to the ID of a popover, and then you can supply these two built-in commands:
+
+- `command="toggle-popover"`: the button with this command can toggle open and close popovers.
+- `command="hide-popover"`: the button with this command can close popovers once they are open.
+
+
+```html
+<!-- toggle popover action -->
+<button commandfor="mypopover" command="toggle-popover">
+  Toggle the popover
+</button>
+<div id="mypopover" popover>
+	<!-- close popover action -->
+  <button commandfor="mypopover" command="hide-popover">Close</button>
+  <p>popover content </p>
+</div>
+```
+
+**opening and closing a dialog**
+
+For opening and closing a dialog, you set the `commandfor=` attribute on a button set to the ID of a dialog, and then you can supply these two built-in commands:
+
+- `command="show-modal"`: the button with this command can open a dialog
+- `command="close"`: the button with this command can close dialogs once they are open.
+
+```html
+<button commandfor="mydialog" command="show-modal">Show modal dialog</button>
+<dialog id="mydialog">
+  <button commandfor="mydialog" command="close">Close</button>
+  Dialog Content
+</dialog>
+```
+
+**commands with javascript**
+
+You can also create custom commands like so and add their functionality through Javascript. This is extremely similar to just doing stuff with dataset attributes, but it's a bit more robust since there's an event listener there:
+
+```html
+<button commandfor="my-img" command="--rotate-left">Rotate left</button>
+<button commandfor="my-img" command="--rotate-right">Rotate right</button>
+<img id="my-img" src="photo.jpg" alt="[add appropriate alt text here]" />
+```
+
+- Above, we create custom commands `"--rotate-left"` and `"--rotate-right"` that are tied to the image with id `'my-img'`.
+
+```ts
+const myImg = document.getElementById("my-img");
+
+myImg.addEventListener("command", (event) => {
+  if (event.command === "--rotate-left") {
+    myImg.style.rotate = "-90deg";
+  } else if (event.command === "--rotate-right") {
+    myImg.style.rotate = "90deg";
+  }
+});
+```
+
+- Above, we listen to the `"command"` event on the image we tied the commands to, and can then get the specific command that was executed through the `event.command` property.
+
+#### Custom class
+
+For HTML that looks like this:
+
+```html
+<div>
+  <button command="--make-red" commandfor="circle">Make red</button>
+  <button command="--make-blue" commandfor="circle">Make blue</button>
+</div>
+
+<div id="circle" class="circle"></div>
+```
+
+This would be the custom class that is reusable:
+
+```ts
+interface CommandEvent extends Event {
+  command: string;
+}
+
+class DOMCommands<T extends HTMLElement, K extends readonly string[]> {
+  private listeners: Partial<Record<K[number], () => void>> = {};
+  constructor(public element: T, private commands: K) {}
+
+  onCommand<Command extends K[number]>(command: Command, callback: () => void) {
+    this.listeners[command] = callback;
+  }
+
+  setupCommandListener() {
+    this.element.addEventListener("command", (e) => {
+      const commandEvent = e as CommandEvent;
+      const listener = this.listeners[commandEvent.command as K[number]];
+      if (!listener) {
+        throw new Error(
+          `command listener for ${commandEvent.command} not implemented`
+        );
+      }
+      listener();
+    });
+  }
+}
+```
+
+And this is the implementation of setting up listeners:
+
+```ts
+
+const circleElement = document.getElementById("circle");
+if (!circleElement) throw new Error("wtff bro");
+
+const circleCommandsModel = new DOMCommands(circleElement, [
+  "--make-red",
+  "--make-blue",
+] as const);
+
+circleCommandsModel.onCommand("--make-blue", () => {
+  circleCommandsModel.element.style.backgroundColor = "blue";
+});
+
+circleCommandsModel.onCommand("--make-red", () => {
+  circleCommandsModel.element.style.backgroundColor = "red";
+});
+
+circleCommandsModel.setupCommandListener();
+```
 
 ## Various DOM Tips
 

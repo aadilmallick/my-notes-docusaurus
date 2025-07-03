@@ -126,7 +126,7 @@ The `c.req` property is a `HonoRequest` instance, which is a wrapper around the 
 - `c.req.query()` : returns all the query parameters as an object (key-value pairs).
 - `c.req.header(headerKey)`: returns the value of the specified request header
 - `c.req.routePath`: returns the route string of the request, like `/people/:name`
-- `c.req.path`: returns the path of the request, like `/people/aadil`
+- `c.req.path`: returns the path of the request, like `/people/happyfatboy`
 - `c.req.url` : returns the full URL of the request
 - `c.req.raw`: returns the `Request` instance that makes up this request
 
@@ -435,7 +435,7 @@ const NamePlate: FC<{ name: string }> = ({ name }) => {
 apiRouter.get("/", (c) => {
   return c.html(
     <Layout>
-      <NamePlate name="Aadil mallick" />
+      <NamePlate name="bruhick" />
     </Layout>
   );
 });
@@ -487,7 +487,7 @@ const apiRouter = new Hono();
 
 // 1. create context
 const PersonContext = createContext({
-  name: "Aadil",
+  name: "a goddamn loser",
   age: 20,
 });
 

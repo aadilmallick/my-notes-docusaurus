@@ -22,7 +22,7 @@ GET username
 We need some way to avoid name collisions, so we’ll follow a common pattern for naming our redis keys: separating by colons.
 
 ```bash
-SET user:aadil:username "amallick"
+SET user:asl:username "amallick"
 SET user:dan:username "dantheman"
 ```
 
@@ -53,7 +53,7 @@ Here are the options you are allowed:
 - `NX`: when this option is applied, the command will only succeed if the key does not exist
 
 ```bash
-SET user:aadil:username "amallick" NX # works only if key didn't exist before
+SET user:asadfasl:username "amallick" NX # works only if key didn't exist before
 ```
 
 TTL describes **time to live**, allowing us to control cache expiration for certain keys. We do this with the EX command to describe the cache age in seconds:

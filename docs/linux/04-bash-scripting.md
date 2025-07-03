@@ -22,9 +22,11 @@ Bash looks at the shebang, determines the language for that script, and uses the
 For example, let’s find the shebang for writing a bash script:
 
 1. Use `which bash` to find the location of the `bash` command on your laptop. You should get back `/usr/bin/bash`
-2. Type `#! /usr/bin/bash` as the first line of your script to register this as a bash language script
+2. Type `#!/usr/bin/bash` as the first line of your script to register this as a bash language script
 3. Rename your file to have no file extensions.
 4. Make the script executable by doing `chmod 777 <scriptname>`
+
+On Mac, the shebang is `#!/bin/bash`.
 
 Here is an example:
 
@@ -63,7 +65,7 @@ false && echo "hi" # runs the echo
 The true power of short circuiting comes with using the `test` command for conditional statements:
 
 ```bash
-test $AGE -gt 15 && echo "yummy, fertile" # only echo if age > 15
+test $AGE -gt 18 && echo "yummy, fertile" # only echo if age > 18
 ```
 
 #### **variables**
@@ -109,7 +111,7 @@ ${#VARIABLE_NAME}
 
 ```bash
 echo "${#PATH}"   # 1794
-MYNAME="aadil"
+MYNAME="bruhs"
 echo "I have ${#MYNAME} characters in my name" # 5
 ```
 
@@ -128,6 +130,13 @@ Here are the special variables you can use in bash scripts:
 - `$SECONDS` - The number of seconds since the script was started.
 - `$RANDOM` - Returns a different random number each time is it referred to.
 - `$LINENO` - Returns the current line number in the Bash script.
+
+For variable slicing with an arbitrary amount of arguments, you can use the following syntax:
+
+```bash
+echo "${@:2}" # echoes all arguments starting from 3rd one
+echo "${@:2:4}" # echoes all arguments starting from 3rd one till 5th one
+```
 
 **math interpolation**
 ****
@@ -323,7 +332,7 @@ Here are the main rules when it comes to conditionals in bash:
 
 ```bash
 
-NAME="aadil"
+NAME="bruhd"
 
 # string equality is done with = operator
 
@@ -573,6 +582,18 @@ unset arr[1]
 > [!WARNING]
 > Beware, however, that indices do not automatically shift when you use `unset` to delete an element. Thus if you want to delete elements, it's more preferred to use something like declarative arrays where numerical indices don't matter and are just treated like strings.
 
+**converting strings to arrays**
+
+If you have strings with space separation, an easy way to separate them into an array and store that in a variable is to evaluate the string as a variable, wrap in double quotes, and wrap that in parentheses, like so:
+
+```bash
+ARR=("$string")
+```
+
+```bash
+ALL_FILES_TO_TAR=("$@")
+echo "all files to tar: ${ALL_FILES_TO_TAR[@]:1}"
+```
 
 **Piping to arrays**
 ****
@@ -593,7 +614,7 @@ for FILE in $FILES
 	done
 ```
 
-**reading to arrays**
+**reading to arrays: method 1**
 ****
 If you want to read a file and store its contents in an array, you would use the `readarray` command, which reads from stdin. To do this, you often need to use process substitution to convert a file's contents into stdin.
 
@@ -615,6 +636,9 @@ readarray -s 1 my_array < my_file.txt # skips 1st line
 
 readarray -n 5 my_array < my_file.txt # reads frist 5 lines
 ```
+
+**reading to an array: method 2**
+****
 
 There is a different way to read in strings with newline characters as an array of strings:
 
@@ -638,6 +662,17 @@ do
 done
 ```
 
+**reading to an array: method 3**
+****
+
+Using the `-a` option, you can read a string separated by spaces as an array and save that array to a variable.
+
+```bash
+read -a ARRAY_NAME
+
+echo "array length ${#ARRAY_NAME[*]}"
+```
+
 **declarative arrays: dictionaries**
 
 tHe concept of dictionaries in bash is much like in python, except these are really just a special type of array called **declarative arrays**. In declarative arrays, indices are treated as strings rather than numbers which makes them dictionary-like.
@@ -655,7 +690,7 @@ You can then index them and use them like a dictionary:
 declare -A userdata 
 
 # 2. set key-value
-userdata[username]="aadil" 
+userdata[username]="al" 
 
 # 3. get value from key
 echo ${userdata[username]}
@@ -705,7 +740,7 @@ WHen using variables with the same name as a global variable inside functions, y
 
 ```bash
 
-name="aadil"
+name="gay"
 
 function printname () {
 	local name="jack"

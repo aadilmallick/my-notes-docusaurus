@@ -383,8 +383,8 @@ All aliases start with the `alias` section and then have specific keynames:
 
 ```bash title="~/.gitconfig"
 [user]
-	email = aadiltj.mallick@gmail.com
-	name = aadilmallick
+	email = bruhdil.bruh@gmail.com
+	name = bruhlicious
 [alias]
 	l = log --oneline
 	cm = "!f() { git add . && git commit -m \"$1\"; }; f"

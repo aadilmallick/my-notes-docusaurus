@@ -152,7 +152,7 @@ This is what the `github` context object looks like:
   "head_ref": "",
   "base_ref": "",
   "token": "",
-  "workspace": "/Users/mallicka/Documents/aadildev/work/health-dashboard",
+  "workspace": "/Users/mallicka/Documents/bruhdil/work/health-dashboard",
   "action": "",
   "action_path": "",
   "action_ref": "",
@@ -235,7 +235,7 @@ You can define environment variables using the `env` key, and you can define it 
     		steps:
     			- name: "Say hello"
     				env:
-    					FIRST_NAME: "Aadil"
+    					FIRST_NAME: "hellooo"
     				run: echo "Hello, my name is $FIRST_NAME"
     ```
 
@@ -327,12 +327,12 @@ build:
 		# create a job output named `name`
     name: 
 			description: "username of the person running this workflow"
-			value: ${{ steps.aadilmallick.outputs.output-var }}
+			value: ${{ steps.mallick.outputs.output-var }}
   steps:
     - name: create job output
-      id: aadilmallick
+      id: mallick
 # we redirect the key-value pair into github output to set an output value
-      run: echo 'output-var="aadil mallick bruh"' >> $GITHUB_OUTPUT ';'
+      run: echo 'output-var="mallick bruh"' >> $GITHUB_OUTPUT ';'
 ```
 
 1. To create a job output, first we need to set a value for it using the echo key-value pair syntax where in a step, we redirect the echo command into the `$GITHUB_OUTPUT` variable
@@ -349,7 +349,7 @@ build:
     jobs:
 		job_name:
 	       outputs:
-		        output_name: ${{ steps.aadilmallick.outputs.output-var }}
+		        output_name: ${{ steps.mallick.outputs.output-var }}
     ```
     
 
@@ -931,7 +931,7 @@ But there are necessary steps to accept input into the reusable workflow first:
         needs: build
         uses: ./.github/workflows/reusable.yaml
         with:
-          username: "Aadil Mallick is just that guy"
+          username: "poopy butthole is just that guy"
     ```
 
 ### Creating reusable workflow outputs

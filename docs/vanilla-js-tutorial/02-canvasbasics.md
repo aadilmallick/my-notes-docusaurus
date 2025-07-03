@@ -14,10 +14,14 @@ canvas.height = window.innerHeight;
 ## Canvas API
 
 ### Style
+
+#### Basic style
+
 - `ctx.fillStyle` : gets/sets the fill color for fill operations
 - `ctx.strokeStyle` : sets the color of outlining shapes on the canvas. Accepts a color property.
 - `ctx.font` : the font style for text creation methods. Set this to a string
 - `ctx.lineWidth` : sets the line width of the pen, the thickness of it. Accepts a number value.
+- `ctx.globalAlpha`: sets the global opacity for all drawing methods. Accepts a value from 0 to 1.
 ```javascript
 ctx.font = "30px Comic Sans MS";
 ctx.fillStyle = "red";
@@ -36,9 +40,16 @@ When your line width gets above 2 pixels, the `lineCap` and `lineJoin` concepts 
 The `ctx.lineCap` property can be these values: `"butt"`, `"square"`, `"round"`
 The `ctx.lineJoin` property can be these values: `"miter"`, `"round"`, `"bevel"`
 ### Simple Shapes
+
+**rectangles**
+
 - `ctx.fillRect(x, y, width, height)` : draws and fills a rectangle at the points.
 
+
 ### Paths
+
+#### Basic
+
 Drawing paths to the canvas involves beginning a path, moving to a starting point, drawing the path with methods, and then submitting the path to the canvas by stroking it or filling it.
 
 1. You start a path with the `ctx.beginPath()` method. 
@@ -47,11 +58,22 @@ Drawing paths to the canvas involves beginning a path, moving to a starting poin
 4. Submit the path to the canvas for drawing or filling with the `ctx.stroke()` or `ctx.fill()` methods.
   
 **methods**
+
+You use this method to begin the path:
+
+- `ctx.beginPath()` : begins drawing for stuff like circles. Need to execute this before drawing stuff like circles.
+
+These are the various path methods that you can use:
+
 - `ctx.rect(x, y, width, height)` : draws a rectangular path.
 - `ctx.lineTo(x, y)` : draws a line to the specified point from its current position.
-- `ctx.beginPath()` : begins drawing for stuff like circles. Need to execute this before drawing stuff like circles.
--  `ctx.closePath()` : closes the path by moving the canvas cursor back to the original position set by `moveTo()`.
 - `ctx.arc(x, y, radius, radians)` : draws an arc around the specified center coordinates (x, y), with the specified `radius`, and for the amount of radians you specify.
+	- The default direction is clockwise.
+- `ctx.arcTo(x1, y1, x2, y2, radius)`: draws an arc from one point to the other.
+
+You can then use these methods to close a path:
+
+-  `ctx.closePath()` : closes the path and then moves canvas cursor back to the original position set by `moveTo()`.
 - `ctx.stroke()` : end the path by stroking it.
 - `ctx.fill()` : end the path by filling it.
 
@@ -82,6 +104,36 @@ context.lineTo(35, 100);
 context.stroke();
 ```
 
+#### `Path2D`
+
+The `Path2D` class is used as an abstraction over creating paths with canvas, and even has interop with SVG paths. It has performance as its main benefit since it caches drawing.
+
+Here is the basic way of constructing:
+
+```ts
+const path = new Path2D()
+```
+
+This automatically begins a path, and on a path object, you have access to all the path methods, like `path.arc()`, `path.lineTo()`, etc.
+
+To close a path, you would use the `ctx.stroke()` or `ctx.fill()` methods and pass in the `Path2D` instance.
+
+```ts
+const rectangle = new Path2D();
+rectangle.rect(10, 10, 50, 50);
+
+const circle = new Path2D();
+circle.arc(100, 35, 25, 0, 2 * Math.PI);
+
+ctx.stroke(rectangle);
+ctx.fill(circle);
+```
+
+You can also create paths by passing in an svg string of `<path />` syntax, which automatically begins and draws the path for you. You can then end the path by filling or stroking it.
+
+```ts
+const p = new Path2D("M10 10 h 80 v 80 h -80 Z");
+```
 ### Drawing text
 
 Use these methods to draw text to the canvas:
@@ -101,6 +153,13 @@ To draw shadows, use these properties:
 - `ctx.shadowOffsetX`—The x-coordinate offset from the x-coordinate of the shape or path. The default is 0.
 - `ctx.shadowOffsetY`—The y-coordinate offset from the y-coordinate of the shape or path. The default is 0.
 - `ctx.shadowBlur`—The number of pixels to blur. If set to 0, the shadow has no blur. The default is 0.
+
+```ts
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 2;
+  ctx.shadowBlur = 2;
+  ctx.shadowColor = "rgb(0 0 0 / 50%)"
+```
 ### Drawing gradients
 
 #### Linear Gradient
@@ -171,6 +230,13 @@ context.fillRect(10, 10, 50, 50);
 // draw a gradient rectangle
 context.fillStyle = gradient;
 context.fillRect(30, 30, 50, 50);
+```
+
+```ts
+const radGrad4 = ctx.createRadialGradient(0, 150, 50, 0, 140, 90);
+  radGrad4.addColorStop(0, "#F4F201");
+  radGrad4.addColorStop(0.8, "#E4C700");
+  radGrad4.addColorStop(1, "rgb(228 199 0 / 0%)");
 ```
 
 ### Images
@@ -255,6 +321,18 @@ let imgURI = ctx.toDataURL("image/png");
 let image = document.createElement("img");
 image.src = imgURI;
 document.body.appendChild(image);
+```
+
+#### Image quality on canvas
+
+You have these two properties to change image smoothing quality when drawing images to the canvas:
+
+- `ctx.imageSmoothingEnabled`: whether to enable image smoothing (making images fuzzy) or not. By default, this is enabled,
+- `ctx.imageSmoothingQuality`: the quality of the image to set
+
+```ts
+context.imageSmoothingEnabled = false;
+context.imageSmoothingQuality = "high";
 ```
 ## Canvas performance 
 

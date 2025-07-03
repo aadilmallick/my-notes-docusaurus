@@ -197,6 +197,22 @@ function unsubscribe() {
 
 ### Creating observables
 
+#### Custom creation
+
+```ts
+import { Observable } from "rxjs";
+
+const observable = new Observable((subscriber) => {
+  subscriber.next(1);
+  subscriber.next(2);
+  subscriber.next(3);
+});
+
+observable.subscribe((value) => {
+  console.log(value);
+});
+```
+
 #### `fromEvent()`
 
 The `fromEvent(element : HTMLElement, eventType: string)` method from rxjs is a way to create an observable that streams in values whenever the event is triggered.
@@ -308,3 +324,11 @@ const counter$ = interval(1000).pipe(
   takeUntil(pause$),
 );
 ```
+
+#### Operators related with time
+
+- `delay(ms)`: delays the stream for `ms` milliseconds
+- `debounceTime(ms)`: debounces the stream with a `ms` millisecond delay
+- `throttleTime(ms)`: throttles the stream with a `ms` milliseconds delay
+- `debounce(() => observable$)`: doesn't stream until the returned observable from the callback starts streaming.
+- `throttle(() => observable$)`: doesn't stream until the returned observable from the callback starts streaming.

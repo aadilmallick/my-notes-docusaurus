@@ -402,7 +402,10 @@ sed 's/oldtext/newtext' example.txt
 sed 's/oldtext/newtext/g' example.txt
 ```
 
-You essentially have 4 components in the “sed string” you have to pass in, each separated by a forwards slash:
+You essentially have 4 components in the “sed string” you have to pass in, each separated by a delimiter.
+
+> [!NOTE]
+> The delimiter can be any character, we just typically use something uncommon, like a forward slash, but any delimiter can be used as long as it's consistent.
 
 - `s` : use sed for substitution
 - `oldtext` : the text to replace, or a regex pattern to match
@@ -415,6 +418,13 @@ You can use different delimiters instead of `/`, which is useful when the patte
 echo "/path/to/file" | sed 's#/path/to#/new/path/to#'
 ```
 
+Here is another example of using regex with sed:
+
+- Replaces all strings with `path: ` in it with `path: $(pwd)/mongodb-pv`, showcasing the power of programmatic replacement.
+
+```sh
+cat file.yaml | sed "s|path: .*|path: $(pwd)/mongodb-pv|"
+```
 #### `awk`
 
 AWK allows you to split text into an array and then print out the specific parts you want. The `awk -F<separator>` command basically splits the string on a specific separator. Then you can do a `{print $1}` to print the first part of the string resulting from the split.

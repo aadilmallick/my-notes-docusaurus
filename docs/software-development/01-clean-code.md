@@ -124,6 +124,15 @@ Many client-specific interfaces are better than one general-purpose interface.
 
 One should depend on abstractions rather than details.
 
+## Planning a project
+
+**step 1) user stories**
+
+create user stories for your MVP, which is a single sentence of the format "I want my user to .... in my app"
+
+**step 2) manage your data**
+
+Think through what your data looks like, what the tables will look like.
 ## Enterprise Code
 
 ### managing complexity

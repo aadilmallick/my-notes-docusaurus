@@ -1,98 +1,75 @@
 # Advanced JS: APIs
 
-## Eyedropper API
+### Abort Controller
 
-The Eyedropper API in chrome is experimental and only works on chrome 95 and above. It allows the user to pick any color from a webscreen. 
+The `AbortController` class in javascript is used to produce cancellation signals and control them, where aborting the signal aborts the operation attached to the signal. They have many use cases, from cancelling any async operation to removing event listeners.
+#### Aborting fetch requests
 
-### Basic Use
+We can use the `AbortController` class to abort fetch requests if they are taking too long.
 
-```ts
-// 1. create an abort controller
-const abortController = new AbortController();
+The main steps are these:
 
-// 2. override default. On ESC press, stop color picker
-window.addEventListener("keydown", (event: KeyboardEvent) => {
-  if (event.key === "Escape") {
-	this.abortController.abort();
-  }
-})
+1. Instantiate an abort controller with `new AbortController()`
+2. Connect the abort controller to our fetch call by attaching the `signal` property of the abort controller to the `signal` property of the fetch options object.
+3. Call `abort()` on the abort controller after a certain amount of time. The previous connection through the `signal` property will cause the fetch request to abort.
 
-if (window.EyeDropper) {
-	// 3. create eyedropper instance
-	const eyeDropper = new window.EyeDropper();
-	// 4. get selected hex color code
-	const {sRGBHex} = await eyeDropper.open({
-          signal: this.abortController.signal,
-	});
-}
-```
+```javascript
+async function fetchWithTimeout(
+  url: string,
+  // RequestInit is the interface for the fetch options object
+  options: RequestInit = {},
+  timeout = -1
+) {
+  // user has specified they want a timeout for fetch
+  if (timeout > 0) {
+    let controller = new AbortController();
+    // connect controller to our fetch request through the options object and on options.signal
+    options.signal = controller.signal;
 
-Keep in mind that the async call can fail and throw an error for two reasons: 
-
-1. Popup didn't close fast enough, so it gets mistaken for a user selection cancel. Solution is to close the popup window and use the abort controller.
-2. Eyedropper must be triggered by a user gesture, so you can only display it after a user press.
-
-### Class
-
-You need to provide your own type definitions for the API since type support is limited. 
-
-```ts
-interface ColorSelectionOptions {
-  signal?: AbortSignal;
-}
-
-interface ColorSelectionResult {
-  sRGBHex: string;
-}
-
-interface EyeDropper {
-  open: (options?: ColorSelectionOptions) => Promise<ColorSelectionResult>;
-}
-
-interface EyeDropperConstructor {
-  new (): EyeDropper;
-}
-
-interface Window {
-  EyeDropper?: EyeDropperConstructor | undefined;
-}
-```
-
-```ts
-export default class EyedropperManager {
-  private abortController = new AbortController();
-  private cb!: (event: KeyboardEvent) => void;
-
-  async getColor() {
-    this.cb = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        this.abortController.abort();
-      }
-    };
-    if (window.EyeDropper) {
-      const eyeDropper = new window.EyeDropper();
-      window.addEventListener("keydown", this.cb);
-      try {
-        const result = await eyeDropper.open({
-          signal: this.abortController.signal,
-        });
-        window.removeEventListener("keydown", this.cb);
-        return result.sRGBHex;
-      } catch (e) {
-        window.removeEventListener("keydown", this.cb);
-        console.warn("eyedropper error", e);
-        return null;
-      }
-    } else {
-      return null;
-    }
+    setTimeout(() => {
+      // this aborts the controller and any connected fetch requests
+      controller.abort();
+    }, timeout);
   }
 
-  static hasAPI() {
-    return Boolean(window.EyeDropper);
-  }
+  // need to pass options into fetch so that we get signal connection to abort controller
+  return fetch(url, options);
 }
+
+// fetches google with a timeout of 1 second, aborting the request if it takes any longer
+fetchWithTimeout("https://google.com", {}, 1000);
 ```
+
+Here is a simpler example: 
+
+```ts
+let abortController = new AbortController();
+ 
+fetch('wikipedia.zip', { signal: abortController.signal })
+  .catch(() => console.log('aborted!'));
+ 
+// Abort the fetch after 10ms
+setTimeout(() => abortController.abort(), 10);
+```
+
+#### `AbortSignal.any()`
+
+The `AbortSignal.any(signals)` method takes in an array of `AbortSignal[]` and returns a new signal that if any of the provided signals in the array get aborted, the enw signal also gets aborted.
+
+The main use case for this is if you want to automatically abort something conditionally based on the abortion of another signal.
+
+```ts
+const { signal: firstSignal } = new AbortController();
+fetch("https://example.com/", { signal: firstSignal });
+
+const { signal: secondSignal } = new AbortController();
+fetch("https://example.com/", { signal: secondSignal });
+
+// Cancels if either `firstSignal` or `secondSignal` is aborted
+const signal = AbortSignal.any([firstSignal, secondSignal]);
+await fetch("https://example.com/slow", { signal });
+```
+
 
 ## Notification
 
@@ -473,295 +450,102 @@ window.addEventListener("resize", () => {
 
 ## Other APIs
 
-### Aborting fetch requests
+### Eyedropper API
 
-We can use the `AbortController` class to abort fetch requests if they are taking too long.
+The Eyedropper API in chrome is experimental and only works on chrome 95 and above. It allows the user to pick any color from a webscreen. 
 
-The main steps are these:
+#### Basic Use
 
-1. Instantiate an abort controller with `new AbortController()`
-2. Connect the abort controller to our fetch call by attaching the `signal` property of the abort controller to the `signal` property of the fetch options object.
-3. Call `abort()` on the abort controller after a certain amount of time. The previous connection through the `signal` property will cause the fetch request to abort.
+```ts
+// 1. create an abort controller
+const abortController = new AbortController();
 
-```javascript
-async function fetchWithTimeout(
-  url: string,
-  // RequestInit is the interface for the fetch options object
-  options: RequestInit = {},
-  timeout = -1
-) {
-  // user has specified they want a timeout for fetch
-  if (timeout > 0) {
-    let controller = new AbortController();
-    // connect controller to our fetch request through the options object and on options.signal
-    options.signal = controller.signal;
-
-    setTimeout(() => {
-      // this aborts the controller and any connected fetch requests
-      controller.abort();
-    }, timeout);
+// 2. override default. On ESC press, stop color picker
+window.addEventListener("keydown", (event: KeyboardEvent) => {
+  if (event.key === "Escape") {
+	this.abortController.abort();
   }
+})
 
-  // need to pass options into fetch so that we get signal connection to abort controller
-  return fetch(url, options);
-}
-
-// fetches google with a timeout of 1 second, aborting the request if it takes any longer
-fetchWithTimeout("https://google.com", {}, 1000);
-```
-
-Here is a simpler example: 
-
-```ts
-let abortController = new AbortController();
- 
-fetch('wikipedia.zip', { signal: abortController.signal })
-  .catch(() => console.log('aborted!'));
- 
-// Abort the fetch after 10ms
-setTimeout(() => abortController.abort(), 10);
-```
-
-#### `AbortSignal.any()`
-
-The `AbortSignal.any(signals)` method takes in an array of `AbortSignal[]` and returns a new signal that if any of the provided signals in the array get aborted, the enw signal also gets aborted.
-
-The main use case for this is if you want to automatically abort something conditionally based on the abortion of another signal.
-
-```ts
-const { signal: firstSignal } = new AbortController();
-fetch("https://example.com/", { signal: firstSignal });
-
-const { signal: secondSignal } = new AbortController();
-fetch("https://example.com/", { signal: secondSignal });
-
-// Cancels if either `firstSignal` or `secondSignal` is aborted
-const signal = AbortSignal.any([firstSignal, secondSignal]);
-await fetch("https://example.com/slow", { signal });
-```****
-
-### Web Payments API
-
-Here is how to use the web payments api:
-
-1. Setup a payment method, like google pay
-2. Setup products to buy
-3. Create a new `PaymentRequest` object instance
-4. Initiate payment request by awaiting `paymentRequest.show()`, which returns a payment response
-5. Complete the payment request by awaiting `paymentResponse.complete("success")`, which will return the payment success details, which includes card number and shipping address of the customer.
-
-```ts
-// 1. create payment methods
-const paymentMethods: PaymentMethodData[] = [
-  {
-    supportedMethods: "https://google.com/pay",
-    data: {
-      environment: "TEST", // Use 'PRODUCTION' in a live environment
-      apiVersion: 2,
-      apiVersionMinor: 0,
-      allowedPaymentMethods: [
-        {
-          type: "CARD",
-          parameters: {
-            allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-            allowedCardNetworks: [
-              "AMEX",
-              "DISCOVER",
-              "JCB",
-              "MASTERCARD",
-              "VISA",
-            ],
-          },
-          tokenizationSpecification: {
-            type: "PAYMENT_GATEWAY",
-            parameters: {
-              gateway: "example", // Replace with your gateway
-              gatewayMerchantId: "exampleMerchantId", // Replace with your merchant ID
-            },
-          },
-        },
-      ],
-      merchantInfo: {
-        merchantName: "Example Merchant",
-        merchantId: "01234567890123456789", // Replace with your Google Pay merchant ID
-      },
-    },
-  },
-];
-
-// 2. create products
-const paymentDetails: PaymentDetailsInit = {
-  total: {
-    label: "Total",
-    amount: { currency: "USD", value: "3.00" },
-  },
-  displayItems: [
-    { label: "Item 1", amount: { currency: "USD", value: "1.50" } },
-    { label: "Item 2", amount: { currency: "USD", value: "1.50" } },
-  ],
-};
-
-// 3. create request
-const request = new PaymentRequest(paymentMethods, paymentDetails);
-
-async function showRequest() {
-  try {
-    const canMakePayment = await request.canMakePayment();
-    // 4. initiate request
-    const paymentResponse = await request.show();
-    // 5. complete request
-    await paymentResponse.complete("success");
-    console.log("Payment successful");
-  } catch (error) {
-    console.error(error);
-  }
+if (window.EyeDropper) {
+	// 3. create eyedropper instance
+	const eyeDropper = new window.EyeDropper();
+	// 4. get selected hex color code
+	const {sRGBHex} = await eyeDropper.open({
+          signal: this.abortController.signal,
+	});
 }
 ```
 
-Anyway, here's the whole fucking class:
+Keep in mind that the async call can fail and throw an error for two reasons: 
+
+1. Popup didn't close fast enough, so it gets mistaken for a user selection cancel. Solution is to close the popup window and use the abort controller.
+2. Eyedropper must be triggered by a user gesture, so you can only display it after a user press.
+
+#### Class
+
+You need to provide your own type definitions for the API since type support is limited. 
 
 ```ts
-export class WebPaymentManager {
-  private paymentDetails: PaymentDetailsInit;
-  private paymentMethods?: PaymentMethodData[];
-  private paymentRequest?: PaymentRequest;
-  constructor(items: PaymentItem[]) {
-    this.paymentDetails = this._constructCart(items);
-  }
+interface ColorSelectionOptions {
+  signal?: AbortSignal;
+}
 
-  private _constructCart(items: PaymentItem[]) {
-    return {
-      total: {
-        label: "Total",
-        amount: {
-          currency: "USD",
-          value: items
-            .reduce((acc, item) => acc + Number(item.amount.value), 0)
-            .toString(),
-        },
-      },
-      displayItems: items,
-    } as PaymentDetailsInit;
-  }
+interface ColorSelectionResult {
+  sRGBHex: string;
+}
 
-  constructCart(items: PaymentItem[]) {
-    this.paymentDetails = this._constructCart(items);
-    this.setupPayment();
-  }
+interface EyeDropper {
+  open: (options?: ColorSelectionOptions) => Promise<ColorSelectionResult>;
+}
 
-  async canMakePayment() {
-    if (!this.paymentRequest) {
-      throw new Error("Payment request not set");
-    }
-    return await this.paymentRequest.canMakePayment();
-  }
+interface EyeDropperConstructor {
+  new (): EyeDropper;
+}
 
-  async makePayment() {
-    try {
-      if (!this.paymentRequest) {
-        throw new Error("Payment request not set");
+interface Window {
+  EyeDropper?: EyeDropperConstructor | undefined;
+}
+```
+
+```ts
+export default class EyedropperManager {
+  private abortController = new AbortController();
+  private cb!: (event: KeyboardEvent) => void;
+
+  async getColor() {
+    this.cb = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        this.abortController.abort();
       }
-      const canMakePayment = await this.paymentRequest.canMakePayment();
-      if (!canMakePayment) {
-        throw new Error("Cannot make payment");
+    };
+    if (window.EyeDropper) {
+      const eyeDropper = new window.EyeDropper();
+      window.addEventListener("keydown", this.cb);
+      try {
+        const result = await eyeDropper.open({
+          signal: this.abortController.signal,
+        });
+        window.removeEventListener("keydown", this.cb);
+        return result.sRGBHex;
+      } catch (e) {
+        window.removeEventListener("keydown", this.cb);
+        console.warn("eyedropper error", e);
+        return null;
       }
-      const paymentResponse = await this.paymentRequest.show();
-      await paymentResponse.complete("success");
-      return paymentResponse;
-    } catch (error) {
-      console.error(error);
+    } else {
       return null;
     }
   }
 
-  setupPayment() {
-    if (!this.paymentMethods) {
-      throw new Error("Payment methods not set");
-    }
-    this.paymentRequest = new PaymentRequest(
-      this.paymentMethods!,
-      this.paymentDetails
-    );
-  }
-
-  setupPaymentMethod({
-    gateway,
-    gatewayMerchantId,
-    merchantName,
-    merchantId,
-    environment = "TEST",
-  }: {
-    environment?: "TEST" | "PRODUCTION";
-    gateway: string;
-    gatewayMerchantId: string;
-    merchantName: string;
-    merchantId: string;
-  }) {
-    this.paymentMethods = [
-      {
-        supportedMethods: "https://google.com/pay",
-        data: {
-          environment: environment, // Use 'PRODUCTION' in a live environment
-          apiVersion: 2,
-          apiVersionMinor: 0,
-          allowedPaymentMethods: [
-            {
-              type: "CARD",
-              parameters: {
-                allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-                allowedCardNetworks: [
-                  "AMEX",
-                  "DISCOVER",
-                  "JCB",
-                  "MASTERCARD",
-                  "VISA",
-                ],
-              },
-              tokenizationSpecification: {
-                type: "PAYMENT_GATEWAY",
-                parameters: {
-                  gateway: gateway || "", // Replace with your gateway
-                  gatewayMerchantId: gatewayMerchantId || "", // Replace with your merchant ID
-                },
-              },
-            },
-          ],
-          merchantInfo: {
-            merchantName: merchantName || "",
-            merchantId: merchantId || "", // Replace with your Google Pay merchant ID
-          },
-        },
-      },
-    ];
+  static hasAPI() {
+    return Boolean(window.EyeDropper);
   }
 }
 ```
 
-And here's how you'd use it:
 
-```ts
-const paymentManager = new WebPaymentManager([
-  { label: "Item 1", amount: { currency: "USD", value: "1.50" } },
-  { label: "Item 2", amount: { currency: "USD", value: "1.50" } },
-]);
-paymentManager.setupPaymentMethod({
-  gateway: "example",
-  gatewayMerchantId: "exampleMerchantId",
-  merchantName: "Example Merchant",
-  merchantId: "01234567890123456789",
-  environment: "TEST",
-});
-paymentManager.setupPayment();
 
-document.querySelector("#pay").addEventListener("click", async () => {
-  const details = await paymentManager.makePayment();
-  if (!details) {
-    console.error("Payment failed");
-    return;
-  }
-  console.log(details);
-});
-```
 ### FileSystem API
 
 The new filesystem API allows you to open and directly read from and write to the user's file system.
@@ -1640,6 +1424,230 @@ export class DirectoryNavigationStack {
 }
 ```
 
+### Web Payments API
+
+Here is how to use the web payments api:
+
+1. Setup a payment method, like google pay
+2. Setup products to buy
+3. Create a new `PaymentRequest` object instance
+4. Initiate payment request by awaiting `paymentRequest.show()`, which returns a payment response
+5. Complete the payment request by awaiting `paymentResponse.complete("success")`, which will return the payment success details, which includes card number and shipping address of the customer.
+
+```ts
+// 1. create payment methods
+const paymentMethods: PaymentMethodData[] = [
+  {
+    supportedMethods: "https://google.com/pay",
+    data: {
+      environment: "TEST", // Use 'PRODUCTION' in a live environment
+      apiVersion: 2,
+      apiVersionMinor: 0,
+      allowedPaymentMethods: [
+        {
+          type: "CARD",
+          parameters: {
+            allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+            allowedCardNetworks: [
+              "AMEX",
+              "DISCOVER",
+              "JCB",
+              "MASTERCARD",
+              "VISA",
+            ],
+          },
+          tokenizationSpecification: {
+            type: "PAYMENT_GATEWAY",
+            parameters: {
+              gateway: "example", // Replace with your gateway
+              gatewayMerchantId: "exampleMerchantId", // Replace with your merchant ID
+            },
+          },
+        },
+      ],
+      merchantInfo: {
+        merchantName: "Example Merchant",
+        merchantId: "01234567890123456789", // Replace with your Google Pay merchant ID
+      },
+    },
+  },
+];
+
+// 2. create products
+const paymentDetails: PaymentDetailsInit = {
+  total: {
+    label: "Total",
+    amount: { currency: "USD", value: "3.00" },
+  },
+  displayItems: [
+    { label: "Item 1", amount: { currency: "USD", value: "1.50" } },
+    { label: "Item 2", amount: { currency: "USD", value: "1.50" } },
+  ],
+};
+
+// 3. create request
+const request = new PaymentRequest(paymentMethods, paymentDetails);
+
+async function showRequest() {
+  try {
+    const canMakePayment = await request.canMakePayment();
+    // 4. initiate request
+    const paymentResponse = await request.show();
+    // 5. complete request
+    await paymentResponse.complete("success");
+    console.log("Payment successful");
+  } catch (error) {
+    console.error(error);
+  }
+}
+```
+
+Anyway, here's the whole fucking class:
+
+```ts
+export class WebPaymentManager {
+  private paymentDetails: PaymentDetailsInit;
+  private paymentMethods?: PaymentMethodData[];
+  private paymentRequest?: PaymentRequest;
+  constructor(items: PaymentItem[]) {
+    this.paymentDetails = this._constructCart(items);
+  }
+
+  private _constructCart(items: PaymentItem[]) {
+    return {
+      total: {
+        label: "Total",
+        amount: {
+          currency: "USD",
+          value: items
+            .reduce((acc, item) => acc + Number(item.amount.value), 0)
+            .toString(),
+        },
+      },
+      displayItems: items,
+    } as PaymentDetailsInit;
+  }
+
+  constructCart(items: PaymentItem[]) {
+    this.paymentDetails = this._constructCart(items);
+    this.setupPayment();
+  }
+
+  async canMakePayment() {
+    if (!this.paymentRequest) {
+      throw new Error("Payment request not set");
+    }
+    return await this.paymentRequest.canMakePayment();
+  }
+
+  async makePayment() {
+    try {
+      if (!this.paymentRequest) {
+        throw new Error("Payment request not set");
+      }
+      const canMakePayment = await this.paymentRequest.canMakePayment();
+      if (!canMakePayment) {
+        throw new Error("Cannot make payment");
+      }
+      const paymentResponse = await this.paymentRequest.show();
+      await paymentResponse.complete("success");
+      return paymentResponse;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  setupPayment() {
+    if (!this.paymentMethods) {
+      throw new Error("Payment methods not set");
+    }
+    this.paymentRequest = new PaymentRequest(
+      this.paymentMethods!,
+      this.paymentDetails
+    );
+  }
+
+  setupPaymentMethod({
+    gateway,
+    gatewayMerchantId,
+    merchantName,
+    merchantId,
+    environment = "TEST",
+  }: {
+    environment?: "TEST" | "PRODUCTION";
+    gateway: string;
+    gatewayMerchantId: string;
+    merchantName: string;
+    merchantId: string;
+  }) {
+    this.paymentMethods = [
+      {
+        supportedMethods: "https://google.com/pay",
+        data: {
+          environment: environment, // Use 'PRODUCTION' in a live environment
+          apiVersion: 2,
+          apiVersionMinor: 0,
+          allowedPaymentMethods: [
+            {
+              type: "CARD",
+              parameters: {
+                allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+                allowedCardNetworks: [
+                  "AMEX",
+                  "DISCOVER",
+                  "JCB",
+                  "MASTERCARD",
+                  "VISA",
+                ],
+              },
+              tokenizationSpecification: {
+                type: "PAYMENT_GATEWAY",
+                parameters: {
+                  gateway: gateway || "", // Replace with your gateway
+                  gatewayMerchantId: gatewayMerchantId || "", // Replace with your merchant ID
+                },
+              },
+            },
+          ],
+          merchantInfo: {
+            merchantName: merchantName || "",
+            merchantId: merchantId || "", // Replace with your Google Pay merchant ID
+          },
+        },
+      },
+    ];
+  }
+}
+```
+
+And here's how you'd use it:
+
+```ts
+const paymentManager = new WebPaymentManager([
+  { label: "Item 1", amount: { currency: "USD", value: "1.50" } },
+  { label: "Item 2", amount: { currency: "USD", value: "1.50" } },
+]);
+paymentManager.setupPaymentMethod({
+  gateway: "example",
+  gatewayMerchantId: "exampleMerchantId",
+  merchantName: "Example Merchant",
+  merchantId: "01234567890123456789",
+  environment: "TEST",
+});
+paymentManager.setupPayment();
+
+document.querySelector("#pay").addEventListener("click", async () => {
+  const details = await paymentManager.makePayment();
+  if (!details) {
+    console.error("Payment failed");
+    return;
+  }
+  console.log(details);
+});
+```
+
+
 ### Navigator share API
 
 The `navigator.share(options)` async method allows sharing media and urls like you can do on your phone. You pass in an object of options which configure the sharing behavior: 
@@ -1835,8 +1843,14 @@ With this stream, you can then set this stream as the source of some video or au
 
 The navigation API is a new way to do navigation on the web instead of the history and popstate APIs.
 
+To get type hints, run this command to install the types:
+
+```bash
+npm install -D @types/dom-navigation
+```
+
 ```ts
-function shouldNotIntercept(navigationEvent) {
+function shouldNotIntercept(navigationEvent: NavigateEvent) {
   return (
     !navigationEvent.canIntercept ||
     // If this is just a hashChange,
@@ -1847,41 +1861,93 @@ function shouldNotIntercept(navigationEvent) {
     navigationEvent.downloadRequest ||
     // If this is a form submission,
     // let that go to the server.
-    navigationEvent.formData
+    navigationEvent.formData ||
+    // if this navigates to another origin, don't intercept
+    !navigationEvent.destination.url.startsWith(window.location.origin)
   );
 }
 
-function renderIndexPage() {}  // methods to render HTML for page
-function renderCatsPage() {}
+async function renderIndexPage() {} // methods to render HTML for page
+async function renderCatsPage() {}
 
-navigation.addEventListener('navigate', navigateEvent => {
+window.navigation.addEventListener("navigate", (navigateEvent) => {
   // Exit early if this navigation shouldn't be intercepted.
   if (shouldNotIntercept(navigateEvent)) return;
 
   const url = new URL(navigateEvent.destination.url);
 
-  if (url.pathname === '/') {
-    navigateEvent.intercept({handler: renderIndexPage});
-  } else if (url.pathname === '/cats/') {
-    navigateEvent.intercept({handler: renderCatsPage});
+  if (url.pathname === "/") {
+    navigateEvent.intercept({ handler: renderIndexPage });
+  } else if (url.pathname === "/cats/") {
+    navigateEvent.intercept({ handler: renderCatsPage });
   }
 });
 ```
 
 The `navigateEvent` has these properties: 
-- `navigateEvent.destination.url`: the url of where the navigation was trying to go
+
 - `navigateEvent.canIntercept`: whether or not the navigation can be intercepted
+- `navigateEvent.hashChange`: True if only the hash changed (usually don't intercept these)
+- `navigateEvent.downloadRequest`: True if triggered by a download link
+- `navigateEvent.formData`: Contains form data if this is a POST form submission
+- `navigateEvent.navigationType`: One of "reload", "push", "replace", or "traverse"
+- `navigateEvent.signal`: An AbortSignal for canceling navigation
+- `navigateEvent.userInitiated`: a boolean that returns true if the user initiated the navigation manually
+
+The `navigateEvent.destination` is an object containing metadata about the navigation destination and has these properties:
+
+-  `navigateEvent.destination.url`: the url of where the navigation was trying to go
+-  `navigateEvent.destination.key`: the unique navigation key that represents the navigation, which can be used to access that specific navigation in history.
+-  `navigateEvent.destination.sameDocument`: a boolean that describes if the navigation is in the same document or not (same origin)
 
 And it has these methods: 
+
 - `navigateEvent.preventDefault()`: prevents the navigation from occurring. This will not work if the user prevents the forward or back buttons to escape the site. 
 - `navigateEvent.intercept({handler: async () => void})`: runs the specified async callback on page navigation. Basically use this to define your own code to replace the current page with a new page like how SPAs do it.
+- `navigateEvent.scroll()`: scrolls or something.
 
 #### Navigation methods
 
 Use the navigation methods to navigate while also setting state.
 
-- `navigation.navigate(url)`: navigates to the specified url
-- `navigation.reload()` : reloads the page
+- `navigation.navigate(url, options?)`: navigates to the specified url
+- `navigation.reload(options?)` : reloads the page
+- `navigation.back()`: goes back one entry
+- `navigation.forward()`: goes forward one entry
+- `navigation.traverseTo(key: string)`: navigates to a specific history entry.
+
+```ts
+// Navigate to a new URL
+const result = navigation.navigate('/new-page', {
+  state: { from: 'button' },
+  history: 'replace', // or 'push' (default)
+  info: { animation: 'slide' } // passed to navigate event
+});
+
+// Wait for navigation to complete
+await result.finished;
+
+// Other navigation methods
+navigation.back();
+navigation.forward();
+navigation.reload({ state: newState })
+```
+
+**basic navigation**
+
+**traveling to specific history entry**
+
+Here is an example of traveling to a specific history entry:
+
+```ts
+// On JS startup, get the key of the first loaded page
+// so the user can always go back there.
+const { key } = navigation.currentEntry;
+backToHomeButton.onclick = () => navigation.traverseTo(key);
+
+// Navigate away, but the button will always work.
+await navigation.navigate("/another_url").finished;
+```
 
 #### Navigation current entry and state
 
@@ -1897,11 +1963,16 @@ The most important thing about `navigation.currentEntry` is its ability to retri
 To actually change state, you need to do so in the navigation methods.
 
 ```ts
-navigation.navigate(url, {state: newState});
-// Or:
-navigation.reload({state: newState});
+// Set state during navigation
+navigation.navigate('/page', { state: { user: 'john', theme: 'dark' } });
+// or do this
+navigation.reload({ state: { user: 'john', theme: 'dark' } })
 
-const state = navigation.currentEntry.getState()
+// Update current entry state
+navigation.updateCurrentEntry({ state: newState });
+
+// Access state
+const state = navigation.currentEntry.getState();
 ```
 
 In the navigation event, you can also retrieve the state of the navigation's destination.
@@ -1912,6 +1983,262 @@ navigation.addEventListener('navigate', navigateEvent => {
 });
 ```
 
+#### Navigation lifecycle events
+
+Besides just the `"navigate"` event, you also have these events to listen for:
+
+```ts
+// Navigation started
+navigation.addEventListener('navigate', event => {
+  console.log('Navigation starting');
+});
+
+// Navigation completed successfully
+navigation.addEventListener('navigatesuccess', event => {
+  console.log('Navigation completed');
+});
+
+// Navigation failed
+navigation.addEventListener('navigateerror', event => {
+  console.error('Navigation failed:', event.message);
+});
+
+// Current entry changed (state updates)
+navigation.addEventListener('currententrychange', event => {
+  console.log('Current entry changed');
+});
+```
+
+#### Navigation custom class
+
+```ts
+function shouldNotIntercept(navigationEvent: NavigateEvent) {
+  return (
+    !navigationEvent.canIntercept ||
+    // If this is just a hashChange,
+    // just let the browser handle scrolling to the content.
+    navigationEvent.hashChange ||
+    // If this is a download,
+    // let the browser perform the download.
+    navigationEvent.downloadRequest ||
+    // If this is a form submission,
+    // let that go to the server.
+    navigationEvent.formData ||
+    // if this navigates to another origin, don't intercept
+    !navigationEvent.destination.url.startsWith(window.location.origin)
+  );
+}
+
+class Router<
+  T extends Record<
+    string,
+    { handler: (navigateEvent: NavigateEvent) => Promise<void> }
+  >,
+  S extends Record<keyof T, { state: any }>
+> {
+  constructor(private routes: T) {}
+
+  getNavigationEventHelpers<K extends keyof T>(
+    route: K,
+    navigateEvent: NavigateEvent
+  ) {
+    const currentRoute = new URL(navigateEvent.destination.url).pathname;
+    let currentState: S[K]["state"] | undefined =
+      navigateEvent.destination.getState();
+    return {
+      currentRoute,
+      currentState,
+    };
+  }
+
+  isInRoutes(url: string): url is keyof T & string {
+    return Object.keys(this.routes).some((route) => url === route);
+  }
+
+  async initNavigator(cb: (url: string) => void) {
+    const pathname = new URL(window.location.href).pathname;
+    const {getNavigationEntry} = this.navigate(pathname);
+    await getNavigationEntry()
+    cb(pathname);
+  }
+
+  onNavigate(options: {
+    on404?: (navigateEvent: NavigateEvent) => Promise<void>;
+  }) {
+    window.navigation.addEventListener("navigate", async (navigateEvent) => {
+      if (shouldNotIntercept(navigateEvent)) {
+        console.log("not intercepting");
+        return;
+      }
+
+      const currentRoute = new URL(navigateEvent.destination.url).pathname;
+
+      // if route is not registered, run 404 handler
+      if (!this.isInRoutes(currentRoute)) {
+        // render 404 page
+        navigateEvent.intercept({
+          handler: options.on404
+            ? options.on404.bind(null, navigateEvent)
+            : async () => {
+                document.body.innerHTML = `<h1>Page Not Found</h1>`;
+              },
+        });
+        return;
+      } else {
+        const route = currentRoute as keyof T;
+        const handler = this.routes[route].handler;
+        navigateEvent.intercept({
+          handler: handler.bind(null, navigateEvent),
+        });
+      }
+    });
+  }
+
+  onNavigateSuccess(cb: (e: Event) => void) {
+    window.navigation.addEventListener("navigatesuccess", (e) => {
+      cb(e);
+    });
+  }
+
+  onNavigateError(cb: (e: ErrorEvent) => void) {
+    window.navigation.addEventListener("navigateerror", (e) => {
+      cb(e);
+    });
+  }
+
+  onCurrentEntryChange(cb: (e: NavigationCurrentEntryChangeEvent) => void) {
+    window.navigation.addEventListener("currententrychange", (e) => {
+      cb(e);
+    });
+  }
+
+  navigate<K extends keyof T>(
+    route: K | (string & {}),
+    options?: { state?: S[K]["state"]; history?: "push" | "replace" }
+  ) {
+    const result = window.navigation.navigate(route as string, {
+      history: options?.history ?? "push",
+      state: options?.state,
+    });
+    return {
+      getNavigationEntry: async () => {
+        return await result.finished;
+      },
+    };
+  }
+
+  reload(state: S[keyof S]["state"]) {
+    const result = window.navigation.reload({
+      state,
+    });
+    return {
+      getNavigationEntry: async () => {
+        return await result.finished;
+      },
+    };
+  }
+
+  back() {
+    const result = window.navigation.back();
+    return {
+      getNavigationEntry: async () => {
+        return await result.finished;
+      },
+    };
+  }
+
+  getStateOfCurrentRoute<K extends keyof T>(route: K) {
+    const state = window.navigation.currentEntry?.getState() as S[K]["state"];
+    if (!state) return null;
+    return state;
+  }
+
+  setStateOfCurrentRoute<K extends keyof T>(route: K, state: S[K]["state"]) {
+    window.navigation.updateCurrentEntry({
+      state,
+    });
+  }
+
+  forward() {
+    const result = window.navigation.forward();
+    return {
+      getNavigationEntry: async () => {
+        return await result.finished;
+      },
+    };
+  }
+}
+```
+
+Here is the way to use the class:
+
+```ts
+const routes = {
+  "/": {
+    handler: async (navigateEvent) => {
+      const { currentRoute, currentState } = router.getNavigationEventHelpers(
+        "/",
+        navigateEvent
+      );
+
+      console.log(currentRoute, currentState);
+      console.log("index");
+    },
+  },
+  "/dogs": {
+    handler: async (navigateEvent) => {
+      const { currentRoute, currentState } = router.getNavigationEventHelpers(
+        "/dogs",
+        navigateEvent
+      );
+
+      console.log(currentRoute, currentState);
+      console.log("dogs");
+    },
+  },
+} satisfies Record<
+  string,
+  { handler: (navigateEvent: NavigateEvent) => Promise<void> }
+>;
+
+const router = new Router<
+  typeof routes,
+  {
+    "/": {
+      state: {
+        foo: string;
+      };
+    };
+    "/dogs": {
+      state: {
+        bar: string;
+      };
+    };
+  }
+>(routes);
+
+router.onNavigate({
+  async on404(navigateEvent) {
+    console.log("404 page found!");
+  },
+});
+router.onNavigateSuccess((e) => {
+  console.log("navigate success", e);
+});
+router.onNavigateError(() => {
+  console.log("navigate error");
+});
+
+document.getElementById("navigate")?.addEventListener("click", async () => {
+  const { getNavigationEntry } = router.navigate("/dogs", {
+    state: {
+      bar: "baz",
+    },
+    history: "replace",
+  });
+  await getNavigationEntry();
+});
+```
 
 ### Local Fonts
 

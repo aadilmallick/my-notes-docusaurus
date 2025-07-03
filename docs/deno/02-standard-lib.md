@@ -268,6 +268,19 @@ export async function promptYesOrNo(
 
 ```
 
+### Running commands
+
+You can use the `Deno.Command(cmd, options)` method to run shell commands in a way that is consistent across every platform.
+
+```ts
+const cmd = new Deno.Command("mkdir", {
+  args: ["-p", "parent_folder/sub_folder"],
+  stdout: "inherit",
+  stderr: "inherit",
+});
+await cmd.output();
+```
+
 ## From Web To Deno
 
 There are numerous built in functions in Deno that are adapted from the web and fit to the command line environment.

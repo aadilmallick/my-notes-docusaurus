@@ -855,7 +855,7 @@ type EmailSurname<T> = T extends `${infer S extends string}@${string}`
   ? S
   : never;
 
-type Test = EmailSurname<"waadlingaadil@gmail.com">;
+type Test = EmailSurname<"bruhdil@gmail.com">;
 ```
 
 ### Type Distributivity with unions

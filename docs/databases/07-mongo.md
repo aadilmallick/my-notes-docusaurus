@@ -287,6 +287,11 @@ db.pets.createIndex({ name: 1 }, { unique: true });
 - `name: 1`: sets an index on the `name` field, sorting the documents by their name in ascending order.
 - `unique: true`: makes sure that the `name` field can only have unique values, which speeds up the index and makes it more useful for querying.
 
+There are two types of indices in mongo:
+
+- **B-tree indices**: What you get when you create an ascending or descending index, creating a B-tree of records, sorting based on that field.
+- **text indices**: An index for full text search.
+
 #### Fetching and deleting indices
 
 You can create an index with the `db.<collection>.createIndex()`, and you pass in an object of options that create indices for that field. You can choose to sort a field in ascending order or descending order. This method returns an index name you can use to reference the created index.

@@ -213,6 +213,15 @@ In the example below, it returns whatever the user typed. Here are the propertie
 - `name` : the name of the input. The value of this is the key that the user input will be stored in.
   - For example, if you set `name: "dirName"` and the method returns a result object, you can get the user input from `result.dirName`.
 - `type` : the type of input. Can be `input`, `confirm`, `list`, `rawlist`, `expand`, `checkbox`, `password`, `editor`
+	- `input` - Free text input
+	- `password` - Hidden text input
+	- `number` - Number input
+	- `editor` - Opens system editor
+	-  `list` - Single selection from list
+	- `rawlist` - Numbered list selection
+	- `expand` - Expandable choices with shortcuts
+	- `checkbox` - Multi-selection
+	- `confirm` - Yes/No confirmation
 - `message` : the prompt message to display to the user
 - `default` : the default value to use if the user doesn't type anything
 
@@ -229,6 +238,257 @@ const result = await inquirer.prompt({
 result.dirName; // result stored on whatever you specify the name as
 ```
 
+You can also setup multiple input gathering at the same time:
+
+```ts
+const answers = await inquirer.prompt([
+  {
+    name: 'name',
+    type: 'input',
+    message: 'What is your name?'
+  },
+  {
+    name: 'age',
+    type: 'number',
+    message: 'How old are you?'
+  },
+  {
+    name: 'color',
+    type: 'list',
+    message: 'What is your favorite color?',
+    choices: ['Red', 'Blue', 'Green', 'Yellow']
+  }
+]);
+```
+
+You can also set up a validation:
+
+```ts
+const result = await inquirer.prompt({
+  name: 'email',
+  type: 'input',
+  message: 'Enter your email:',
+  validate: (input) => {
+    if (!input.includes('@')) {
+      return 'Please enter a valid email address';
+    }
+    return true;
+  }
+})
+```
+
+Here is a complete type safe abstraction over using inquirer that you can copy and paste to any project:
+
+```ts
+import inquirer from 'inquirer';
+
+// Quick pick from a list of options
+export async function showQuickPick<T extends readonly string[]>(
+  choices: T,
+  message?: string,
+  defaultChoice?: T[number]
+) {
+  const result = await inquirer.prompt({
+    name: "selection",
+    type: "list",
+    message: message ?? "Choose an option:",
+    choices,
+    default: () => {
+      return defaultChoice ?? choices[0];
+    },
+  });
+  return result.selection as T[number];
+}
+
+// Multi-select checkbox
+export async function showMultiSelect<T extends readonly string[]>(
+  choices: T,
+  message?: string,
+  defaultChoices?: T[number][]
+) {
+  const result = await inquirer.prompt({
+    name: "selections",
+    type: "checkbox",
+    message: message ?? "Select options (use space to select):",
+    choices,
+    default: defaultChoices ?? [],
+  });
+  return result.selections as T[number][];
+}
+
+// Text input with validation
+export async function showTextInput(
+  message?: string,
+  defaultValue?: string,
+  validator?: (input: string) => boolean | string
+) {
+  const result = await inquirer.prompt({
+    name: "input",
+    type: "input",
+    message: message ?? "Enter text:",
+    default: defaultValue,
+    validate: validator ? (input: string) => {
+      const validation = validator(input);
+      return validation === true ? true : (validation || "Invalid input");
+    } : undefined,
+  });
+  return result.input as string;
+}
+
+// Password input (hidden)
+export async function showPasswordInput(
+  message?: string,
+  validator?: (input: string) => boolean | string
+) {
+  const result = await inquirer.prompt({
+    name: "password",
+    type: "password",
+    message: message ?? "Enter password:",
+    mask: "*",
+    validate: validator ? (input: string) => {
+      const validation = validator(input);
+      return validation === true ? true : (validation || "Invalid password");
+    } : undefined,
+  });
+  return result.password as string;
+}
+
+// Yes/No confirmation
+export async function showConfirm(
+  message?: string,
+  defaultValue: boolean = false
+) {
+  const result = await inquirer.prompt({
+    name: "confirmed",
+    type: "confirm",
+    message: message ?? "Continue?",
+    default: defaultValue,
+  });
+  return result.confirmed as boolean;
+}
+
+// Number input with validation
+export async function showNumberInput(
+  message?: string,
+  defaultValue?: number,
+  validator?: (input: number) => boolean | string
+) {
+  const result = await inquirer.prompt({
+    name: "number",
+    type: "number",
+    message: message ?? "Enter a number:",
+    default: defaultValue,
+    validate: validator ? (input: number) => {
+      if (isNaN(input)) return "Please enter a valid number";
+      const validation = validator(input);
+      return validation === true ? true : (validation || "Invalid number");
+    } : (input: number) => isNaN(input) ? "Please enter a valid number" : true,
+  });
+  return result.number as number;
+}
+
+// Editor input (opens system editor)
+export async function showEditor(
+  message?: string,
+  defaultValue?: string
+) {
+  const result = await inquirer.prompt({
+    name: "content",
+    type: "editor",
+    message: message ?? "Enter content (will open editor):",
+    default: defaultValue,
+  });
+  return result.content as string;
+}
+
+// Raw list (numbered options)
+export async function showNumberedList<T extends readonly string[]>(
+  choices: T,
+  message?: string,
+  defaultChoice?: T[number]
+) {
+  const result = await inquirer.prompt({
+    name: "selection",
+    type: "rawlist",
+    message: message ?? "Choose an option:",
+    choices,
+    default: () => {
+      return defaultChoice ?? choices[0];
+    },
+  });
+  return result.selection as T[number];
+}
+
+// Expandable choices (shortcuts)
+export async function showExpandableChoices(
+  choices: Array<{ key: string; name: string; value: string }>,
+  message?: string,
+  defaultKey?: string
+) {
+  const result = await inquirer.prompt({
+    name: "selection",
+    type: "expand",
+    message: message ?? "Choose an option:",
+    choices,
+    default: defaultKey ?? choices[0]?.key,
+  });
+  return result.selection as string;
+}
+
+// Complex form builder
+export async function showForm<T extends Record<string, any>>(
+  fields: Array<{
+    name: keyof T;
+    type: 'input' | 'password' | 'confirm' | 'list' | 'checkbox' | 'number';
+    message: string;
+    choices?: readonly string[];
+    default?: any;
+    validate?: (input: any) => boolean | string;
+  }>
+) {
+  const questions = fields.map(field => ({
+    name: field.name as string,
+    type: field.type,
+    message: field.message,
+    choices: field.choices,
+    default: field.default,
+    validate: field.validate ? (input: any) => {
+      const validation = field.validate!(input);
+      return validation === true ? true : (validation || "Invalid input");
+    } : undefined,
+  }));
+
+  const result = await inquirer.prompt(questions);
+  return result as T;
+}
+
+// Utility: Create a series of questions
+export async function showSeries<T>(
+  questions: Array<() => Promise<T>>
+): Promise<T[]> {
+  const results: T[] = [];
+  for (const question of questions) {
+    const result = await question();
+    results.push(result);
+  }
+  return results;
+}
+
+// Utility: Conditional questions
+export async function showConditional<T>(
+  condition: () => Promise<boolean>,
+  questionIfTrue: () => Promise<T>,
+  questionIfFalse?: () => Promise<T>
+): Promise<T | undefined> {
+  const shouldAsk = await condition();
+  if (shouldAsk) {
+    return await questionIfTrue();
+  } else if (questionIfFalse) {
+    return await questionIfFalse();
+  }
+  return undefined;
+}
+```
 ### Nanospinner
 
 The nanospinner library offers a cool looking spinner utility to show that an operation is loading. Here is how you use it:
@@ -331,7 +591,7 @@ Here is how the package JSON should look like:
     "canvas boilerplate",
     "canvas game development"
   ],
-  "author": "aadilmallick",
+  "author": "jawdiallick",
   "license": "ISC",
   "devDependencies": {
     "@types/figlet": "^1.5.7",
@@ -356,7 +616,7 @@ Here is how the package JSON should look like:
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aadilmallick/canvas-boilerplate-typescript.git"
+    "url": "https://github.com/adfasfmallick/canvas-boilerplate-typescript.git"
   },
 }
 ```
@@ -432,7 +692,7 @@ All the typescript files we use that go into the `index.ts` entrypoint will be c
   "type": "module",
   // less important
   keywords: [],
-  "author": "aadilmallick",
+  "author": "afsadfsamallick",
   "devDependencies": {
     "@types/node": "^20.14.2",
     "tsup": "^8.1.0",
@@ -442,7 +702,7 @@ All the typescript files we use that go into the `index.ts` entrypoint will be c
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aadilmallick/lw-ffmpeg-node.git"
+    "url": "git+https://github.com/masdfsdick/lw-ffmpeg-node.git"
   }
 }
 ```
@@ -678,13 +938,13 @@ Have a folder structure where all typescript is inside a `src` folder, and appli
         "compile-declaration": "dts-bundle-generator --out-file dist/index.d.ts --project ./tsconfig.json --no-check src/index.ts"
       },
       "version": "1.0.0",
-      "author": "aadilmallick",
+      "author": "safailmallick",
       "keywords": ["ffmpeg", "bun"],
       "license": "MIT",
       "description": "A bun wrapper for ffmpeg",
       "repository": {
         "type": "git",
-        "url": "git+https://github.com/aadilmallick/lw-ffmpeg-bun.git"
+        "url": "git+https://github.com/maasdfllick/lw-ffmpeg-bun.git"
       }
     }
     ```
