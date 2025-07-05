@@ -277,12 +277,15 @@ const result = await inquirer.prompt({
 })
 ```
 
+#### Inquirer abstraction
+
 Here is a complete type safe abstraction over using inquirer that you can copy and paste to any project:
 
 ```ts
-import inquirer from 'inquirer';
+import inquirer from "npm:inquirer";
+import { input, confirm as confirmPrompt } from "npm:@inquirer/prompts";
+import process from "node:process";
 
-// Quick pick from a list of options
 export async function showQuickPick<T extends readonly string[]>(
   choices: T,
   message?: string,
@@ -327,10 +330,12 @@ export async function showTextInput(
     type: "input",
     message: message ?? "Enter text:",
     default: defaultValue,
-    validate: validator ? (input: string) => {
-      const validation = validator(input);
-      return validation === true ? true : (validation || "Invalid input");
-    } : undefined,
+    validate: validator
+      ? (input: string) => {
+          const validation = validator(input);
+          return validation === true ? true : validation || "Invalid input";
+        }
+      : undefined,
   });
   return result.input as string;
 }
@@ -345,10 +350,12 @@ export async function showPasswordInput(
     type: "password",
     message: message ?? "Enter password:",
     mask: "*",
-    validate: validator ? (input: string) => {
-      const validation = validator(input);
-      return validation === true ? true : (validation || "Invalid password");
-    } : undefined,
+    validate: validator
+      ? (input: string) => {
+          const validation = validator(input);
+          return validation === true ? true : validation || "Invalid password";
+        }
+      : undefined,
   });
   return result.password as string;
 }
@@ -368,30 +375,18 @@ export async function showConfirm(
 }
 
 // Number input with validation
-export async function showNumberInput(
-  message?: string,
-  defaultValue?: number,
-  validator?: (input: number) => boolean | string
-) {
+export async function showNumberInput(message?: string, defaultValue?: number) {
   const result = await inquirer.prompt({
     name: "number",
     type: "number",
     message: message ?? "Enter a number:",
     default: defaultValue,
-    validate: validator ? (input: number) => {
-      if (isNaN(input)) return "Please enter a valid number";
-      const validation = validator(input);
-      return validation === true ? true : (validation || "Invalid number");
-    } : (input: number) => isNaN(input) ? "Please enter a valid number" : true,
   });
   return result.number as number;
 }
 
 // Editor input (opens system editor)
-export async function showEditor(
-  message?: string,
-  defaultValue?: string
-) {
+export async function showEditor(message?: string, defaultValue?: string) {
   const result = await inquirer.prompt({
     name: "content",
     type: "editor",
@@ -419,59 +414,35 @@ export async function showNumberedList<T extends readonly string[]>(
   return result.selection as T[number];
 }
 
-// Expandable choices (shortcuts)
-export async function showExpandableChoices(
-  choices: Array<{ key: string; name: string; value: string }>,
-  message?: string,
-  defaultKey?: string
-) {
-  const result = await inquirer.prompt({
-    name: "selection",
-    type: "expand",
-    message: message ?? "Choose an option:",
-    choices,
-    default: defaultKey ?? choices[0]?.key,
-  });
-  return result.selection as string;
-}
+
 
 // Complex form builder
 export async function showForm<T extends Record<string, any>>(
   fields: Array<{
     name: keyof T;
-    type: 'input' | 'password' | 'confirm' | 'list' | 'checkbox' | 'number';
+    type: "input" | "password" | "confirm" | "list" | "checkbox" | "number";
     message: string;
     choices?: readonly string[];
     default?: any;
     validate?: (input: any) => boolean | string;
   }>
 ) {
-  const questions = fields.map(field => ({
+  const questions = fields.map((field) => ({
     name: field.name as string,
     type: field.type,
     message: field.message,
     choices: field.choices,
     default: field.default,
-    validate: field.validate ? (input: any) => {
-      const validation = field.validate!(input);
-      return validation === true ? true : (validation || "Invalid input");
-    } : undefined,
+    validate: field.validate
+      ? (input: any) => {
+          const validation = field.validate!(input);
+          return validation === true ? true : validation || "Invalid input";
+        }
+      : undefined,
   }));
 
   const result = await inquirer.prompt(questions);
   return result as T;
-}
-
-// Utility: Create a series of questions
-export async function showSeries<T>(
-  questions: Array<() => Promise<T>>
-): Promise<T[]> {
-  const results: T[] = [];
-  for (const question of questions) {
-    const result = await question();
-    results.push(result);
-  }
-  return results;
 }
 
 // Utility: Conditional questions
@@ -488,6 +459,31 @@ export async function showConditional<T>(
   }
   return undefined;
 }
+
+export async function getConfirm(message: string) {
+  const result = await confirmPrompt({
+    message,
+  });
+  return result;
+}
+
+export async function getInput(
+  message: string,
+  { required = true }: { required?: boolean }
+) {
+  const result = await input({
+    message,
+    validate: (input) => {
+      if (input.trim() === "") {
+        return "Input cannot be empty";
+      }
+      return true;
+    },
+    required,
+  });
+  return result;
+}
+
 ```
 ### Nanospinner
 

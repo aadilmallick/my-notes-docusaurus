@@ -775,6 +775,158 @@ class StripeManager {
 
 ```
 
+### Prices
+
+- `stripe.prices.retrieve(priceId)`: gets the `Price` object from the specified price id
+
 ### customers
 
+- `stripe.customers.list(options)`: queries and returns a list of all customers that fit the query criteria.
+- `stripe.customers.create(options)`: creates a stripe customer. The email is required.
+
+```ts
+export class StripeCustomerManager<
+  MetadataType extends Record<string, any> = Record<string, any>
+> {
+  constructor(
+    public stripe: Stripe,
+    public metadataSchema: z.ZodSchema<MetadataType>
+  ) {}
+
+  createMetadata(metadata: MetadataType) {
+    const data = this.metadataSchema.parse(metadata);
+    return {
+      payload: JSON.stringify(data),
+    };
+  }
+
+  extractMetadata(customer: Stripe.Customer) {
+    const { success, data } = this.metadataSchema.safeParse(
+      JSON.parse(customer.metadata.payload)
+    );
+    if (!success) {
+      return null;
+    }
+    return data;
+  }
+
+  async getCustomerByEmail(email: string) {
+    const customers = await stripe.customers.list({
+      email,
+      limit: 1,
+    });
+    if (customers.data.length === 0) {
+      return null;
+    }
+    return customers.data[0];
+  }
+
+  async createCustomer(email: string, metadata?: Record<string, any>) {
+    const customer = await stripe.customers.create({
+      email,
+      metadata,
+    });
+    return customer;
+  }
+}
+```
+
 ### subscriptions
+
+```ts
+
+export class StripeSubscriptionManager<
+  MetadataType extends Record<string, any> = Record<string, any>
+> {
+  constructor(
+    public stripe: Stripe,
+    public metadataSchema: z.ZodSchema<MetadataType>
+  ) {}
+
+  createMetadata(metadata: MetadataType) {
+    const data = this.metadataSchema.parse(metadata);
+    return {
+      payload: JSON.stringify(data),
+    };
+  }
+
+  extractMetadata(subscription: Stripe.Subscription) {
+    const { success, data } = this.metadataSchema.safeParse(
+      JSON.parse(subscription.metadata.payload)
+    );
+    if (!success) {
+      return null;
+    }
+    return data;
+  }
+
+  async getSubscriptionFromCustomerId(customerId: string) {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      limit: 1,
+    });
+    if (subscriptions.data.length === 0) {
+      return null;
+    }
+    return subscriptions.data[0];
+  }
+
+  async function updateSubscriptionWithNewPlan(existingSubscription: StripeSubscription, newPriceId: string) {
+const updatedSubscription = await stripe.subscriptions.update(
+      existingSubscription.id,
+      {
+        proration_behavior: "create_prorations",
+        items: [
+          {
+            id: existingSubscription.items.data[0].id,
+            price: priceId,
+          },
+        ],
+        billing_cycle_anchor: "now", // triggers immediate proration
+        payment_behavior: "pending_if_incomplete",
+      }
+    );
+
+    // 2. Create a new invoice (optional, since Stripe may auto-create it, but you can force it)
+    const invoice = await stripe.invoices.create({
+      customer: customer.id,
+      subscription: updatedSubscription.id,
+      auto_advance: true, // auto-finalize so it generates payment_intent
+    });
+
+    // 3. Wait for invoice to finalize (best effort)
+    if (!invoice.id) {
+      return null
+    }
+    const finalizedInvoice = await stripe.invoices.retrieve(invoice.id, {
+      expand: ["payment_intent"],
+    });
+    return finalizedInvoice
+  }
+
+  async getSubscriptionFromSubscriptionId(subscriptionId: string) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    return subscription;
+  }
+
+  async cancelMonthlySubscription(currentSubscription: Stripe.Subscription) {
+    const createdAt = new Date(currentSubscription.created * 1000);
+    const cancelDate = new Date();
+    cancelDate.setFullYear(new Date().getFullYear());
+    // if cancelling in the same month, push to next month
+    if (cancelDate.getMonth() === createdAt.getMonth()) {
+      cancelDate.setMonth(new Date().getMonth() + 1);
+    } else {
+      cancelDate.setMonth(new Date().getMonth());
+    }
+    cancelDate.setDate(createdAt.getDate() + 1);
+    const subscription = await stripe.subscriptions.update(
+      currentSubscription.id,
+      {
+        cancel_at: Math.floor(cancelDate.getTime() / 1000), // Convert to Unix timestamp
+      }
+    );
+    return subscription;
+  }
+}
+```

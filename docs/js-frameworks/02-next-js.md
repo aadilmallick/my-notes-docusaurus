@@ -88,6 +88,9 @@ export default async function IssuePage({
 }
 ```
 
+> [!NOTE]
+> The `params` prop is a promise, so you have to await it.
+
 By default, since NextJS has no idea which params will be passed to the dynamic route param page, it dynamically renders to page. To bypass this, you can choose a subset of route parameters to prebuild and generate static pages for, like so, by exporting the async `generateStaticParams()` method.
 
 ```ts
@@ -375,7 +378,7 @@ What the `"use server"` directive does is that it transforms what would otherwis
 
 **step 1: create the form action**
 
-In some arbitrarily named file like `actions.ts`, put a `"use server"` directive at the top of the file.
+1. In some arbitrarily named file like `actions.ts`, put a `"use server"` directive at the top of the file.
 
 ```ts
 'use server'
@@ -411,6 +414,25 @@ export async function signIn(formData: FormData): Promise<ActionResponse> {
 	
 }
 ```
+
+2. In your form, to actually populate the form data, you need to put `name=` attributes on your input elements.
+3. Pass the action function to the `action=` prop on a `<form>` tag to connect the server action as the handler for the form.
+
+This was the most basic way to use server actions, preventing forms from having to become client components.
+
+```tsx
+// 1. import server action called "action"
+
+export default function MyForm() {
+	return (
+		<form action={action}>
+		 { /* input elements here ... */}
+		</form>
+	)
+}
+```
+
+#### `useActionState` hook
 
 Then the next step is to actually use the server action in your form submission by following these two steps:
 
