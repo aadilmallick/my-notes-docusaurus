@@ -171,6 +171,58 @@ After creating the PRD, ask the AI to give a prompt that implements the PRD:
 create a ready-to-generate prompt for building this app with AI tools like GPT or a working code scaffold.
 ```
 
+#### Ui first creation
+
+You can start off creating the UI simply with HTML and tailwindcss, which cursor excels at. Then based off that UI, you can tell cursor to make a plan (**essential step**) and then implement it peacemeal:
+
+**step 1: UI creation**
+
+Use this prompt as a cursor rule to build gorgeous UIs, and paste in mockups for inspiration.
+
+```md
+## Role
+You are a senior front-end developer.
+
+## Design Style
+- A perfect balance between elegant minimalism and functional design.
+- Soft, refreshing gradient colors that seamlessly integrate with the brand palette.
+- Well-proportioned white space for a clean layout.
+- Light and immersive user experience.
+- Clear information hierarchy using subtle shadows and modular card layouts.
+- Natural focus on core functionalities.
+- Refined rounded corners.
+- Delicate micro-interactions.
+- Comfortable visual proportions.
+
+## Mobile UI isntructions
+
+- **Page Size and Outlines**: Each page should be 375x812 pixels, with outlines to simulate a mobile device frame.
+
+- **Icons**: Use an online vector icon library, ensuring that icons do not have background blocks, baseplates, or outer frames.
+
+- **Images**: Images must be sourced from open-source image websites and linked directly.
+
+- **Styles**: Utilize Tailwind CSS via CDN for styling purposes.
+
+- **Status Bar**: Do not display the status bar, including time, signal, and other system indicators.
+
+- **Non-Mobile Elements**: Avoid displaying non-mobile elements such as scrollbars.
+
+- **Text Color**: All text should be either black or white.
+
+## Task
+
+This is an **AI Calorie calculator app** where users can take pic of food and auto extract nutrition**.
+
+- Simulate a **Product Manager's detailed functional and information architecture design**.
+
+- Follow the **design style** and **technical specifications** to generate a complete **UI design plan**.
+
+- Create a **UI.html** file that contains all pages displayed in a **horizontal layout**.
+
+- Generate the **first two pages** now
+```
+
 #### Vibe coding prompts
 
 Here are some good vibe coding prompts to inject during your workflow:
@@ -1185,6 +1237,9 @@ The basic flow of tool calling via the OpenAI API is as follows:
 3. Use the args and tool name to execute a function programmatically with those arguments. Return the result of the function execution as a `'tool'` role message, passing in the the tool call id and the return value.
 4. The LLM then returns a response based on the tool result.
 
+> [!IMPORTANT]
+> Whatever tool result you pass to the tool message must be a string.
+
 ```ts
 // 1. User Message
 {
@@ -1219,6 +1274,17 @@ The basic flow of tool calling via the OpenAI API is as follows:
   content: 'The weather in London is currently cloudy with a temperature of 18°C.'
 }
 ```
+
+The most important thing to understand is that a `role: "tool"` message must ALWAYS be provided after a `tool_calls` is provided by the assistant, even if you don't decide to call the tool.
+
+**tool approval**
+
+In your app logic, you can make an agent have to manually approve a tool trhough a human in the loop sort of structure, skipping executing the tool if permission is not given. The basic flow is like so:
+
+1. Agent wants to call tool, push message with `tool_calls` to history.
+2. If tool that is being called is in list of sensitive permission tools, have some sort of permission validation logic requiring human input that returns a boolean whether to approve or not. 
+3. If approved, invoke the tool function with the args and add the tool result content to a new `role: "tool"` message, add that to history
+4. If not approved, add a `role: "tool"` message to history with content being something like "executing tool was not approved"
 
 
 **new way**
@@ -1379,10 +1445,25 @@ import { z } from "npm:zod";
 import { zodFunction } from "npm:openai/helpers/zod";
 
 export class OpenAiModel {
-  private openai: OpenAI;
+  constructor(public openai: OpenAI, public readonly modelName: string) {}
 
-  constructor() {
-    this.openai = new OpenAI();
+  static createBasicOpenAI(apiKey: string, modelName = "gpt-4o-mini") {
+    return new OpenAiModel(
+      new OpenAI({
+        apiKey,
+      }),
+      modelName
+    );
+  }
+
+  static createOllamaAI(modelName: string) {
+    return new OpenAiModel(
+      new OpenAI({
+        baseURL: "http://localhost:11434/v1",
+        apiKey: "ollama",
+      }),
+      modelName
+    );
   }
 
   async createImage(
@@ -1398,22 +1479,47 @@ export class OpenAiModel {
     return response.data?.[0]?.url;
   }
 
-  async prompt(prompt: string) {
+  async prompt(
+    prompt: string,
+    history: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = []
+  ) {
     const response = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: this.modelName,
       temperature: 0.1,
-      messages: [{ role: "user", content: prompt }],
+      messages: [...history, { role: "user", content: prompt }],
     });
 
     return response.choices[0].message.content;
   }
+
+  async promptWithMessages(
+    history: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
+  ) {
+    const response = await this.openai.chat.completions.create({
+      model: this.modelName,
+      temperature: 0.1,
+      messages: history,
+    });
+
+    return {
+      history: [
+        ...history,
+        {
+          role: "assistant",
+          content: response.choices[0].message.content,
+        },
+      ] as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+      content: response.choices[0].message.content,
+    };
+  }
+
   async promptWithTools<R extends z.ZodObject<any>>(
     messages: OpenAI.Chat.ChatCompletionMessageParam[],
-    tools: readonly Tool<R>[]
+    tools: readonly OpenAITool<R>[]
   ) {
     const newMessages = [...messages];
     let response = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: this.modelName,
       temperature: 0.1,
       messages: newMessages,
       tools: tools.map(zodFunction),
@@ -1428,7 +1534,7 @@ export class OpenAiModel {
     };
     newMessages.push(response.choices[0].message);
 
-    const maxDepth = 10;
+    const maxDepth = 5;
     let depth = 0;
 
     while (result.toolWasRun && depth < maxDepth) {
@@ -1439,7 +1545,7 @@ export class OpenAiModel {
       const tool = tools.find((t) => t.name === toolName);
       if (tool) {
         console.log("Executing tool:", toolName);
-        const functionResultContent = tool.execute(toolArgs);
+        const functionResultContent = await tool.execute(toolArgs);
         // 1. push tool execution
         newMessages.push({
           role: "tool",
@@ -1448,7 +1554,7 @@ export class OpenAiModel {
         });
         // 2. get back response
         response = await this.openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: this.modelName,
           temperature: 0.1,
           messages: newMessages,
         });
@@ -1469,18 +1575,108 @@ export class OpenAiModel {
   }
 }
 
-export class OpenAiChat<
-  T extends {
-    createdAt: Date;
-  } = {
-    createdAt: Date;
+interface MemoryStrategy {
+  modifyMessages: (
+    messages: OpenAI.Chat.ChatCompletionMessageParam[]
+  ) =>
+    | OpenAI.Chat.ChatCompletionMessageParam[]
+    | Promise<OpenAI.Chat.ChatCompletionMessageParam[]>;
+}
+
+export class WindowSlidingStrategy implements MemoryStrategy {
+  constructor(public readonly n: number, private systemMessage?: string) {}
+  modifyMessages(messages: OpenAI.Chat.ChatCompletionMessageParam[]) {
+    return [
+      {
+        role: "system",
+        content: this.systemMessage,
+      },
+      ...messages.slice(-this.n),
+    ] as OpenAI.Chat.ChatCompletionMessageParam[];
   }
-> {
-  private openai: OpenAI;
+}
+
+export class SummarizationStrategy implements MemoryStrategy {
+  constructor(
+    public openaiModel: OpenAiModel,
+    private systemMessage?: string
+  ) {}
+  async modifyMessages(messages: OpenAI.Chat.ChatCompletionMessageParam[]) {
+    const summary = await this.openaiModel.prompt(
+      "Your task is to summarize the entire chat history. Just return the summary, and nothing else.",
+      messages
+    );
+    return [
+      {
+        role: "system",
+        content: `${
+          this.systemMessage || "you are a helpful assistant"
+        }. This is the summary of the entire conversation history up till now:\n\n${summary}`,
+      },
+    ] as OpenAI.Chat.ChatCompletionMessageParam[];
+  }
+}
+
+export class SummarizationAndSlidingStrategy implements MemoryStrategy {
+  constructor(
+    public openaiModel: OpenAiModel,
+    public readonly n: number,
+    private systemMessage?: string
+  ) {}
+  async modifyMessages(messages: OpenAI.Chat.ChatCompletionMessageParam[]) {
+    const summary = await this.openaiModel.prompt(
+      "Your task is to summarize the entire chat history. Just return the summary, and nothing else.",
+      messages
+    );
+    return [
+      {
+        role: "system",
+        content: `${
+          this.systemMessage || "you are a helpful assistant"
+        }. This is the summary of older messages in the conversation history:\n\n${summary}`,
+      },
+      ...messages.slice(-this.n),
+    ] as OpenAI.Chat.ChatCompletionMessageParam[];
+  }
+}
+
+export class OpenAiChat<T extends Record<string, any>> {
   private messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   private storedMessages: (OpenAI.Chat.ChatCompletionMessageParam & T)[] = [];
-  constructor() {
-    this.openai = new OpenAI();
+  private metadataSetter?: () => T;
+  private strategy?: MemoryStrategy;
+  private systemMessage?: string;
+  private openAiModel: OpenAiModel;
+  constructor(public openai: OpenAI, public readonly modelName: string) {
+    this.openAiModel = new OpenAiModel(openai, modelName);
+  }
+
+  isChatEmpty() {
+    return this.messages.length === 0;
+  }
+
+  setMetadata(cb: () => T) {
+    this.metadataSetter = cb;
+  }
+
+  getSystemMessage() {
+    return this.systemMessage;
+  }
+
+  setStrategy(strategy: MemoryStrategy) {
+    this.strategy = strategy;
+  }
+
+  private async implementStrategy() {
+    if (this.strategy) {
+      this.messages = await this.strategy.modifyMessages(this.messages);
+    }
+  }
+
+  private get metadata() {
+    return {
+      ...this.metadataSetter?.(),
+    };
   }
 
   async saveToFile(filePath: string) {
@@ -1514,63 +1710,549 @@ export class OpenAiChat<
       }
       return base;
     });
+    this.systemMessage = this.messages.find(
+      (message) => message.role === "system"
+    )?.content as string | undefined;
   }
 
   addSystemMessage(message: string) {
+    if (this.systemMessage) {
+      return;
+    }
     this.messages.push({ role: "system", content: message });
     this.storedMessages.push({
       role: "system",
       content: message,
-      createdAt: new Date(),
+      ...this.metadata,
+    });
+    this.systemMessage = message;
+  }
+
+  private addMessageToHistory(role: "user" | "assistant", content: string) {
+    this.messages.push({
+      role,
+      content,
+    });
+    this.storedMessages.push({
+      role,
+      content,
+      ...this.metadata,
     });
   }
 
+  private async runLLM() {
+    const response = await this.openAiModel.promptWithMessages(this.messages);
+
+    const text = response.content;
+
+    this.addMessageToHistory("assistant", text!);
+    this.implementStrategy();
+
+    return text!;
+  }
+
   async prompt(prompt: string) {
-    this.messages.push({ role: "user", content: prompt });
-    this.storedMessages.push({
-      role: "user",
-      content: prompt,
-      createdAt: new Date(),
-    });
+    this.addMessageToHistory("user", prompt);
 
     const response = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: this.modelName,
       temperature: 0.1,
       messages: this.messages,
     });
 
     const text = response.choices[0].message.content;
 
-    this.messages.push({
-      role: "assistant",
-      content: text,
-    });
-
-    this.storedMessages.push({
-      role: "assistant",
-      content: text!,
-      createdAt: new Date(),
-    });
+    this.addMessageToHistory("assistant", text!);
+    this.implementStrategy();
 
     return text;
   }
+
+  private async handleToolApprovals<R extends z.ZodObject<any>>(
+    tools: readonly OpenAITool<R>[],
+    toolCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[],
+    onAskPermission?: (tool: OpenAITool<R>) => Promise<boolean>
+  ) {
+    if (!onAskPermission) {
+      return true;
+    }
+    const toolApprovals = tools.filter(
+      (tool) =>
+        tool.needsPermission &&
+        toolCalls.some((call) => call.function.name === tool.name)
+    );
+    if (toolApprovals.length > 0) {
+      const permission = await onAskPermission(toolApprovals[0]);
+      return permission;
+    }
+    return true;
+  }
+
+  async promptWithTools<R extends z.ZodObject<any>>(
+    prompt: string,
+    tools: readonly OpenAITool<R>[],
+    onAskPermission?: (tool: OpenAITool<R>) => Promise<boolean>
+  ) {
+    this.addMessageToHistory("user", prompt);
+
+    const mappedTools = tools.map(zodFunction);
+
+    let response = await this.openai.chat.completions.create({
+      model: this.modelName,
+      temperature: 0.1,
+      messages: this.messages,
+      tools: mappedTools,
+      tool_choice: "auto",
+      parallel_tool_calls: false,
+    });
+
+    let result = {
+      tool_calls: response.choices[0].message.tool_calls,
+      content: response.choices[0].message.content,
+      toolWasRun: (response.choices[0].message.tool_calls?.length ?? 0) > 0,
+    };
+
+    if (!result.toolWasRun) {
+      this.addMessageToHistory("assistant", result.content!);
+    } else {
+      const toolUseIsApproved = await this.handleToolApprovals(
+        tools,
+        result.tool_calls!,
+        onAskPermission
+      );
+      if (toolUseIsApproved) {
+        this.messages.push(response.choices[0].message);
+      } else {
+        this.messages.push(response.choices[0].message);
+        this.messages.push({
+          role: "tool",
+          content: "tool use was not approved",
+          tool_call_id: response.choices[0].message.tool_calls![0].id,
+        });
+        return this.runLLM();
+      }
+    }
+
+    const maxDepth = 5;
+    let depth = 0;
+
+    console.log(this.messages);
+
+    while (result.toolWasRun && depth < maxDepth) {
+      depth++;
+      const toolCall = result.tool_calls![0];
+      const toolName = toolCall.function.name;
+      const toolArgs = JSON.parse(toolCall.function.arguments);
+      const tool = tools.find((t) => t.name === toolName);
+      if (tool) {
+        console.log("Executing tool:", toolName);
+        const functionResultContent = await tool.execute(toolArgs);
+        // 1. push tool execution
+        this.messages.push({
+          role: "tool",
+          content: functionResultContent,
+          tool_call_id: toolCall.id,
+        });
+        // this.storedMessages.push({
+        //     role: "tool",
+        //     content: functionResultContent,
+        //     tool_call_id: toolCall.id,
+        //     ...this.
+        //   });
+        // 2. get back response
+        response = await this.openai.chat.completions.create({
+          model: this.modelName,
+          temperature: 0.1,
+          messages: this.messages,
+          tools: mappedTools,
+          tool_choice: "auto",
+          parallel_tool_calls: false,
+        });
+        result = {
+          tool_calls: response.choices[0].message.tool_calls,
+          content: response.choices[0].message.content,
+          toolWasRun: (response.choices[0].message.tool_calls?.length ?? 0) > 0,
+        };
+        if (!result.toolWasRun) {
+          this.addMessageToHistory("assistant", result.content!);
+        } else {
+          const toolUseIsApproved = await this.handleToolApprovals(
+            tools,
+            result.tool_calls!,
+            onAskPermission
+          );
+          if (toolUseIsApproved) {
+            this.messages.push(response.choices[0].message);
+          } else {
+            this.messages.push(response.choices[0].message);
+            this.messages.push({
+              role: "tool",
+              content: "tool use was not approved",
+              tool_call_id: response.choices[0].message.tool_calls![0].id,
+            });
+            return this.runLLM();
+          }
+        }
+      }
+    }
+
+    this.implementStrategy();
+
+    return result.content;
+  }
 }
 
-export class Tool<T extends z.ZodObject<any>> {
+export class OpenAITool<T extends z.ZodObject<any>> {
   constructor(
     public name: string,
     public description: string,
     public parameters: T,
-    public cb: (args: z.infer<T>) => Record<string, any>
+    public cb: (args: z.infer<T>) => Promise<Record<string, any>>
   ) {}
 
-  execute(args: z.infer<T>) {
-    return JSON.stringify(this.cb(args));
+  public needsPermission: boolean = false;
+  public setNeedsPermission(permission: boolean) {
+    this.needsPermission = permission;
+  }
+
+  async execute(args: z.infer<T>) {
+    try {
+      return JSON.stringify(await this.cb(args));
+    } catch {
+      return `error: tool ${this.name} not able to be called`;
+    }
   }
 }
 ```
 
+### Google Genai
 
+#### Intro
+
+1. Install with `npm install @google/generative-ai`
+2. Instantiate model like so:
+
+```ts
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Initialize with API key
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+
+// Get model instance
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+// Popular models:
+// - gemini-pro: Best for text tasks
+// - gemini-pro-vision: For image + text tasks
+// - gemini-1.5-pro: Latest with larger context
+// - gemini-1.5-flash: Faster, more efficient
+
+// get model instance with configuration
+const model2 = genAI.getGenerativeModel({
+  model: "gemini-pro",
+  generationConfig: {
+    temperature: 0.7,        // Creativity (0.0-1.0)
+    topK: 40,               // Top-K sampling
+    topP: 0.95,             // Top-P sampling
+    maxOutputTokens: 1024,   // Max response length
+    stopSequences: ["END"]   // Stop generation at these sequences
+  }
+});
+```
+
+#### Basic model calling
+
+- `model.generateContent(prompt)`: returns the AI response
+- `model.generateContentStream(prompt)`: returns the AI response as a stream
+
+```ts
+async function generateText() {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  
+  const prompt = "Write a short poem about AI";
+  const result = await model.generateContent(prompt);
+  
+  console.log(result.response.text());
+}
+
+async function streamText() {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  
+  const prompt = "Tell me a long story about space exploration";
+  const result = await model.generateContentStream(prompt);
+  
+  for await (const chunk of result.stream) {
+    const chunkText = chunk.text();
+    process.stdout.write(chunkText);
+  }
+}
+```
+
+#### chat session
+
+Google genai package offers their own class for keeping track of message history in memory.
+
+```ts
+async function chatExample() {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  
+  // Start chat with optional history
+  const chat = model.startChat({
+    history: [
+      {
+        role: "user",
+        parts: [{ text: "Hello, I'm interested in learning about AI." }]
+      },
+      {
+        role: "model",
+        parts: [{ text: "Hello! I'd be happy to help you learn about AI. What specific aspect interests you most?" }]
+      }
+    ]
+  });
+  
+  // Send message
+  const result = await chat.sendMessage("Tell me about machine learning");
+  console.log(result.response.text());
+  
+  // Continue conversation
+  const result2 = await chat.sendMessage("What are some practical applications?");
+  console.log(result2.response.text());
+}
+```
+
+You can also stream chat responses like so:
+
+```ts
+async function streamingChat() {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const chat = model.startChat();
+  
+  const result = await chat.sendMessageStream("Explain quantum computing in detail");
+  
+  for await (const chunk of result.stream) {
+    process.stdout.write(chunk.text());
+  }
+}
+```
+
+#### Structured outputs
+
+Here is how you can use structured outputs:
+
+```ts
+async function structuredOutput() {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-pro",
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          recipes: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                ingredients: {
+                  type: "array",
+                  items: { type: "string" }
+                },
+                instructions: {
+                  type: "array",
+                  items: { type: "string" }
+                },
+                prep_time: { type: "string" },
+                difficulty: {
+                  type: "string",
+                  enum: ["easy", "medium", "hard"]
+                }
+              },
+              required: ["name", "ingredients", "instructions"]
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  const prompt = "Give me 2 easy pasta recipes";
+  const result = await model.generateContent(prompt);
+  
+  const jsonResponse = JSON.parse(result.response.text());
+  console.log(jsonResponse);
+}
+```
+
+#### Image generation
+
+```ts
+async function generateImage() {
+  const model = genAI.getGenerativeModel({ model: "imagen-3.0-generate-001" });
+  
+  const prompt = "A serene mountain landscape with a crystal-clear lake reflecting snow-capped peaks";
+  
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }]
+  });
+  
+  // Get image data
+  const imageData = result.response.candidates[0].content.parts[0].inlineData;
+  
+  // Save image
+  const fs = require('fs');
+  const buffer = Buffer.from(imageData.data, 'base64');
+  fs.writeFileSync('generated_image.png', buffer);
+}
+```
+
+#### Image and file analysis
+
+By pass in a message with `inlineData` property, you can send binary data of any mime type to the AI.
+
+```ts
+async function analyzeImage() {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+  
+  // Read image file
+  const fs = require('fs');
+  const imageBuffer = fs.readFileSync('path/to/image.jpg');
+  const imageBase64 = imageBuffer.toString('base64');
+  
+  const prompt = "Describe this image in detail and identify any objects, people, or activities";
+  
+  const result = await model.generateContent([
+    { text: prompt },
+    {
+      inlineData: {
+        mimeType: "image/jpeg",
+        data: imageBase64
+      }
+    }
+  ]);
+  
+  console.log(result.response.text());
+}
+```
+
+#### Embeddings
+
+```ts
+async function getTextEmbeddings() {
+  const model = genAI.getGenerativeModel({ model: "embedding-001" });
+  
+  const texts = [
+    "The quick brown fox jumps over the lazy dog",
+    "Machine learning is a subset of artificial intelligence",
+    "Python is a popular programming language for data science"
+  ];
+  
+  const embeddings = [];
+  
+  for (const text of texts) {
+    const result = await model.embedContent(text);
+    embeddings.push({
+      text: text,
+      embedding: result.embedding.values
+    });
+  }
+  
+  return embeddings;
+}
+```
+
+```ts
+function calculateCosineSimilarity(a, b) {
+  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
+  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+  return dotProduct / (magnitudeA * magnitudeB);
+}
+
+async function findSimilarDocuments(query, documentEmbeddings) {
+  const model = genAI.getGenerativeModel({ model: "embedding-001" });
+  
+  // Get query embedding
+  const queryResult = await model.embedContent(query);
+  const queryEmbedding = queryResult.embedding.values;
+  
+  // Calculate similarities
+  const similarities = documentEmbeddings.map(doc => ({
+    ...doc,
+    similarity: calculateCosineSimilarity(queryEmbedding, doc.embedding)
+  }));
+  
+  // Sort by similarity
+  return similarities.sort((a, b) => b.similarity - a.similarity);
+}
+```
+
+#### Model info
+
+```ts
+async function countTokens() {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  
+  const prompt = "Tell me about the history of artificial intelligence";
+  const result = await model.countTokens(prompt);
+  
+  console.log('Total tokens:', result.totalTokens);
+  console.log('Prompt tokens:', result.promptTokens);
+}
+
+async function getModelInfo() {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  
+  const info = await model.getModel();
+  console.log('Model name:', info.name);
+  console.log('Version:', info.version);
+  console.log('Input token limit:', info.inputTokenLimit);
+  console.log('Output token limit:', info.outputTokenLimit);
+}
+```
+
+#### Best practices
+
+**messaging queue**
+
+Here is a reusable way to generate AI messages through a messaging queue:
+
+```ts
+// Implement proper resource management
+class GeminiClient {
+  constructor(apiKey) {
+    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.requestQueue = [];
+    this.processing = false;
+  }
+  
+  async generateContent(prompt, options = {}) {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push({ prompt, options, resolve, reject });
+      this.processQueue();
+    });
+  }
+  
+  async processQueue() {
+    if (this.processing || this.requestQueue.length === 0) return;
+    
+    this.processing = true;
+    const { prompt, options, resolve, reject } = this.requestQueue.shift();
+    
+    try {
+      const model = this.genAI.getGenerativeModel(options);
+      const result = await model.generateContent(prompt);
+      resolve(result.response.text());
+    } catch (error) {
+      reject(error);
+    } finally {
+      this.processing = false;
+      // Process next item
+      setTimeout(() => this.processQueue(), 100);
+    }
+  }
+}
+```
 ### Vercel AI
 
 The great thing about the `ai` npm package from vercel is that it is **model-agnostic**, meaning it's just plug and play with different models and no need to learn different APIs for google, claude, OpenAI, etc.

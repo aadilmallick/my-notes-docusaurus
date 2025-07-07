@@ -1506,3 +1506,65 @@ Here are some basic atomic operations you can perform:
     }
   }
 ```
+
+#### Realtime Updates
+
+You can watch for a key in deno kv by using the `db.watch()` method like so, which returns a readable stream.
+
+```ts
+const stream = db.watch([["list_updated", listId]]).getReader();
+```
+
+You can then pair this with server sent events to make the frontend get realtime updates from the server:
+
+```ts
+app.get("/realtime/:id", (_req, _info, params) => {
+  const shortCode = params?.pathname.groups["id"];
+  
+  // Setup KV watch reader
+  const shortLinkKey = ["shortlinks", shortCode];
+  const shortLinkStream = kv.watch([shortLinkKey]).getReader();
+
+  // Create stream response body
+  const body = new ReadableStream({
+    async start(controller) {
+      // Fetch initial data if needed
+      // const initialData = await getShortLink(shortCode);
+      // controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ clickCount: initialData.clickCount })}\n\n`));
+
+      while (true) {
+        const { done } = await stream.read();
+        if (done) {
+          return;
+        }
+        const shortLink = await getShortLink(shortCode);
+        const clickAnalytics = shortLink.clickCount > 0 &&
+          await getClickEvent(shortCode, shortLink.clickCount);
+
+        controller.enqueue(
+          new TextEncoder().encode(
+            `data: ${
+              JSON.stringify({
+                clickCount: shortLink.clickCount,
+                clickAnalytics,
+              })
+            }\n\n`,
+          ),
+        );
+        console.log("Stream updated");
+      }
+    },
+    cancel() {
+      stream.cancel();
+    },
+  });
+
+  return new Response(body, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
+});
+```

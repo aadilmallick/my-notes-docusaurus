@@ -1135,6 +1135,602 @@ function createCancelablePromise<T>(asyncCb: () => Promise<T>) {
 }
 ```
 
+#### Cancelling with abort signals
+
+```ts
+function createCancelablePromise<T>(cb: () => Promise<T>) {
+  const controller = new AbortController();
+  const { promise, resolve, reject } = Promise.withResolvers<T>();
+  controller.signal.addEventListener("abort", () => {
+    reject(new Error("Canceled"));
+    return;
+  });
+  cb().then((value) => {
+    if (controller.signal.aborted) {
+      reject(new Error("Canceled"));
+      return;
+    }
+    resolve(value);
+  });
+  return { promise, cancel: () => controller.abort() };
+}
+```
+
+```ts
+function makeAbortable(fn) {
+  return signal => {
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) {
+        reject(signal.reason)
+        return
+      }
+
+      signal.addEventListener("abort", () => {
+        reject(signal.reason)
+      })
+
+      fn(resolve, reject, signal)
+    })
+  }
+}
+```
+
+### Messaging queues
+
+We can use asynchronous messaging queues in javascript, which is useful for doing stuff like rate limiting, limiting concurrency, and adding delays between requests.
+
+```ts
+// =============================================================================
+// MESSAGING QUEUE IMPLEMENTATIONS
+// =============================================================================
+
+// Problem with your original implementation: 
+// You never call processQueue() when adding items!
+
+// =============================================================================
+// 1. FIXED VERSION OF YOUR IMPLEMENTATION
+// =============================================================================
+
+class PromiseMessagingQueue<T, R> {
+  private queue: {
+    resolve: (value: R) => void;
+    reject: (reason?: any) => void;
+    args: T;
+  }[] = [];
+  private isProcessing = false;
+
+  constructor(private onData: (data: T) => Promise<R>) {}
+
+  add(args: T): Promise<R> {
+    const { resolve, reject, promise } = Promise.withResolvers<R>();
+    this.queue.push({ resolve, reject, args });
+    
+    // THIS WAS MISSING - trigger processing when adding items
+    this.processQueue();
+    
+    return promise;
+  }
+
+  private async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    
+    this.isProcessing = true;
+    
+    const item = this.queue.shift()!;
+    
+    try {
+      const result = await this.onData(item.args);
+      item.resolve(result);
+    } catch (error) {
+      item.reject(error);
+    } finally {
+      this.isProcessing = false;
+      // Process next item if any
+      this.processQueue();
+    }
+  }
+}
+
+// =============================================================================
+// 2. ENHANCED VERSION WITH BETTER ERROR HANDLING
+// =============================================================================
+
+class EnhancedPromiseQueue<T, R> {
+  private queue: Array<{
+    resolve: (value: R) => void;
+    reject: (reason?: any) => void;
+    args: T;
+    id: string;
+  }> = [];
+  private isProcessing = false;
+  private nextId = 0;
+
+  constructor(
+    private onData: (data: T) => Promise<R>,
+    private options: {
+      maxRetries?: number;
+      retryDelay?: number;
+      onError?: (error: any, args: T) => void;
+    } = {}
+  ) {}
+
+  add(args: T): Promise<R> {
+    const { resolve, reject, promise } = Promise.withResolvers<R>();
+    const id = `queue-${this.nextId++}`;
+    
+    this.queue.push({ resolve, reject, args, id });
+    
+    // Start processing if not already running
+    if (!this.isProcessing) {
+      this.processQueue();
+    }
+    
+    return promise;
+  }
+
+  private async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    
+    this.isProcessing = true;
+    
+    while (this.queue.length > 0) {
+      const item = this.queue.shift()!;
+      
+      try {
+        const result = await this.processWithRetry(item);
+        item.resolve(result);
+      } catch (error) {
+        this.options.onError?.(error, item.args);
+        item.reject(error);
+      }
+    }
+    
+    this.isProcessing = false;
+  }
+
+  private async processWithRetry(item: any): Promise<R> {
+    const maxRetries = this.options.maxRetries || 0;
+    const retryDelay = this.options.retryDelay || 1000;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.onData(item.args);
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
+    }
+    
+    throw new Error('Max retries exceeded');
+  }
+
+  getQueueLength(): number {
+    return this.queue.length;
+  }
+
+  isActive(): boolean {
+    return this.isProcessing;
+  }
+}
+
+// =============================================================================
+// 3. RATE-LIMITED QUEUE (WITH CONCURRENCY CONTROL)
+// =============================================================================
+
+class RateLimitedQueue<T, R> {
+  private queue: Array<{
+    resolve: (value: R) => void;
+    reject: (reason?: any) => void;
+    args: T;
+    timestamp: number;
+  }> = [];
+  private activePromises = new Set<Promise<void>>();
+  private lastProcessTime = 0;
+
+  constructor(
+    private onData: (data: T) => Promise<R>,
+    private options: {
+      maxConcurrency?: number;
+      minDelay?: number; // Minimum time between requests
+      maxRetries?: number;
+    } = {}
+  ) {
+    this.options.maxConcurrency = options.maxConcurrency || 1;
+    this.options.minDelay = options.minDelay || 0;
+    this.options.maxRetries = options.maxRetries || 0;
+  }
+
+  add(args: T): Promise<R> {
+    const { resolve, reject, promise } = Promise.withResolvers<R>();
+    
+    this.queue.push({ 
+      resolve, 
+      reject, 
+      args, 
+      timestamp: Date.now() 
+    });
+    
+    // Start processing
+    this.processQueue();
+    
+    return promise;
+  }
+
+  private async processQueue() {
+    // Check if we can process more items
+    if (this.activePromises.size >= this.options.maxConcurrency! || 
+        this.queue.length === 0) {
+      return;
+    }
+
+    const item = this.queue.shift()!;
+    
+    // Rate limiting - ensure minimum delay between requests
+    const now = Date.now();
+    const timeSinceLastProcess = now - this.lastProcessTime;
+    
+    if (timeSinceLastProcess < this.options.minDelay!) {
+      const delay = this.options.minDelay! - timeSinceLastProcess;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    this.lastProcessTime = Date.now();
+    
+    // Process the item
+    const processingPromise = this.processItem(item);
+    this.activePromises.add(processingPromise);
+    
+    // Remove from active set when done
+    processingPromise.finally(() => {
+      this.activePromises.delete(processingPromise);
+      // Try to process next item
+      this.processQueue();
+    });
+    
+    // Try to process more items if we haven't hit concurrency limit
+    this.processQueue();
+  }
+
+  private async processItem(item: any): Promise<void> {
+    try {
+      const result = await this.onData(item.args);
+      item.resolve(result);
+    } catch (error) {
+      item.reject(error);
+    }
+  }
+
+  getStats() {
+    return {
+      queueLength: this.queue.length,
+      activeCount: this.activePromises.size,
+      canProcess: this.activePromises.size < this.options.maxConcurrency!
+    };
+  }
+}
+
+// =============================================================================
+// 4. PRIORITY QUEUE IMPLEMENTATION
+// =============================================================================
+
+interface PriorityQueueItem<T, R> {
+  resolve: (value: R) => void;
+  reject: (reason?: any) => void;
+  args: T;
+  priority: number;
+  timestamp: number;
+}
+
+class PriorityQueue<T, R> {
+  private queue: PriorityQueueItem<T, R>[] = [];
+  private isProcessing = false;
+
+  constructor(private onData: (data: T) => Promise<R>) {}
+
+  add(args: T, priority: number = 0): Promise<R> {
+    const { resolve, reject, promise } = Promise.withResolvers<R>();
+    
+    const item: PriorityQueueItem<T, R> = {
+      resolve,
+      reject,
+      args,
+      priority,
+      timestamp: Date.now()
+    };
+    
+    // Insert in priority order (higher priority first, then by timestamp)
+    this.insertSorted(item);
+    
+    if (!this.isProcessing) {
+      this.processQueue();
+    }
+    
+    return promise;
+  }
+
+  private insertSorted(item: PriorityQueueItem<T, R>) {
+    let insertIndex = 0;
+    
+    for (let i = 0; i < this.queue.length; i++) {
+      const existing = this.queue[i];
+      
+      // Higher priority goes first
+      if (item.priority > existing.priority) {
+        insertIndex = i;
+        break;
+      }
+      
+      // Same priority, earlier timestamp goes first
+      if (item.priority === existing.priority && 
+          item.timestamp < existing.timestamp) {
+        insertIndex = i;
+        break;
+      }
+      
+      insertIndex = i + 1;
+    }
+    
+    this.queue.splice(insertIndex, 0, item);
+  }
+
+  private async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    
+    this.isProcessing = true;
+    
+    while (this.queue.length > 0) {
+      const item = this.queue.shift()!;
+      
+      try {
+        const result = await this.onData(item.args);
+        item.resolve(result);
+      } catch (error) {
+        item.reject(error);
+      }
+    }
+    
+    this.isProcessing = false;
+  }
+}
+
+// =============================================================================
+// 5. BATCH PROCESSING QUEUE
+// =============================================================================
+
+class BatchProcessingQueue<T, R> {
+  private queue: Array<{
+    resolve: (value: R) => void;
+    reject: (reason?: any) => void;
+    args: T;
+  }> = [];
+  private batchTimer: NodeJS.Timeout | null = null;
+  private isProcessing = false;
+
+  constructor(
+    private onBatch: (batch: T[]) => Promise<R[]>,
+    private options: {
+      batchSize?: number;
+      maxWaitTime?: number;
+    } = {}
+  ) {
+    this.options.batchSize = options.batchSize || 10;
+    this.options.maxWaitTime = options.maxWaitTime || 1000;
+  }
+
+  add(args: T): Promise<R> {
+    const { resolve, reject, promise } = Promise.withResolvers<R>();
+    
+    this.queue.push({ resolve, reject, args });
+    
+    // Start batch timer if not already running
+    if (!this.batchTimer) {
+      this.batchTimer = setTimeout(() => {
+        this.processBatch();
+      }, this.options.maxWaitTime);
+    }
+    
+    // Process immediately if batch is full
+    if (this.queue.length >= this.options.batchSize!) {
+      this.processBatch();
+    }
+    
+    return promise;
+  }
+
+  private async processBatch() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    
+    this.isProcessing = true;
+    
+    // Clear timer
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
+      this.batchTimer = null;
+    }
+    
+    // Extract batch
+    const batchSize = Math.min(this.options.batchSize!, this.queue.length);
+    const batch = this.queue.splice(0, batchSize);
+    
+    try {
+      const results = await this.onBatch(batch.map(item => item.args));
+      
+      // Resolve all promises in the batch
+      batch.forEach((item, index) => {
+        item.resolve(results[index]);
+      });
+    } catch (error) {
+      // Reject all promises in the batch
+      batch.forEach(item => {
+        item.reject(error);
+      });
+    } finally {
+      this.isProcessing = false;
+      
+      // Process next batch if items remain
+      if (this.queue.length > 0) {
+        this.processBatch();
+      }
+    }
+  }
+}
+```
+
+```ts
+// =============================================================================
+// USAGE EXAMPLES
+// =============================================================================
+
+// Example 1: Basic Fixed Queue
+async function basicExample() {
+  const queue = new PromiseMessagingQueue<string, string>(async (data) => {
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return `Processed: ${data}`;
+  });
+
+  // Add multiple items
+  const promises = [
+    queue.add("item1"),
+    queue.add("item2"),
+    queue.add("item3")
+  ];
+
+  const results = await Promise.all(promises);
+  console.log("Basic results:", results);
+}
+
+// Example 2: Rate Limited Queue
+async function rateLimitedExample() {
+  const queue = new RateLimitedQueue<string, string>(
+    async (data) => {
+      console.log(`Processing: ${data} at ${new Date().toISOString()}`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return `Done: ${data}`;
+    },
+    {
+      maxConcurrency: 2,
+      minDelay: 1000 // 1 second between requests
+    }
+  );
+
+  // Add multiple items quickly
+  const promises = Array.from({ length: 5 }, (_, i) => 
+    queue.add(`item-${i}`)
+  );
+
+  const results = await Promise.all(promises);
+  console.log("Rate limited results:", results);
+}
+
+// Example 3: Priority Queue
+async function priorityExample() {
+  const queue = new PriorityQueue<string, string>(async (data) => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return `Processed: ${data}`;
+  });
+
+  // Add items with different priorities
+  const promises = [
+    queue.add("low-priority", 1),
+    queue.add("high-priority", 10),
+    queue.add("medium-priority", 5)
+  ];
+
+  const results = await Promise.all(promises);
+  console.log("Priority results:", results);
+  // Should process in order: high-priority, medium-priority, low-priority
+}
+
+// Example 4: Batch Processing
+async function batchExample() {
+  const queue = new BatchProcessingQueue<number, number>(
+    async (batch) => {
+      console.log(`Processing batch of ${batch.length} items`);
+      // Process all items in batch
+      return batch.map(x => x * 2);
+    },
+    {
+      batchSize: 3,
+      maxWaitTime: 2000
+    }
+  );
+
+  // Add items one by one
+  const promises = Array.from({ length: 7 }, (_, i) => queue.add(i));
+  
+  const results = await Promise.all(promises);
+  console.log("Batch results:", results);
+}
+
+// Example 5: Gemini API Client using Enhanced Queue
+class GeminiClient {
+  private queue: EnhancedPromiseQueue<string, string>;
+
+  constructor(private apiKey: string) {
+    this.queue = new EnhancedPromiseQueue(
+      async (prompt: string) => {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return `Generated response for: ${prompt}`;
+      },
+      {
+        maxRetries: 3,
+        retryDelay: 1000,
+        onError: (error, prompt) => {
+          console.error(`Failed to process prompt: ${prompt}`, error);
+        }
+      }
+    );
+  }
+
+  async generateText(prompt: string): Promise<string> {
+    return this.queue.add(prompt);
+  }
+
+  getQueueStats() {
+    return {
+      queueLength: this.queue.getQueueLength(),
+      isActive: this.queue.isActive()
+    };
+  }
+}
+
+// Run examples
+async function runExamples() {
+  console.log("=== Basic Example ===");
+  await basicExample();
+  
+  console.log("\n=== Rate Limited Example ===");
+  await rateLimitedExample();
+  
+  console.log("\n=== Priority Example ===");
+  await priorityExample();
+  
+  console.log("\n=== Batch Example ===");
+  await batchExample();
+  
+  console.log("\n=== Gemini Client Example ===");
+  const client = new GeminiClient("fake-api-key");
+  
+  const geminiPromises = [
+    client.generateText("Hello"),
+    client.generateText("World"),
+    client.generateText("AI")
+  ];
+  
+  const geminiResults = await Promise.all(geminiPromises);
+  console.log("Gemini results:", geminiResults);
+  console.log("Queue stats:", client.getQueueStats());
+}
+
+// Uncomment to run examples
+// runExamples().catch(console.error);
+```
 ## Decorators
 
 Decorators in javascript work just like they do in Python. They are syntactic sugar around functions that return wrapper functions and add some extra reusable functionality. 
