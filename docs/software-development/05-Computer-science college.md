@@ -23,6 +23,227 @@ A kilobyte (KB) is 1000 bytes. A kibibyte (KiB) is 1024 bytes. So any acronyms u
 
 ## Authentication
 
+### email and password auth theory
+
+#### Salts and hashing
+
+How do we keep the unique combination of a user's email and password secure? While we store emails in plain text, we must **hash** passwords.
+
+- **hashing**: A hash is a deterministic, one-way, random garbling of a string which makes it impossible to decrypt a hash.
+
+However, the main problem with just hashing passwords is that they are deterministic. This means that a hacker can figure out the plain-text string that results in the specified hash, time permitting. To solve this issue, we use **salts**.
+
+- **salt**: a random string added to the password before hashing. This salt value is stored alongside the hash value in the database.
+
+Salts serve two purposes:
+
+1. **Prevents Rainbow Table Attacks**: Rainbow tables are precomputed tables of hash values for common passwords. By adding a salt, you make it unlikely that a rainbow table will contain the hash value for a specific password + salt combination.
+2. **Makes Hash Values Unique**: Even if two users have the same password, the addition of unique salts ensures their hash values will be different.
+
+Salts ensure that even if two users have the same password, their hash values will be different, making rainbow tables ineffective.
+
+For example, instead of hashing the super common password `"password"`, we will append a special salt string, unique, random, and stored for each user. We would instead hash `"password-salt"` for each user. Because a salt is unique, it completely changes the hash value for any 
+
+Here's why salting prevents rainbow table attacks:
+
+- **Unique Hash Values**: With salts, each password + salt combination produces a unique hash value. This means an attacker would need a separate rainbow table for each unique salt value.
+- **Computational Overhead**: Creating a rainbow table for a single salt value would require significant computational resources and time. With bcrypt's slow hashing algorithm, this becomes even more impractical.
+- **Storage Requirements**: To store rainbow tables for all possible salt values, an attacker would need an enormous amount of storage space.
+
+Now let's talk about implementation.
+
+**using node crypto**
+
+The basic flow of adding a enw user and hashing their password with node crypto is like so:
+
+1. Create a random 16-byte salt
+2. Append the salt to the plain text password
+3. Hash the salted plain text password
+4. Stored the hashed password, email, and salt for the user in the database.
+
+Here is a reusable model that can convert itself to JSON, be stored along with the user db record, and create itself from JSON in order to authenticate a user with the same hashing specifications:
+
+```ts
+import crypto from "node:crypto";
+
+export class CryptoPasswordModel {
+  private salt: string;
+  private iterations: number;
+  private keyLength: number;
+  private digest: string;
+
+  constructor(options?: {
+    salt?: string;
+    iterations?: number;
+    keyLength?: number;
+    digest?: string;
+  }) {
+    if (options) {
+      this.salt = options.salt || crypto.randomBytes(16).toString("hex");
+      this.iterations = options.iterations || 10;
+      this.keyLength = options.keyLength || 64;
+      this.digest = options.digest || "sha256";
+    } else {
+      this.salt = crypto.randomBytes(16).toString("hex");
+      this.iterations = 10;
+      this.keyLength = 64;
+      this.digest = "sha256";
+    }
+  }
+
+  async hash(password: string) {
+    const { promise, resolve, reject } = Promise.withResolvers<Buffer>();
+    crypto.pbkdf2(
+      password,
+      this.salt,
+      this.iterations,
+      this.keyLength,
+      this.digest,
+      (err, derivedKey) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(derivedKey);
+      }
+    );
+    const hash = await promise;
+    return hash.toString("hex");
+  }
+
+  toJSON() {
+    return {
+      salt: this.salt,
+      iterations: this.iterations,
+      keyLength: this.keyLength,
+      digest: this.digest,
+    };
+  }
+
+  static fromJSON(json: {
+    salt: string;
+    iterations: number;
+    keyLength: number;
+    digest: string;
+  }) {
+    return new CryptoPasswordModel({
+      salt: json.salt,
+      iterations: json.iterations,
+      keyLength: json.keyLength,
+      digest: json.digest,
+    });
+  }
+
+  async verify(password: string, hash: string) {
+    const { promise, resolve, reject } = Promise.withResolvers<boolean>();
+    crypto.pbkdf2(
+      password,
+      this.salt,
+      this.iterations,
+      this.keyLength,
+      this.digest,
+      (err, derivedKey) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(derivedKey.toString("hex") === hash);
+      }
+    );
+    const result = await promise;
+    return result;
+  }
+}
+```
+
+For example, this would be how signing up works:
+
+```ts
+async function signUpUser(email: string, password: string) {
+	// 1. if email already exists in DB, throw error
+
+	// 2. hash password
+	const model = new CryptoPasswordModel();
+	const hashedPassword = await model.hash(password);
+
+	// 3. add to DB, along with salt itself
+	const user = await addUserToDB({
+		email,
+		password: hashedPassword,
+		hashingInfo: model.toJSON() 
+	})
+	return user; // newly created user with id
+}
+```
+
+To sign in a user and authenticate them, here is the flow:
+
+1. Accept the email and password from the user via form
+2. Find the db user record with the same email, if exists. Else throw error.
+3. Get the salt from the db user record, and with it, hash the plaintext password.
+4. If the newly hashed password and the stored db user record password are equal, then the user is authenticated. Else, user entered incorrect password.
+
+Here is the flow:
+
+```ts
+async function signInUser(email: string, password: string) {
+	// 1. get the user with same email from db
+	const storedUser = await db.findOne({email: email})
+	if (!storedUser) throw new Error("email not found, user doesn't exist")
+
+	// 2. get crypto specs
+	const model = CryptoPasswordModel.fromJSON(storedUser.hashingInfo)
+
+	// 3. compare hashes. If equal, authenticate user.
+	const matches = await model.verify(password, storedUser.password)
+	return matches
+}
+```
+
+**using Bcrypt**
+
+Bcrypt does this automatically for us, where we only have to specify the number of salt rounds.
+
+```ts
+const bcrypt = require('bcrypt');
+
+async function signInUser(email: string, password: string) {
+	// 1. hash the password with 10 salt rounds
+	const saltRounds = 10;
+	const hashedPassword = await bcrypt.hash(password, saltRounds)
+
+	// 2. get the user with same email from db
+	const storedUser = await db.findOne({email: email})
+	if (!storedUser) throw new Error("email not found, user doesn't exist")
+
+	// 3. compare hashes. If they are equal, user is authenticated.
+	let matches = storedUser.password === hashedPassword
+
+	// 3a. or, use bycrypt.compare(plainTextpassword, hashedPassword)
+	matches = await bcrypt.compare(password, storedUser.password)
+	return matches
+}
+```
+
+Here's an example of a bcrypt hash string:
+
+Bash
+
+```
+$2b$10$nOUIs5kJ7naTuTFkBy1veuJq8Bhn7F6K9eWgQXhja4z8fu48.seedU
+```
+
+In this example:
+
+- `$2b$` is the algorithm version
+- `10$` is the cost factor
+- `nOUIs5kJ7naTuTFkBy1veu` is the salt value (22 characters)
+- `Jq8Bhn7F6K9eWgQXhja4z8fu48.seedU` is the hash value
+
+When comparing passwords, bcrypt extracts the salt value (`nOUIs5kJ7naTuTFkBy1veu`) from the stored hash string and uses it to hash the provided password. This ensures that the same salt value is used for both the original hash and the comparison hash, allowing bcrypt to accurately verify the password.
+
+### Auth Types
+
 There are two types of authentication standards:
 
 - **stateful authentication**: Auth based on the client sending cookies to the server and storing auth info about the current user in the cookie, like a session ID. The server then stores the session data.
@@ -46,8 +267,10 @@ There are two types of authentication standards:
 | Storage requirements   | ❌ Needs to store user credentials AND session data                | ✅  Only needs to store user credentials to authenticate against.                                 |
 
 
+![](https://i.imgur.com/tk0nSrA.jpeg)
 
-### session auth
+JWT is not recommended for auth because there are more downsides than upsides. To make effective JWTs, you need to implement access tokens and refresh tokens because you cannot revoke the session at all. This also makes JWTs less secure by default if not implemented correctly. The only advantage JWTs have are speed of checking auth status, but that can be easily overcome by using something like redis.
+#### session auth
 
 
 ![](https://i.imgur.com/xoLEh9i.jpeg)
@@ -59,7 +282,12 @@ There are two types of authentication standards:
 4. The client sends the session ID each time to the server every time it makes the request, either manually through headers or request body or implicitly using cookies.
 5. The server validates the session ID against the database, and returns the stored session if it exists. If the stored session does not exist, then the user is unauthorized.
 
-#### Cookies
+Here is another diagram that illustrates this flow:
+
+![](https://i.imgur.com/DG1033N.png)
+
+
+##### Cookies
 
 If cookies are enabled on the client, we can create cookies on the server and have the browser automatically send those cookies on every request.
 
@@ -67,7 +295,227 @@ If cookies are enabled on the client, we can create cookies on the server and ha
 2. The client gets a `Set-Cookie: connect.sid=<session-id-her>` header, which your server should send.
 3. The browser sends the cookie on every request it makes to the server.
 
-#### Logging out
+##### Storing sessions in database
+
+When scaling up, it becomes infeasible to store sessions in server memory. Rather, what we should do is store it one some caching key-value store like Redis, which has built-ins to automatically expire values, which is great for a session use-case.
+
+Here is the flow of creating a session, storing it in the database, and sending the session ID back to the user so they can authenticate themselves automatically on future requests:
+
+1. Create a random session ID.
+2. From a user object fetched from DB, create a session object whose ID is the random session ID, and stored that user data. Here is what to store:
+	- **user id**
+	- **user role**, like admin, normal person, etc.
+3. Store session object in redis cache, expire after set amount of time.
+4. Set secure, HTTP-only, same-site lax, cookie with key `"session-id"`, and the value being the session ID you created.
+
+**creating the redis client**
+
+```ts
+import { Redis } from "@upstash/redis"
+
+export const redisClient = new Redis({
+  url: process.env.REDIS_URL,
+  token: process.env.REDIS_TOKEN,
+})
+```
+
+**basic global session config**
+
+```ts
+export type Cookies = {
+  set: (
+    key: string,
+    value: string,
+    options: {
+      secure?: boolean
+      httpOnly?: boolean
+      sameSite?: "strict" | "lax"
+      expires?: number
+    }
+  ) => void
+  get: (key: string) => { name: string; value: string } | undefined
+  delete: (key: string) => void
+}
+
+// Seven days in seconds
+const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7
+const COOKIE_SESSION_KEY = "session-id"
+
+const sessionSchema = z.object({
+  id: z.string(),
+  role: z.enum(userRoles),
+})
+
+type UserSession = z.infer<typeof sessionSchema>
+```
+
+**creating the user and setting the cookie**
+
+```ts
+
+
+export async function createUserSession(
+  user: UserSession,
+  cookies: Pick<Cookies, "set">
+) {
+  const sessionId = crypto.randomBytes(512).toString("hex").normalize()
+  await redisClient.set(`session:${sessionId}`, sessionSchema.parse(user), {
+    ex: SESSION_EXPIRATION_SECONDS,
+  })
+
+  setCookie(sessionId, cookies)
+}
+
+function setCookie(sessionId: string, cookies: Pick<Cookies, "set">) {
+  cookies.set(COOKIE_SESSION_KEY, sessionId, {
+    secure: true,
+    httpOnly: true,
+    sameSite: "lax",
+    expires: Date.now() + SESSION_EXPIRATION_SECONDS * 1000,
+  })
+}
+```
+
+After you complete all these steps, the user verifies themselves by having the browser automatically send the cookie on every request, the server parses the cookie and gets the session ID, validates against the redis cache that the session ID exists and has not expired, and gets the session object that lives in the cache. Then the user is authenticated with that info.
+
+
+**getting the user**
+
+```ts
+export function getUserFromSession(cookies: Pick<Cookies, "get">) {
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
+  if (sessionId == null) return null
+
+  return getUserSessionById(sessionId)
+}
+
+async function getUserSessionById(sessionId: string) {
+  const rawUser = await redisClient.get(`session:${sessionId}`)
+
+  const { success, data: user } = sessionSchema.safeParse(rawUser)
+
+  return success ? user : null
+}
+```
+
+**updating the session**
+
+```ts
+export async function updateUserSessionData(
+  user: UserSession,
+  cookies: Pick<Cookies, "get">
+) {
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
+  if (sessionId == null) return null
+
+  await redisClient.set(`session:${sessionId}`, sessionSchema.parse(user), {
+    ex: SESSION_EXPIRATION_SECONDS,
+  })
+}
+
+export async function updateUserSessionExpiration(
+  cookies: Pick<Cookies, "get" | "set">
+) {
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
+  if (sessionId == null) return null
+
+  const user = await getUserSessionById(sessionId)
+  if (user == null) return
+
+  await redisClient.set(`session:${sessionId}`, user, {
+    ex: SESSION_EXPIRATION_SECONDS,
+  })
+  setCookie(sessionId, cookies)
+}
+```
+
+**logging out the user**
+
+To log out the user, you simply just delete the cookie, and then delete the session from the redis cache.
+
+```ts
+export async function removeUserFromSession(
+  cookies: Pick<Cookies, "get" | "delete">
+) {
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
+  if (sessionId == null) return null
+
+  await redisClient.del(`session:${sessionId}`)
+  cookies.delete(COOKIE_SESSION_KEY)
+}
+```
+
+**creating route guards**
+
+This is a useful utility for getting just the user session, the user from the DB, all while acting as a route guard.
+
+```ts
+import { cookies } from "next/headers"
+import { getUserFromSession } from "../core/session"
+import { cache } from "react"
+import { redirect } from "next/navigation"
+import { db } from "@/drizzle/db"
+import { eq } from "drizzle-orm"
+import { UserTable } from "@/drizzle/schema"
+
+type FullUser = Exclude<
+  Awaited<ReturnType<typeof getUserFromDb>>,
+  undefined | null
+>
+
+type User = Exclude<
+  Awaited<ReturnType<typeof getUserFromSession>>,
+  undefined | null
+>
+
+function _getCurrentUser(options: {
+  withFullUser: true
+  redirectIfNotFound: true
+}): Promise<FullUser>
+function _getCurrentUser(options: {
+  withFullUser: true
+  redirectIfNotFound?: false
+}): Promise<FullUser | null>
+function _getCurrentUser(options: {
+  withFullUser?: false
+  redirectIfNotFound: true
+}): Promise<User>
+function _getCurrentUser(options?: {
+  withFullUser?: false
+  redirectIfNotFound?: false
+}): Promise<User | null>
+async function _getCurrentUser({
+  withFullUser = false,
+  redirectIfNotFound = false,
+} = {}) {
+  const user = await getUserFromSession(await cookies())
+
+  if (user == null) {
+    if (redirectIfNotFound) return redirect("/sign-in")
+    return null
+  }
+
+  if (withFullUser) {
+    const fullUser = await getUserFromDb(user.id)
+    // This should never happen
+    if (fullUser == null) throw new Error("User not found in database")
+    return fullUser
+  }
+
+  return user
+}
+
+export const getCurrentUser = cache(_getCurrentUser)
+
+function getUserFromDb(id: string) {
+  return db.query.UserTable.findFirst({
+    columns: { id: true, email: true, role: true, name: true },
+    where: eq(UserTable.id, id),
+  })
+}
+```
+
+##### Logging out
 
 WHen the user wants to log out, he requests the logout endpoint against the server, passing his session ID, and then the server will delete the corresponding session from the database
 
@@ -82,7 +530,7 @@ app.post('/logout', (req, res) => {
 
 ```
 
-#### Complete example
+##### Complete example
 
 Here's a complete example in express:
 
@@ -142,7 +590,7 @@ app.listen(3000, () => console.log("Server running on port 3000"));
 
 ```
 
-### Basic auth
+#### Basic auth
 
 ![](https://i.imgur.com/CiGsltx.jpeg)
 
@@ -160,7 +608,7 @@ WWW-Authenticate: 'Basic realm="My app name"'
 > [!NOTE]
 > You see why it's now called basic Auth. This is extremely insecure since anyone can decode it, so make sure to use https.
 
-#### **authorization in depth**
+##### **authorization in depth**
 
 Here is the authorization process in depth. First, the header the client sends will be the `Authorization` header in this form:  `Basic <encoded-credentials>`
 
@@ -186,7 +634,7 @@ function getBasicAuthHeader(username: string, password: string) {
 console.log(getBasicAuthHeader("admin", "password"));
 ```
 
-#### Handling unauthorized
+##### Handling unauthorized
 
 The special thing about basic auth is that if the authorization header is not sent, then a browser alert will pop up prompting the user to enter their credentials, in which if they enter the credentials correctly, they get authorized. 
 
@@ -207,7 +655,7 @@ Here's the example in express:
   }
 ```
 
-#### Full example
+##### Full example
 
 ```ts
 const express = require('express');
@@ -252,7 +700,7 @@ app.listen(port, () => {
 
 ```
 
-### Token Based Auth
+#### Token Based Auth
 
 
 ![](https://i.imgur.com/xAjKaQa.jpeg)
@@ -268,7 +716,7 @@ Here's how stateless authentication with tokens works
 5. The server verifies the token and grants access based on its contents. (e.g., user credentials have match in database, token has not yet expired).
 ![](https://i.imgur.com/N7pzq28.jpeg)
 
-### JWT auth
+#### JWT auth
 
 
 ![](https://i.imgur.com/Mmd32cY.jpeg)
@@ -284,11 +732,714 @@ This simplified diagram shows how it works at a high level. You don't have to wo
 
 ![](https://i.imgur.com/em9iXf3.png)
 
+![](https://i.imgur.com/LafWtcD.png)
 
-### SSO
+#### SSO
 
 
 ![](https://i.imgur.com/wEjmsqC.jpeg)
+
+### OAuth
+
+OAuth is a three step process involving making requests to three endpoints the provider exposes, and since this flow is a standard, you can replicate this flow and abstract it away for any number of providers, the only things changing being the actual URL provider endpoints to request and the user data being returned.
+
+Here are the three URL types you need during OAuth, each representing a step in the OAuth flow.
+
+- `/authorize`: this endpoint type involves redirecting the user to the provider's authorize endpoint.
+- `/token`: this endpoint type involves making a request to it and then getting an access token from the provider
+- `/profile`: this endpoint type involves sending the access token along with it to a fetch request to get back the user info.
+
+The OAuth flow is as follows:
+
+1. User clicks to sign in with a provider like google
+2. We build an OAuth redirect URL based off an `/authorize` type endpoint with specific info, like the client ID and secret, and any scopes we want.
+3. We redirect the user to the OAuth redirect URL we created, and they will sign in with the provider
+4. Once signed in to the provider, the provider will redirect the user to a specific callback page in our app that we registered and send back a **code**
+5. We use the code to request an **access token** from the provider, and we use the access token via API request to get the user info from the provider.
+6. We store user info in the DB and authenticate against it.
+
+#### OAuth request
+
+**step 1: make an OAuth request**
+
+In this step, we craft a URL which links to the OAuth provider's page, which is a `/authorize` endpoint.
+
+Here are the query parameters you send along when fetching an OAuth request url:
+
+- `client_id`: the client ID you set up with the provider.
+- `client_secret`: the client secret you set up with the provider.
+- `response_type="code"`: specifies you want to receive an OAuth code back
+- `redirect_uri`: your application URL to redirect to after successful authentication with the provider.
+- `scope`: a space separated list of the information scopes you want from the user, like `identify`  to get the user id, and `email` to get the emial 
+
+You also have these optional params that help with OAuth security, explained later:
+
+- `state`: a random string that helps prevent CSRF attacks, optional. We send the random string to the OAuth provider, and the OAuth provider sends back the state. If both strings are equal, then the session is secure. Else, it was tampered with.
+
+We then redirect the user to this URL, they will authenticate, and then get redirected back to our redirect URI, with a special `code=` query parameter tacked on the end, which is our response code.
+
+Here are the query params that will be returned:
+
+- `code=`: the OAuth code
+- `state=`: only returned if we previously gave state.
+
+**step 2: get the access token**
+
+From an OAuth code (the one we got from the redirect URI), we can perform a fetch request to the `/token` endpoint.
+
+Here are the query parameters you send along:
+
+- `client_id`: the client ID you set up with the provider.
+- `client_secret`: the client secret you set up with the provider.
+- `redirect_uri`: your application URL to redirect to after successful authentication with the provider.
+- `code`: the OAuth code
+- `grant_type="authorization_code"`: Says we want an access token back.
+
+A fetch request to this URL returns JSON with these two properties:
+
+- `access_token`: the access token you can use to fetch user info
+- `token_type`: the toklen type, like a bearer token
+- `expires_in`: the time in seconds from now when it will expire.
+- `refresh_token`: the refresh token
+- `scope`: the scopes you requested in the `/authorize` step.
+
+**step 3: fetching user info**
+
+Now using the access token and specific token type, you'll pass that as an `Authorization` header to some `/userinfo` or `/profile` route to get the specific user info back.
+
+```ts
+export async function getGitHubProfile(
+  accessToken: string,
+  tokenType: "Bearer" | "Basic" = "Bearer"
+) {
+  const response = await fetch("https://api.github.com/user", {
+    headers: { authorization: `${tokenType} ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    response.body?.cancel();
+    throw new Error("Failed to fetch GitHub user");
+  }
+
+  return response.json() as Promise<GitHubUser>;
+}
+
+interface GitHubUser {
+  id: number;
+  name: string | null;
+  login: string;
+  email: string;
+}
+
+export async function getGoogleProfile(
+  accessToken: string,
+  tokenType: "Bearer" | "Basic" = "Bearer"
+) {
+  const response = await fetch(
+    "https://www.googleapis.com/oauth2/v2/userinfo",
+    {
+      headers: { authorization: `${tokenType} ${accessToken}` },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch Google user");
+  }
+  return response.json() as Promise<GoogleUser>;
+}
+
+export interface GoogleUser {
+  id: string;
+  name: string;
+  picture: string;
+  email: string;
+}
+```
+
+#### Using OAuth state
+
+A **state** is just a random string used for authentication and verification purposes, providing extra OAuth security.
+
+We send the random string as the `state=` query param to the OAuth provider, and the OAuth provider sends back the state. If both strings are equal, then the session is secure. Else, it was tampered with.
+
+To set state and validate it, we store it in cookies with a short expiration time, (the amount of time it would reasonably take for someone to login). Then when trying to validate the state string that the provider sends back after redirection as the `state=` query param, we look to cookies and see if the value has expired, or been tampered with or not.
+
+All in all, the flow is as follows:
+
+1. Before signing in to a `/authorize` provider route, create a state and save it to a cookie
+2. Pass the `state=` query param, setting it to the state, when requesting the `/authorize` provider route.
+3. After the user gets redirected after successfully authenticating, parse the `state=` query param the provider appends to the redirect URI. 
+4. Validate the `state=` query param against the cookie, and if they are not equal or the cookie expired, then reject the user authentication session.
+
+```ts
+import { cookies } from "next/headers";
+import crypto from "node:crypto";
+
+export async function createState() {
+  const state = crypto.randomBytes(64).toString("hex").normalize();
+  const cookieStore = await cookies();
+  cookieStore.set("state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 10, // 10 minutes
+    sameSite: "lax", // so our cookies can be accessed by our provider.
+  });
+  return state;
+}
+
+export async function validateState(state: string) {
+  const cookieStore = await cookies();
+  const storedState = cookieStore.get("state");
+  if (!storedState) {
+    throw new Error("State not found");
+  }
+  return storedState.value === state;
+}
+```
+
+#### Code challenge verification
+
+Code challenge verification is the exact same concept as OAuth state verification except the OAuth provider handles storing the random string and verifying it on their end. 
+
+Here are the necessary query params to send along to the `/authorize` endpoint when performing code challenge verification.
+
+- `code_challenge_method="S256"`: lets the provider know which hashing algorithm you are using to hash the random string. In this case, sha256.
+- `code_challenge`: the random hashed string to send to the provider, converted to a base64 url string. You should hash it with the same algorithm you specified in the `code_challenge_method` query param.
+
+```ts
+function createCodeVerifier(
+  cookies: Cookies,
+  options?: {
+    maxAgeInSeconds?: number;
+  }
+) {
+  const codeVerifier = crypto.randomBytes(64).toString("hex").normalize();
+  cookies.set("code_verifier", codeVerifier, {
+    secure: true,
+    httpOnly: true,
+    sameSite: "lax",
+    expires: options?.maxAgeInSeconds ?? 60 * 10, // 10 minutes
+  });
+  return codeVerifier;
+}
+
+function getCodeVerifier(cookies: Cookies) {
+  const codeVerifier = cookies.get("code_verifier")?.value;
+  if (codeVerifier == null) throw new Error("Code verifier not found");
+  return codeVerifier;
+}
+```
+
+
+#### Complete OAuth flow
+
+1. When user tries to sign in through email, check if they have a registered OAuth type (meaning they signed in through OAuth with the same email). If so, deny access.
+2. When user tries to sign in or sign up through OAuth, check if the user already exists, and if they do, if they have a password. If they do have a password, then don't let them sign up through OAuth - they already have an account, so deny access.
+
+Here is the complete way of doing it:
+
+```ts
+import { cookies } from "next/headers";
+import crypto from "node:crypto";
+import { z } from "zod";
+
+export interface GoogleUser {
+  id: string;
+  name: string;
+  picture: string;
+  email: string;
+}
+
+function createState(
+  cookies: Cookies,
+  options?: {
+    maxAgeInSeconds?: number;
+  }
+) {
+  const state = crypto.randomBytes(64).toString("hex").normalize();
+  cookies.set("state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    expires: options?.maxAgeInSeconds ?? 60 * 10, // 10 minutes
+    sameSite: "lax",
+  });
+  return state;
+}
+
+function validateState(cookies: Cookies, state: string) {
+  const storedState = cookies.get("state");
+  if (!storedState) {
+    throw new Error("State not found");
+  }
+  return storedState.value === state;
+}
+
+function createCodeVerifier(
+  cookies: Cookies,
+  options?: {
+    maxAgeInSeconds?: number;
+  }
+) {
+  const codeVerifier = crypto.randomBytes(64).toString("hex").normalize();
+  cookies.set("code_verifier", codeVerifier, {
+    secure: true,
+    httpOnly: true,
+    sameSite: "lax",
+    expires: options?.maxAgeInSeconds ?? 60 * 10, // 10 minutes
+  });
+  return codeVerifier;
+}
+
+function getCodeVerifier(cookies: Cookies) {
+  const codeVerifier = cookies.get("code_verifier")?.value;
+  if (codeVerifier == null) throw new Error("Code verifier not found");
+  return codeVerifier;
+}
+
+export type Cookies = {
+  set: (
+    key: string,
+    value: string,
+    options: {
+      secure?: boolean;
+      httpOnly?: boolean;
+      sameSite?: "strict" | "lax";
+      expires?: number;
+    }
+  ) => void;
+  get: (key: string) => { name: string; value: string } | undefined;
+  delete: (key: string) => void;
+};
+
+export async function getCookies(): Promise<Cookies> {
+  const cookieStore = await cookies();
+  return {
+    set: (key, value, options) => {
+      cookieStore.set(key, value, options);
+    },
+    get: (key) => cookieStore.get(key),
+    delete: (key) => cookieStore.delete(key),
+  };
+}
+
+interface Provider {
+  type: "github" | "google";
+  clientId: string;
+  clientSecret: string;
+  scopes: string[];
+  redirectUrl: string;
+  urls: {
+    auth: string;
+    token: string;
+    user: string;
+  };
+}
+
+const tokenSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+});
+
+export abstract class OAuthProvider<T, RawData = any> implements Provider {
+  protected readonly userInfo: {
+    schema: z.ZodSchema<T>;
+    parser: (data: T) => { id: string; email: string; name: string };
+  };
+
+  constructor(userInfo: {
+    schema: z.ZodSchema<T>;
+    parser: (data: T) => { id: string; email: string; name: string };
+  }) {
+    this.userInfo = userInfo;
+  }
+
+  parse(data: RawData) {
+    const {
+      data: parsedData,
+      success,
+      error,
+    } = this.userInfo.schema.safeParse(data);
+    if (!success) throw new Error(error.message);
+    return parsedData;
+  }
+
+  getParser() {
+    return this.userInfo.parser;
+  }
+
+  abstract type: "github" | "google";
+  abstract clientId: string;
+  abstract clientSecret: string;
+  abstract scopes: string[];
+  abstract urls: {
+    auth: string;
+    token: string;
+    user: string;
+  };
+  abstract redirectUrl: string;
+}
+
+export class OAuthClient<T> {
+  private readonly provider: OAuthProvider<T>;
+  private readonly cookies: Cookies;
+  constructor({
+    provider,
+    cookies,
+  }: {
+    provider: OAuthProvider<T>;
+    cookies: Cookies;
+  }) {
+    this.provider = provider;
+    this.cookies = cookies;
+  }
+
+  createBasicAuthUrl() {
+    const url = new URL(this.provider.urls.auth);
+    url.searchParams.set("client_id", this.provider.clientId);
+    url.searchParams.set("redirect_uri", this.provider.redirectUrl.toString());
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", this.provider.scopes.join(" "));
+    return url.toString();
+  }
+
+  createSecureAuthUrl(
+    cookies: Cookies,
+    options?: {
+      state: {
+        maxAgeInSeconds?: number;
+      };
+      codeVerifier: {
+        maxAgeInSeconds?: number;
+      };
+    }
+  ) {
+    const state = createState(cookies, options?.state);
+    const codeVerifier = createCodeVerifier(cookies, options?.codeVerifier);
+    const url = new URL(this.provider.urls.auth);
+    url.searchParams.set("client_id", this.provider.clientId);
+    url.searchParams.set("redirect_uri", this.provider.redirectUrl.toString());
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", this.provider.scopes.join(" "));
+    url.searchParams.set("state", state);
+    url.searchParams.set("code_challenge_method", "S256");
+    url.searchParams.set(
+      "code_challenge",
+      crypto.hash("sha256", codeVerifier, "base64url")
+    );
+    return url.toString();
+  }
+
+  async fetchUserWithSecurity(
+    code: string,
+    securityOptions?: {
+      cookies?: Cookies;
+      state?: string;
+      useCodeVerifier?: boolean;
+    }
+  ) {
+    if (securityOptions?.cookies && securityOptions?.state) {
+      const isValidState = validateState(
+        securityOptions.cookies,
+        securityOptions.state
+      );
+      if (!isValidState) throw new Error("Invalid state");
+    }
+
+    const { accessToken, tokenType } = await this.fetchToken(
+      code,
+      securityOptions?.useCodeVerifier && securityOptions.cookies
+        ? getCodeVerifier(securityOptions.cookies)
+        : undefined
+    );
+
+    const user = await fetch(this.provider.urls.user, {
+      headers: {
+        Authorization: `${tokenType} ${accessToken}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((rawData) => {
+        return this.provider.parse(rawData);
+      });
+
+    return this.provider.getParser()(user);
+  }
+
+  async fetchUser(code: string) {
+    const { accessToken, tokenType } = await this.fetchToken(code);
+    const response = await fetch(this.provider.urls.user, {
+      headers: { Authorization: `${tokenType} ${accessToken}` },
+    });
+    const rawData = await response.json();
+    console.log("raw user data", rawData);
+    const user = this.provider.parse(rawData);
+    return this.provider.getParser()(user);
+  }
+
+  private async fetchToken(code: string, codeVerifier?: string) {
+    const searchParams = new URLSearchParams({
+      code,
+      redirect_uri: this.provider.redirectUrl.toString(),
+      grant_type: "authorization_code",
+      client_id: this.provider.clientId,
+      client_secret: this.provider.clientSecret,
+    });
+    if (codeVerifier) {
+      searchParams.set("code_verifier", codeVerifier);
+    }
+    return await fetch(this.provider.urls.token, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: searchParams,
+    })
+      .then((res) => res.json())
+      .then((rawData) => {
+        const { data, success, error } = tokenSchema.safeParse(rawData);
+        if (!success) throw new Error(error.message);
+
+        return {
+          accessToken: data.access_token,
+          tokenType: data.token_type,
+        };
+      });
+  }
+}
+
+interface GitHubUser {
+  id: number;
+  name: string | null;
+  login: string;
+  email: string;
+}
+
+interface RawGithubData {
+  login: string;
+  id: number;
+  avatar_url: string;
+  url: string;
+  html_url: string;
+  type: string;
+  name: string;
+  email: string;
+}
+
+export class GitHubOAuthProvider extends OAuthProvider<
+  GitHubUser,
+  RawGithubData
+> {
+  readonly type = "github";
+  urls: { auth: string; token: string; user: string } = {
+    auth: "https://github.com/login/oauth/authorize",
+    token: "https://github.com/login/oauth/access_token",
+    user: "https://api.github.com/user",
+  };
+  scopes = ["user:email", "read:user"];
+  redirectUrl: string;
+  clientId: string;
+  clientSecret: string;
+
+  constructor({
+    clientId,
+    clientSecret,
+    redirectUrl,
+    additionalScopes,
+  }: {
+    clientId: string;
+    clientSecret: string;
+    redirectUrl: string;
+    additionalScopes?: string[];
+  }) {
+    const userInfo = {
+      schema: z.object({
+        id: z.number(),
+        name: z.string().nullable(),
+        login: z.string(),
+        email: z.string().email(),
+      }),
+      parser: (user: GitHubUser) => ({
+        id: user.id.toString(),
+        name: user.name ?? user.login,
+        email: user.email,
+      }),
+    };
+    super(userInfo);
+    this.clientId = clientId;
+    this.clientSecret = clientSecret;
+    this.redirectUrl = redirectUrl;
+    this.scopes = [...this.scopes, ...(additionalScopes ?? [])];
+  }
+}
+
+export class GoogleOAuthProvider extends OAuthProvider<GoogleUser> {
+  readonly type = "google";
+  urls: { auth: string; token: string; user: string } = {
+    auth: "https://accounts.google.com/o/oauth2/auth",
+    token: "https://oauth2.googleapis.com/token",
+    user: "https://www.googleapis.com/oauth2/v2/userinfo",
+  };
+  scopes = ["profile", "email"];
+  redirectUrl: string;
+  clientId: string;
+  clientSecret: string;
+
+  constructor({
+    clientId,
+    clientSecret,
+    redirectUrl,
+    additionalScopes,
+  }: {
+    clientId: string;
+    clientSecret: string;
+    redirectUrl: string;
+    additionalScopes?: string[];
+  }) {
+    const userInfo = {
+      schema: z.object({
+        id: z.string(),
+        name: z.string(),
+        email: z.string().email(),
+        picture: z.string(),
+      }),
+      parser: (user: GoogleUser) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      }),
+    };
+    super(userInfo);
+    this.clientId = clientId;
+    this.clientSecret = clientSecret;
+    this.redirectUrl = redirectUrl;
+    this.scopes = [...this.scopes, ...(additionalScopes ?? [])];
+  }
+}
+```
+
+#### GIthub OAuth
+
+To register for a github OAuth application and enable it in your app, follow these steps:
+
+1. Go to github developer settings -> OAuth apps.
+2. Enter these settings, and DO NOT enable device flow if you have a server. Device flow is only for clients.
+
+
+![](https://i.imgur.com/fHSQf9D.jpeg)
+
+**Step 1: signing in**
+
+```ts
+import "server-only";
+import { cookies } from "next/headers";
+import { getCookies, GitHubOAuthProvider, OAuthClient } from "./OAuth";
+
+function validateEnv(envKey: string) {
+  const env = process.env[envKey];
+  if (!env) throw new Error(`Environment variable ${envKey} is not set`);
+  return env;
+}
+
+const GITHUB_OAUTH_CLIENT_ID = validateEnv("GITHUB_OAUTH_CLIENT_ID");
+const GITHUB_OAUTH_CLIENT_SECRET = validateEnv("GITHUB_OAUTH_CLIENT_SECRET");
+const GITHUB_OAUTH_REDIRECT_URI = validateEnv("GITHUB_OAUTH_REDIRECT_URI");
+
+const githubOAuthProvider = new GitHubOAuthProvider({
+  clientId: GITHUB_OAUTH_CLIENT_ID,
+  clientSecret: GITHUB_OAUTH_CLIENT_SECRET,
+  redirectUrl: GITHUB_OAUTH_REDIRECT_URI,
+});
+
+export async function getGithubOAuthClient() {
+  const githubOAuthClient = new OAuthClient({
+    provider: githubOAuthProvider,
+    cookies: await getCookies(),
+  });
+  return githubOAuthClient;
+}
+```
+
+Then here is the server action you use:
+
+```ts
+"use server";
+
+import { getGithubOAuthClient } from "@/services/oauthinit";
+import { redirect } from "next/navigation";
+
+export async function signInWithGithub() {
+  const githubOAuthClient = await getGithubOAuthClient();
+  const url = githubOAuthClient.createBasicAuthUrl();
+  redirect(url);
+}
+```
+
+```ts
+"use client";
+
+import { signInWithGithub } from "@/actions/authActions";
+import React from "react";
+
+const GithubButton = () => {
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await signInWithGithub();
+      }}
+      className="flex items-center justify-center w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+    >
+      <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fillRule="evenodd"
+          d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z"
+          clipRule="evenodd"
+        />
+      </svg>
+      Continue with GitHub
+    </button>
+  );
+};
+
+export default GithubButton;
+```
+### Handling permissions
+
+To handle permissions, we can go down the route of role-based access control, like so:
+
+```ts
+export type User = { roles: Role[]; id: string }
+
+type Role = keyof typeof ROLES
+type Permission = (typeof ROLES)[Role][number]
+
+const ROLES = {
+  admin: [
+    "view:comments",
+    "create:comments",
+    "update:comments",
+    "delete:comments",
+  ],
+  moderator: ["view:comments", "create:comments", "delete:comments"],
+  user: ["view:comments", "create:comments"],
+} as const
+
+export function hasPermission(user: User, permission: Permission) {
+  return user.roles.some(role =>
+    (ROLES[role] as readonly Permission[]).includes(permission)
+  )
+}
+
+// USAGE:
+const user: User = { id: "1", roles: ["user"] }
+
+// Can create a comment
+hasPermission(user, "create:comments")
+
+// Can view all comments
+hasPermission(user, "view:comments")
+```
 
 ## Networking
 

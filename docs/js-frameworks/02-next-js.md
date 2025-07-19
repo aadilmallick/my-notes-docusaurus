@@ -62,6 +62,27 @@ export default function DashboardLayout({
 }
 ```
 
+**error.tsx**
+
+This is what an `error.tsx` would look like, which would catch any error produced in a page component, accept that error as a prop, and display a UI based on it.
+
+Here are the 2 props you can accept:
+
+- `error`: the error that caused the page to break.
+- `reset`: a function that when invoked, tries rerendering the page.
+
+```tsx
+"use client"
+export default function Error({error, reset}) {
+	return (
+		<div>
+			<p>{e.message}</p>
+			<button onClick={reset}>Try again</button>
+		</div>
+	)
+}
+```
+
 ### Route param pages
 
 You can create dynamic file-based routing with route params by using square brackets around the folder name, like using `app/[id]/page.tsx` to render content according to the `/:id` dynamic route.
@@ -121,6 +142,96 @@ export default async function Page({
 }
 ```
 
+### Search Param Pages
+
+You can also access the query parameters on a route by destructuring the `searchParams` prop on a page component and type hinting it.
+
+```ts
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const filters = (await searchParams).filters
+}
+```
+
+- Use the `searchParams` prop when you need search parameters to **load data for the page** (e.g. pagination, filtering from a database).
+- Use `useSearchParams` when search parameters are used **only on the client** (e.g. filtering a list already loaded via props).
+
+### **Parallel Routes**
+
+Parallel Routes in Next.js enable the simultaneous or conditional rendering of multiple pages or components within the same layout. This is especially beneficial for sections of an application that require dynamic content changes without navigating away from the page, like social media feeds or analytics dashboards.
+
+Here are the key benefits of parallel routes:
+
+- **Simultaneous Rendering:** Multiple components or pages can be rendered at the same time within the same layout, enhancing the user experience by providing a composite view of related content.
+- **Conditional Rendering:** Depending on the application state or user actions, specific components can be rendered, allowing for a highly responsive and interactive interface.
+
+> [!NOTE]
+> The main benefit of using parallel routes is reusability. You don't have to rewrite the logic for fetching each individual page and rebuilding them from scratch, you can just use them as components, gaining all the benefits that comes with being a page component, like SSR.
+
+Next.js manages the active state for each slot, ensuring that the content within each slot is appropriate to the current navigation context.
+
+Here is the behavior of the two navigation types when using route slots:
+
+- **Soft Navigation:** Changes content within a slot during client-side navigation without reloading the entire page. This maintains the state of other slots, ensuring a seamless user experience.
+- **Hard Navigation:** On a full page reload, Next.js will attempt to recover the state of slots. If it cannot determine the active state for a slot, a default component (usually **`default.js`**) is rendered, or a 404 error if no default exists.
+
+**implementing parallel routes**
+
+You create a parallel route folder by prefixing with a `@`. The folder structure can be like so:
+
+```
+app
+	dashboard
+	  @events
+		  page.tsx
+		  
+	  @rsvps
+		  page.tsx
+		  
+	  layout.tsx
+	  page.tsx
+```
+
+In each route slot folder, you should have these two special components:
+
+- `page.tsx`: what gets rendered for that route
+- `default.tsx`: what gets rendered if that route does not match after a hard reload
+
+Then in the layout that is the parent for the route slots, you can accept each route slot as a prop:
+
+```tsx
+// /app/dashboard/layout.tsx
+'use client'
+import Shell from '@/components/Shell'
+import { usePathname } from 'next/navigation'
+
+const DashboardLayout = ({ children, rsvps, events }) => {
+  const path = usePathname()
+
+  return (
+    <Shell>
+      {path === '/dashboard' ? (
+        <div className="flex w-full h-full">
+          <div className="w-1/2 border-r border-default-50">{rsvps}</div>
+          <div className="w-1/2 flex flex-col">
+            <div className="border-b border-default-50 w-full h-1/2">
+              {events}
+            </div>
+            <div className="w-full h-1/2">{children}</div>
+          </div>
+        </div>
+      ) : (
+        <div>{children}</div>
+      )}
+    </Shell>
+  )
+}
+
+export default DashboardLayout
+```
 ## Miscellaneous
 
 ### `<Image>`
@@ -340,6 +451,11 @@ Here are the navigation functions you can import from `next/navigation`:
 - `redirect(route: string)`: redirects to the given route
 - `notFound()`: renders 404 not found page
 
+> [!WARNING]
+> There is a known bug that if you invoke `redirect()` within a try-catch block, it will error out. So only invoke redirection outside of a try catch.
+
+
+
 ```ts
 import { redirect } from 'next/navigation'
 import IssueForm from './IssueForm'
@@ -383,12 +499,6 @@ What the `"use server"` directive does is that it transforms what would otherwis
 ```ts
 'use server'
 
-interface ActionResponse {
-	success: boolean;
-	message: string;
-	error?: string;
-} 
-
 export async function signIn(formData: FormData): Promise<ActionResponse> {
 
     // Extract data from form
@@ -397,20 +507,8 @@ export async function signIn(formData: FormData): Promise<ActionResponse> {
       password: formData.get('password') as string,
     }
 
-	try {
-		// save user logic
-		return {
-	      success: true,
-	      message: 'User signed in successfully',
-	    }
-	}
-	catch {
-		return {
-	      success: false,
-	      message: 'An error occurred while signing in',
-	      error: 'Failed to sign in',
-	    }
-	}
+	// 1. check email and password against database
+	redirect("/dashboard")
 	
 }
 ```
@@ -598,6 +696,8 @@ Here's a simpler example:
 
 Since server actions are just syntactic sugar for fetching an API route you make, you can invoke them anywhere, in any event handler like `onClick=` or as a result of a form submission with the `action=` prop.
 
+#### button with `formAction=`
+
 If you want to launch a server action with a button click instead of doing stuff with a form, you can do it by passing a server action to the `formAction=` prop or the `onClick=` to the `<button>` component.
 
 1. Create a server action that does not take any form data arguments:
@@ -619,6 +719,8 @@ export function Button() {
   return <button formAction={createPost}>Create</button>
 }
 ```
+
+#### Button with `onClick=`
 
 You can also use a server action in an `onClick=` prop like so:
 `
@@ -723,22 +825,24 @@ export default nextConfig
 ```
 
 Caching is done on the page level in the `page.tsx` component. NextJS forces you to explicitly define if you want a static cached page or a dynamic page.
+
+You MUST define either caching or dynamic behavior if any server component rendered in your page is asynchronous.
 ### `"use cache"`
 
 The `"use cache"` directive in NextJS 15 is the new way to opt into caching server-side.
 
-The `"use cache"` directive when placed at the top of the file caches all the exports from the file, and when placed as the first line in a function, it caches the return value from that function, memoizing it.
+The `"use cache"` directive when placed at the top of the file caches all the exports from the file, and when placed as the first line in a function, it caches the return value from that function, memoizing it. And when used in a page component, it caches the entire page.
 
 To make a page cached forever with the **cache-first** strategy, use the `"use cache"` directive at the top of the `page.tsx`.
 
-There are three ways you can cache:
+There are three ways you can cache with the `"use cache"` directive.
 
 1. Caching at the page level with `page.tsx`
 2. Caching a React server component
 3. Caching a function's return value
 
 ```tsx
-// File level
+// File/page level
 'use cache'
  
 export default async function Page() {
@@ -759,14 +863,77 @@ export async function getData() {
 }
 ```
 
+> [!IMPORTANT]
+> It is extremely important to understand that "use cache" caches server-side, making it a global cache that affects all clients. For client-side or per-request caching, use the `cache()` function from React.
+
+#### Revalidation techniques
+
+By default, the `"use cache"` directive caches the page/component/function forever, revalidating the cache every 15 minutes. You can change how often the cache revalidates or gets invalidated through three main caching techniques in NextJS:
+
+1. **tag based caching**: use `cacheTag(name)` and `revalidateTag(name)` functions to manually cache and invalidate functions.
+2. **path based caching**: use `revalidatePath(route)` to revalidate the cache for a page, which is useful if you used `"use cache"` at the top of a page.
+3. **cache life**: You can manually change the cache life of a page in nextjs from being infinitely cached to something different using the `cacheLife()` function.
+
+
+**tag based revalidation**
+****
+
 To implement manual revalidation, you can used a tags-based approach that lets you revalidate content connected to a specific tag:
 
 - `cacheTag(tag: string)`: caches the function/component under the specified tag
 - `revalidateTag(tag: string)`: from the specified tag, removes the function from the cache.
 
+**page based revalidation**
+****
+
 You can also revalidate entire paths, if you cache at the page level:
 
 - `revalidatePath(path: string)`: revalidates a page cached with `"use cache"`
+
+**cache life**
+****
+
+There are three components to cache life that you should understand before invoking this function:
+
+- **revalidate time**: the period of time data stays cached until checking for revalidation server-side
+- **stale time**: the client side cache time, duration the client should cache a value before falling back to the server. (Obviously, data should only be cached client side to store the data on their end instead of the server)
+- **expiration time**: sets the time to wait before the cache will get deleted, after which no caching will take place.
+
+Here are the default string values you can pass into the `cacheLife()` function, which are presets of combinations of all three components. By default, stale time is infinite, cache never expires, and is revalidated every 15 minutes.
+
+- `"seconds"`: Revalidated every second, cache only lasts 1 second.
+- `"minutes"`: Revalidated every 5 minutes, cache only lasts 5 minute.
+```ts
+"use cache" // 1. must cache page with 'use cache' directive to use cache life
+
+import {unstable_cacheLife as cacheLife } from "next/cache"
+
+export default async function Page() {
+	cacheLife('hours')
+	return <><>
+}
+```
+
+You can also add different combinations manually by passing in an object of those three time components into the `cacheLife()` function:
+
+- `stale`: how long the client side cache should store in seconds.
+- `revalidate`: the cache revalidation interval length in seconds.
+- `expire`: how long after the cache should expire in seconds.
+
+```ts
+"use cache" // 1. must cache page with 'use cache' directive to use cache life
+
+import {unstable_cacheLife as cacheLife } from "next/cache"
+
+export default async function Page() {
+	cacheLife({
+		stale: 2, // caches only for 2 seconds
+		revalidate: 10, // revalidates every 10 seconds
+		expire 20 // expires after 20 seconds.
+	})
+	return <><>
+}
+```
 
 
 #### 1) Caching at the page level
@@ -869,9 +1036,11 @@ If you fetch data at the page level and want to wrap the whole page in a `<Suspe
 
 
 
-### memoizing
+### memoizing with react's `cache()`
 
 You can also use memoization to basically act as a cache if the function is called with the same arguments, using the `cache()` function from React. 
+
+The main difference of this function vs the other cache tag helpers is that this is NOT a global cache. Rather, `cache()` works on a per-request level, local to each client.
 
 ```ts
 import { cache } from 'react'
@@ -883,6 +1052,12 @@ export const getPost = cache(async (slug: string) => {
   return res
 })
 ```
+
+**important characteristics**
+
+- Request-scoped: The cache is per-request, not global across all users
+- Automatic: No manual cache management needed
+- Transparent: The function signature remains the same as long as the arguments remain the same.
 
 ### Parallelism vs Sequential
 
@@ -1010,6 +1185,41 @@ export async function GET(
   return NextResponse.json(userData)
 }
 ```
+
+#### CORS
+
+You can set CORS setting per API route like so:
+
+```ts
+// app/api/cors-example/route.ts
+import { NextResponse } from 'next/server'
+
+export async function GET() {
+  return NextResponse.json(
+    { message: 'This endpoint supports CORS' },
+    {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    }
+  )
+}
+
+export async function OPTIONS() {
+  return NextResponse.json(
+    {},
+    {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    }
+  )
+}
+```
 ### API Route utilities
 
 API routes in NextJS are augmented with the use of several utility helpers available:
@@ -1095,7 +1305,8 @@ There are also special edge functions and objects that vercel provides that only
 
 Middleware in nextjs are request interceptors that run on the routes you choose, and must send back some type of web response, or a `NextResponse.next()` to continue to the next middleware or route handler. 
 
-The most important thing to realize about middleware is that **they always run on the edge runtime**. Plan accordingly.
+> [!NOTE]
+> The most important thing to realize about middleware is that **they always run on the edge runtime**. This means that you should only put extremely fast, essential operations inside middleware.
 
 There are several benefits to using middleware in NextJS:
 
@@ -1205,6 +1416,45 @@ export function middleware(request: NextRequest) {
 }
 ```
 
+You can also use to to set something like CORS on every request.
+
+```ts
+
+import { NextResponse } from 'next/server';
+
+export function middleware(request) {
+  const response = NextResponse.next();
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  return response;
+}
+```
+
+**authentication route guard**
+
+```ts
+// /middleware.ts
+import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import { COOKIE_NAME } from './utils/constants'
+
+export function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    if (!request.cookies.has(COOKIE_NAME)) {
+      return NextResponse.redirect(new URL('/signin', request.url))
+    }
+  }
+
+  if (request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/'],
+}
+
+```
+
 **running background work**
 
 A second argument you can accept into your middleware is the `event` object of type `NextFetchEvent`, and by using the `event.waitUntil()` method, you can launch and run background work while immediately returning a response.
@@ -1225,6 +1475,164 @@ export function middleware(req: NextRequest, event: NextFetchEvent) {
 }
 ```
 
+### route protection
+
+#### Limiting ai
+
+To limit AI and prevent it from costing too much money, you can employ the following tactics:
+
+- **Set max tokens**: set the max output tokens when prompting the AI to make sure its response doesn't exceed a set maximum amount of tokens.
+- **Limit user input**: Limit user input to a set amount of maximum tokens.
+
+#### Rate limiting with arcjet
+
+You can use this logic-agnostic way of rate limiting things in your server by going here:
+
+```embed
+title: "Arcjet - Painless security for developers"
+image: ""
+description: "Implement bot protection, rate limiting, email validation & more in just a few lines of code. Developer-first security for Node.js, Next.js, Deno, Bun, SvelteKit, NestJS, Vercel, Netlify, Fly.io"
+url: "https://arcjet.com/?ref=bytegrad-2025-06-13"
+favicon: ""
+```
+
+1. Install arcjet
+
+```bash
+npm i @arcjet/next @arcjet/inspect
+```
+
+2. Add the `ARCJET_KEY` secret to your env vars.
+
+Now you have a reusable way to rate limit:
+
+```ts
+import arcjet, { detectBot, shield, tokenBucket } from "@arcjet/next";
+import { NextRequest } from "next/server";
+
+export const arcjetIPLimiter = arcjet({
+  key: process.env.ARCJET_KEY!, // Get your site key from https://app.arcjet.com
+  characteristics: ["ip.src"], // Track reqests by IP
+  rules: [
+    // Shield protects your app from common attacks e.g. SQL injection
+    shield({ mode: "LIVE" }),
+    // Create a bot detection rule
+    detectBot({
+      mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
+      // Block all bots except the following
+      allow: [
+        "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
+        // Uncomment to allow these other common bot categories
+        // See the full list at https://arcjet.com/bot-list
+        //"CATEGORY:MONITOR", // Uptime monitoring services
+        //"CATEGORY:PREVIEW", // Link previews e.g. Slack, Discord
+      ],
+    }),
+    // Create a token bucket rate limit. Other algorithms are supported.
+    tokenBucket({
+      mode: "LIVE",
+      refillRate: 5, // Refill 5 tokens per interval
+      interval: 10, // Refill every 10 seconds
+      capacity: 10, // Bucket capacity of 10 tokens
+    }),
+  ],
+});
+
+export async function rateLimit(
+  arcjetLimiter: typeof arcjetIPLimiter,
+  req: NextRequest
+) {
+  const decision = await arcjetLimiter.protect(req, { requested: 5 });
+  let response = {
+    status: 200,
+    errorMessage: null,
+    reason: null,
+  } as {
+    status: number;
+    errorMessage: string | null;
+    reason: any;
+  };
+  if (decision.isDenied()) {
+    if (decision.reason.isRateLimit()) {
+      response = {
+        status: 429,
+        errorMessage: "Too Many Requests",
+        reason: decision.reason,
+      };
+    } else if (decision.reason.isBot()) {
+      response = {
+        status: 403,
+        errorMessage: "No bots allowed",
+        reason: decision.reason,
+      };
+    } else {
+      response = {
+        status: 403,
+        errorMessage: "Forbidden",
+        reason: decision.reason,
+      };
+    }
+  }
+  return response;
+}
+```
+
+Now we can go in depth on the different rate limiting plugins arcjet has available:
+
+- `shield()`: shields apps from SQL injection
+- `detectBot()`: blocks scraper bots with an optional allowlist for search crawlers.
+- `tokenBucket()`: standard rate limiting configuration
+
+```ts
+export const arcjetIPLimiter = arcjet({
+  key: process.env.ARCJET_KEY!, // Get your site key from https://app.arcjet.com
+  characteristics: ["ip.src"], // Track reqests by IP
+  rules: [
+    // Shield protects your app from common attacks e.g. SQL injection
+    shield({ mode: "LIVE" }),
+    // Create a bot detection rule
+    detectBot({
+      mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
+      // Block all bots except the following
+      allow: [
+        "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
+        // Uncomment to allow these other common bot categories
+        // See the full list at https://arcjet.com/bot-list
+        //"CATEGORY:MONITOR", // Uptime monitoring services
+        //"CATEGORY:PREVIEW", // Link previews e.g. Slack, Discord
+      ],
+    }),
+    // Create a token bucket rate limit. Other algorithms are supported.
+    tokenBucket({
+      mode: "LIVE",
+      refillRate: 5, // Refill 5 tokens per interval
+      interval: 10, // Refill every 10 seconds
+      capacity: 10, // Bucket capacity of 10 tokens
+    }),
+  ],
+});
+```
+
+A token bucket is a useful way of configuring data to rate limit stuff like AI responses by having an imaginary bucket with tokens, and a request will use a certain amount of tokens you configure, and when the bucket is empty, nobody can launch a request. The bucket refills itself periodically and automatically.
+
+For example, to take away 5 tokens from a bucket on a request, we would do something like this:
+
+```ts
+const decision = await arcjetLimiter.protect(req, { requested: 5 });
+```
+
+
+### Running background jobs
+
+#### Extending function execution duration
+
+The default timeout for a cloud function in Vercel is 10 seconds, which might be too small especially if you're doing some AI calls. You can set the max duration on a route handler by exporting this special value in a `route.ts` file:
+
+```ts
+export const maxDuration = 60
+```
+
+The minimum value you can set is 10, and the maximum is 60.
 ## NextJS Config
 
 ```ts
@@ -1260,3 +1668,197 @@ The typescript config goes under the `typescript` key:
 The typescript config goes under the `eslint` key:
 
 - `eslint.ignoreDuringBuilds` : if true, ignores eslint warnings during the build process, which prevents the build from failing due to errors.
+
+
+## Libraries
+
+### Rich style notion editor
+
+Just go here and copy his code, just import everything from the "novel" package, as `novel/extensions` doesn't exist. ShadCN is a requirement for this.
+
+[next-novel/components/editor/editor.tsx at main · HamedBahram/next-novel](https://github.com/HamedBahram/next-novel/blob/main/components/editor/editor.tsx)
+
+## Vercel-specific offerings
+
+### Vercel KV
+
+#### Basics
+
+Through the vercel marketplace, you can add veercel KV and connect to it through env vars.
+
+```ts
+import { kv } from '@vercel/kv';
+
+// string
+await kv.set('key', 'value');
+let data = await kv.get('key');
+console.log(data); // 'value'
+
+await kv.set('key2', 'value2', { ex: 1 });
+
+// sorted set
+await kv.zadd(
+  'scores',
+  { score: 1, member: 'team1' },
+  { score: 2, member: 'team2' },
+);
+data = await kv.zrange('scores', 0, 0);
+console.log(data); // [ 'team1' ]
+
+// list
+await kv.lpush('elements', 'magnesium');
+data = await kv.lrange('elements', 0, 100);
+console.log(data); // [ 'magnesium' ]
+
+// hash
+await kv.hset('people', { name: 'joe' });
+data = await kv.hget('people', 'name');
+console.log(data); // 'joe'
+
+// sets
+await kv.sadd('animals', 'cat');
+data = await kv.spop('animals', 1);
+console.log(data); // [ 'cat' ]
+
+// scan for keys
+for await (const key of kv.scanIterator()) {
+  console.log(key);
+}
+```
+
+#### Rate limiting
+
+You can ratelimit using vercel kv and combining with the `@upstash/ratelimit` package.
+
+```ts title="middleware.ts"
+import {kv} from "@vercel/kv"
+import { Ratelimit } from '@upstash/ratelimit'
+
+const ratelimiter = new RateLimit({
+	redis: kv,
+	limiter: Ratelimit.slidingWindow(5, '10 s')
+})
+
+// which routes to rate limit on
+export const config = {
+	matcher: "/"
+}
+
+export default async function middleware(request: NextRequest) {
+  // You could alternatively limit based on user ID or similar
+  const ip = request.ip ?? '127.0.0.1'
+  const { success, pending, limit, reset, remaining } =
+    await ratelimit.limit(ip)
+
+  return success
+    ? NextResponse.next()
+    : NextResponse.redirect(new URL('/blocked', request.url))
+}
+```
+
+### vercel blob storage
+
+1. Go to your vercel deployment and click on "storage" -> "add blob storage"
+2. Copy the read write blob token to your env vars
+3. Install with `npm i @vercel/blob`
+
+There are two different ways you can store files with vercel blob:
+
+- **server uploads**: Get binary form data from API routes or server actions in your nextjs project, then upload that with a max request body size of 4.5mb for a file.
+- **client-side upload**: Up to 5TB file for uploading via client-side.
+
+#### API route upload
+
+You can make an API request to an endpoint you set up for file handling like so:
+
+There are three components to the fetch request you make in order for your API route to handle it correctly to upload to vercel blob storage:
+
+1. **method**: should be a POST request
+2. **headers**: should pass the mime type for `Content-type` header and have filename passed for the `"x-vercel-filename"` header.
+3. **body**: request body should be `Blob` or `File` instance.
+
+```ts
+async function uploadFile(file: File) {
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    headers: {
+      "content-type": file?.type || "application/octet-stream",
+      "x-vercel-filename": file?.name || "image.png",
+    },
+    body: file,
+  });
+
+  if (!res.ok) throw new Error("image upload failed")
+
+  const { url } = (await res.json()) as { url: string };
+  return url
+}
+```
+
+To add a blob to vercel storage, we just use the `put` method:
+
+```ts
+import { put } from '@vercel/blob'
+
+ const blob = await put(filename, file, options)
+```
+
+- `filename`: the filename to set
+- `file`: the `File` or `Blob` instance to uplaod
+- `options`: important options
+	- `contentType`: the mimetype of the file
+	- `access`: "public" for public access.
+
+Then we can handle the API route like so:
+
+```ts
+import { put } from '@vercel/blob'
+import { NextResponse } from 'next/server'
+
+export const runtime = 'edge'
+
+export async function POST(req: Request) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return new Response(
+      "Missing BLOB_READ_WRITE_TOKEN. Don't forget to add that to your .env file.",
+      {
+        status: 401
+      }
+    )
+  }
+
+  const file = req.body
+  const filename = req.headers.get('x-vercel-filename') || "file"
+  const contentType = req.headers.get('content-type')
+  const fileExtendion = `.${contentType.split('/')[1]}`
+
+  // construct final filename based on content-type if not provided
+  const finalName = filename.includes(fileType)
+    ? filename
+    : `${filename}${fileType}`
+    
+  const blob = await put(finalName, file, {
+    contentType,
+    access: 'public'
+  })
+
+  return NextResponse.json(blob)
+}
+```
+
+#### Server Action upload
+
+```ts
+"use server"
+import { put } from '@vercel/blob';
+
+export async function uploadFile(formData: FormData) {
+  const file = formData.get('file') as File;
+  const blob = await put(file.name, file, { 
+	  access: 'public', 
+	  addRandomSuffix: true 
+  });
+
+  return Response.json(blob);
+}
+```

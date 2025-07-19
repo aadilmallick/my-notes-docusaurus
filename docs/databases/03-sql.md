@@ -1398,6 +1398,11 @@ To list all the indices currently active on a table, use this code:
 PRAGMA index_list('your_table_name_here')
 ```
 
+You can also find the names of all indices in the current database across all tables with this SELECT query:
+
+```sqlite
+SELECT name FROM sqlite_master WHERE type='index';
+```
 #### Creating indices
 
 To create indices, we do something like this:

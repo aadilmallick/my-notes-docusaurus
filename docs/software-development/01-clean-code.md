@@ -133,6 +133,9 @@ create user stories for your MVP, which is a single sentence of the format "I wa
 **step 2) manage your data**
 
 Think through what your data looks like, what the tables will look like.
+
+1. Draw entity-diagrams, which are basically just SQL tables modeling how your data for your app looks like.
+2. Draw sequence diagrams, with flow between three actors: UI, API, DB.
 ## Enterprise Code
 
 ### managing complexity
@@ -321,3 +324,141 @@ simpleReducer.dispatch("SET_A", { value: 30 });
 simpleReducer.dispatch("SET_A", { value: 40 });
 ```
 
+### FOlder structure
+
+The best folder structure is based on having a `features` folder, with each subfolder containing all the code for a feature.
+
+For example, this is how a single feature in NextJS would look like, being subdivided into server and client:
+
+![](https://i.imgur.com/68i9H4M.png)
+
+## Antipatterns
+
+### Avoid deeply nested data
+
+
+
+- **Rule**: Flatten data structures by storing entities in separate collections with ID references
+- **Anti-pattern**: Deep nesting creates complex dependencies and update patterns
+- **Best practice**: Normalize data to avoid redundancy and ensure consistency
+- **Benefits**:
+    - Simplified updates with O(1) lookups instead of O(n+m) traversals
+    - Better performance with minimal re-renders
+    - Cleaner, more maintainable reducer logic
+    - Easier implementation of cross-entity operations
+
+
+
+Deeply nested data structures like so where an object has a sub-collection (an array of objects) lead to O(n x m) updates and traversals, leading to less performant code.
+
+
+```ts
+// ❌ Nested structure
+interface NestedState {
+  destinations: Array<{
+    id: string;
+    name: string;
+    todos: Array<{
+      id: string;
+      text: string;
+    }>;
+  }>;
+}
+```
+
+This is bad. for example, to find a specific todo within a specific destination, the code complexity would be O(n + m):
+
+```ts
+function findTodo(state: NestedState, destinationId: string, todoId: string) {
+	// O(n)
+	const destination = state.destinations.find(
+		dest => dest.id === destinationId
+	)
+	// O(m)
+	const todo = destination.todos.find(todo => todo.id === todoId)
+	return todo // O (n + m)
+}
+```
+
+You can normalize it better, like so, modeling relational tables like SQL, and instead of using arrays, you can model a collection as a large, flat object, where each key in a collection object is an ID that maps to the actual record, resulting in O(1) lookup, especially when used with a map.
+
+```ts
+// ✅ Normalized structure
+interface NormalizedState {
+  destinations: { [id: string]: { id: string; name: string } };
+  todos: { [id: string]: { id: string; text: string; destinationId: string } };
+}
+```
+
+Now to find a specific todo, the code becomes O(1):
+
+
+```ts
+function findDestinationOfTodo(state: NestedState, todoId: string) {
+	const destinationId = state.todo[todoId].destinationId // O(1)
+	return state.destinations[destinationId] // O(1)
+}
+```
+
+**Deeply Nested Updates**
+
+The current travel itinerary application stores data in a deeply nested structure where each destination contains an array of todos. This creates several problems:
+
+When updating or deleting a todo item, the reducer must:
+
+1. Find the correct destination by mapping through all destinations
+2. Find the correct todo within that destination's todos array
+3. Create a new nested structure preserving immutability
+
+```ts
+// ❌ Complex nested update - hard to read and error-prone
+destinations: state.destinations.map((dest) =>
+  dest.id === action.destinationId
+    ? {
+        ...dest,
+        todos: dest.todos.filter((todo) => todo.id !== action.todoId),
+      }
+    : dest
+);
+```
+
+**Performance Issues**
+
+- **O(n×m) complexity**: Every todo operation requires iterating through destinations AND todos
+- **Unnecessary re-renders**: Updating one todo causes the entire destinations array to be recreated
+- **Memory overhead**: Deeply nested objects are harder for JavaScript engines to optimize
+
+**Code Complexity**
+
+- Reducer logic becomes increasingly complex with more nesting levels
+- Difficult to implement features like global todo search or cross-destination operations
+- Error-prone when adding new nested relationships
+
+**benefits of data normalization**
+
+Normalization flattens the data structure by storing entities in separate collections and using IDs to reference relationships:
+
+**Simplified Updates**
+
+```ts
+// ✅ Normalized - direct and clear
+case 'DELETE_TODO':
+  return {
+    ...state,
+    todos: state.todos.filter(todo => todo.id !== action.todoId)
+  }
+```
+
+**Better Performance**
+
+- **O(1) lookups**: Direct access to entities by ID using objects/Maps
+- **Minimal re-renders**: Only affected components re-render
+- **Efficient operations**: No need to traverse nested structures
+
+**Code Clarity**
+
+- Each entity type has clear, focused update logic
+- Easy to implement complex queries and cross-entity operations
+- Reducer actions become more predictable and testable
+
+---

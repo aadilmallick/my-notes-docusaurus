@@ -29,7 +29,9 @@
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.5.2",
+    "@playwright/test": "^1.54.0",
     "@tsconfig/docusaurus": "^2.0.3",
+    "@types/node": "^24.0.12",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
     "remark-github-admonitions-to-directives": "^1.0.5",

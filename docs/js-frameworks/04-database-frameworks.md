@@ -107,6 +107,7 @@ You can then use these commands once you have the config in place:
 - `npx drizzle-kit push`: does everything at once
 - `npx drizzle-kit generate`: generates the migrations
 - `npx drizzle-kit migrate`: applies the migrations
+- `npx drizzle-kit studio`: see your DB in a studio dashboard
 
 **schema**
 ****
@@ -184,6 +185,10 @@ export default db;
 
 For sqlite, you can either use an online database connection URL for drivers such as turso with libsql, so you can just use a file url and point to a local sqlite file:
 
+**step 1)**
+
+Pass your connection URL for the database as a local file URL.
+
 ```ts
 import { drizzle } from "drizzle-orm/libsql";
 
@@ -195,6 +200,155 @@ const db = drizzle({
 
 export default db;
 ```
+
+**step 2)**
+
+Create the `drizzle.config.ts` with a sqlite dialect, passing in the connection URL to the local DB file path:
+
+```ts
+import dotenv from "dotenv";
+import type { Config } from "drizzle-kit";
+
+dotenv.config({
+  path: ".env.local",
+});
+
+
+export default {
+  schema: "./drizzle/schemas.ts",
+  out: "./drizzle/migrations",
+  dbCredentials: {
+    url:  "file:notes.db",
+  },
+  dialect: "sqlite",
+  verbose: true,
+  strict: true,
+} satisfies Config;
+```
+
+To switch between turso and local sqlite file, you can use the following code:
+
+```ts
+import dotenv from "dotenv";
+import type { Config } from "drizzle-kit";
+
+dotenv.config({
+  path: ".env.local",
+});
+
+const sqliteDb = process.env.DB_FILE_NAME;
+const tursoDb = process.env.TURSO_DATABASE_URL;
+const tursoAuthToken = process.env.TURSO_CLOUDNOTES_TOKEN;
+// if (!sqliteDb) throw new Error("env var not found DB_FILE_NAME");
+
+const getLocalSchema = (fileUrl: string): Config => {
+  return {
+    schema: "./drizzle/schemas.ts",
+    out: "./drizzle/migrations",
+    dbCredentials: {
+      url: fileUrl,
+    },
+    dialect: "sqlite",
+    verbose: true,
+    strict: true,
+  };
+};
+
+const getTursoSchema = (dbUrl: string, authToken: string): Config => {
+  return {
+    schema: "./drizzle/schemas.ts",
+    out: "./drizzle/migrations",
+    dbCredentials: {
+      url: dbUrl,
+      authToken,
+    },
+    dialect: "turso",
+    verbose: true,
+    strict: true,
+  };
+};
+
+let config: Config;
+
+function getConfig() {
+  if (process.env.USE_LOCAL) {
+    if (!sqliteDb) {
+      throw new Error("DB_FILE_NAME is not set");
+    }
+    console.log("Using local database");
+    const localConfig = getLocalSchema(sqliteDb);
+    return localConfig;
+  }
+
+  if (tursoDb && tursoAuthToken) {
+    console.log("Using turso database");
+    const tursoConfig = getTursoSchema(tursoDb, tursoAuthToken);
+    return tursoConfig;
+  } else if (sqliteDb) {
+    console.log("Using local database");
+    const localConfig = getLocalSchema(sqliteDb);
+    return localConfig;
+  } else {
+    throw new Error("env var not found DB_FILE_NAME or TURSO_DATABASE_URL");
+  }
+}
+
+export default config = getConfig();
+```
+
+**step 3)**
+
+Create schemas, connect them to the drizzle driver, and then run `npx drizzle-kit push`
+
+```ts
+import { relations } from "drizzle-orm";
+import {
+  foreignKey,
+  int,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
+import crypto from "node:crypto";
+
+export const notesTable = sqliteTable("notes", {
+  id: int().primaryKey({ autoIncrement: true }),
+  title: text().notNull(),
+  content: text()
+    .notNull()
+    .$default(() => ""),
+  createdAt: text().$default(() => new Date().toISOString()),
+  priority: text().notNull().default("low").$type<"low" | "medium" | "high">(),
+  userId: text()
+    .references(() => usersTable.id)
+    .notNull(),
+});
+
+export const usersTable = sqliteTable("users", {
+  id: text()
+    .primaryKey()
+    .$default(() => crypto.randomUUID()),
+  email: text().notNull().unique(),
+  createdAt: text().$default(() => new Date().toISOString()),
+  password: text().notNull(),
+});
+
+export const UserTableRelations = relations(usersTable, ({ many, one }) => {
+  return {
+    notes: many(notesTable),
+  };
+});
+
+export const NotesTableRelations = relations(notesTable, ({ one }) => {
+  return {
+    user: one(usersTable, {
+      fields: [notesTable.userId],
+      references: [usersTable.id],
+    }),
+  };
+});
+```
+
 
 ### CRUD
 
@@ -369,3 +523,9 @@ db.query.users.findMany({
 You can do joins the prisma way with relations or you can use drizzle joining methods like so:
 
 ![](https://i.imgur.com/xvGAUtM.jpeg)
+
+## Aggregation
+
+### Count with group by
+
+![](https://i.imgur.com/ftATq5O.jpeg)

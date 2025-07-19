@@ -1177,6 +1177,164 @@ function makeAbortable(fn) {
 
 ### Messaging queues
 
+#### Basic
+
+At their core, asynchronous messaging queues are a way to decouple the production of tasks from their consumption. Instead of immediately processing a request, you put it into a queue, and then a separate worker (or set of workers) picks up tasks from that queue when it's ready.
+
+There are three key components to a messaging queue
+
+- **Producer:** The part of your application that creates tasks and adds them to the queue.
+- **Queue:** The storage mechanism where tasks wait to be processed. This can be in-memory (simple but volatile), a database, or a dedicated message broker (like Redis, RabbitMQ, Kafka).
+- **Consumer/Worker:** The part of your application that reads tasks from the queue and processes them.
+
+here is the difference between produces and consumers:
+
+- **Producers** (senders of messages) and **Consumers** (receivers) are not directly connected.
+- Producers enqueue messages and move on; consumers process messages at their own pace.
+
+When adding a task to an async messaging queue, it will follow these steps:
+
+1. Call some `add(task)` method to add an async callback (task) to a queue. 
+	- This method should be a promise that resolves when the the `task` promise is fulfilled.
+	- It adds the `task` promise to the queue, and wraps that promise in a higher order function so it can keep track of when it resolves. This has the advantage of forcing the user to wait until the wrapped promise actually gets called, which only happens when it gets selected from the processing queue.
+	- After the wrapped task finally resolves, we decrement the currently running promise count.
+	- We then call `processNext()` to immediately kick off running the next task.
+2. Call some `processNext()` method that keeps running promises until the queue has reached its max concurrency size
+	- If the queue is not empty and max concurrency is not reached, pop a task from the queue. 
+	- Increment the running promise count by 1, and then start the task (not awaiting it, but running in the background.)
+3. If the queue is empty and there are currently no running promises, stop the processing.
+	- We resolve some sort of **drain promise**, which lets our in app logic know there is nothing left in the queue nor currently running.
+
+**why in memory queues don't work in serverless**
+
+- **Ephemeral & Isolated**:  
+    Each invocation of a Vercel serverless function runs in its own separate, short-lived environment. If you add a task to an in-memory queue in one invocation, it **won't be visible to another invocation**. The next function call gets a fresh, empty memory space.
+- **No Shared State**:  
+    There's no way to share in-memory state (like your queue or counters) between function invocations.
+- **Scaling**:  
+    Serverless platforms autoscale by spinning up many independent instances to handle traffic. Each has its own memory; none see the others' queues.
+
+To coordinate tasks across invocations and instances in serverless, you need **a shared, persistent queue system**. Popular options:
+
+- rabbitmq
+- redis streams
+- upstash
+- inggest
+
+#### Main custom class
+
+```ts
+type Task<T> = () => Promise<T>;
+
+class ConcurrentQueue<T> {
+  private queue: Array<Task<T>> = [];
+  private runningPromises = 0;
+  private readonly maxConcurrentPromises: number;
+  private resolveQueueDrain: (() => void) | null = null; // Used to await queue drain
+
+  constructor(maxConcurrentPromises: number) {
+    if (maxConcurrentPromises <= 0) {
+      throw new Error("maxConcurrentPromises must be a positive number.");
+    }
+    this.maxConcurrentPromises = maxConcurrentPromises;
+    console.log(
+      `ConcurrentQueue initialized with max concurrent: ${maxConcurrentPromises}`,
+    );
+  }
+
+  /**
+   * Adds a task (a function that returns a Promise) to the queue.
+   * @param task The task to add.
+   * @returns A Promise that resolves with the result of the task.
+   */
+  public async add(task: Task<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      // Wrap the task to handle resolution/rejection and internal tracking
+      const wrappedTask = async () => {
+        try {
+          const result = await task();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        } finally {
+          this.runningPromises--;
+          console.log(
+            `Promise finished. Running: ${this.runningPromises}/${this.maxConcurrentPromises}`,
+          );
+          this.processNext(); // Attempt to process the next item
+        }
+      };
+      this.queue.push(wrappedTask);
+      console.log(`Task added. Queue size: ${this.queue.length}`);
+      this.processNext(); // Attempt to start processing immediately
+    });
+  }
+
+  /**
+   * Attempts to process the next task in the queue if capacity allows.
+   */
+  private processNext(): void {
+    while (
+      this.runningPromises < this.maxConcurrentPromises &&
+      this.queue.length > 0
+    ) {
+      const task = this.queue.shift(); // Get the next task from the front of the queue
+      if (task) {
+        this.runningPromises++;
+        console.log(
+          `Starting task. Running: ${this.runningPromises}/${this.maxConcurrentPromises}`,
+        );
+        task(); // Execute the wrapped task (which will resolve/reject the original promise)
+      }
+    }
+
+    // If the queue is empty and no promises are running, resolve the drain promise
+    if (this.queue.length === 0 && this.runningPromises === 0) {
+      this.resolveQueueDrain?.();
+      this.resolveQueueDrain = null; // Reset
+    }
+  }
+
+  /**
+   * Returns true if there are tasks waiting in the queue or promises currently running.
+   */
+  public hasPendingTasks(): boolean {
+    return this.queue.length > 0 || this.runningPromises > 0;
+  }
+
+  /**
+   * Waits until all tasks in the queue have been processed and no promises are running.
+   */
+  public async drain(): Promise<void> {
+    if (!this.hasPendingTasks()) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.resolveQueueDrain = resolve;
+    });
+  }
+
+  /**
+   * Gets the current number of tasks waiting in the queue.
+   */
+  public getQueueLength(): number {
+    return this.queue.length;
+  }
+
+  /**
+   * Gets the current number of promises being executed.
+   */
+  public getRunningPromisesCount(): number {
+    return this.runningPromises;
+  }
+}
+```
+
+And here is example usage.
+
+#### Custom classes
+
 We can use asynchronous messaging queues in javascript, which is useful for doing stuff like rate limiting, limiting concurrency, and adding delays between requests.
 
 ```ts

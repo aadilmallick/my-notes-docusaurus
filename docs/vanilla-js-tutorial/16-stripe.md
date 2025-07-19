@@ -308,6 +308,10 @@ There are a few steps to follow:
 
 **step 1**
 
+When the frontend calls this API route, create embedded checkout session through `ui_mode: "embedded"` and return the checkout session URL to redirect to.
+
+For extra security and to unique identify a user based on their payment session, we pass a `session_id=` query param.
+
 ```ts
 import { NextResponse } from 'next/server';
 import { stripe } from '@/utils/stripe';
@@ -339,6 +343,8 @@ export async function POST(request: Request) {
 ```
 
 **step 2**
+
+Render the `<EmbeddedCheckout />` component from within the `<EmbeddedCheckoutProvider />` provider. 
 
 ```tsx
 "use client";
@@ -412,6 +418,8 @@ export default function EmbeddedCheckoutButton() {
 
 **step 3**
 
+Handle return URL functionality by checking for the session id.
+
 ```tsx
 import { stripe } from "@/utils/stripe";
 
@@ -442,9 +450,233 @@ export default async function CheckoutReturn({ searchParams }) {
   return null;
 }
 ```
-## Stripe Webhooks
 
-### Stripe CLI
+### Stripe checkout elements
+
+Instead of redirecting to an external stripe checkout page or even just showing an embedded checkout page, you can import individual stripe prebuilt components and hook them up to payments.
+
+ since checkout elements, our client side will need to take advantage of a payment, intent, passing a client secret and an femoral key to enable payments from the client side.
+ 
+**step 1: create payment intent**
+
+The first step is to set up a an API route that  createw a payment intent and sends it to the frontend.
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+export async function POST(request: NextRequest) {
+  try {
+    const { amount } = await request.json();
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: "usd",
+      automatic_payment_methods: { enabled: true },
+    });
+
+    return NextResponse.json({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error("Internal Error:", error);
+    // Handle other errors (e.g., network issues, parsing errors)
+    return NextResponse.json(
+      { error: `Internal Server Error: ${error}` },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**step 2: create payment element**
+
+To hook up a payment element on the client side and handle payments client side securely, we need to use the client secret and ephemeral key for payments.
+
+Across all client side payment element implementations, you'll have standard React things to implement:
+
+1. Init stripe with the `useStripe()` hook
+2. Init stripe elements with the `useElements()` hook
+
+```ts
+const CheckoutPage = () => {
+  const stripe = useStripe();
+  const elements = useElements();
+  // ...
+}
+```
+
+4. Fetch the client secret from your API route, creating a payment intent you hope to fulfill through the user checking out via the payment element.
+5. If client secret is available, render payment element, which should be nested inside a `<form> element`
+6. On the form `onSubmit` handler, just run something like this:
+
+```ts
+async function finishPaymentIntent(elements, clientSecret) {
+	const { error: submitError } = await elements.submit();
+
+    if (submitError) throw new Error("payment did not go through")
+    
+
+	// runs the payment and redirects to return url
+    const { error } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: {
+        return_url: `http://www.localhost:3000/payment-success`,
+      },
+    });
+    
+    if (error) throw new Error("payment did not go through")
+}
+```
+
+```tsx
+"use client";
+
+import React, { useEffect, useState } from "react";
+import {
+  useStripe,
+  useElements,
+  PaymentElement,
+} from "@stripe/react-stripe-js";
+
+async function fetchClientSecret() {
+	const response = await fetch("/api/create-payment-intent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount: 799 }),
+    })
+    const { clientSecret } = await response.json()
+    return clientSecret
+}
+
+const CheckoutPage = () => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [errorMessage, setErrorMessage] = useState<string>();
+  const [clientSecret, setClientSecret] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+	 fetchClientSecret().then(secret => setClientSecret(secret))
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+
+    const { error: submitError } = await elements.submit();
+
+    if (submitError) {
+      setErrorMessage(submitError.message);
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: {
+        return_url: `http://www.localhost:3000/payment-success`,
+      },
+    });
+
+    if (error) {
+      // This point is only reached if there's an immediate error when
+      // confirming the payment. Show the error to your customer (for example, payment details incomplete)
+      setErrorMessage(error.message);
+    } else {
+      // The payment UI automatically closes with a success animation.
+      // Your customer is redirected to your `return_url`.
+    }
+
+    setLoading(false);
+  };
+
+  if (!clientSecret || !stripe || !elements) {
+    return <p>Loading</p>
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white p-2 rounded-md">
+      {clientSecret && <PaymentElement />}
+
+      {errorMessage && <div>{errorMessage}</div>}
+
+      <button
+        disabled={!stripe || loading}
+        className="text-white w-full p-5 bg-black mt-2 rounded-md font-bold disabled:opacity-50 disabled:animate-pulse"
+      >
+        {!loading ? `Pay $${amount}` : "Processing..."}
+      </button>
+    </form>
+  );
+};
+
+export default CheckoutPage;
+```
+
+Here's a complete hook to cover the use case:
+
+```ts
+import { useStripe, useElements } from "@stripe/react-stripe-js";
+import { useState } from "react";
+export const useStripeClient = (route: string) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function fetchClientSecret(body: Record<string, any>) {
+    const response = await fetch(`/api/${route}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const { clientSecret } = await response.json();
+    if (!clientSecret) throw new Error("client secret not found");
+    return clientSecret as string;
+  }
+
+  async function finishPaymentIntent(clientSecret: string) {
+    if (!elements || !stripe) throw new Error("elements not found");
+
+    const { error: submitError } = await elements.submit();
+
+    if (submitError) throw new Error("payment did not go through");
+
+    // runs the payment and redirects to return url
+    const { error } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: {
+        return_url: `http://www.localhost:3000/payment-success`,
+      },
+    });
+
+    if (error) throw new Error("payment did not go through");
+  }
+
+  async function executePayment(clientSecret: string) {
+    setIsLoading(true);
+    try {
+      await finishPaymentIntent(clientSecret);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return {
+    isLoading,
+    executePayment,
+    fetchClientSecret,
+  };
+};
+```
+## Stripe CLI
 
 The Stripe CLI is an easy way to test out webhooks locally. here is how to install:
 
@@ -483,7 +715,102 @@ stripe listen -e checkout.session.completed --forward-to http://localhost:3000/w
 
 The `-e` flag specifies the events you want to listen to, but by default if you omit this option, stripe forwards all events to your webhook.
 
-### Stripe webhooks
+### Triggering events
+
+You can easily trigger events in stripe using the `stripe trigger` command, which allows you to test stuff like webhook events without the hassle of manually cancelling or updating subscriptions.
+
+```bash
+stripe trigger <event-name>
+```
+
+
+To provide data for event types that need data, you would do something like this, putting the data in a file.
+
+```bash
+stripe trigger customer.created --add-object @./customer_data.json
+```
+
+To see the list of all the different event types, go to [webhook events](#webhook-events)
+
+### Logs
+
+To view a realtime stream of logs, you can use the `stripe logs tail` command:
+
+```bash
+stripe logs tail
+```
+
+### API
+
+The `stripe api` command allows you to directly call the stripe REST API and perform CRUD operations on stripe resources through the command line.
+
+#### Customers
+
+```bash
+stripe api /v1/customers -d email="test@example.com" -d description="Test customer"
+```
+
+```bash
+stripe api /v1/customers --data-raw '{"email": "json@example.com", "description": "Customer from JSON"}'
+```
+
+#### Invoices
+
+```bash
+stripe api /v1/invoices --expand 'data.charge'
+```
+
+### Resources
+
+Much like the API, you can access individual resources through stripe, abstracted away vithout having to specify some sort of endpoints. 
+
+It works exactly like kubectl, where the resources are different, but the CRUD methods are the same. This is the basic syntax:
+
+```bash
+stripe <resource> <CRUD_verb>
+```
+
+These are the list of resources:
+
+- `customers`
+- `products`
+- `charges`
+- `prices`
+- `subscriptions`
+- `payment_intents`
+- `invoices`
+- `checkout_sessions`
+
+These are the CRUD verbs:
+
+- `list`: lists all resources. Here are the additional options you can pass:
+- `create`: creates a resource.
+- `retrieve <id>`: returns the resource with the specified ID
+- `delete <id>`: deletes the resource with the specified ID
+- `update <id>`: updates he resource with the specified ID
+
+#### Listing
+
+TO list any resource, all of these options are available:
+
+- `--expand <property>`: expands a property in the JSON that is returned
+- `--limit <n>`: limits the number of items returned
+
+**get all product names**
+
+```bash
+stripe products list | jq '.data[].name'
+```
+#### Standard workflow
+
+This is how you can create a product
+
+```bash
+stripe products create --name "My Awesome Product" --type service
+stripe prices create --unit-amount 1000 --currency usd --product prod_ABCDE
+```
+
+## Stripe webhooks
 
 After setting up listeners for webhooks with the stripe CLI, you can move on to registering your route handler for the webhook:
 
@@ -523,6 +850,21 @@ app.post("/stripe/webhook", async (req) => {
 	return app.json({}, 200)
 })
 ```
+
+#### Webhook events
+
+**payment intents**
+
+- `payment_intent.succeeded`: the customer payed, the payment went through, and thus successfully completed the payment intent
+
+**customers + subscriptions**
+
+- `customer.created`: the customer was created.
+
+
+**checkout session**
+
+- `checkout.session.completed`: the checkout session was completed.
 
 ## Custom Stripe Class + API
 

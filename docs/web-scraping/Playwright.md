@@ -40,19 +40,162 @@ test('test title', async ({ page }) => {
 });
 ```
 
+### Playwright in docker
+
+To get playwright running in docker, you ahve different options:
+
+1. Use an official playwright image with all the dependencies already installed
+2. Use a compatible image like ubuntu
+3. Do alpine, with extra steps
+
+#### Alpine
+
+To get docker working with alpine, you must omit playwright and instead use the `playwright-core` npm package, manually passing in an executable path:
+
+```dockerfile
+ARG NODE_VERSION=24.0.2
+
+
+################################################################################
+# Use node image for base image for all stages.
+FROM node:${NODE_VERSION}-alpine
+
+
+
+# 1. Add Alpine edge repos (to get the latest Chromium) and install Chromium + its deps
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" > /etc/apk/repositories \
+ && echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+ && apk update \
+ && apk add \
+      chromium \
+      nss \
+      freetype \
+      harfbuzz \
+      ca-certificates \
+      ttf-freefont \
+      font-noto-emoji \
+      libstdc++ 
+
+# 2. Tell Playwright to skip downloading its own browsers,
+#    and point it at the system Chromium executable
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# (optional) If you want Playwright’s helper to install any additional deps:
+RUN npx -y playwright@latest install-deps || true
+
+
+# rest of the image ...
+```
+
+You can then initialize playwright like so:
+
+- The chromium path on alpine (in the docker container) is located at `/usr/bin/chromium-browser`.
+
+```ts
+import { chromium } from 'playwright-core'
+
+export async function getBrowser() {
+
+  // if in docker, point to path on alpine, else point to local version.
+  const executablePath = process.env.IN_DOCKER_CONTAINER 
+	  ? '/usr/bin/chromium-browser' 
+	  : chromium.executablePath()
+	  
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: executablePath,
+  })
+
+	return browser
+}
+```
+
 ### CLI
 
 - `playwright test` : runs the end to end test. Here are additional options you can pass:
     - `--ui` : adds an interactive UI for seeing how the test works
 
+### Browser object
+
+You can create a basic browser like so:
+
+```ts
+import { chromium } from 'playwright'
+
+const browser = await chromium.launch({ headless: true })
+```
+
+Here are the options you can pass in when creating a browser with `chromium.launch()`
+
+- `headless`: If true, spins up in headless mode, if false, opens a visible browser window.
+- `executablePath`: the executable path of the chromium executable to run instead of using playwright's default one.
+
+You can create a **page** object, which lets you interact with the website as a tab and scrape it, by calling the `browser.newPage()` method:
+
+```ts
+const page = await browser.newPage()
+```
 ### **page object**
 
 The `page` object has properties related to the window element, and includes navigation, fetching DOM elements, and querying page titles. Here are some useful methods and properties the `page` object has, which are all async.
+
+#### Page DOM
 
 - `page.goto(url)` : navigates to the specified URL
 - `page.locator(selector)` : fetches the element with the specified CSS selector.
 - `page.click(selector)` : clicks the specified element queried by CSS selector
 - `page.fill(selector, value)` : fills the specified element queried by CSS selector with the specified value.
+
+To run some code on the browser via injecting javascript, you can use the `page.evaluate()` method, which takes in a callback that lets you execute client-side code.
+
+You can return any primitive values in the callback, but nothing client-specific like DOM elements.
+
+```ts
+const { height, width } = await page.evaluate(() => {
+  return {
+    height: document.documentElement.scrollHeight,
+    width: document.documentElement.scrollWidth,
+  }
+})
+```
+
+#### Screenshots
+
+You can take a screenshot of any URL like so:
+
+```ts
+export async function getScreenshot(url: string) {
+  const browser = await chromium.launch({ headless: true })
+  let page;
+  
+  try {
+    page = await browser.newPage()
+    
+    await page.goto(url, {
+      waitUntil: 'networkidle',
+    })
+
+    const hostname = new URL(url).hostname
+
+    const screenshotPath = `screenshots/${hostname}-${Date.now()}.jpg`
+    const buffer = await page.screenshot({ 
+	    path: screenshotPath, 
+	    quality: 70, 
+	    type: 'jpeg' 
+    })
+    return buffer
+  }
+  catch (error) {
+    console.error('Failed to take screenshot:', error)
+    throw error
+  }
+  finally {
+    if (page) await page.close()
+    await browser.close()
+  }
+}
+```
 
 ### playwright testing
 
@@ -96,10 +239,6 @@ There are also a few things that we get from the page itself.
 We can also check in our our API responses and make sure that they are okay.
 
 - [`expect(apiResponse).toBeOK()`](https://playwright.dev/docs/api/class-apiresponseassertions#api-response-assertions-to-be-ok): Response has an OK status
-
-# Soft Assertions
-
-Soft assertions will make a note that something didn't go as planned, but won't fail the test.
 
 #### Best practices
 
@@ -184,7 +323,7 @@ const context = await browser.newContext({
 });
 ```
 
-## Replaying
+#### Replaying
 
 ```ts
 await browserContext.routeFromHAR(har);

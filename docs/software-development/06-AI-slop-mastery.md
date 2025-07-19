@@ -135,6 +135,393 @@ favicon: ""
 aspectRatio: "52.5"
 ```
 
+### Warp
+
+### Gemini CLI
+
+#### CLI options
+
+You can get just the text content of prompting an AI using the `-p` option, which can be useful for some quick prompting or even just running an AI without the SDK:
+
+```bash
+gemini -p "What is fine tuning?"
+```
+
+**going YOLO mode**
+
+TO go yolo mode and accept all tool calls automatically, the first thing you'll want to do is to go into a sandbox and make sure nothing gets broken. You'll use these two commands:
+
+- `--sandbox`: runs in sandbox mode via a docker image
+- `--sandbox-image`: optionally set the dockerhub iamge URL if you want the sandbox image to start from a different image.
+- `--yolo`: sets yolo mode
+
+However, yolo mode by default enters a sandbox, so you don't need that. 
+
+Thus the command to enter YOLO mode would look like so:
+
+```bash
+gemini --yolo
+```
+
+
+**reference**
+
+- **`--model <model_name>`** (**`-m <model_name>`**):
+    - Specifies the Gemini model to use for this session.
+    - Example: `npm start -- --model gemini-1.5-pro-latest`
+- **`--prompt <your_prompt>`** (**`-p <your_prompt>`**):
+    - Used to pass a prompt directly to the command. This invokes Gemini CLI in a non-interactive mode.
+- **`--sandbox`** (**`-s`**):
+    - Enables sandbox mode for this session.
+- **`--sandbox-image`**:
+    - Sets the sandbox image URI.
+- **`--debug`** (**`-d`**):
+    - Enables debug mode for this session, providing more verbose output.
+- **`--all-files`** (**`-a`**):
+    - If set, recursively includes all files within the current directory as context for the prompt.
+- **`--help`** (or **`-h`**):
+    - Displays help information about command-line arguments.
+- **`--show-memory-usage`**:
+    - Displays the current memory usage.
+- **`--yolo`**:
+    - Enables YOLO mode, which automatically approves all tool calls.
+- **`--telemetry`**:
+    - Enables [telemetry](https://github.com/google-gemini/gemini-cli/blob/main/docs/telemetry.md).
+- **`--telemetry-target`**:
+    - Sets the telemetry target. See [telemetry](https://github.com/google-gemini/gemini-cli/blob/main/docs/telemetry.md) for more information.
+- **`--telemetry-otlp-endpoint`**:
+    - Sets the OTLP endpoint for telemetry. See [telemetry](https://github.com/google-gemini/gemini-cli/blob/main/docs/telemetry.md) for more information.
+- **`--telemetry-log-prompts`**:
+    - Enables logging of prompts for telemetry. See [telemetry](https://github.com/google-gemini/gemini-cli/blob/main/docs/telemetry.md) for more information.
+- **`--checkpointing`**:
+    - Enables [checkpointing](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/commands.md#checkpointing-commands).
+- **`--extensions <extension_name ...>`** (**`-e <extension_name ...>`**):
+    - Specifies a list of extensions to use for the session. If not provided, all available extensions are used.
+    - Use the special term `gemini -e none` to disable all extensions.
+    - Example: `gemini -e my-extension -e my-other-extension`
+- **`--list-extensions`** (**`-l`**):
+    - Lists all available extensions and exits.
+- **`--version`**:
+    - Displays the version of the CLI.
+
+#### Slash commands
+
+- `/docs`: brings up the Docs.
+
+- **`/chat`**
+    
+    - **Description:** Save and resume conversation history for branching conversation state interactively, or resuming a previous state from a later session.
+    - **Sub-commands:**
+        - **`save`**
+            - **Description:** Saves the current conversation history. You must add a `<tag>` for identifying the conversation state.
+            - **Usage:** `/chat save <tag>`
+        - **`resume`**
+            - **Description:** Resumes a conversation from a previous save.
+            - **Usage:** `/chat resume <tag>`
+        - **`list`**
+            - **Description:** Lists available tags for chat state resumption.
+- **`/clear`**
+    
+    - **Description:** Clear the terminal screen, including the visible session history and scrollback within the CLI. The underlying session data (for history recall) might be preserved depending on the exact implementation, but the visual display is cleared.
+    - **Keyboard shortcut:** Press **Ctrl+L** at any time to perform a clear action.
+- **`/compress`**
+    
+    - **Description:** Replace the entire chat context with a summary. This saves on tokens used for future tasks while retaining a high level summary of what has happened.
+- **`/editor`**
+    
+    - **Description:** Open a dialog for selecting supported editors.
+
+- **`/help`** (or **`/?`**)
+    
+    - **Description:** Display help information about the Gemini CLI, including available commands and their usage.
+- **`/mcp`**
+    
+    - **Description:** List configured Model Context Protocol (MCP) servers, their connection status, server details, and available tools.
+    - **Sub-commands:**
+        - **`desc`** or **`descriptions`**:
+            - **Description:** Show detailed descriptions for MCP servers and tools.
+        - **`nodesc`** or **`nodescriptions`**:
+            - **Description:** Hide tool descriptions, showing only the tool names.
+        - **`schema`**:
+            - **Description:** Show the full JSON schema for the tool's configured parameters.
+    - **Keyboard Shortcut:** Press **Ctrl+T** at any time to toggle between showing and hiding tool descriptions.
+- **`/memory`**
+    
+    - **Description:** Manage the AI's instructional context (hierarchical memory loaded from `GEMINI.md` files).
+    - **Sub-commands:**
+        - **`add`**:
+            - **Description:** Adds the following text to the AI's memory. Usage: `/memory add <text to remember>`
+        - **`show`**:
+            - **Description:** Display the full, concatenated content of the current hierarchical memory that has been loaded from all `GEMINI.md` files. This lets you inspect the instructional context being provided to the Gemini model.
+        - **`refresh`**:
+            - **Description:** Reload the hierarchical instructional memory from all `GEMINI.md` files found in the configured locations (global, project/ancestors, and sub-directories). This command updates the model with the latest `GEMINI.md` content.
+        - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md#4-geminimd-files-hierarchical-instructional-context).
+- **`/restore`**
+    
+    - **Description:** Restores the project files to the state they were in just before a tool was executed. This is particularly useful for undoing file edits made by a tool. If run without a tool call ID, it will list available checkpoints to restore from.
+    - **Usage:** `/restore [tool_call_id]`
+    - **Note:** Only available if the CLI is invoked with the `--checkpointing` option or configured via [settings](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md). See [Checkpointing documentation](https://github.com/google-gemini/gemini-cli/blob/main/docs/checkpointing.md) for more details.
+- **`/stats`**
+    
+    - **Description:** Display detailed statistics for the current Gemini CLI session, including token usage, cached token savings (when available), and session duration. Note: Cached token information is only displayed when cached tokens are being used, which occurs with API key authentication but not with OAuth authentication at this time.
+- [**`/theme`**](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/themes.md)
+    
+    - **Description:** Open a dialog that lets you change the visual theme of Gemini CLI.
+- **`/auth`**
+    
+    - **Description:** Open a dialog that lets you change the authentication method.
+- **`/about`**
+    
+    - **Description:** Show version info. Please share this information when filing issues.
+- [**`/tools`**](https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/index.md)
+    
+    - **Description:** Display a list of tools that are currently available within Gemini CLI.
+    - **Sub-commands:**
+        - **`desc`** or **`descriptions`**:
+            - **Description:** Show detailed descriptions of each tool, including each tool's name with its full description as provided to the model.
+        - **`nodesc`** or **`nodescriptions`**:
+            - **Description:** Hide tool descriptions, showing only the tool names.
+- **`/privacy`**
+    
+    - **Description:** Display the Privacy Notice and allow users to select whether they consent to the collection of their data for service improvement purposes.
+- **`/quit`** (or **`/exit`**)
+    
+    - **Description:** Exit Gemini CLI.
+
+
+
+#### Memory
+
+You should use a `GEMINI.md` file kind of the same way as a cursor rule - type it to be full of rules that the AI should listen to, like info about the project PRD and the tech stack. 
+
+You can use the `/memory show` slash command to view gemini's current memory in the current workspace. Since gemini has access to the memory tool, you can also tell it to update its memory, remove stuff from its memory, and that will lead to it having better responses.
+
+Whenever you feel like memory is getting stale and the AI has lost the plot of your gemini rules in the `GEMINI.md`, you can always refeed it again and refresh the memory through this slash command:
+
+```bash
+/memory refresh
+```
+
+
+#### Adding files to context
+
+You can refer to specific files in context using the `@` prefix, which explicitly tells gemini to use file reading tools. By default, files and folders in your `.gitignore` are excluded from reading.
+
+- **Git-aware filtering:** By default, git-ignored files (like `node_modules/`, `dist/`, `.env`, `.git/`) are excluded. This behavior can be changed via the `fileFiltering` settings.
+
+#### Settings
+
+Here is the complete documentation on how to configure your gemini CLI on the user level, system level, and project level. 
+
+```embed
+title: "gemini-cli/docs/cli/configuration.md at main · google-gemini/gemini-cli"
+image: "https://repository-images.githubusercontent.com/968197216/8522a757-5632-4fa4-8d01-fcc121390cb1"
+description: "An open-source AI agent that brings the power of Gemini directly into your terminal. - google-gemini/gemini-cli"
+url: "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+[![google-gemini/gemini-cli - GitHub](https://gh-card.dev/repos/google-gemini/gemini-cli.svg)](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md)
+
+All project level config lives inside the `.gemini` folder, and there are special files you can put in their that configure the behavior of the Gemini CLI.
+
+
+
+**settings.json**
+
+The `settings.json` file configures the CLI settings for the project, like enabling/disabling tools, adding MCP servers, etc.
+
+- **user level config**: to set global gemini CLI settings, go to this path: `~/.gemini/settings.json`
+- **project level config**: to set project level gemini CLI settings, create a `.gemini/settings.json` file in the cwd.
+
+```json title=".gemini/settings.json"
+{
+  // -- UI & THEME SETTINGS --
+  // These settings control the look and feel of the Gemini CLI.
+
+  "theme": "GitHub",
+  // Sets the visual theme. "Default" is the standard theme.
+  // Check the documentation for other available themes.
+
+  "hideBanner": false,
+  // Set to true if you want to hide the ASCII art logo on startup.
+
+  "hideTips": false,
+  // Set to true to disable the helpful tips that appear in the UI.
+
+
+  // -- CONTEXT & MEMORY --
+  // Configure how the CLI understands the context of your project.
+
+  "contextFileName": "GEMINI.md",
+  // Specifies the file name for loading instructional context. The CLI
+  // searches for this file in the current directory, parent directories,
+  // and sub-directories to build a hierarchical context for the model.
+  // You can provide a single string or an array of strings (e.g., ["GEMINI.md", "CONTEXT.md"]).
+
+
+  // -- TOOL & COMMAND SETTINGS --
+  // Control how the model interacts with built-in and custom tools.
+
+  "autoAccept": false,
+  // If set to true, the CLI automatically executes tool calls that are
+  // considered  (e.g., read-only operations) without asking for confirmation.
+  // This can speed up your workflow, but use it with caution.
+
+  "coreTools": [
+    "read_file",
+    "glob",
+    "run_shell_command(ls)",
+    "run_shell_command(cat)"
+  ],
+  // Whitelists specific built-in tools for the model to use, enhancing security.
+  // If this setting is omitted, all core tools are available.
+  // You can also restrict shell commands to specific patterns, as shown above.
+
+  "excludeTools": [
+    "run_shell_command(rm -rf)"
+  ],
+  // Blacklists specific tools or commands. This is less secure than `coreTools`.
+  // A tool listed in both `coreTools` and `excludeTools` will be excluded.
+  // Note: Command restrictions are based on simple string matching and can be bypassed.
+
+
+  // -- SANDBOXING FOR SECURITY --
+  // Isolate tool execution to protect your system.
+
+  "sandbox": "docker",
+  // Controls the sandboxing environment for executing tools.
+  // - "false" (default): No sandboxing.
+  // - "true" or "docker": Uses a pre-built Docker image for sandboxing.
+  // This is highly recommended when allowing the model to execute shell commands.
+
+
+  // -- FILE DISCOVERY --
+  // Define how the CLI finds files for @-mentions and other file operations.
+
+  "fileFiltering": {
+    "respectGitIgnore": true,
+    "enableRecursiveFileSearch": true
+  },
+  // "respectGitIgnore": When true, files and directories listed in your .gitignore
+  // (like node_modules/, dist/, .env) are automatically excluded.
+  // "enableRecursiveFileSearch": When true, allows recursively searching for
+  // files in subdirectories when you use the @ prefix in a prompt.
+
+
+  // -- CUSTOM TOOLS (ADVANCED) --
+  // For integrating your own project-specific tools.
+
+  "toolDiscoveryCommand": "bin/get_tools",
+  // A custom shell command that returns a JSON array of function declarations
+  // for your project's tools.
+
+  "toolCallCommand": "bin/call_tool",
+  // A custom shell command to execute a tool discovered via `toolDiscoveryCommand`.
+  // It receives the tool name as an argument and its parameters as JSON on stdin.
+
+
+  // -- TELEMETRY & USAGE STATISTICS --
+  // Help improve the Gemini CLI by sharing anonymous data.
+
+  "telemetry": {
+    "enabled": false,
+    "target": "local",
+    "otlpEndpoint": "http://localhost:4317",
+    "logPrompts": false
+  },
+  // Configures telemetry for debugging and monitoring.
+  // "enabled": Set to true to turn on telemetry.
+  // "target": Can be "local" or "gcp".
+  // "logPrompts": Set to true to include prompt content in logs (use with care for privacy).
+
+  "usageStatisticsEnabled": true,
+  // Set to false to opt-out of sending anonymized usage statistics.
+  // We don't collect any PII, prompt content, or file content. Disabling this
+  // just means we have less data to guide improvements.
+
+
+  // -- SESSION MANAGEMENT --
+
+  "maxSessionTurns": -1
+  // Sets the maximum number of conversation turns before a session is automatically reset.
+  // A "turn" consists of one user prompt and one model response.
+  // The default, -1, means the session is unlimited.
+}
+
+```
+
+> [!TIP]
+> **Note on environment variables in settings:** String values within your `settings.json` files can reference environment variables using either `$VAR_NAME` or `${VAR_NAME}` syntax. These variables will be automatically resolved when the settings are loaded. For example, if you have an environment variable `MY_API_TOKEN`, you could use it in `settings.json` like this: `"apiKey": "$MY_API_TOKEN"`.
+
+- **`contextFileName`** (string or array of strings): a list of files to use as context or equivalent of cursor rules for the current gemini session.
+
+By far the most important properties are the ones enabling and disabling tools, allowing you to get as granular as allowlisting certain commands or blacklisting them:
+
+- **`coreTools`** (array of strings):
+    - **Description:** Allows you to specify a list of core tool names that should be made available to the model. This can be used to restrict the set of built-in tools. See [Built-in Tools](https://github.com/google-gemini/gemini-cli/blob/main/docs/core/tools-api.md#built-in-tools) for a list of core tools. You can also specify command-specific restrictions for tools that support it, like the `ShellTool`. For example, `"coreTools": ["ShellTool(ls -l)"]` will only allow the `ls -l` command to be executed.
+    - **Default:** All tools available for use by the Gemini model.
+    - **Example:** `"coreTools": ["ReadFileTool", "GlobTool", "ShellTool(ls)"]`.
+- **`excludeTools`** (array of strings):
+    - **Description:** Allows you to specify a list of core tool names that should be excluded from the model. A tool listed in both `excludeTools` and `coreTools` is excluded. You can also specify command-specific restrictions for tools that support it, like the `ShellTool`. For example, `"excludeTools": ["ShellTool(rm -rf)"]` will block the `rm -rf` command.
+    - **Default**: No tools excluded.
+    - **Example:** `"excludeTools": ["run_shell_command", "findFiles"]`.
+    - **Security Note:** Command-specific restrictions in `excludeTools` for `run_shell_command` are based on simple string matching and can be easily bypassed. This feature is **not a security mechanism** and should not be relied upon to safely execute untrusted code. It is recommended to use `coreTools` to explicitly select commands that can be executed.
+- **`autoAccept`** (boolean):
+    
+    - **Description:** Controls whether the CLI automatically accepts and executes tool calls that are considered safe (e.g., read-only operations) without explicit user confirmation. If set to `true`, the CLI will bypass the confirmation prompt for tools deemed safe.
+    - **Default:** `false`
+    - **Example:** `"autoAccept": true`
+**`sandbox`** (boolean or string):
+
+- **Description:** Controls whether and how to use sandboxing for tool execution. If set to `true`, Gemini CLI uses a pre-built `gemini-cli-sandbox` Docker image. For more information, see [Sandboxing](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md#sandboxing).
+- **Default:** `false`
+- **Example:** `"sandbox": "docker`
+
+To enable MCP servers per project, you can add them through the `mcpServers` key like so:
+
+```json
+"mcpServers": {
+  "myPythonServer": {
+    "command": "python",
+    "args": ["mcp_server.py", "--port", "8080"],
+    "cwd": "./mcp_tools/python",
+    "timeout": 5000
+  },
+  "myNodeServer": {
+    "command": "node",
+    "args": ["mcp_server.js"],
+    "cwd": "./mcp_tools/node"
+  },
+  "myDockerServer": {
+    "command": "docker",
+    "args": ["run", "-i", "--rm", "-e", "API_KEY", "ghcr.io/foo/bar"],
+    "env": {
+      "API_KEY": "$MY_API_TOKEN"
+    }
+  }
+}
+```
+
+
+#### Using tools
+
+You can use tools automatically with gemini through just its automatic tool selection capability, but you can also manually invoke them, which may be useful, by just invoking these bash methods:
+
+**web fetch**
+
+```python
+web_fetch(
+	prompt="Can you summarize the main points of https://example.com/news/latest"
+)
+```
+**google search**
+
+```python
+google_web_search(query="Your query goes here.")
+```
+
 
 ## Vibe coding mastery
 
@@ -223,6 +610,21 @@ This is an **AI Calorie calculator app** where users can take pic of food and 
 - Generate the **first two pages** now
 ```
 
+**step 2: ascii layouts**
+
+Tp figure out how to go about for the rest of the pages, you can ask cursor to brainstorm ascii layouts for you of what the page should look like, which consumes less tokens and is easier for the AI model to iterate on.
+
+**step 3: creating a theme**
+
+Go to the [Beautiful themes for shadcn/ui — tweakcn | Theme Editor & Generator](https://tweakcn.com/) site to create your custom shadcn theme, paste it in your code, and then ask cursor if it understands your theme and ask it to display it for you (adds it to context)
+
+**step 4: adding animations**
+
+Tell the model which types of animations you would like to do.
+
+
+
+
 #### Vibe coding prompts
 
 Here are some good vibe coding prompts to inject during your workflow:
@@ -267,6 +669,12 @@ NotebookLM is really cool and has a great use case for generating minutes of aud
 
 You can use local LLMs in a chat interface either with LMStudio desktop app or the Ollama CLI. 
 
+You can download quantized models off of hugging face or in LM Studio itself.
+
+### Theory
+
+#### Quantization
+
 **quantization** is the idea of precision in model parameters, either letting each parameter have a floating point precision (more precise) or an integer precision (less precise). 
 
 Although it sounds like being more precise would lead to better results - which it does - it also adds up more space to download local models and requires more RAM. To use a model for inference, it has to get loaded into memory, and even the smallest LLM has over 1 billion parameters. Higher precision leads to higher RAM requirements:
@@ -280,8 +688,11 @@ Thus quantization allows us to mathematically round the floating point precision
 > [!TIP]
 > quantization allows us to achieve up to 1/2 or 1/4 cutting of RAM usage, while still having only a negligible difference in performance from the more precise unquantized models.
 
-You can download quantized models off of hugging face or in LM Studio itself.
+#### Offloading
 
+**offloading** is the technique of loading a model's parameters between CPU, GPU, and RAM, in order to efficiently load a model in memory. 
+
+A main drawback of offloading is that model performance becomes worse, even if memoyr use is more efficient. 
 ### Lm studio
 
 #### CLI
@@ -589,6 +1000,13 @@ Available Commands:
 > [!TIP]
 > You can find the parameters for a model on the ollama page for a model or through `ollama show` command.
 
+#### Model env vars
+
+These are the env vars you should set on a model in order to make OLLAMA more efficient:
+
+
+![](https://i.imgur.com/aq94hHQ.jpeg)
+ 
 #### Modelfiles
 
 **Modelfiles** are essentially the Dockerfile version of creating LLMs, blueprinting them with system prompts, hyperparameter values, and message history.
@@ -1925,6 +2343,30 @@ export class OpenAITool<T extends z.ZodObject<any>> {
 }
 ```
 
+### OpenAI Compatibility API
+
+Using the open ai compatibility API, you can connnect different models and use the same exact openAI syntax for all of them, except some may not be able to to use tools or have multimodality.
+
+#### Google connection
+
+```ts
+const openai = new OpenAI({
+  apiKey: GEMINI_API_KEY,
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+});
+
+const response = await openai.chat.completions.create({
+  model: 'gemini-2.0-flash',
+  messages: [
+    {role: 'system', content: 'You are a helpful assistant.'},
+    {
+      role: 'user',
+      content: 'Explain to me how AI works',
+    },
+  ],
+});
+
+```
 ### Google Genai
 
 #### Intro
@@ -3739,6 +4181,26 @@ Finetuning is the act of doing training on the last layer of the LLM with all th
 If you don't use evals (tests and finidng metrics for your LLM service), you will have a terrible LLM wrapper app. Here are some metrics to test for:
 
 -  Is the model calling the correct tool we expected?
+
+## OpenAI Whisper
+
+Here is how you can use open ai whisper to transcribe or translate audio files:
+
+```ts
+import whisper
+
+model = whisper.load_model("base.en")
+
+filepath = os.path.join(pathlib.Path.home(), "Downloads", "totranscribe.webm")
+result = model.transcribe(filepath)
+
+print(result["text"])
+```
+
+Here are the different models you have access to, all unquantized.
+
+- `"tiny.en"`: the smallest english version, at 39M params
+- `"base.en"`: the smallest english version, at 74M params
 
 ## Agents
 
