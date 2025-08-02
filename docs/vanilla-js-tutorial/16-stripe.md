@@ -294,6 +294,13 @@ export async function createPortalSession(customerId: string) {
 }
 ```
 
+### Checkout sessions with payment links
+
+You can take advantage of prebuilt payment links if you have static products that don't change, and then just handle app logic with webhooks instead. These payment links link directly to a checkout session that stripe will create for you, and you don't need a return URL.
+
+1. Go to stripe, on a product you made, create a payment link for it. Copy that link.
+2. When the user wants to pay, redirect them to the payment link.
+3. Setup webhook listeners to know when a new customer in stripe was created, a product was bought, an invoice made, etc., and there implement your database logic to change the user to pro or say they have bought something.
 ### Embedded checkout sessions
 
 **embedded checkout sessions** give you the flexibility of handling payments through your UI without users being redirected to Stripe. It offers a better user experience and more customization of how the payment looks like. 
@@ -1272,3 +1279,280 @@ const updatedSubscription = await stripe.subscriptions.update(
   }
 }
 ```
+
+## polar
+
+### NextJS
+
+When working in polar, there is a difference between test mode and live mode. Local and live mode have completely different keys and websites, so be careful.
+
+- **live mode**: do everything in polar.sh
+- **test mode**: do everything in [sandbox verison](https://sandbox.polar.sh)
+
+#### Creating a checkout session
+
+When it comes to creating checkout sessions, you have two popular options:
+
+- **programmatic creation**: using the polar sh payment SDK to have full control over creating a checkout session, giving you the ability to prefill certain fields.
+- **prebuilt payment links**: You can create prebuilt payment links for a product, which lets you go for a no-code approach, especially if you don't need a database. But this prevents from prefilling certain fields like customer email.
+
+To create a checkout session, you need to use the polar SDK to create a checkout session. This programmatic approach has the advantage of prefilling links.
+
+The first thing you'll need to is to install the `@polar-sh/sdk` library and create this code:
+
+```ts
+import { Polar } from "@polar-sh/sdk";
+
+const polar = new Polar({
+  accessToken: verifyEnvironmentVariable("POLAR_ACCESS_TOKEN"),
+  server: process.env.NODE_ENV === "development" ? "sandbox" : "production",
+});
+```
+
+> [!iMPORTANT]
+> If you set to "sandbox" mode, be extra sure to use only keys and secrets from the sandbox version of polar, not the live one. Or else that will not work at all.
+
+Then here is how you would create a route that handles creating the checkout session
+
+```ts
+import { verifyEnvironmentVariable } from "@/utils/verifyEnv";
+import { getUserRouteHandler } from "@/actions/auth";
+import { polarDal } from "@/services/polarDal";
+import { NextResponse } from "next/server";
+
+export async function GET(request: Request) {
+  try {
+    const productId =
+      process.env.NODE_ENV === "production"
+        ? "7c4995fd-044c-456b-acfc-9f17c3651406"
+        : "b5c23b35-96e0-4d6d-888b-bd3440a76ed5";
+    const user = await getUserRouteHandler(request);
+
+    if (user instanceof NextResponse) {
+      return user;
+    }
+
+    console.log("Creating checkout session for user:", user.email);
+
+    const { checkout, checkoutUrl } = await polarDal.createCheckout({
+      productId,
+      userInfo: {
+        email: user.email,
+        id: user.id,
+      },
+      successUrl: verifyEnvironmentVariable("POLAR_SUCCESS_URL"),
+    });
+
+    console.log("Checkout session created successfully:", checkout.id);
+    return NextResponse.redirect(checkoutUrl);
+  } catch (error) {
+    console.error("Error creating checkout session:", error);
+
+    // Check if it's an authentication error
+    if (error instanceof Error && error.message.includes("invalid_token")) {
+      return NextResponse.json(
+        {
+          error: "Authentication failed. Please check your POLAR_ACCESS_TOKEN.",
+          details: "The access token may be expired, revoked, or invalid.",
+        },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to create checkout session" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+Here is a class covering the basic of using the polar SDK.
+
+```ts
+import { verifyEnvironmentVariable } from "@/utils/verifyEnv";
+import { Polar } from "@polar-sh/sdk";
+import { Checkout } from "@polar-sh/sdk/models/components/checkout.js";
+import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
+
+const polar = new Polar({
+  accessToken: verifyEnvironmentVariable("POLAR_ACCESS_TOKEN"),
+  server: process.env.NODE_ENV === "development" ? "sandbox" : "production",
+});
+
+export class PolarManager {
+  constructor(private polar: Polar) {}
+  async createCheckout({
+    productId,
+    userInfo,
+    successUrl,
+  }: {
+    productId: string;
+    successUrl: string;
+    userInfo: {
+      email: string;
+      id: string;
+    };
+  }) {
+    const checkout = await this.polar.checkouts.create({
+      products: [productId],
+      customerEmail: userInfo.email,
+      successUrl,
+      externalCustomerId: userInfo.id,
+      customerMetadata: {
+        userId: userInfo.id,
+        email: userInfo.email,
+      },
+    });
+    const searchParams = new URLSearchParams();
+    searchParams.append("customer_email", userInfo.email);
+    return {
+      checkoutUrl: `${checkout.url}?${searchParams.toString()}`,
+      checkout,
+    };
+  }
+
+  async getCustomerFromCheckout(userId: string, checkout: Checkout) {
+    const cus1 = await this.getCustomerById(
+      checkout.customerId || checkout.paymentProcessorMetadata.customer_id
+    );
+    if (cus1) {
+      return cus1;
+    }
+    const cus2 = await this.getCustomerByUserId(userId);
+    return cus2;
+  }
+
+  async getCheckout(checkoutId: string) {
+    const checkout = await this.polar.checkouts.get({
+      id: checkoutId,
+    });
+    return checkout;
+  }
+
+  async getCustomerByUserId(userId: string) {
+    const customer = await this.polar.customers.getExternal({
+      externalId: userId,
+    });
+    return customer;
+  }
+
+  async getCustomerById(customerId: string) {
+    const customer = await this.polar.customers.get({
+      id: customerId,
+    });
+    return customer;
+  }
+
+  async getImportantInfoFromSubscription(subscription: Subscription) {
+    const subscriptionStartDate = subscription.startedAt;
+    const interval = subscription.recurringInterval;
+    const cancelAtPeriodEnd = subscription.cancelAtPeriodEnd;
+    const endsAt = subscription.endsAt;
+    const customerId = subscription.customerId;
+    const subscriptionId = subscription.id;
+    const productId = subscription.productId;
+    const productPriceId = subscription.product.prices[0].id;
+    const status = subscription.status;
+    return {
+      subscriptionStartDate,
+      interval,
+      cancelAtPeriodEnd,
+      endsAt,
+      customerId,
+      subscriptionId,
+      productId,
+      productPriceId,
+      status,
+    };
+  }
+}
+```
+
+#### Redirecting to customer portal
+
+You can redirect to customer portal like so:
+
+```ts
+import { getUserRouteHandler } from "@/actions/auth";
+import db from "@/drizzle/db";
+import { verifyEnvironmentVariable } from "@/utils/verifyEnv";
+import { CustomerPortal } from "@polar-sh/nextjs";
+import { NextRequest, NextResponse } from "next/server";
+
+export const GET = CustomerPortal({
+  accessToken: verifyEnvironmentVariable("POLAR_ACCESS_TOKEN"),
+  // a way to dynamically get the customer id of the current authenticated user
+  getCustomerId: async (req: NextRequest) => {
+    const user = await getUserRouteHandler(req);
+    if (user instanceof NextResponse) {
+      throw new Error("User not authenticated");
+    }
+    const userFromDb = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, user.email),
+    });
+    if (!userFromDb) {
+      throw new Error("User not found");
+    }
+    if (!userFromDb.subscriptionInfo?.customerId) {
+      throw new Error(
+        "User has no subscription or customer id associate with it."
+      );
+    }
+    return userFromDb.subscriptionInfo.customerId;
+  }, // Function to resolve a Polar Customer ID
+  server: "sandbox", // Use sandbox if you're testing Polar - omit the parameter or pass 'production' otherwise
+});
+```
+
+- `accessToken`: the access token
+- `getCustomerId`: a callback you must implement, which from a request, you're supposed to return the customer ID associated with that request.
+#### Webhooks
+
+To set up webhooks, go to the polar sidebar -> **settings** -> **webhooks**, and then you can create a webhook secret, specify the receiving API endpoint, and then select the events you want to listen for.
+
+You can go here for more info:
+
+```embed
+title: "Setup Webhooks - Polar"
+image: "https://polar.mintlify.app/mintlify-assets/_next/image?url=%2Fapi%2Fog%3Fdivision%3DDocumentation%26appearance%3Dsystem%26title%3DSetup%2BWebhooks%26description%3DGet%2Bnotifications%2Basynchronously%2Bwhen%2Bevents%2Boccur%2Binstead%2Bof%2Bhaving%2Bto%2Bpoll%2Bfor%2Bupdates%26logoLight%3Dhttps%253A%252F%252Fmintlify.s3.us-west-1.amazonaws.com%252Fpolar%252Flogo%252Flight.png%26logoDark%3Dhttps%253A%252F%252Fmintlify.s3.us-west-1.amazonaws.com%252Fpolar%252Flogo%252Fdark.png%26primaryColor%3D%2523000%26lightColor%3D%2523fff%26darkColor%3D%2523000%26backgroundLight%3D%2523ffffff%26backgroundDark%3D%2523131316&w=1200&q=100"
+description: "Get notifications asynchronously when events occur instead of having to poll for updates"
+url: "https://docs.polar.sh/integrate/webhooks/endpoints"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+
+![](https://i.imgur.com/2K8kbGl.jpeg)
+
+Here is how you can set up webhooks in nextJS:
+
+```ts
+import { Webhooks } from "@polar-sh/nextjs";
+
+export const POST = Webhooks({
+  webhookSecret: verifyEnvironmentVariable("POLAR_WEBHOOK_SECRET"),
+  onPayload: async (payload) => {
+    // Handle the payload
+    // No need to return an acknowledge response
+    console.log("=== WEBHOOK PAYLOAD RECEIVED ===");
+    console.log("Event type:", payload.type);
+    console.log("Event data:", JSON.stringify(payload.data, null, 2));
+    console.log("=================================");
+  },
+  // listen to more events.
+})
+```
+
+Here is a list of all webhook events:
+
+```embed
+title: "Webhook Events - Polar"
+image: "https://polar.mintlify.app/mintlify-assets/_next/image?url=%2Fapi%2Fog%3Fdivision%3DDocumentation%26appearance%3Dsystem%26title%3DWebhook%2BEvents%26description%3DOur%2Bwebhook%2Bevents%2Band%2Bin%2Bwhich%2Bcontext%2Bthey%2Bare%2Buseful%26logoLight%3Dhttps%253A%252F%252Fmintlify.s3.us-west-1.amazonaws.com%252Fpolar%252Flogo%252Flight.png%26logoDark%3Dhttps%253A%252F%252Fmintlify.s3.us-west-1.amazonaws.com%252Fpolar%252Flogo%252Fdark.png%26primaryColor%3D%2523000%26lightColor%3D%2523fff%26darkColor%3D%2523000%26backgroundLight%3D%2523ffffff%26backgroundDark%3D%2523131316&w=1200&q=100"
+description: "Our webhook events and in which context they are useful"
+url: "https://docs.polar.sh/integrate/webhooks/events"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+### Integrating with better auth

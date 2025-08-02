@@ -620,7 +620,16 @@ Go to the [Beautiful themes for shadcn/ui — tweakcn | Theme Editor & Generator
 
 **step 4: adding animations**
 
-Tell the model which types of animations you would like to do.
+Tell the model which types of animations you would like to do. You can just copy this prompt:
+
+```
+Add smooth animations and micro interactions like：
+- smooth hover effects
+- gentle tilt effects
+- scroll-based animations
+- animated glitch-style
+- inertia-based scroll
+```
 
 
 

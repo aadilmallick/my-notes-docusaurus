@@ -140,6 +140,28 @@ We can set images in LCP with a `fetchpriority="high"` to immediately download t
 
 #### HTML way
 
+Use the `<picture>` element to choose different image sources depending on what the user's browser can handle.
+
+```html
+<picture>
+  <source srcset="image.avif" type="image/avif">
+  <source srcset="image.webp" type="image/webp">
+  <img src="image.jpg" alt="Description">
+</picture>
+```
+
+You can also use the `srcset` and `sizes` attributes on the image tag to conditionally show different images depending on the width of the viewport.
+
+```html
+<img srcset="elva-small.jpg 480w,
+             elva-medium.jpg 800w,
+             elva-large.jpg 1200w"
+     sizes="(max-width: 600px) 480px,
+            (max-width: 900px) 800px,
+            1200px"
+     src="elva-medium.jpg"
+     alt="Elva dressed as a developer">
+```
 #### Resizing way
 
 The first step is to create multiple copies of our images, all resized for different viewport sizes.

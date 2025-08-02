@@ -16,6 +16,32 @@ deployctl deploy
 After running the deploy command, deno will add build configuration settings to the `deno.json`. There are also command line options that will be useful here:
 
 - `--env-file`: Points to the env file to load for deployment. `--env-file=.env` will load all env variables from the `.env` file into the deployment build.
+- `--include`: file and folders in glob path syntax to include
+- `--entrypoint`: the main deno file to run. This will often be just a server listening initialization.
+
+Here is an example deno deploy command that works for fullstack deno projects
+
+```json
+{
+  "tasks": {
+    "dev": "deno run -A --env-file=.env.local --watch main.ts",
+    "build:node": "cd frontend && npm run build", // build frontend
+    "start": "deno run build:node && deno run -A --env-file=.env.local main.ts",
+    "deploy": "deno run build:node && deployctl deploy --env-file=.env.local --entrypoint=main.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  },
+  "deploy": {
+    "project": "a226342a-e14a-4684-8070-86ed781ce36e",
+    "exclude": [
+      "**/node_modules"
+    ],
+    "include": [],
+    "entrypoint": "main.ts"
+  }
+}
+```
 
 ### Seeing logs
 

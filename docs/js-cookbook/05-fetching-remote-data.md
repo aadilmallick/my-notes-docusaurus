@@ -1775,3 +1775,115 @@ eventSource.onerror = (error) => {
   eventSource.close();
 };
 ```
+
+#### Custom client-side event source class
+
+```ts
+export class EventSourceModel {
+  private eventSource: EventSource
+  private url: string
+
+  constructor(url: string) {
+    this.url = url
+    this.eventSource = new EventSource(url)
+  }
+
+  onopen(callback: () => void) {
+    this.eventSource.onopen = callback
+  }
+
+  onmessage(callback: (event: MessageEvent) => void) {
+    this.eventSource.onmessage = callback
+  }
+
+  onError(callback: (event: Event) => void) {
+    this.eventSource.onerror = callback
+  }
+
+  onJSONMessage(callback: (data: any) => void) {
+    this.eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        callback(data)
+      }
+      catch (error) {
+        console.error('Failed to parse JSON message:', error, 'Raw data:', event.data)
+      }
+    }
+  }
+
+  close() {
+    this.eventSource.close()
+  }
+
+  retry(options?: {
+    delay?: number
+    retries?: number
+  }) {
+    // this.eventSource.close()
+
+    let currentRetries = 0
+
+    async function delay(ms: number) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
+    const reconnect = async () => {
+      console.log('SSE: reconnecting...')
+      await delay(options?.delay ?? 5000)
+
+      // Clean up any existing EventSource
+      if (this.eventSource) {
+        this.eventSource.close()
+      }
+
+      this.eventSource = new EventSource(this.url)
+
+      try {
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Connection timeout'))
+          }, 10000)
+
+          this.eventSource.onopen = () => {
+            clearTimeout(timeout)
+            resolve(undefined)
+          }
+
+          this.eventSource.onerror = (error) => {
+            clearTimeout(timeout)
+            reject(error)
+          }
+        })
+
+        if (this.eventSource.readyState === EventSource.OPEN) {
+          currentRetries = 0
+          console.log('SSE: reconnect successful')
+          return
+        }
+      }
+      catch (error) {
+        console.error('SSE: reconnect failed', error)
+        currentRetries++
+        console.log(
+          'SSE: retrying...',
+          currentRetries,
+          'of',
+          options?.retries ?? 5,
+        )
+        if (currentRetries < (options?.retries ?? 5)) {
+          await reconnect()
+        }
+        else {
+          console.error('SSE: Max retries reached, giving up')
+        }
+      }
+    }
+
+    reconnect().catch((error) => {
+      console.error('SSE: Reconnect failed permanently:', error)
+    })
+  }
+}
+
+```

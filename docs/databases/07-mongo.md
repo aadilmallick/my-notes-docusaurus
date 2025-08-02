@@ -412,6 +412,261 @@ async function init() {
    await collection.find({ age: { $gt: 10 } });
    ```
 
+#### Connection Class
+
+
+```ts
+import { MongoClient } from 'mongodb'
+
+export class DBMongo {
+  static async connect(mongoUri: string) {
+    try {
+      const client = new MongoClient(mongoUri)
+      await client.connect()
+      return {
+        isConnected: true,
+        client,
+      }
+    }
+    catch (error) {
+      console.error('Error while connecting:', error)
+      return {
+        isConnected: false,
+        client: null,
+      }
+    }
+  }
+
+  static async connectWithRetries(mongoUri: string, retries: number = 3) {
+    for (let i = 0; i < retries; i++) {
+      console.log(`Connecting to MongoDB... (${i + 1}/${retries})`)
+      const result = await this.connect(mongoUri)
+      if (result.isConnected) {
+        return result
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+    throw new Error('Failed to connect to MongoDB')
+  }
+
+  static async disconnect(client: MongoClient) {
+    await client.close()
+  }
+}
+
+export const dbConfig = {
+  dbName: 'health-dashboard',
+  websiteCollection: 'websites',
+  taskCollection: 'tasks',
+}
+```
+
+#### Schema Example
+
+```ts
+// import { Schema, Document, model, Collection } from "mongoose";
+import { dbConfig } from './DB'
+import { Collection, Document, MongoClient } from 'mongodb'
+
+export interface WebsiteV1 {
+  name: string
+  url: string
+  createdAt: Date // will be created by default.
+  updatedAt: Date
+  info?: Record<string, unknown>
+}
+
+interface WebsiteDoc extends WebsiteV1, Document {}
+
+class Website {
+  constructor(public data: WebsiteV1 & { _id: string }) {}
+
+  /**
+   * Used as an override to JSON.stringify() calls
+   */
+  toJSON() {
+    return {
+      ...this.data,
+      _id: this.data._id,
+    }
+  }
+}
+
+class WebsiteModelV1 {
+  private static instance: WebsiteModelV1 | null = null
+  private collection: Collection<WebsiteDoc>
+
+  private constructor(client: MongoClient) {
+    const db = client.db(dbConfig.dbName)
+    const collection = db.collection<WebsiteDoc>(dbConfig.websiteCollection)
+    this.collection = collection
+  }
+
+  static getInstance(client: MongoClient): WebsiteModelV1 {
+    if (!WebsiteModelV1.instance) {
+      WebsiteModelV1.instance = new WebsiteModelV1(client)
+    }
+    return WebsiteModelV1.instance
+  }
+
+  async create(website: Pick<WebsiteV1, 'name' | 'url' | 'info'>) {
+    const date = new Date()
+    const data = {
+      ...website,
+      createdAt: date,
+      updatedAt: date,
+    }
+    const doc = await this.collection.insertOne(data)
+    const createdWebsite = new Website({
+      ...data,
+      _id: doc.insertedId.toString(),
+    })
+    return createdWebsite
+  }
+
+  /**
+   *
+   * @param website supports partial updates of deeply nested objects for the "info" key, or creates new website
+   * if it doesn't exist yet.
+   * @returns
+   */
+  async upsert(website: Pick<WebsiteV1, 'name' | 'url' | 'info'>, options?: {
+    returnWebsite?: boolean
+  }) {
+    const foundWebsite = await this.collection.findOne({ $or: [{ name: website.name }, { url: website.url }] })
+    if (!foundWebsite) {
+      console.log('website not found ... creating website document', website)
+      return await this.create(website)
+    }
+    else {
+      await this.collection.updateOne({ _id: foundWebsite._id }, {
+        $set: {
+          info: {
+            ...foundWebsite.info,
+            ...website.info,
+          },
+          updatedAt: new Date(),
+        },
+      })
+      if (options?.returnWebsite) {
+        const doc = await this.collection.findOne({ _id: foundWebsite._id })
+        return new Website({
+          ...doc!,
+          _id: doc!._id.toString(),
+        })
+      }
+      else {
+        return null
+      }
+    }
+  }
+
+  async getAll() {
+    const docs = await this.collection.find().toArray()
+    return docs.map(
+      doc =>
+        new Website({
+          ...doc,
+          _id: doc._id.toString(),
+        }),
+    )
+  }
+}
+
+export { WebsiteModelV1 }
+
+export interface TaskV1 {
+  name: string
+  createdAt: Date // will be created by default.
+  data?: Record<string, unknown>
+  schedule: string
+}
+
+interface TaskDoc extends TaskV1, Document {}
+
+class Task {
+  constructor(public data: TaskV1 & { _id: string }) {}
+
+  /**
+   * Used as an override to JSON.stringify() calls
+   */
+  toJSON() {
+    return {
+      ...this.data,
+      _id: this.data._id,
+    }
+  }
+}
+
+class TaskModelV1 {
+  private static instance: TaskModelV1 | null = null
+  private collection: Collection<TaskDoc>
+
+  private constructor(client: MongoClient) {
+    const db = client.db(dbConfig.dbName)
+    const collection = db.collection<TaskDoc>(dbConfig.taskCollection)
+    this.collection = collection
+  }
+
+  static getInstance(client: MongoClient): TaskModelV1 {
+    if (!TaskModelV1.instance) {
+      TaskModelV1.instance = new TaskModelV1(client)
+    }
+    return TaskModelV1.instance
+  }
+
+  async create(task: Pick<TaskV1, 'name' | 'schedule' | 'data'>) {
+    const date = new Date()
+    const data = {
+      ...task,
+      createdAt: date,
+    }
+    const doc = await this.collection.insertOne(data)
+    const createdTask = new Task({
+      ...data,
+      _id: doc.insertedId.toString(),
+    })
+    return createdTask
+  }
+
+  async getTodaysTasks() {
+    const today = new Date()
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0)
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
+    const docs = await this.collection.find({ createdAt: { $gte: startOfDay, $lt: endOfDay } }).sort({ createdAt: -1 }).toArray()
+    return docs.map(doc => new Task({ ...doc, _id: doc._id.toString() }))
+  }
+
+  async getN(limit: number) {
+    const docs = await this.collection.find()
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .toArray()
+    return docs.map(
+      doc =>
+        new Task({
+          ...doc,
+          _id: doc._id.toString(),
+        }),
+    )
+  }
+
+  async getAll() {
+    const docs = await this.collection.find().toArray()
+    return docs.map(
+      doc =>
+        new Task({
+          ...doc,
+          _id: doc._id.toString(),
+        }),
+    )
+  }
+}
+
+export { TaskModelV1 }
+
+```
+
 ## mongoose
 
 ### Connecting to databases

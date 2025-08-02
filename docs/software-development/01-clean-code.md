@@ -334,8 +334,7 @@ For example, this is how a single feature in NextJS would look like, being subdi
 
 ## Antipatterns
 
-### Avoid deeply nested data
-
+### deeply nested data
 
 
 - **Rule**: Flatten data structures by storing entities in separate collections with ID references
@@ -462,3 +461,86 @@ case 'DELETE_TODO':
 - Reducer actions become more predictable and testable
 
 ---
+
+### God classes
+
+A "God Class" is a class that knows too much or does too much. It centralizes control and functionality, violating the Single Responsibility Principle (SRP). Instead of distributing responsibilities across multiple, well-defined classes, a God Class attempts to handle a wide range of tasks within a single entity.
+
+Here are the three characteristics of an actual good class we want, all of which god classes violate:
+
+1. **single responsibility principle**: We want all classes to do only one thing
+2. **high cohesion**: all methods in a class should use most if not all of the properties on a class. Basically, the method should make sense for being there.
+3. **loose coupling**: A change in one class should not affect how another class works. If that happens, then you have tight coupling, which is a bad thing that leads to a lot interdependency between classes, making refactoring a nightmare.
+#### Characteristics of a God Class
+
+- **High Complexity:** God Classes tend to have a large number of methods and attributes, making them difficult to understand and navigate.
+- **Low Cohesion:** The methods within a God Class often perform unrelated tasks, leading to low cohesion. **Cohesion** refers to the degree to which the elements inside a module belong together.
+- **High Coupling:** God Classes are often tightly coupled to other classes in the system. Other classes depend on the God Class for many different things, making it difficult to change the God Class without affecting other parts of the system.
+- **Large Size:** God Classes are typically very large in terms of lines of code.
+- **Centralized Control:** They often act as central controllers, orchestrating the behavior of other classes.
+
+#### Problems Caused by God Classes
+
+- **Reduced Maintainability:** The complexity of God Classes makes them difficult to understand, modify, and debug. Any change to a God Class can have unintended consequences in other parts of the system.
+- **Increased Coupling:** God Classes increase coupling between different parts of the system. This makes it difficult to reuse components and increases the risk of cascading failures.
+- **Reduced Testability:** Testing God Classes is challenging because they have many responsibilities and dependencies. It's hard to isolate specific behaviors for testing.
+- **Hindered Reusability:** The broad scope of God Classes makes them difficult to reuse in other contexts.
+- **Increased Development Time:** Developers spend more time understanding and modifying God Classes, leading to increased development time and costs.
+- **Performance Bottlenecks:** Due to their size and complexity, God Classes can become performance bottlenecks in the system.
+
+## Design Patterns
+
+
+### Polymorphism
+
+### Strategy Pattern
+
+The strategy apttern is an extremely easy way to use classes in a way that promotes loose coupling, dependency-inversion principle, and an easy swapping of features. 
+
+Here are the components of the strategy pattern:
+
+- **base strategy**: A base `Strategy` interface or abstract class that all concrete strategies should extend from, following the dependency-inversion principle
+- **concrete strategy**: Unique implementation of the `Strategy` interface
+- **strategy user**: A class that uses the strategy, referring to the base type `Strategy` when using it. It should have these methods:
+	- `setStrategy(strategy: Strategy)`: for changing the strategy during runtime
+	- `getStrategy()`: for getting the current strategy during runtime
+
+```java
+// After refactoring
+public interface ReportStrategy {
+    void generateReport(Data data);
+}
+
+public class PDFReportStrategy implements ReportStrategy {
+    @Override
+    public void generateReport(Data data) {
+        // Generate PDF report
+    }
+}
+
+public class CSVReportStrategy implements ReportStrategy {
+    @Override
+    public void generateReport(Data data) {
+        // Generate CSV report
+    }
+}
+
+public class XMLReportStrategy implements ReportStrategy {
+    @Override
+    public void generateReport(Data data) {
+        // Generate XML report
+    }
+}
+
+public class ReportGenerator {
+    private ReportStrategy reportStrategy;
+
+    public ReportGenerator(ReportStrategy reportStrategy) {
+        this.reportStrategy = reportStrategy;
+    }
+
+    public void generateReport(Data data) {
+        reportStrategy.generateReport(data);
+    }
+}
+```

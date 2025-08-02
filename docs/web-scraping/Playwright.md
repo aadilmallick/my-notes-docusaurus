@@ -111,6 +111,10 @@ export async function getBrowser() {
 }
 ```
 
+#### with proxy
+
+
+
 ### CLI
 
 - `playwright test` : runs the end to end test. Here are additional options you can pass:
@@ -136,6 +140,123 @@ You can create a **page** object, which lets you interact with the website as a 
 ```ts
 const page = await browser.newPage()
 ```
+
+#### Creating pages and browsers effectively
+
+It's bad practice to keep spinning up browsers and then shutting them down frequently in playwright, since each chromium launch takes up a lot of resources.
+
+```ts
+export const browserSingleton = {
+  browser: null as Browser | null,
+  closeBrowser: async () => {
+    if (browserSingleton.browser) {
+      await browserSingleton.browser.close()
+      browserSingleton.browser = null
+    }
+  },
+  initializing: false,
+  initializingPromise: null as Promise<Browser> | null,
+}
+
+export async function getBrowser() {
+  // PART 1: contstant
+  const baseUrl = domain
+  const executablePath = process.env.IN_DOCKER_CONTAINER ? '/usr/bin/chromium-browser' : chromium.executablePath()
+  // constants.appGlobals.executablePath = executablePath
+  const ink8dev = Boolean(process.env.LOCAL_K8S_DEV && process.env.IN_DOCKER_CONTAINER)
+  Print.magenta(`ink8dev: ${ink8dev}`)
+  const getPage = async (browser: Browser) => {
+    const context = await browser.newContext(ink8dev
+      ? {
+        proxy: { server: 'http://host.docker.internal:8080' },
+        ignoreHTTPSErrors: true,
+      }
+      : {
+        ignoreHTTPSErrors: true,
+      })
+    const page = await context.newPage()
+    return {
+      page,
+      close: async () => {
+        await context.close()
+      },
+    }
+  }
+
+  // PART 2: if browser is initializing, wait for it to finish
+  if (browserSingleton.initializing && browserSingleton.initializingPromise) {
+    const browser = await browserSingleton.initializingPromise
+    return {
+      browser,
+      baseUrl,
+      ink8dev,
+      getPage: getPage.bind(null, browser),
+    }
+  }
+
+  if (browserSingleton.browser?.isConnected?.() === false) {
+    browserSingleton.browser = null // Force a restart
+    browserSingleton.initializing = true
+    browserSingleton.initializingPromise = chromium.launch({
+      headless: true,
+      executablePath: executablePath,
+      args: ['--ignore-certificate-errors', '--disable-gpu'],
+    })
+    browserSingleton.browser = await browserSingleton.initializingPromise
+    browserSingleton.initializing = false
+    browserSingleton.initializingPromise = null
+
+    return {
+      browser: browserSingleton.browser,
+      baseUrl,
+      ink8dev,
+      getPage: getPage.bind(null, browserSingleton.browser),
+    }
+  }
+
+  // PART 3: if browser is already open, return it
+  if (browserSingleton.browser) {
+    // const browserPool = new BrowserPool(browserSingleton.browserContext)
+    return {
+      browser: browserSingleton.browser,
+      baseUrl,
+      ink8dev,
+      getPage: getPage.bind(null, browserSingleton.browser),
+    }
+  }
+
+  // PART 4: if browser is not open, launch it
+  browserSingleton.initializing = true
+  browserSingleton.initializingPromise = chromium.launch({
+    headless: true,
+    executablePath: executablePath,
+    args: ['--ignore-certificate-errors', '--disable-gpu'],
+  })
+  browserSingleton.browser = await browserSingleton.initializingPromise
+  browserSingleton.initializing = false
+  browserSingleton.initializingPromise = null
+
+  return {
+    browser: browserSingleton.browser,
+    baseUrl,
+    ink8dev,
+    getPage: getPage.bind(null, browserSingleton.browser),
+  }
+}
+
+// the main method you'll call
+export async function safeGetPage() {
+  try {
+    const { getPage } = await getBrowser()
+    return await getPage()
+  }
+  catch (e) {
+    console.warn('Browser context failed, restarting browser...', e)
+    await browserSingleton.closeBrowser()
+    return (await getBrowser()).getPage()
+  }
+}
+```
 ### **page object**
 
 The `page` object has properties related to the window element, and includes navigation, fetching DOM elements, and querying page titles. Here are some useful methods and properties the `page` object has, which are all async.
@@ -143,7 +264,7 @@ The `page` object has properties related to the window element, and includes nav
 #### Page DOM
 
 - `page.goto(url)` : navigates to the specified URL
-- `page.locator(selector)` : fetches the element with the specified CSS selector.
+- `page.locator(selector)` : fetches the element with the specified CSS selector. Returns a `Locator` instance.
 - `page.click(selector)` : clicks the specified element queried by CSS selector
 - `page.fill(selector, value)` : fills the specified element queried by CSS selector with the specified value.
 
@@ -197,6 +318,75 @@ export async function getScreenshot(url: string) {
 }
 ```
 
+#### Waits
+
+You can have implicit or excplicit waits in web scraping. In this section, we'll learn about implicit waits.
+
+**Drawbacks/anti-patterns:**
+
+- Avoid using `waitForTimeout()` unless absolutely necessary; it leads to brittle tests.
+- Overly broad waits (e.g., waiting for the whole page to be idle) can slow down tests.
+
+**locator waits**
+
+Using the `locator.waitFor(options)` method, you can configure an explicit wait for specific DOM elements to show up. Here are the options you can pass in:
+
+- `state`: can be "visible", "attached"
+	- `"visible"`: when the element is visible in the viewport
+	- `"attached"`: when the element gets attached to the DOM.
+	- `"enabled"`: when the element gets enabled
+
+```ts
+const locator = await page.locator('.dynamic-element')
+
+// 1. visibility wait
+await locator.waitFor({ 
+	state: 'visible', timeout: 5000 
+});
+```
+
+**page waits**
+
+- `page.waitForLoadState(state)`: waits for one of the specified events to be triggered. `state` can be one of the following:
+	- `"networkidle"`: waits until no more network requests are sent. **this is deprecated and its use is discouraged.**
+	- `"load"`: waits for the window load event to trigger
+	- `"domcontentloaded"`: waits for the document to load its DOM fully.
+
+```ts
+  // 6. Wait for network idle (navigation or AJAX-heavy pages)
+  await page.waitForLoadState('networkidle');
+```
+
+You can also write custom wait logic dealing with variables from the browser, which is useful if you control a site.
+
+The `page.waitForFunction(cb)` takes in a callback that returns a boolean. it starts an observer for that function, and keeps waiting until the return value of the callback becomes true.
+
+```ts
+  // 7. Wait for a custom JavaScript condition
+  await page.waitForFunction(() => window['appReady'] === true);
+```
+
+**waiting for navigation**
+
+You can wait for a URL navigation using the `page.waitForNavigation()` async method. 
+
+This is best paired with a button or link click that navigates to a page, and then concurrently awaiting both of those for robust loading.
+
+```ts
+// 8. Wait for navigation after clicking a button
+  await Promise.all([
+    page.waitForNavigation(),
+    page.locator('a#next-page').click(),
+  ]);
+
+async function navigate(locator: string) {
+	await Promise.all([
+		page.waitForNavigation(),
+		page.locator(locator).click(),
+	]);
+}
+```
+
 ### playwright testing
 
 In playwright, you have two main objects: the page and locator.
@@ -205,6 +395,26 @@ In playwright, you have two main objects: the page and locator.
 - **locator**: You can use pages to query for locators, which are representations of individual HTML elements.
 
 Below is the API for using playwright with page and locator objects in testing.
+
+```ts
+import { test, expect } from '@playwright/test';
+
+// Using advanced CSS selectors
+test('CSS selector for dynamic class', async ({ page }) => {
+  await page.goto('https://example.com');
+  // Attribute selector for class containing 'active'
+  const dynamicElement = page.locator('[class*="active"]');
+  await expect(dynamicElement).toBeVisible();
+});
+
+// Using XPath for complex structures
+test('XPath selector for dynamic table row', async ({ page }) => {
+  await page.goto('https://example.com/table');
+  // Find a row containing specific text in any cell
+  const row = page.locator('//tr[td[contains(text(), "Target Value")]]');
+  await expect(row).toBeVisible();
+});
+```
 #### Api
 
 Playwright has a lot of the common assertion methods that we saw in Vitest. But it also has a few additional ones that are specific to Playwright.
@@ -330,6 +540,133 @@ await browserContext.routeFromHAR(har);
 await browserContext.routeFromHAR(har, { update: true });
 await browserContext.routeFromHAR(har, { update: true, url: '**/api**' });
 ```
+
+### Advanced Web scraping
+
+#### Pagination
+
+This is an example of how you can handle pagination:
+
+```ts
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto('https://example.com/products');
+
+  let hasNext = true;
+  while (hasNext) {
+    // Extract data from current page
+    const items = await page.$$eval('.product', nodes =>
+      nodes.map(node => node.textContent?.trim())
+    );
+    console.log(items);
+
+    // Check for and click next button if it exists
+    const nextButton = await page.$('button.next');
+    if (nextButton) {
+      await Promise.all([
+        page.waitForNavigation(),
+        nextButton.click(),
+      ]);
+    } else {
+      hasNext = false;
+    }
+  }
+  await browser.close();
+```
+
+And here's a robust, reusable way of doing pagination:
+
+
+```ts
+async function paginate(
+	page: Page, 
+	onPage: (page: Page) => Promise<void>,
+	nextButtonSelector: (pageNum: number) => string
+) {
+  let index = 0
+
+  let hasNext = true;
+  while (hasNext) {
+    await onPage(page)
+
+    // Check for and click next button if it exists
+    const nextButton = await page.$(nextButtonSelector(i));
+    if (nextButton) {
+      await Promise.all([
+        page.waitForNavigation(),
+        nextButton.click(),
+      ]);
+    } else {
+      hasNext = false;
+    }
+    
+    index+=1
+  }
+}
+```
+
+#### Infinite scrolling
+
+And here's a way to handle infinite scrolling:
+
+```ts
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto('https://example.com/feed');
+
+  let previousHeight = await page.evaluate('document.body.scrollHeight');
+  let keepScrolling = true;
+
+  while (keepScrolling) {
+    await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+    await page.waitForTimeout(2000); // Allow new content to load
+
+    const newHeight = await page.evaluate('document.body.scrollHeight');
+    if (newHeight === previousHeight) {
+      keepScrolling = false; // No more new content loaded
+    } else {
+      previousHeight = newHeight;
+    }
+  }
+
+  // Now extract data from the fully loaded page
+  const posts = await page.$$eval('.post', nodes =>
+    nodes.map(node => node.textContent?.trim())
+  );
+  console.log(posts);
+
+  await browser.close();
+```
+
+```ts
+async function paginate(
+	page: Page, 
+	onPage: (page: Page, iteration: number) => Promise<void>,
+	waitInterval = 5000
+) {
+  let iteration = 0
+
+  let previousHeight = await page.evaluate('document.body.scrollHeight');
+  let keepScrolling = true;
+
+  while (keepScrolling) {
+	await onPage(page, iteration)
+    await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+    await page.waitForTimeout(5000); // Allow new content to load
+
+	
+    const newHeight = await page.evaluate('document.body.scrollHeight');
+    if (newHeight === previousHeight) {
+      keepScrolling = false; // No more new content loaded
+    } else {
+      previousHeight = newHeight;
+    }
+    iteration+=1
+  }
+  
+}
+```
+
 ## Stagehand
 
 Stagehand is the LLM version of playwright - it lets you prompt the LLM to scrape a web page, click buttons, and extract text.

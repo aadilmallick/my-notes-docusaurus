@@ -524,8 +524,208 @@ You can do joins the prisma way with relations or you can use drizzle joining me
 
 ![](https://i.imgur.com/xvGAUtM.jpeg)
 
-## Aggregation
+### Aggregation
 
 ### Count with group by
 
 ![](https://i.imgur.com/ftATq5O.jpeg)
+
+## TypeORM
+
+> [!NOTE]
+> Why TypeORM? Because you can implement object and query caching easily with just some configuration, using redis as a cache.
+
+### Basic
+
+You can create a TypeORM table like so:
+
+```ts
+// src/entity/Post.ts
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+
+@Entity()
+export class Post {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @Column('text')
+  content: string;
+
+  @Column({ default: true })
+  published: boolean;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+}
+```
+
+**configuring with use for caching**
+
+
+```ts
+// src/data-source.ts
+import 'reflect-metadata'; // Required for TypeORM decorators
+import { DataSource } from 'typeorm';
+import { Post } from './entity/Post';
+
+export const AppDataSource = new DataSource({
+  type: 'postgres',
+  host: 'localhost',
+  port: 5432,
+  username: 'your_user',
+  password: 'your_password',
+  database: 'your_database',
+  synchronize: true, // Only for development, do not use in production
+  logging: ['query', 'error'],
+  entities: [Post],
+  migrations: [],
+  subscribers: [],
+
+  // --- Caching Configuration ---
+  cache: {
+    type: 'redis', // Or 'ioredis' for a more modern driver
+    // host: 'localhost', // Redis host
+    // port: 6379,       // Redis port
+    // password: 'your_redis_password', // If Redis requires authentication
+    // db: 0,            // Redis database index
+
+    // Using a connection URL (recommended for flexibility)
+    url: 'redis://localhost:6379',
+
+    duration: 60 * 1000, // Default cache duration for cached queries (1 minute)
+    // This duration applies to `cache: true` on queries or repository methods.
+    // It's a TTL for the *query result*.
+  },
+});
+```
+
+**using in an express app**
+
+```ts
+// src/app.ts
+import express from 'express';
+import { AppDataSource } from './data-source';
+import { Post } from './entity/Post';
+
+const app = express();
+const port = 3000;
+
+AppDataSource.initialize()
+  .then(async () => {
+    console.log('Data Source has been initialized!');
+
+    const postRepository = AppDataSource.getRepository(Post);
+
+    // Seed some data if the table is empty
+    const postCount = await postRepository.count();
+    if (postCount === 0) {
+      console.log('Seeding initial posts...');
+      await postRepository.save([
+        { title: 'First Post', content: 'Content of the first post.', published: true },
+        { title: 'Second Post', content: 'Content of the second post.', published: true },
+        { title: 'Draft Post', content: 'This is a draft.', published: false },
+        { title: 'Another Post', content: 'More content here.', published: true },
+      ]);
+      console.log('Posts seeded.');
+    }
+
+    // Endpoint to get all published posts (cached)
+    app.get('/posts/published', async (req, res) => {
+      console.log('Attempting to fetch published posts...');
+      try {
+        // Use .cache(true) or .cache(<duration>) to enable caching for this query
+        const posts = await postRepository.find({
+          where: { published: true },
+          cache: true, // Cache this specific query's result using the default duration
+        });
+
+        res.json({ source: 'database', data: posts }); // Source will be "database" on miss, still "database" on hit (ORM handles it)
+        console.log(`Fetched ${posts.length} published posts.`);
+      } catch (error) {
+        console.error('Error fetching published posts:', error);
+        res.status(500).json({ error: 'Failed to fetch posts' });
+      }
+    });
+
+    // Endpoint to get a single post by ID (cached object)
+    app.get('/posts/:id', async (req, res) => {
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) {
+        return res.status(400).json({ error: 'Invalid post ID' });
+      }
+
+      console.log(`Attempting to fetch post ID ${postId}...`);
+      try {
+        // Use .cache(true) for findOne, which caches the object by its ID
+        const post = await postRepository.findOne({
+          where: { id: postId },
+          cache: true, // Cache this specific object
+        });
+
+        if (!post) {
+          return res.status(404).json({ error: 'Post not found' });
+        }
+
+        res.json({ source: 'database', data: post });
+        console.log(`Fetched post ID ${postId}: ${post.title}`);
+      } catch (error) {
+        console.error(`Error fetching post ID ${postId}:`, error);
+        res.status(500).json({ error: 'Failed to fetch post' });
+      }
+    });
+
+    // Endpoint to create a new post (invalidates relevant caches)
+    app.post('/posts', express.json(), async (req, res) => {
+      const { title, content, published } = req.body;
+      try {
+        const newPost = postRepository.create({ title, content, published });
+        await postRepository.save(newPost);
+
+        // --- Cache Invalidation ---
+        // When a new post is created or existing posts are updated/deleted,
+        // any cached queries that return lists of posts (like /posts/published)
+        // become stale.
+        // TypeORM provides methods to clear caches.
+        // For query caches related to AppDataSource.getRepository(Post).find({...}).cache(true)
+        // you would typically invalidate the entire repository cache or specific keys.
+        // `AppDataSource.queryResultCache` is the low-level cache manager.
+        await AppDataSource.queryResultCache?.remove([
+            'AppDataSource.getRepository(Post).find({"where":{"published":true}})' // The key TypeORM generates
+            // In reality, you'd want a more robust key management system or use tags for invalidation.
+            // TypeORM's `cache` option with `true` often generates keys based on the query.
+            // Alternatively, clear all caches for the entity if changes are frequent.
+        ]);
+        // Also clear any specific object caches if the new post's ID was somehow already cached
+        // (unlikely for new posts, but for updates/deletes it's vital).
+        // For individual objects, TypeORM invalidates them automatically on save/update if cache is used.
+
+        console.log(`New post created: ${newPost.title}`);
+        res.status(201).json({ message: 'Post created successfully', post: newPost });
+      } catch (error) {
+        console.error('Error creating post:', error);
+        res.status(500).json({ error: 'Failed to create post' });
+      }
+    });
+
+
+    app.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}`);
+      console.log(`Endpoints: /posts/published, /posts/:id, /posts (POST)`);
+    });
+  })
+  .catch((error) => console.error('Error during Data Source initialization:', error));
+
+// Make sure Redis server is running at localhost:6379
+```
+
+### **Important Notes on TypeORM Caching**
+
+- **Query vs. Object Caching:**
+    - repository.find({...}, { cache: true }) and repository.findAndCount({...}, { cache: true }) perform **query caching**. The entire result set of that specific query is cached.
+    - repository.findOne({...}, { cache: true }) and repository.findBy(id, { cache: true }) perform **object caching**. Individual entities are cached by their primary key.
+- **Automatic Invalidation:** TypeORM tries to automatically invalidate relevant caches on save, update, and delete operations for entities that are cached. For findOne operations, if you save an entity, TypeORM should automatically clear its cache entry by ID. For find operations (query caching), it's more complex, and sometimes manual invalidation (queryResultCache.remove or queryResultCache.clear) is needed, especially for complex queries.
+- **Key Generation:** TypeORM generates cache keys based on the query string and options. This can be brittle for remove operations if the key format changes.
+- **Production Setup:** In production, synchronize: true should be false, and you should use TypeORM migrations. Your Redis server would likely be a separate, managed service.

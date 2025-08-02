@@ -1,5 +1,45 @@
 ## Intro
 
+### Why redis
+
+Redis is faster than databases and is primarily used for caching, but why? Here are the differences between redis and traditional databases:
+
+- **Redis:** Stores its entire dataset (or at least the working set) in RAM. Accessing data from RAM is orders of magnitude faster than accessing it from disk. Disk I/O (even with SSDs) is a bottleneck for traditional databases.
+- **Traditional Databases (e.g., PostgreSQL, MySQL, MongoDB):** Primarily store data on disk. While they heavily use caching (buffer pools, page caches) in RAM to speed things up, a cache miss still requires a disk read. Persistent storage is their primary concern.
+
+**performance theory**
+
+Redis isn't a full-fledged relational database or a document store designed for complex queries and relationships. It offers a set of highly optimized, simple data structures:
+
+- **Strings:** Simple key-value pairs.
+- **Lists:** Ordered collections of strings.
+- **Sets:** Unordered collections of unique strings.
+- **Hashes:** Key-value pairs inside a key (like a lightweight object).
+- **Sorted Sets:** Sets where each member has a score, allowing for ordering.
+
+For many operations like `GET` a string, `HGET` from a hash, or `SADD` to a set, the access time is indeed O(1) (constant time). This is because Redis directly maps keys to their values in memory. There's no complex query planning, indexing B-tree traversals, or join operations required that are common in relational databases.
+
+|                      |                                       |                                                        |
+| -------------------- | ------------------------------------- | ------------------------------------------------------ |
+| Feature              | Redis                                 | Traditional Database (e.g., PostgreSQL)                |
+| Primary Storage      | In-memory (RAM)                       | On-disk (with extensive caching)                       |
+| Data Structures      | Simple (Strings, Lists, Hashes, etc.) | Complex (Tables, Schemas, Collections, BSON documents) |
+| Query Engine         | Simple command execution              | Complex query parser, optimizer, execution plan        |
+| Concurrency Model    | Single-threaded command processor     | Multi-threaded with locking/transaction management     |
+| Focus                | Speed, caching, real-time data        | Data durability, consistency, complex querying         |
+| Access Time (common) | O(1) for many operations              | Often O(log N) due to indexing, or worse for joins     |
+| Overhead             | Minimal                               | Significant (ACID properties, indexing, transactions)  |
+
+**when to use redis**
+
+- **Caching:** Its speed and in-memory nature make it perfect for storing frequently accessed data to reduce the load on your primary database.
+- **Session Storage:** Fast read/write for user session data.
+- **Leaderboards/Real-time Analytics:** Sorted sets are ideal for these.
+- **Message Queues/Pub-Sub:** Its list and pub/sub features are great for lightweight messaging.
+- **Rate Limiting:** Counters and expiration times are easily managed.
+
+### Basics
+
 You can spin up a redis container like so:
 
 ```bash

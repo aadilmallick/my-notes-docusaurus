@@ -264,6 +264,43 @@ Using pseudoelements and a conic gradient, we can animate the border gradient go
 }
 ```
 
+Here is a reusable border gradient recipe:
+
+```css
+/* 1. relative positioned container */
+.border-gradient {
+  position: relative;
+}
+
+.border-gradient::after,
+.border-gradient::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-image: conic-gradient(
+    from 0deg,
+    #ff4545,
+    #00ff99,
+    #006aff,
+    #ff0095,
+    #ff4545
+  );
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: -1;
+  padding: 3px;
+  border-radius: 10px;
+  animation: 3s spin linear infinite;
+}
+
+.border-gradient::before {
+  filter: blur(1.5rem);
+  opacity: 1; /* decrease opacity if you want to reduce glow */
+}
+```
+
 
 > [!NOTE] Color Stop Tip
 > The last color in the color stop should always be the same the same as the first color in order to ensure a smooth transition.

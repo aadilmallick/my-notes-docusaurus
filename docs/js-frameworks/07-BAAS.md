@@ -197,7 +197,14 @@ You then paste in your client secret and id here:
 
 ![](https://i.imgur.com/qZplAqr.png)
 
+
+The final step you need to do is to register redirect URLs to your app with supabase. Go to the `/auth/url-configuration` route in supaabase to do so.
 #### Auth
+
+Here is a supabase auth client you can create:
+
+```ts
+```
 
 Here's an abstraction over common supabase auth operations:
 
