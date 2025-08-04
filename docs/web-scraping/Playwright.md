@@ -387,6 +387,66 @@ async function navigate(locator: string) {
 }
 ```
 
+#### Capturing network requests
+
+You can intercept network requests in playwright many different ways. 
+
+**method 1: blocking or fulfilling requests based on URL pattern**
+
+You can use the `page.route(regex, callback)` method to match a URL pattern, and then abort that request or send a new Response.
+
+IN the example below, we can block any network requests on a page where the network request is to a png or jpg image:
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('loads page without images', async ({ page }) => {
+  // Block png and jpeg images.
+  await page.route(/(png|jpeg)$/, route => route.abort());
+
+  await page.goto('https://playwright.dev');
+  // ... test goes here
+});
+```
+
+**method 2: intercepting all requests**
+
+Using the `page.on()` event listener, you can hook into when a new network request gets sent and do stuff from there:
+
+```ts
+// Subscribe to 'request' and 'response' events.
+page.on('request', request => console.log('>>', request.method(), request.url()));
+page.on('response', response => console.log('<<', response.status(), response.url()));
+
+await page.goto('https://example.com');
+```
+
+**method 3: waiting for a glob network request**
+
+Using the `page.waitForResponse(glob)` async method, you can snipe a network request you want to listen for based on its URL pattern and await its promise.
+
+> [!NOTE]
+> You definitely do not want to await this straight off the bat. Rather, you want to just store the promise and then await it when you need to wait for the network request to occur.
+
+```ts
+// Use a glob URL pattern. Note no await.
+const responsePromise = page.waitForResponse('**/api/fetch_data');
+await page.getByText('Update').click();
+const response = await responsePromise;
+```
+
+```ts
+// Use a RegExp. Note no await.
+const responsePromise = page.waitForResponse(/\.jpeg$/);
+await page.getByText('Update').click();
+const response = await responsePromise;
+
+// Use a predicate taking a Response object. Note no await.
+const responsePromise = page.waitForResponse(response => response.url().includes(token));
+await page.getByText('Update').click();
+const response = await responsePromise;
+```
+
 ### playwright testing
 
 In playwright, you have two main objects: the page and locator.
@@ -639,7 +699,7 @@ And here's a way to handle infinite scrolling:
 ```
 
 ```ts
-async function paginate(
+async function infinite(
 	page: Page, 
 	onPage: (page: Page, iteration: number) => Promise<void>,
 	waitInterval = 5000
@@ -667,6 +727,15 @@ async function paginate(
 }
 ```
 
+### Auth
+
+
+#### Google Auth
+
+You can easily open up google in an automated mode already logged into your account, by following these steps:
+
+1. Find the **user data dir profile path** and the **chrome application path** from [chrome://version/](chrome://version/)
+2. You MUST close the chrome profile you are currently on if you are planning to automate that. Chrome only allows one browser instance of a chromium profile to be on at a time.
 ## Stagehand
 
 Stagehand is the LLM version of playwright - it lets you prompt the LLM to scrape a web page, click buttons, and extract text.

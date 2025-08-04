@@ -10,6 +10,10 @@ Here is how you can set up your project:
 2. Run `supabase init` to initialize supabase for your project
 3. Run `supabase link` to link your local supabase config to a project on supabase so you can connect to the cloud
 
+```bash
+supabase link --project-ref <project-id>
+```
+
 #### secrets
 
 You can use the `supabase secrets` command to perform CRUD operations on secrets and upload them to the cloud.
