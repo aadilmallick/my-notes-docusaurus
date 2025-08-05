@@ -50,6 +50,16 @@ To get playwright running in docker, you ahve different options:
 
 #### Alpine
 
+```embed
+title: "Run Puppeteer with Docker on Fly.io"
+image: "https://images.unsplash.com/photo-1547269600-37c9cff7f388?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMTc3M3wwfDF8c2VhcmNofDV8fFB1cHBldHN8ZW58MHx8fHwxNjg4NzU1ODI2fDA&ixlib=rb-4.0.3&q=80&w=2000"
+description: "Walking through the process of running Dockerized Node & Puppeteer on Fly.io."
+url: "https://macarthur.me/posts/puppeteer-with-docker/"
+favicon: ""
+aspectRatio: "66.64999999999999"
+```
+
+
 To get docker working with alpine, you must omit playwright and instead use the `playwright-core` npm package, manually passing in an executable path:
 
 ```dockerfile
@@ -602,6 +612,18 @@ await browserContext.routeFromHAR(har, { update: true, url: '**/api**' });
 ```
 
 ### Advanced Web scraping
+
+#### Image scraping techniques
+
+```embed
+title: "Collect All Requested Images on a Website Using Puppeteer"
+image: "https://images.unsplash.com/photo-1511183436981-723dfccbbb8c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMTc3M3wwfDF8c2VhcmNofDF8fHNhdGVsbGl0ZSUyMGRpc2h8ZW58MHx8fHwxNzMxNTMzMDU1fDA&ixlib=rb-4.0.3&q=80&w=2000"
+description: "Walking through how I used Puppeteer to programmatically collect every image loaded when a page is viewed in the browser."
+url: "https://macarthur.me/posts/collect-images-with-puppeteer/?utm_medium=ghost"
+favicon: ""
+aspectRatio: "67.5"
+```
+
 
 #### Pagination
 

@@ -640,6 +640,56 @@ Here are some good vibe coding prompts to inject during your workflow:
 
 - **responsive**: Tell the AI to "make the app responsive and mobile-friendly"
 - **good UX**: Tell the AI to improve UX to make the app simpler and more visual, while keeping all current functionality.
+
+### Workflow for projects
+
+The main bulk of a vibe-coding based workflow hinges on 4 cursor rules files you should define:
+
+##### 1. Coding Preferences – "Write Code Like This"
+
+**Purpose:** Ensures clean, maintainable, and efficient code.  
+**Rules:**
+
+- **Simplicity:** "Always prioritize the simplest solution over complexity." 
+- **No Duplication:** "Avoid repeating code; reuse existing functionality when possible."
+- **Organization:** "Keep files concise, under 200-300 lines; refactor as needed."
+- **Documentation:** "After major components, write a brief summary in `/docs/[component].md` (e.g., `login.md`)."
+    
+
+**Why It Works:** Simple code reduces bugs; documentation provides a readable audit trail.
+
+##### 2. Technical Stack – "Use These Tools"
+
+**Purpose:** Locks the AI to your preferred technologies.  
+
+
+- **stack**: NEXTjs, TS, tailwind, shadcn
+- **database**: Use PostgreSQL with drizzle, using local docker connection string in development and production URL in production.
+- **testing**: write unit tests using vitest to test isolated classes and functions.
+    
+
+**Why It Works:** Consistency prevents AI from switching tools mid-project.
+
+##### 3. Workflow Preferences – "Work This Way"
+
+**Purpose:** Controls the AI’s execution process for predictability.
+
+- **Steps:** "Break large tasks into stages; pause after each for my approval." 
+- **Planning:** "Before big changes, write a `plan.md` and await my confirmation."
+- **Tracking:** "Log completed work in `progress.md` and next steps in `TODO.txt`." 
+    
+
+**Why It Works:** Incremental steps and logs keep the process transparent and manageable.
+
+##### 4. Communication Preferences – "Talk to Me Like This"
+
+**Purpose:** Ensures clear, actionable feedback from the AI.
+
+- **Summaries:** "After each component, summarize what’s done." 
+- **Clarification:** "If my request is unclear, ask me before proceeding." 
+    
+
+**Why It Works:** You stay informed without needing to decipher AI intent.
 ## LLM websites
 
 ### ChatGPT

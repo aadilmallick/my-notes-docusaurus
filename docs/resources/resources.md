@@ -129,6 +129,12 @@ These websites have all-in-one solutions to many problems:
 - [Image upscaler](https://icons8.com/upscaler)
 - [Remove background from image](https://www.pixcleaner.com/)
 
+#### Uploading images
+
+- [Imgur Upload](https://img.vdoerig.com/)
+- [Upload Copied Image](https://clipboard-image-to-url.netlify.app/)
+- [Image Upload & Meme Generation | Imgur](https://imgur.com/upload)
+
 ### Video
 
 - [FFmpeg online tool](https://ffmpeg-online.vercel.app/?inputOptions=-i&output=output.mp4&outputOptions=)

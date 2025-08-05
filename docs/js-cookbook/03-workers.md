@@ -100,6 +100,40 @@ worker.addEventListener("message", (event) =>{
 });
 ```
 
+### Inline workers
+
+Here is a neat trick to create a lightweight worker by just defining the code in a string:
+
+```ts
+const items = new Array(100).fill(null);
+
+const workerScript = `
+  function waitSync(milliseconds) {
+    const start = Date.now();
+    while (Date.now() - start < milliseconds) {}
+  }
+
+  self.onmessage = function(e) {
+    waitSync(50);
+    self.postMessage('Process complete!');
+  }
+`;
+
+const blob = new Blob([workerScript], { type: "text/javascipt" });
+const worker = new Worker(window.URL.createObjectURL(blob));
+
+for (const i of items) {
+  worker.postMessage(items);
+
+  await new Promise((resolve) => {
+    worker.onmessage = function (e) {
+      loopCount.innerText = Number(loopCount.innerText) + 1;
+      resolve();
+    };
+  });
+}
+```
+
 ### Worker class
 
 Here is an implementation of a worker class that makes it easier to work with workers.
@@ -242,3 +276,79 @@ export class WorkerModel<
   }
 }
 ```
+
+
+### External libraries
+#### `greenlet`
+
+THe `greenlet` npm package is an easier abstraction on top of using workers that lets you run a standard async method, but behind the scenes, all it's doing is just spinning up a worker and delegating the work to that worker.
+
+```embed
+title: "GitHub - developit/greenlet: 🦎 Move an async function into its own thread."
+image: "https://opengraph.githubassets.com/e926daa69d23ecf0fb1eae14e0ee437a56e2d7fc56b5efd44d5a9bf81c6dac9f/developit/greenlet"
+description: "🦎 Move an async function into its own thread. Contribute to developit/greenlet development by creating an account on GitHub."
+url: "https://github.com/developit/greenlet"
+favicon: ""
+aspectRatio: "50"
+```
+
+#### `workerize`
+
+```embed
+title: "GitHub - developit/workerize: 🏗️ Run a module in a Web Worker."
+image: "https://opengraph.githubassets.com/9cd4c6624e322392a67b889a47c27ce031aead53cf373f95cdf2f9831ae0ab63/developit/workerize"
+description: "🏗️ Run a module in a Web Worker. Contribute to developit/workerize development by creating an account on GitHub."
+url: "https://github.com/developit/workerize"
+favicon: ""
+aspectRatio: "50"
+```
+
+`workerize` is a tiny 800 byte package that lets you stringify a module and transform it into a worker:
+
+```ts
+let worker = workerize(`
+	export function add(a, b) {
+		// block for half a second to demonstrate asynchronicity
+		let start = Date.now();
+		while (Date.now()-start < 500);
+		return a + b;
+	}
+`);
+
+(async () => {
+	console.log('3 + 9 = ', await worker.add(3, 9));
+	console.log('1 + 2 = ', await worker.add(1, 2));
+})();
+```
+
+## Dedicated workers use cases
+
+### Prevent blocking the main thread for event listeners
+
+Here, I update the text of a box after performing some sort of presumably heavy calculation. Doing these things in parallel would be pointless (the DOM update necessarily depends on the calculation), so _of course_ I want everything to be synchronous. 
+
+```javascript
+const calculateResultsButton = document.getElementById(
+  "calculateResultsButton"
+);
+const openMenuButton = document.getElementById("#openMenuButton");
+const resultBox = document.getElementById("resultBox");
+
+calculateResultsButton.addEventListener("click", (e) => {
+  // "Why put this into a Worker when I
+  // can't update the DOM until it's done anyway?"
+  const result = performLongRunningCalculation();
+  resultBox.innerText = result;
+});
+
+openMenuButton.addEventListener("click", (e) => {
+  // Do stuff to open menu.
+});
+```
+
+> [!NOTE]
+> What I didn’t initially understand was that **none of the** _**other**_ **listeners can fire if the thread is blocked**. Meaning: things get janky.
+
+Below is a codepen example of how clicking a button that then kicks off a long running calculation in the event listener (yes, especially if you await it) freezes all other event listeners and prevents them from firing.
+
+<iframe id="cp_embed_XWWKyGe" src="https://codepen.io/alexmacarthur/embed/preview/XWWKyGe?default-tabs=css%2Cresult&amp;height=300&amp;host=https%3A%2F%2Fcodepen.io&amp;slug-hash=XWWKyGe" title="Event Blocking - No Worker" scrolling="no" frameborder="0" height="300" allowtransparency="true" class="cp_embed_iframe" style="width: 100%; overflow: hidden;"></iframe>

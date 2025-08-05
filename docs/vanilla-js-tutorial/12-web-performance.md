@@ -793,11 +793,33 @@ You can discover memory leaks in the devtools in the **memory** pane. It will lo
 
 ### Main thread work optimizations
 
+Here are some articles:
+
+```embed
+title: "There are a lot of ways to break up long tasks in JavaScript."
+image: "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMTc3M3wwfDF8c2VhcmNofDZ8fHNsaWNlZCUyMGJyZWFkfGVufDB8fHx8MTczODU0OTYwOXww&ixlib=rb-4.0.3&q=80&w=2000"
+description: "It's very common to intentionally break up long, expensive tasks over multiple ticks of the event loop. But there are sure are a lot of approaches to choose from. Let's explore them."
+url: "https://macarthur.me/posts/long-tasks/?utm_medium=ghost"
+favicon: ""
+aspectRatio: "66.64999999999999"
+```
+
+
 Both the `scheduler.yield()` and `requestIdleCallback()` APIs are used as ways to break up long chunks of synchronous work happening on the main thread so that the thread can be yielded back to the user to make the UI feel responsive and snappy.
 
 These two methods are a huge component in making great, responsive UIs.
 
-#### yield back to main thread
+The approaches below are not exhaustive, but I think they do a good job at representing the various trade-offs you should consider when breaking up long tasks. Still, depending on the need, I'd probably only reach for a subset of these myself.
+
+- **If I can do the work off from the main thread,** I'd choose a web worker, hands-down. They're very well supported across browsers, and their entire purpose is to offload work from the main thread. The only downside is their clunky API, but that's eased by tools like Workerize and [Vite's built-in worker imports](https://vite.dev/guide/features.html#import-with-query-suffixes).
+
+- **If I need a dead-simple way to break up tasks,** I'd go for `scheduler.yield()`. I don't love how I'd also need to polyfill it for non-Chromium users, but the [majority of people](https://gs.statcounter.com/browser-market-share) would benefit from it, so I'm up for that extra bit of baggage.
+
+- **If I need very fine-grained control over how chunked work is prioritized**, `scheduler.postTask()` would be my choice. It's impressive [how deep you can go](https://developer.mozilla.org/en-US/docs/Web/API/Scheduler/postTask) in tailoring that thing to your needs. Priority control, delays, cancelling tasks, and more are all included in this API, even if, like `.yield()`, it needs to be polyfilled for now.
+
+- **If browser support and reliability are of the utmost importance**, I'd just choose `setTimeout()`. It's a legend that's not going anywhere, even as flashy alternatives hit the scene.
+
+#### yield back to main thread (using scheduler)
 
 Use `await scheduler.yield()` to break up long tasks, even if async, and yield back to the main thread. This helps keep the website responsive even as a long-running task is going on.
 
@@ -812,6 +834,27 @@ async function this_func_takes_10_secs() {
   // do some more work
 }
 ```
+
+Here is an example of where when clicking a check box, some expensive work is immediately done, freezing the UI. This is because UI updates only occur AFTER the event listener finishes executing:
+
+![](https://picperf.io/https://cms.macarthur.me/content/images/2025/02/CleanShot-2025-02-02-at-16.44.42.gif?sitemap_path=/posts/long-tasks)
+
+But now, let's immediately yield control to the browser, giving it a chance to update that UI after the click.
+
+```diff
+document
+  .querySelector('input[type="checkbox"]')
+  .addEventListener("change", async function (e) {
++    await scheduler.yield();
+
+    waitSync(1000);
+});
+```
+
+Look at that. Nice & snappy.
+
+![](https://picperf.io/https://cms.macarthur.me/content/images/2025/02/CleanShot-2025-02-02-at-16.50.39.gif?sitemap_path=/posts/long-tasks)
+
 
 Here is a way to batch jobs and run them one at a time, yielding every 50ms:
 
@@ -832,12 +875,15 @@ async function runJobs(jobQueue: Function[], deadline = 50) {
 }
 ```
 
-#### Run during idle time
+#### Run during idle time: `requestIdleCallback()` 
 
 `requestIdleCallback()` is a browser API that allows you to **schedule non-urgent work** to be executed **during the browser’s idle time** on the main thread.
 
 > Imagine you're at a coffee shop (the browser). The barista (main thread) is busy making drinks (rendering, layout, user interactions). You want to ask the barista a low-priority question (e.g., "Do you have WiFi?"). Instead of interrupting, you say: "Answer me when you’re not busy."  
 > That’s `requestIdleCallback()`.
+
+> [!NOTE]
+> The main difference between using `requestIdleCallback()` vs `scheduler.postTask()` is that for `requestIdleCallback()`, it's not guaranteed that the deferred task will run. On top of that, [MDN encourages a timeout](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestIdleCallback) over `requestIdleCallback()` for required work, so keep that in mind, to only use `requestIdleCallback()` for noncritical work.
 
 The method below is the syntax for how it works, where the method accepts a callback to be run during idle time, and an object of options with these properties:
 
@@ -1024,3 +1070,38 @@ export class IdleCallback {
   }
 }
 ```
+
+#### Run during idle time (scheduler)
+
+You can use the `scheduler.postTask(cb)` method to invoke a callback during idle time, which moves scheduled tasks into a queue for later completion.
+
+```js
+const items = new Array(100).fill(null);
+
+for (const i of items) {
+  loopCount.innerText = Number(loopCount.innerText) + 1;
+
+  await new Promise((resolve) => scheduler.postTask(resolve));
+
+  waitSync(50);
+}
+```
+
+You can even set priorities for scheduled tasks like so:
+
+```ts
+// high priority
+scheduler.postTask(() => {
+  console.log("postTask");
+}, { priority: "user-blocking" });
+
+// low priority
+scheduler.postTask(() => {
+  console.log("postTask - background");
+}, { priority: "background" });
+```
+
+Here are what the different priority levels mean:
+
+- `"user-blocking"`: intended for tasks critical to the user's experience on the page (such as responding to user input), not for big workloads.
+- `"background"`: runs tasks in the background, intended for noncritical tasks
