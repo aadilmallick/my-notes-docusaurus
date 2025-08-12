@@ -135,6 +135,13 @@ to checkout with subscriptions, you use the same stripe checkout API but this ti
 
 The main difference for subscriptions is that Stripe creates a **customer** object in the backend, and a subscription is always tied to a customer.
 
+
+> [!IMPORTANT]
+>It is extremely important that you limit customers to only one subscription in stripe. To do this, go to the settings here to enable that: https://dashboard.stripe.com/settings/checkout#subscriptions
+
+
+
+
 #### **creating the subscription**
 
 The `stripe.checkout.sessions.create()` method works the same for subscription but we have to change a few things in the options object:
