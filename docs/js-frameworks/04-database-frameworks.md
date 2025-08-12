@@ -47,19 +47,16 @@ npx prisma generate
 
 #### using the prisma client
 
-
 For example, you would create a prisma client like so and then query them like so:
 
 ```ts
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-prisma.user // query user table
-prisma.entry // query entries table
+prisma.user; // query user table
+prisma.entry; // query entries table
 ```
-
-
 
 ## Drizzle
 
@@ -82,7 +79,7 @@ drizzle-kit generate \
 
 - `--schema`: the typescript file with named exports of drizzle tables.
 - `--dialect`: the flavor of sql to convert the tyepscript into, like expo sqlite, sqlite, postgresql, mysql, etc.
-	- Your choices are `postgresql` or `mysql` or `sqlite` or `turso` or `singlestore` or `gel`
+  - Your choices are `postgresql` or `mysql` or `sqlite` or `turso` or `singlestore` or `gel`
 - `--out`: the output folder where the migration sql file should be created.
 
 If you don't want to bother with this and instead do everything in one fell swoop, you can just use a `drizzle.config.ts` file at the root of your project:
@@ -94,12 +91,11 @@ import { drizzleConstants } from "./drizzle/drizzleConstants.ts";
 export default defineConfig({
   out: "../drizzle/migrations", // outDir of migrations
   schema: "../drizzle/schema.ts", // schema file of drizzle tables
-  dialect: "postgresql",    // flavor of sql
+  dialect: "postgresql", // flavor of sql
   dbCredentials: {
-    url: drizzleConstants.dbUrl,  // db connnection url
+    url: drizzleConstants.dbUrl, // db connnection url
   },
 });
-
 ```
 
 You can then use these commands once you have the config in place:
@@ -110,7 +106,8 @@ You can then use these commands once you have the config in place:
 - `npx drizzle-kit studio`: see your DB in a studio dashboard
 
 **schema**
-****
+
+---
 
 The schema file should look like this:
 
@@ -136,11 +133,12 @@ export const postsTable = pgTable("posts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
-
 ```
 
 **Db**
-****
+
+---
+
 The basic drizzle database needs these components:
 
 - **connection URL**: the connection url to your database, which should obviously be the same database as the driver you specified in your drizzle config.
@@ -151,14 +149,14 @@ The basic syntax of creating a drizzle db driver is as so:
 ```ts
 import { drizzle } from "drizzle-orm/pg-core";
 
-const db = drizzle(options)
+const db = drizzle(options);
 ```
 
 Here are the properties you can pass in to the options object:
 
 - `connection`: an object of options configuring the database connection
 - `logger`: a boolean that if set to true, turns on verbose logging
-- `schema`: an object mapping the table name to the drizzle table schema 
+- `schema`: an object mapping the table name to the drizzle table schema
 
 ```ts
 import { drizzle } from "drizzle-orm/libsql";
@@ -180,8 +178,7 @@ const db = drizzle({
 export default db;
 ```
 
-
-#### Sqlite 
+#### Sqlite
 
 For sqlite, you can either use an online database connection URL for drivers such as turso with libsql, so you can just use a file url and point to a local sqlite file:
 
@@ -213,12 +210,11 @@ dotenv.config({
   path: ".env.local",
 });
 
-
 export default {
   schema: "./drizzle/schemas.ts",
   out: "./drizzle/migrations",
   dbCredentials: {
-    url:  "file:notes.db",
+    url: "file:notes.db",
   },
   dialect: "sqlite",
   verbose: true,
@@ -349,7 +345,6 @@ export const NotesTableRelations = relations(notesTable, ({ one }) => {
 });
 ```
 
-
 ### CRUD
 
 THe drizzle api is very similar to raw SQL, except everything is nice and typed.
@@ -457,6 +452,7 @@ async function getNotes() {
   });
 }
 ```
+
 ### Schemas
 
 #### Basic tables
@@ -477,29 +473,30 @@ import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const notesTable = sqliteTable("notes", {
   id: int().primaryKey({ autoIncrement: true }),
   title: text().notNull(),
-  content: text().notNull().$default(() => ""),
-  createdAt: text().notNull().$default(() => new Date().toISOString()),
+  content: text()
+    .notNull()
+    .$default(() => ""),
+  createdAt: text()
+    .notNull()
+    .$default(() => new Date().toISOString()),
   priority: text().notNull().default("low").$type<"low" | "medium" | "high">(),
 });
-
 ```
 
 #### Relations
 
 You can create foreign key relations like so:
 
-
 ![](https://i.imgur.com/lJF9x8q.jpeg)
 
 But to get type intellisense with joining tables in drizzle, you'll need a way to let drizzle know about those foreign key constraints. You can do that through **relations**
 
-Relations are ways of basically specifying how you want to join data in SQL and are essential to put in place if you want proper joining. 
+Relations are ways of basically specifying how you want to join data in SQL and are essential to put in place if you want proper joining.
 
 > [!NOTE]
 > These relations do not impose foreign key constraints those should be established when creating the tables.
 
 ![](https://i.imgur.com/em0BekG.png)
-
 
 When you set up relations, you can then use joining syntax through the `with` key when using `db.query` syntax.
 
@@ -541,7 +538,7 @@ You can create a TypeORM table like so:
 
 ```ts
 // src/entity/Post.ts
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity()
 export class Post {
@@ -551,49 +548,48 @@ export class Post {
   @Column()
   title: string;
 
-  @Column('text')
+  @Column("text")
   content: string;
 
   @Column({ default: true })
   published: boolean;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
   createdAt: Date;
 }
 ```
 
 **configuring with use for caching**
 
-
 ```ts
 // src/data-source.ts
-import 'reflect-metadata'; // Required for TypeORM decorators
-import { DataSource } from 'typeorm';
-import { Post } from './entity/Post';
+import "reflect-metadata"; // Required for TypeORM decorators
+import { DataSource } from "typeorm";
+import { Post } from "./entity/Post";
 
 export const AppDataSource = new DataSource({
-  type: 'postgres',
-  host: 'localhost',
+  type: "postgres",
+  host: "localhost",
   port: 5432,
-  username: 'your_user',
-  password: 'your_password',
-  database: 'your_database',
+  username: "your_user",
+  password: "your_password",
+  database: "your_database",
   synchronize: true, // Only for development, do not use in production
-  logging: ['query', 'error'],
+  logging: ["query", "error"],
   entities: [Post],
   migrations: [],
   subscribers: [],
 
   // --- Caching Configuration ---
   cache: {
-    type: 'redis', // Or 'ioredis' for a more modern driver
+    type: "redis", // Or 'ioredis' for a more modern driver
     // host: 'localhost', // Redis host
     // port: 6379,       // Redis port
     // password: 'your_redis_password', // If Redis requires authentication
     // db: 0,            // Redis database index
 
     // Using a connection URL (recommended for flexibility)
-    url: 'redis://localhost:6379',
+    url: "redis://localhost:6379",
 
     duration: 60 * 1000, // Default cache duration for cached queries (1 minute)
     // This duration applies to `cache: true` on queries or repository methods.
@@ -711,12 +707,12 @@ AppDataSource.initialize()
     });
 
 
-    app.listen(port, () => {
+    app.listen(port, () = {
       console.log(`Server running on http://localhost:${port}`);
       console.log(`Endpoints: /posts/published, /posts/:id, /posts (POST)`);
     });
   })
-  .catch((error) => console.error('Error during Data Source initialization:', error));
+  .catch((error) = console.error('Error during Data Source initialization:', error));
 
 // Make sure Redis server is running at localhost:6379
 ```
@@ -724,8 +720,8 @@ AppDataSource.initialize()
 ### **Important Notes on TypeORM Caching**
 
 - **Query vs. Object Caching:**
-    - repository.find({...}, { cache: true }) and repository.findAndCount({...}, { cache: true }) perform **query caching**. The entire result set of that specific query is cached.
-    - repository.findOne({...}, { cache: true }) and repository.findBy(id, { cache: true }) perform **object caching**. Individual entities are cached by their primary key.
-- **Automatic Invalidation:** TypeORM tries to automatically invalidate relevant caches on save, update, and delete operations for entities that are cached. For findOne operations, if you save an entity, TypeORM should automatically clear its cache entry by ID. For find operations (query caching), it's more complex, and sometimes manual invalidation (queryResultCache.remove or queryResultCache.clear) is needed, especially for complex queries.
+  - `repository.find({...}, { cache: true })` and `repository.findAndCount({...}, { cache: true })` perform **query caching**. The entire result set of that specific query is cached.
+  - `repository.findOne({...}, { cache: true })` and `repository.findBy(id, { cache: true })` perform **object caching**. Individual entities are cached by their primary key.
+- **Automatic Invalidation:** TypeORM tries to automatically invalidate relevant caches on save, update, and delete operations for entities that are cached. For findOne operations, if you save an entity, TypeORM should automatically clear its cache entry by ID. For find operations (query caching), it's more complex, and sometimes manual invalidation (`queryResultCache.remove` or `queryResultCache.clear`) is needed, especially for complex queries.
 - **Key Generation:** TypeORM generates cache keys based on the query string and options. This can be brittle for remove operations if the key format changes.
 - **Production Setup:** In production, synchronize: true should be false, and you should use TypeORM migrations. Your Redis server would likely be a separate, managed service.

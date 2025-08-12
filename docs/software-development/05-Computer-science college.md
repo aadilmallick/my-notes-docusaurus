@@ -4,7 +4,6 @@
 
 ### Standard keyboard shortcuts
 
-
 | keyboard shortcut (windows)            | keyboard shortcut (mac)                  | description                                                                      |
 | -------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
 | CTRL + (left and right arrows)         | OPTION + (left and right arrows)         | jumps cursor a single word at a time. Useful for quickly moving through text.    |
@@ -42,7 +41,7 @@ Salts serve two purposes:
 
 Salts ensure that even if two users have the same password, their hash values will be different, making rainbow tables ineffective.
 
-For example, instead of hashing the super common password `"password"`, we will append a special salt string, unique, random, and stored for each user. We would instead hash `"password-salt"` for each user. Because a salt is unique, it completely changes the hash value for any 
+For example, instead of hashing the super common password `"password"`, we will append a special salt string, unique, random, and stored for each user. We would instead hash `"password-salt"` for each user. Because a salt is unique, it completely changes the hash value for any
 
 Here's why salting prevents rainbow table attacks:
 
@@ -160,19 +159,19 @@ For example, this would be how signing up works:
 
 ```ts
 async function signUpUser(email: string, password: string) {
-	// 1. if email already exists in DB, throw error
+  // 1. if email already exists in DB, throw error
 
-	// 2. hash password
-	const model = new CryptoPasswordModel();
-	const hashedPassword = await model.hash(password);
+  // 2. hash password
+  const model = new CryptoPasswordModel();
+  const hashedPassword = await model.hash(password);
 
-	// 3. add to DB, along with salt itself
-	const user = await addUserToDB({
-		email,
-		password: hashedPassword,
-		hashingInfo: model.toJSON() 
-	})
-	return user; // newly created user with id
+  // 3. add to DB, along with salt itself
+  const user = await addUserToDB({
+    email,
+    password: hashedPassword,
+    hashingInfo: model.toJSON(),
+  });
+  return user; // newly created user with id
 }
 ```
 
@@ -187,16 +186,16 @@ Here is the flow:
 
 ```ts
 async function signInUser(email: string, password: string) {
-	// 1. get the user with same email from db
-	const storedUser = await db.findOne({email: email})
-	if (!storedUser) throw new Error("email not found, user doesn't exist")
+  // 1. get the user with same email from db
+  const storedUser = await db.findOne({ email: email });
+  if (!storedUser) throw new Error("email not found, user doesn't exist");
 
-	// 2. get crypto specs
-	const model = CryptoPasswordModel.fromJSON(storedUser.hashingInfo)
+  // 2. get crypto specs
+  const model = CryptoPasswordModel.fromJSON(storedUser.hashingInfo);
 
-	// 3. compare hashes. If equal, authenticate user.
-	const matches = await model.verify(password, storedUser.password)
-	return matches
+  // 3. compare hashes. If equal, authenticate user.
+  const matches = await model.verify(password, storedUser.password);
+  return matches;
 }
 ```
 
@@ -205,23 +204,23 @@ async function signInUser(email: string, password: string) {
 Bcrypt does this automatically for us, where we only have to specify the number of salt rounds.
 
 ```ts
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 
 async function signInUser(email: string, password: string) {
-	// 1. hash the password with 10 salt rounds
-	const saltRounds = 10;
-	const hashedPassword = await bcrypt.hash(password, saltRounds)
+  // 1. hash the password with 10 salt rounds
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-	// 2. get the user with same email from db
-	const storedUser = await db.findOne({email: email})
-	if (!storedUser) throw new Error("email not found, user doesn't exist")
+  // 2. get the user with same email from db
+  const storedUser = await db.findOne({ email: email });
+  if (!storedUser) throw new Error("email not found, user doesn't exist");
 
-	// 3. compare hashes. If they are equal, user is authenticated.
-	let matches = storedUser.password === hashedPassword
+  // 3. compare hashes. If they are equal, user is authenticated.
+  let matches = storedUser.password === hashedPassword;
 
-	// 3a. or, use bycrypt.compare(plainTextpassword, hashedPassword)
-	matches = await bcrypt.compare(password, storedUser.password)
-	return matches
+  // 3a. or, use bycrypt.compare(plainTextpassword, hashedPassword)
+  matches = await bcrypt.compare(password, storedUser.password);
+  return matches;
 }
 ```
 
@@ -250,31 +249,29 @@ There are two types of authentication standards:
 - **stateless authentication**: Auth that is not based on cookies but rather on encrypted tokens. DB does not store auth state or user info, meaning auth info is stored in the token itself on the client.
 
 > [!NOTE]
-> The main difference between stateful authentication and stateless is that in stateless auth, because the server stores all the details about the current session for a logged in user including client ID and expiration time, it can revoke that authentication session at any time. 
+> The main difference between stateful authentication and stateless is that in stateless auth, because the server stores all the details about the current session for a logged in user including client ID and expiration time, it can revoke that authentication session at any time.
 >
->Since you're not storing anything server-side in stateless auth, you can't revoke the authentication session - you can only store expiration information in the token when you send it to the client and base application logic off of that.
+> Since you're not storing anything server-side in stateless auth, you can't revoke the authentication session - you can only store expiration information in the token when you send it to the client and base application logic off of that.
 
 - **Use stateful authentication when**: + High-security requirements exist (e.g., financial institutions, government agencies). + The application requires fine-grained control over user sessions (e.g., single sign-on, shared device access).
 - **Use stateless authentication when**: + Scalability and performance are critical. + Security is not a top priority, but rather convenience and simplicity. + The application has minimal security requirements or can tolerate token-related risks.
 
 | Feature                | Session-Based (Stateful)                                          | Token-Based (Stateless)                                                                          |
 | ---------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Server stores session? | ✅ Yes (e.g., in memory or in database)                            | ❌ No                                                                                             |
-| Can revoke?            | ✅ Yes                                                             | ❌ Not easily                                                                                     |
-| Scalable?              | ❌ Needs sticky sessions or shared storage                         | ✅ Easily, because nothing is being stored. All it is doing is validating the token info.         |
-| Cookie-based?          | ✅ Usually                                                         | Optional                                                                                         |
-| performance            | ❌  low performance since you need to validate requests against DB | ✅  High performance, since only operations are creating token and validating token - no storage. |
-| Storage requirements   | ❌ Needs to store user credentials AND session data                | ✅  Only needs to store user credentials to authenticate against.                                 |
-
+| Server stores session? | ✅ Yes (e.g., in memory or in database)                           | ❌ No                                                                                            |
+| Can revoke?            | ✅ Yes                                                            | ❌ Not easily                                                                                    |
+| Scalable?              | ❌ Needs sticky sessions or shared storage                        | ✅ Easily, because nothing is being stored. All it is doing is validating the token info.        |
+| Cookie-based?          | ✅ Usually                                                        | Optional                                                                                         |
+| performance            | ❌ low performance since you need to validate requests against DB | ✅ High performance, since only operations are creating token and validating token - no storage. |
+| Storage requirements   | ❌ Needs to store user credentials AND session data               | ✅ Only needs to store user credentials to authenticate against.                                 |
 
 ![](https://i.imgur.com/tk0nSrA.jpeg)
 
 JWT is not recommended for auth because there are more downsides than upsides. To make effective JWTs, you need to implement access tokens and refresh tokens because you cannot revoke the session at all. This also makes JWTs less secure by default if not implemented correctly. The only advantage JWTs have are speed of checking auth status, but that can be easily overcome by using something like redis.
+
 #### session auth
 
-
 ![](https://i.imgur.com/xoLEh9i.jpeg)
-
 
 1. Client logins with email and password or other credentials, which sends POST request with user credentials to the server
 2. If the server accepts the login info as valid, it creates a session which contains a session id, user info, and expiration time, stores the session in a database or in memory.
@@ -285,7 +282,6 @@ JWT is not recommended for auth because there are more downsides than upsides. T
 Here is another diagram that illustrates this flow:
 
 ![](https://i.imgur.com/DG1033N.png)
-
 
 ##### Cookies
 
@@ -303,20 +299,20 @@ Here is the flow of creating a session, storing it in the database, and sending 
 
 1. Create a random session ID.
 2. From a user object fetched from DB, create a session object whose ID is the random session ID, and stored that user data. Here is what to store:
-	- **user id**
-	- **user role**, like admin, normal person, etc.
+   - **user id**
+   - **user role**, like admin, normal person, etc.
 3. Store session object in redis cache, expire after set amount of time.
 4. Set secure, HTTP-only, same-site lax, cookie with key `"session-id"`, and the value being the session ID you created.
 
 **creating the redis client**
 
 ```ts
-import { Redis } from "@upstash/redis"
+import { Redis } from "@upstash/redis";
 
 export const redisClient = new Redis({
   url: process.env.REDIS_URL,
   token: process.env.REDIS_TOKEN,
-})
+});
 ```
 
 **basic global session config**
@@ -327,43 +323,41 @@ export type Cookies = {
     key: string,
     value: string,
     options: {
-      secure?: boolean
-      httpOnly?: boolean
-      sameSite?: "strict" | "lax"
-      expires?: number
+      secure?: boolean;
+      httpOnly?: boolean;
+      sameSite?: "strict" | "lax";
+      expires?: number;
     }
-  ) => void
-  get: (key: string) => { name: string; value: string } | undefined
-  delete: (key: string) => void
-}
+  ) => void;
+  get: (key: string) => { name: string; value: string } | undefined;
+  delete: (key: string) => void;
+};
 
 // Seven days in seconds
-const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7
-const COOKIE_SESSION_KEY = "session-id"
+const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
+const COOKIE_SESSION_KEY = "session-id";
 
 const sessionSchema = z.object({
   id: z.string(),
   role: z.enum(userRoles),
-})
+});
 
-type UserSession = z.infer<typeof sessionSchema>
+type UserSession = z.infer<typeof sessionSchema>;
 ```
 
 **creating the user and setting the cookie**
 
 ```ts
-
-
 export async function createUserSession(
   user: UserSession,
   cookies: Pick<Cookies, "set">
 ) {
-  const sessionId = crypto.randomBytes(512).toString("hex").normalize()
+  const sessionId = crypto.randomBytes(512).toString("hex").normalize();
   await redisClient.set(`session:${sessionId}`, sessionSchema.parse(user), {
     ex: SESSION_EXPIRATION_SECONDS,
-  })
+  });
 
-  setCookie(sessionId, cookies)
+  setCookie(sessionId, cookies);
 }
 
 function setCookie(sessionId: string, cookies: Pick<Cookies, "set">) {
@@ -372,29 +366,28 @@ function setCookie(sessionId: string, cookies: Pick<Cookies, "set">) {
     httpOnly: true,
     sameSite: "lax",
     expires: Date.now() + SESSION_EXPIRATION_SECONDS * 1000,
-  })
+  });
 }
 ```
 
 After you complete all these steps, the user verifies themselves by having the browser automatically send the cookie on every request, the server parses the cookie and gets the session ID, validates against the redis cache that the session ID exists and has not expired, and gets the session object that lives in the cache. Then the user is authenticated with that info.
 
-
 **getting the user**
 
 ```ts
 export function getUserFromSession(cookies: Pick<Cookies, "get">) {
-  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
-  if (sessionId == null) return null
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value;
+  if (sessionId == null) return null;
 
-  return getUserSessionById(sessionId)
+  return getUserSessionById(sessionId);
 }
 
 async function getUserSessionById(sessionId: string) {
-  const rawUser = await redisClient.get(`session:${sessionId}`)
+  const rawUser = await redisClient.get(`session:${sessionId}`);
 
-  const { success, data: user } = sessionSchema.safeParse(rawUser)
+  const { success, data: user } = sessionSchema.safeParse(rawUser);
 
-  return success ? user : null
+  return success ? user : null;
 }
 ```
 
@@ -405,27 +398,27 @@ export async function updateUserSessionData(
   user: UserSession,
   cookies: Pick<Cookies, "get">
 ) {
-  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
-  if (sessionId == null) return null
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value;
+  if (sessionId == null) return null;
 
   await redisClient.set(`session:${sessionId}`, sessionSchema.parse(user), {
     ex: SESSION_EXPIRATION_SECONDS,
-  })
+  });
 }
 
 export async function updateUserSessionExpiration(
   cookies: Pick<Cookies, "get" | "set">
 ) {
-  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
-  if (sessionId == null) return null
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value;
+  if (sessionId == null) return null;
 
-  const user = await getUserSessionById(sessionId)
-  if (user == null) return
+  const user = await getUserSessionById(sessionId);
+  if (user == null) return;
 
   await redisClient.set(`session:${sessionId}`, user, {
     ex: SESSION_EXPIRATION_SECONDS,
-  })
-  setCookie(sessionId, cookies)
+  });
+  setCookie(sessionId, cookies);
 }
 ```
 
@@ -437,11 +430,11 @@ To log out the user, you simply just delete the cookie, and then delete the sess
 export async function removeUserFromSession(
   cookies: Pick<Cookies, "get" | "delete">
 ) {
-  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value
-  if (sessionId == null) return null
+  const sessionId = cookies.get(COOKIE_SESSION_KEY)?.value;
+  if (sessionId == null) return null;
 
-  await redisClient.del(`session:${sessionId}`)
-  cookies.delete(COOKIE_SESSION_KEY)
+  await redisClient.del(`session:${sessionId}`);
+  cookies.delete(COOKIE_SESSION_KEY);
 }
 ```
 
@@ -450,68 +443,68 @@ export async function removeUserFromSession(
 This is a useful utility for getting just the user session, the user from the DB, all while acting as a route guard.
 
 ```ts
-import { cookies } from "next/headers"
-import { getUserFromSession } from "../core/session"
-import { cache } from "react"
-import { redirect } from "next/navigation"
-import { db } from "@/drizzle/db"
-import { eq } from "drizzle-orm"
-import { UserTable } from "@/drizzle/schema"
+import { cookies } from "next/headers";
+import { getUserFromSession } from "../core/session";
+import { cache } from "react";
+import { redirect } from "next/navigation";
+import { db } from "@/drizzle/db";
+import { eq } from "drizzle-orm";
+import { UserTable } from "@/drizzle/schema";
 
 type FullUser = Exclude<
   Awaited<ReturnType<typeof getUserFromDb>>,
   undefined | null
->
+>;
 
 type User = Exclude<
   Awaited<ReturnType<typeof getUserFromSession>>,
   undefined | null
->
+>;
 
 function _getCurrentUser(options: {
-  withFullUser: true
-  redirectIfNotFound: true
-}): Promise<FullUser>
+  withFullUser: true;
+  redirectIfNotFound: true;
+}): Promise<FullUser>;
 function _getCurrentUser(options: {
-  withFullUser: true
-  redirectIfNotFound?: false
-}): Promise<FullUser | null>
+  withFullUser: true;
+  redirectIfNotFound?: false;
+}): Promise<FullUser | null>;
 function _getCurrentUser(options: {
-  withFullUser?: false
-  redirectIfNotFound: true
-}): Promise<User>
+  withFullUser?: false;
+  redirectIfNotFound: true;
+}): Promise<User>;
 function _getCurrentUser(options?: {
-  withFullUser?: false
-  redirectIfNotFound?: false
-}): Promise<User | null>
+  withFullUser?: false;
+  redirectIfNotFound?: false;
+}): Promise<User | null>;
 async function _getCurrentUser({
   withFullUser = false,
   redirectIfNotFound = false,
 } = {}) {
-  const user = await getUserFromSession(await cookies())
+  const user = await getUserFromSession(await cookies());
 
   if (user == null) {
-    if (redirectIfNotFound) return redirect("/sign-in")
-    return null
+    if (redirectIfNotFound) return redirect("/sign-in");
+    return null;
   }
 
   if (withFullUser) {
-    const fullUser = await getUserFromDb(user.id)
+    const fullUser = await getUserFromDb(user.id);
     // This should never happen
-    if (fullUser == null) throw new Error("User not found in database")
-    return fullUser
+    if (fullUser == null) throw new Error("User not found in database");
+    return fullUser;
   }
 
-  return user
+  return user;
 }
 
-export const getCurrentUser = cache(_getCurrentUser)
+export const getCurrentUser = cache(_getCurrentUser);
 
 function getUserFromDb(id: string) {
   return db.query.UserTable.findFirst({
     columns: { id: true, email: true, role: true, name: true },
     where: eq(UserTable.id, id),
-  })
+  });
 }
 ```
 
@@ -520,14 +513,13 @@ function getUserFromDb(id: string) {
 WHen the user wants to log out, he requests the logout endpoint against the server, passing his session ID, and then the server will delete the corresponding session from the database
 
 ```ts
-app.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) return res.status(500).send('Error');
-    res.clearCookie('connect.sid');
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) return res.status(500).send("Error");
+    res.clearCookie("connect.sid");
     res.send("Logged out");
   });
 });
-
 ```
 
 ##### Complete example
@@ -535,33 +527,35 @@ app.post('/logout', (req, res) => {
 Here's a complete example in express:
 
 ```ts
-const express = require('express');
-const session = require('express-session');
-const bcrypt = require('bcrypt');
+const express = require("express");
+const session = require("express-session");
+const bcrypt = require("bcrypt");
 
 const app = express();
 app.use(express.json());
 
 // Setup session middleware
-app.use(session({
-  secret: 'supersecretkey',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }  // should be true in production with HTTPS
-}));
+app.use(
+  session({
+    secret: "supersecretkey",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }, // should be true in production with HTTPS
+  })
+);
 
 // Simulated user database
 const users = [
-  { id: 1, username: 'alice', passwordHash: bcrypt.hashSync('secret', 10) }
+  { id: 1, username: "alice", passwordHash: bcrypt.hashSync("secret", 10) },
 ];
 
 // Login Route
-app.post('/login', (req, res) => {
+app.post("/login", (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username);
-  
+  const user = users.find((u) => u.username === username);
+
   if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-    return res.status(401).send('Unauthorized');
+    return res.status(401).send("Unauthorized");
   }
 
   req.session.userId = user.id;
@@ -569,32 +563,31 @@ app.post('/login', (req, res) => {
 });
 
 // Protected Route
-app.get('/new-post', (req, res) => {
+app.get("/new-post", (req, res) => {
   if (!req.session.userId) {
-    return res.status(401).send('Unauthorized');
+    return res.status(401).send("Unauthorized");
   }
 
   res.send("Here you go!");
 });
 
 // Logout Route
-app.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) return res.status(500).send('Logout failed');
-    res.clearCookie('connect.sid');
-    res.send('Logged out');
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) return res.status(500).send("Logout failed");
+    res.clearCookie("connect.sid");
+    res.send("Logged out");
   });
 });
 
 app.listen(3000, () => console.log("Server running on port 3000"));
-
 ```
 
 #### Basic auth
 
 ![](https://i.imgur.com/CiGsltx.jpeg)
 
-Basic auth is a form of stateless auth that sends user login credentials as a base64 encoded request header. 
+Basic auth is a form of stateless auth that sends user login credentials as a base64 encoded request header.
 
 1. To access protected routes, client sends requests to server with authorization header set to base64 encoded version of `<email>:<password>` type of syntax.
 2. Server checks credentials and validates against database, either returning a 200 OK authorized response or an unauthorized response.
@@ -604,13 +597,12 @@ Basic auth is a form of stateless auth that sends user login credentials as a ba
 WWW-Authenticate: 'Basic realm="My app name"'
 ```
 
-
 > [!NOTE]
 > You see why it's now called basic Auth. This is extremely insecure since anyone can decode it, so make sure to use https.
 
 ##### **authorization in depth**
 
-Here is the authorization process in depth. First, the header the client sends will be the `Authorization` header in this form:  `Basic <encoded-credentials>`
+Here is the authorization process in depth. First, the header the client sends will be the `Authorization` header in this form: `Basic <encoded-credentials>`
 
 ```
 Authorization: Basic <base64(username:password)>
@@ -636,7 +628,7 @@ console.log(getBasicAuthHeader("admin", "password"));
 
 ##### Handling unauthorized
 
-The special thing about basic auth is that if the authorization header is not sent, then a browser alert will pop up prompting the user to enter their credentials, in which if they enter the credentials correctly, they get authorized. 
+The special thing about basic auth is that if the authorization header is not sent, then a browser alert will pop up prompting the user to enter their credentials, in which if they enter the credentials correctly, they get authorized.
 
 To enable this prompt behavior, you have to send back special response headers when the authorization header is missing from the request:
 
@@ -647,61 +639,59 @@ WWW-Authenticate: 'Basic realm="My app name"'
 Here's the example in express:
 
 ```ts
-  const authHeader = req.headers['authorization'];
+const authHeader = req.headers["authorization"];
 
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="Secure Area"');
-    return res.status(401).send('Authentication required.');
-  }
+if (!authHeader || !authHeader.startsWith("Basic ")) {
+  res.set("WWW-Authenticate", 'Basic realm="Secure Area"');
+  return res.status(401).send("Authentication required.");
+}
 ```
 
 ##### Full example
 
 ```ts
-const express = require('express');
+const express = require("express");
 const app = express();
 const port = 3000;
 
 // Simulated user database
 const users = {
-  alice: 'secret123',
-  bob: 'hunter2'
+  alice: "secret123",
+  bob: "hunter2",
 };
 
 // Middleware to check Basic Auth
 function basicAuth(req, res, next) {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers["authorization"];
 
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="Secure Area"');
-    return res.status(401).send('Authentication required.');
+  if (!authHeader || !authHeader.startsWith("Basic ")) {
+    res.set("WWW-Authenticate", 'Basic realm="Secure Area"');
+    return res.status(401).send("Authentication required.");
   }
 
-  const base64Credentials = authHeader.split(' ')[1];
-  const credentials = Buffer.from(base64Credentials, 'base64').toString('utf8');
-  const [username, password] = credentials.split(':');
+  const base64Credentials = authHeader.split(" ")[1];
+  const credentials = Buffer.from(base64Credentials, "base64").toString("utf8");
+  const [username, password] = credentials.split(":");
 
   if (users[username] && users[username] === password) {
     req.user = username;
     return next();
   }
 
-  return res.status(401).send('Invalid credentials');
+  return res.status(401).send("Invalid credentials");
 }
 
 // Protected route
-app.get('/protected', basicAuth, (req, res) => {
+app.get("/protected", basicAuth, (req, res) => {
   res.send(`Hello ${req.user}, you are authenticated!`);
 });
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
-
 ```
 
 #### Token Based Auth
-
 
 ![](https://i.imgur.com/xAjKaQa.jpeg)
 
@@ -714,19 +704,16 @@ Here's how stateless authentication with tokens works
 3. The server sends the authentication token to the client.
 4. Each subsequent request includes the authentication token or an alternative identifier (e.g., a JWT).
 5. The server verifies the token and grants access based on its contents. (e.g., user credentials have match in database, token has not yet expired).
-![](https://i.imgur.com/N7pzq28.jpeg)
+   ![](https://i.imgur.com/N7pzq28.jpeg)
 
 #### JWT auth
 
-
 ![](https://i.imgur.com/Mmd32cY.jpeg)
-
 
 JWT auth is a form of token auth, and thus stateless auth. A JSON web token is a secret string encrypted on the server that holds all the auth info of a user (email, password, and name) and metadata about the token, like when it should expire. Here is the basic workflow of using JWT:
 
 1. The client sends the JWT it receives from the server on every request
 2. The server decrypts the JWT with a secret key, parses its payload for user auth, and validates if the token is still valid against the token metadata.
-
 
 This simplified diagram shows how it works at a high level. You don't have to worry about the low level because JWT libraries handle all the creation and validation of the token.
 
@@ -735,7 +722,6 @@ This simplified diagram shows how it works at a high level. You don't have to wo
 ![](https://i.imgur.com/LafWtcD.png)
 
 #### SSO
-
 
 ![](https://i.imgur.com/wEjmsqC.jpeg)
 
@@ -770,7 +756,7 @@ Here are the query parameters you send along when fetching an OAuth request url:
 - `client_secret`: the client secret you set up with the provider.
 - `response_type="code"`: specifies you want to receive an OAuth code back
 - `redirect_uri`: your application URL to redirect to after successful authentication with the provider.
-- `scope`: a space separated list of the information scopes you want from the user, like `identify`  to get the user id, and `email` to get the emial 
+- `scope`: a space separated list of the information scopes you want from the user, like `identify` to get the user id, and `email` to get the emial
 
 You also have these optional params that help with OAuth security, explained later:
 
@@ -868,7 +854,7 @@ All in all, the flow is as follows:
 
 1. Before signing in to a `/authorize` provider route, create a state and save it to a cookie
 2. Pass the `state=` query param, setting it to the state, when requesting the `/authorize` provider route.
-3. After the user gets redirected after successfully authenticating, parse the `state=` query param the provider appends to the redirect URI. 
+3. After the user gets redirected after successfully authenticating, parse the `state=` query param the provider appends to the redirect URI.
 4. Validate the `state=` query param against the cookie, and if they are not equal or the cookie expired, then reject the user authentication session.
 
 ```ts
@@ -899,7 +885,7 @@ export async function validateState(state: string) {
 
 #### Code challenge verification
 
-Code challenge verification is the exact same concept as OAuth state verification except the OAuth provider handles storing the random string and verifying it on their end. 
+Code challenge verification is the exact same concept as OAuth state verification except the OAuth provider handles storing the random string and verifying it on their end.
 
 Here are the necessary query params to send along to the `/authorize` endpoint when performing code challenge verification.
 
@@ -929,7 +915,6 @@ function getCodeVerifier(cookies: Cookies) {
   return codeVerifier;
 }
 ```
-
 
 #### Complete OAuth flow
 
@@ -1325,7 +1310,6 @@ To register for a github OAuth application and enable it in your app, follow the
 1. Go to github developer settings -> OAuth apps.
 2. Enter these settings, and DO NOT enable device flow if you have a server. Device flow is only for clients.
 
-
 ![](https://i.imgur.com/fHSQf9D.jpeg)
 
 **Step 1: signing in**
@@ -1404,15 +1388,16 @@ const GithubButton = () => {
 
 export default GithubButton;
 ```
+
 ### Handling permissions
 
 To handle permissions, we can go down the route of role-based access control, like so:
 
 ```ts
-export type User = { roles: Role[]; id: string }
+export type User = { roles: Role[]; id: string };
 
-type Role = keyof typeof ROLES
-type Permission = (typeof ROLES)[Role][number]
+type Role = keyof typeof ROLES;
+type Permission = (typeof ROLES)[Role][number];
 
 const ROLES = {
   admin: [
@@ -1423,29 +1408,29 @@ const ROLES = {
   ],
   moderator: ["view:comments", "create:comments", "delete:comments"],
   user: ["view:comments", "create:comments"],
-} as const
+} as const;
 
 export function hasPermission(user: User, permission: Permission) {
-  return user.roles.some(role =>
+  return user.roles.some((role) =>
     (ROLES[role] as readonly Permission[]).includes(permission)
-  )
+  );
 }
 
 // USAGE:
-const user: User = { id: "1", roles: ["user"] }
+const user: User = { id: "1", roles: ["user"] };
 
 // Can create a comment
-hasPermission(user, "create:comments")
+hasPermission(user, "create:comments");
 
 // Can view all comments
-hasPermission(user, "view:comments")
+hasPermission(user, "view:comments");
 ```
 
 ## Caching
 
 ### browser caching
 
-When you visit a website, your web browser downloads various resources: HTML files, CSS stylesheets, JavaScript files, images, fonts, and more. 
+When you visit a website, your web browser downloads various resources: HTML files, CSS stylesheets, JavaScript files, images, fonts, and more.
 
 **Browser caching** is a mechanism where the browser stores copies of these resources on the user's local machine (their hard drive or memory). The next time the user visits the same website (or a different page on the same site that uses the same resources), the browser can retrieve some or all of these resources from its local cache instead of requesting them again from the web server.
 
@@ -1456,13 +1441,14 @@ Here is how the process works:
 1. **first request**: browser requests resources from servers, and depending on cache control headers the server sends down, controls the caching behavior of those resources. Key headers the server sends down include `Cache-Control`, `Expires`, `ETag`, and `Last-Modified`
 2. **Cache Hit:** If the resource is found in the cache and the caching instructions indicate that the cached copy is still valid (e.g., the `Cache-Control` max-age has not expired), the browser uses the cached copy directly. This is known as a "cache hit." The resource is loaded from the local cache, avoiding a network request to the server.
 3. **Cache Miss:** If the resource is not found in the cache, or if the caching instructions indicate that the cached copy is no longer valid (e.g., the `Cache-Control` max-age has expired), the browser sends a new request to the server. This is known as a "cache miss." The server responds with the resource (potentially with new caching headers), and the browser updates its cache.
-4. **Conditional Requests:** Even if a resource's cache has expired, the browser can make a _conditional request_ to the server using the `ETag` or `Last-Modified` headers. The browser sends the `ETag` or `Last-Modified` value it has stored in the `If-None-Match` or `If-Modified-Since` request headers, respectively. If the resource hasn't changed since the last time the browser requested it, the server can respond with an HTTP 304 Not Modified status code, indicating that the browser can use its cached copy. This saves bandwidth because the server doesn't need to send the entire resource again.
+4. **Conditional Requests:** Even if a resource's cache has expired, the browser can make a *conditional request* to the server using the `ETag` or `Last-Modified` headers. The browser sends the `ETag` or `Last-Modified` value it has stored in the `If-None-Match` or `If-Modified-Since` request headers, respectively. If the resource hasn't changed since the last time the browser requested it, the server can respond with an HTTP 304 Not Modified status code, indicating that the browser can use its cached copy. This saves bandwidth because the server doesn't need to send the entire resource again.
 
 There are three types of caches the browser can choose from:
 
 - **Memory Cache:** This is the fastest cache and stores resources in the browser's memory. Resources in the memory cache are typically short-lived and are removed when the browser tab or window is closed.
 - **Disk Cache:** This cache stores resources on the user's hard drive. Resources in the disk cache persist across browser sessions and can be used for longer periods.
 - **Service Worker Cache:** Service workers are JavaScript files that run in the background and can intercept network requests. They can use the Cache API to store and retrieve resources, providing fine-grained control over caching. This is an advanced topic and outside the scope of this module, but it's important to be aware of its existence.
+
 #### headers
 
 The browser caching behavior is controlled by the `cache-control` header the server sends down. The `cache-control` header accepts these directives, separated by commas.
@@ -1470,7 +1456,7 @@ The browser caching behavior is controlled by the `cache-control` header the ser
 - **`public`** : Indicates that the response may be cached by any cache, including shared caches (like CDNs).
 - **`private`** : Indicates that the response is intended for a single user and should not be stored in a shared cache. It can be cached by the user's browser. Useful for user-specific content.
 - **`no-cache`** : Crucially, this does NOT mean "do not cache". It means the cached response must be validated with the origin server before each reuse. The browser will send a conditional request ( If-Modified-Since or If-None-Match ) to the server before using the cached copy.
-	- This is useful when you want to ensure that the user always gets the **latest version of a resource**, but you still want to take advantage of caching for performance.
+  - This is useful when you want to ensure that the user always gets the **latest version of a resource**, but you still want to take advantage of caching for performance.
 - **`no-store`** : This directive truly means "do not cache". The browser should not store any part of the request or response in any cache. Useful for sensitive information.
 - **`max-age=<seconds>`** : Specifies the maximum amount of time (in seconds) that a resource is considered fresh. After this time, the resource becomes stale and requires validation or re-download.
   - **Example:** `Cache-Control: max-age=3600` (resource is fresh for 1 hour)
@@ -1480,74 +1466,80 @@ The browser caching behavior is controlled by the `cache-control` header the ser
 
 All in all, we can follow these general rules:
 
-
 1. **Prioritize `no-store` for sensitive data:** If you need to ensure that sensitive data is never cached, use `no-store` and avoid any other caching directives.
 2. **Use `max-age` with `must-revalidate` for dynamic content:** If you want to cache dynamic content for a short period, use `max-age` along with `must-revalidate` to ensure that the browser always revalidates the content with the server.
 3. **Use `public` for resources that can be cached by anyone:** Use `public` for resources that don't contain any user-specific data and can be safely cached by shared caches.
 4. **Use `private` for resources that are specific to a user:** Use `private` for resources that contain user-specific data and should not be cached by shared caches.
 
-| Type of data                          | Directives to use     | Example                                                                       |
-| ------------------------------------- | --------------------- | ----------------------------------------------------------------------------- |
-| user-specific, frequently changing    | `private`, `no-cache` | - `Cache-Control: no-cache, must-revalidate`<br>- `ETag: "unique-etag-value"` |
-| static files, public, rarely changing | `public`, `max-age=`  | `Cache-Control: public, max-age=31536000`                                     |
-| sensitive data like API keys          | `no-store`            | `Cache-Control: no-store`                                                     |
-
-
+| Type of data                          | Directives to use     | Example                                                                  |
+| ------------------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| user-specific, frequently changing    | `private`, `no-cache` | - `Cache-Control: no-cache, must-revalidate` `ETag: "unique-etag-value"` |
+| static files, public, rarely changing | `public`, `max-age=`  | `Cache-Control: public, max-age=31536000`                                |
+| sensitive data like API keys          | `no-store`            | `Cache-Control: no-store`                                                |
 
 In express, using the `express.static()` middleware, you can control the caching behavior of statically served assets like so:
 
 ```ts
-const express = require('express');
+const express = require("express");
 const app = express();
 
 // Serve static files from the 'public' directory
-app.use(express.static('public', {
-  maxAge: '31536000', // Cache static assets for one year
-  immutable: true, // Indicate that versioned assets are immutable
-}));
+app.use(
+  express.static("public", {
+    maxAge: "31536000", // Cache static assets for one year
+    immutable: true, // Indicate that versioned assets are immutable
+  })
+);
 
 app.listen(3000, () => {
-  console.log('Server listening on port 3000');
+  console.log("Server listening on port 3000");
 });
 ```
 
 Here is an express app example using this header:
 
 ```ts
-import express from 'express';
-import path from 'path';
+import express from "express";
+import path from "path";
 
 const app = express();
 const port = 3000;
 
 // Serve static files with caching headers
 // This is typical for assets like CSS, JS, images, fonts
-app.use('/static', express.static(path.join(__dirname, 'public'), {
-  // Set Cache-Control for static assets
-  // Here, we're saying assets can be cached by public caches (including browser)
-  // for 1 year (31,536,000 seconds). After that, they should be revalidated.
-  // This is common for assets with versioned filenames (e.g., app.v1.0.0.js)
-  // or that rarely change.
-  setHeaders: (res, path, stat) => {
-    if (path.endsWith('.css') || path.endsWith('.js') || path.endsWith('.png')) {
-      res.set('Cache-Control', 'public, max-age=31536000, immutable');
-      // The 'immutable' directive, if supported by the browser, means the
-      // cached response will not change, even if the user reloads the page.
-      // Useful for versioned assets.
-    } else {
-      // For other static files (e.g., HTML if served statically)
-      // We might want a shorter cache, or no-cache with revalidation
-      res.set('Cache-Control', 'no-cache'); // Always revalidate, but can use cache
-    }
-  },
-}));
+app.use(
+  "/static",
+  express.static(path.join(__dirname, "public"), {
+    // Set Cache-Control for static assets
+    // Here, we're saying assets can be cached by public caches (including browser)
+    // for 1 year (31,536,000 seconds). After that, they should be revalidated.
+    // This is common for assets with versioned filenames (e.g., app.v1.0.0.js)
+    // or that rarely change.
+    setHeaders: (res, path, stat) => {
+      if (
+        path.endsWith(".css") ||
+        path.endsWith(".js") ||
+        path.endsWith(".png")
+      ) {
+        res.set("Cache-Control", "public, max-age=31536000, immutable");
+        // The 'immutable' directive, if supported by the browser, means the
+        // cached response will not change, even if the user reloads the page.
+        // Useful for versioned assets.
+      } else {
+        // For other static files (e.g., HTML if served statically)
+        // We might want a shorter cache, or no-cache with revalidation
+        res.set("Cache-Control", "no-cache"); // Always revalidate, but can use cache
+      }
+    },
+  })
+);
 
 // Example for an API endpoint that serves dynamic data
 // This data changes frequently, so we don't want to cache it aggressively
-app.get('/api/data', (req, res) => {
+app.get("/api/data", (req, res) => {
   // Simulate fetching dynamic data
   const dynamicData = {
-    message: 'This data changes frequently!',
+    message: "This data changes frequently!",
     timestamp: new Date().toISOString(),
     randomNumber: Math.random(),
   };
@@ -1555,19 +1547,19 @@ app.get('/api/data', (req, res) => {
   // For dynamic content that changes frequently,
   // we might use no-cache or no-store, or a very short max-age.
   // 'no-cache' forces revalidation with the server.
-  res.set('Cache-Control', 'no-cache, private'); // Private to this user, always revalidate
+  res.set("Cache-Control", "no-cache, private"); // Private to this user, always revalidate
   // Or if it's very sensitive and should never be cached:
   // res.set('Cache-Control', 'no-store, private');
   res.json(dynamicData);
 });
 
 // Example for an HTML page (often rendered dynamically, but for static page)
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   // HTML pages typically benefit from no-cache (always revalidate)
   // or a very short max-age, as they are the entry point and
   // their content (links to assets) might change.
-  res.set('Cache-Control', 'no-cache, public');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.set("Cache-Control", "no-cache, public");
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 ```
 
@@ -1579,7 +1571,7 @@ The `Expires` header is a legacy header that specifies an absolute date in the f
 
 **etag header**
 
-An ETag (Entity Tag) is a unique identifier for a specific version of a resource. It's typically a hash of the file contents or a timestamp. 
+An ETag (Entity Tag) is a unique identifier for a specific version of a resource. It's typically a hash of the file contents or a timestamp.
 
 > [!NOTE]
 > It's used as a strategy for aggressive caching - even if the cache is invalidated, if the etag doesn't change, there is no need to redownload the resource.
@@ -1590,61 +1582,60 @@ The server specifies an etag through the `Etag` header, and the process is as fo
 
 - Example Request Header: `If-None-Match: "abcdef12345"`
 - The server then compares the received ETag with the ETag of its current version of the resource.
-    - If they match, the server responds with 304 Not Modified.
-    - If they don't match, the server sends the new 200 OK response with the updated resource and a new ETag.
+  - If they match, the server responds with 304 Not Modified.
+  - If they don't match, the server sends the new 200 OK response with the updated resource and a new ETag.
 
 **The `Last-Modified` Header**
 
 The `Last-Modified` header indicates the date and time when the resource was last modified on the server. The browser sends this information back in subsequent requests using the `If-Modified-Since` header. Similar to `ETag`, if the resource hasn't changed since the specified date, the server can respond with a `304 Not Modified` status code.
 
-_Example (Server Response):_ `Last-Modified: Tue, 15 Nov 2022 12:45:26 GMT`
+*Example (Server Response):* `Last-Modified: Tue, 15 Nov 2022 12:45:26 GMT`
 
-_Example (Browser Request):_ `If-Modified-Since: Tue, 15 Nov 2022 12:45:26 GMT`
-
+*Example (Browser Request):* `If-Modified-Since: Tue, 15 Nov 2022 12:45:26 GMT`
 
 #### Antipatterns
 
 1. **Lack of ETag or Last-Modified for Revalidation:**
-    - **Mistake:** Relying solely on max-age and then forcing a full re-download once the max-age expires, even if the content hasn't changed.
-    - **How to Avoid:** Ensure your server sends ETag and/or Last-Modified headers for resources where revalidation is appropriate (e.g., static assets after their max-age expires, or resources with no-cache). This allows the browser to perform a 304 Not Modified check, saving bandwidth and improving perceived performance. Many static file servers (like Express's express.static) do this automatically.
+   - **Mistake:** Relying solely on max-age and then forcing a full re-download once the max-age expires, even if the content hasn't changed.
+   - **How to Avoid:** Ensure your server sends ETag and/or Last-Modified headers for resources where revalidation is appropriate (e.g., static assets after their max-age expires, or resources with no-cache). This allows the browser to perform a 304 Not Modified check, saving bandwidth and improving perceived performance. Many static file servers (like Express's express.static) do this automatically.
 2. **Inconsistent Caching Headers Across Different Environments/Servers:**
-    - **Mistake:** Different caching policies in development, staging, and production environments, leading to unexpected behavior in production.
-    - **How to Avoid:** Standardize your caching policies and configurations. Use configuration management tools or environment variables to ensure consistency. Test caching behavior thoroughly in staging.
+   - **Mistake:** Different caching policies in development, staging, and production environments, leading to unexpected behavior in production.
+   - **How to Avoid:** Standardize your caching policies and configurations. Use configuration management tools or environment variables to ensure consistency. Test caching behavior thoroughly in staging.
 3. **Not Understanding the Difference Between no-cache and no-store:**
-    - **Mistake:** Using no-cache when you actually want to prevent any caching at all, or vice-versa.
-    - **How to Avoid:** 
-        - `no-cache`: The browser _can_ cache, but _must revalidate_ with the server before using the cached copy.
-        - `no-store`: The browser _must not_ cache anything.
+   - **Mistake:** Using no-cache when you actually want to prevent any caching at all, or vice-versa.
+   - **How to Avoid:**
+     - `no-cache`: The browser _can_ cache, but _must revalidate_ with the server before using the cached copy.
+     - `no-store`: The browser _must not_ cache anything.
 
 ### Server-side caching
 
 There are 5 types of server-side caching:
 
 1. **In-Memory Caching:**
-    - **Concept:** Data is stored directly in the RAM of the application server or in a dedicated in-memory data store (like Redis or Memcached). This is the fastest form of caching because RAM access is incredibly quick.
-    - **Use Cases:** Frequently accessed data (user profiles, product catalogs, configuration settings), session data, API responses.
-    - **Pros:** Extremely fast read/write operations.
-    - **Cons:** Data is volatile (lost on server restart/crash). Limited by available RAM. Can be challenging to scale across multiple application instances without a distributed cache.
+   - **Concept:** Data is stored directly in the RAM of the application server or in a dedicated in-memory data store (like Redis or Memcached). This is the fastest form of caching because RAM access is incredibly quick.
+   - **Use Cases:** Frequently accessed data (user profiles, product catalogs, configuration settings), session data, API responses.
+   - **Pros:** Extremely fast read/write operations.
+   - **Cons:** Data is volatile (lost on server restart/crash). Limited by available RAM. Can be challenging to scale across multiple application instances without a distributed cache.
 2. **Database Caching (covered in Module 5):**
-    - **Concept:** Caching mechanisms built into or layered on top of database systems. This can involve caching query results, frequently accessed tables/rows, or compiled query plans.
-    - **Use Cases:** Reducing database load for read-heavy applications.
-    - **Pros:** Reduces direct database hits.
-    - **Cons:** Can be complex to manage cache invalidation and consistency.
+   - **Concept:** Caching mechanisms built into or layered on top of database systems. This can involve caching query results, frequently accessed tables/rows, or compiled query plans.
+   - **Use Cases:** Reducing database load for read-heavy applications.
+   - **Pros:** Reduces direct database hits.
+   - **Cons:** Can be complex to manage cache invalidation and consistency.
 3. **File-Based Caching:**
-    - **Concept:** Storing cached data as files on the server's file system (disk).
-    - **Use Cases:** Caching rendered HTML pages, generated images, large reports, or any data that is too large for memory but doesn't require extreme speed.
-    - **Pros:** Data persists across server restarts. Can store larger amounts of data than in-memory.
-    - **Cons:** Slower than in-memory caching due to disk I/O. Can lead to disk space issues if not managed well. File system operations can be contention points.
+   - **Concept:** Storing cached data as files on the server's file system (disk).
+   - **Use Cases:** Caching rendered HTML pages, generated images, large reports, or any data that is too large for memory but doesn't require extreme speed.
+   - **Pros:** Data persists across server restarts. Can store larger amounts of data than in-memory.
+   - **Cons:** Slower than in-memory caching due to disk I/O. Can lead to disk space issues if not managed well. File system operations can be contention points.
 4. **Object Caching:**
-    - **Concept:** Caching specific data structures or objects (e.g., a User object, a Product object) rather than raw query results or HTML fragments. This often involves serialization/deserialization.
-    - **Use Cases:** ORM results, complex business objects.
-    - **Pros:** Directly works with application data structures.
-    - **Cons:** Requires serialization/deserialization overhead.
+   - **Concept:** Caching specific data structures or objects (e.g., a User object, a Product object) rather than raw query results or HTML fragments. This often involves serialization/deserialization.
+   - **Use Cases:** ORM results, complex business objects.
+   - **Pros:** Directly works with application data structures.
+   - **Cons:** Requires serialization/deserialization overhead.
 5. **Page/Fragment Caching:**
-    - **Concept:** Caching entire rendered HTML pages or specific parts (fragments) of a page.
-    - **Use Cases:** Static or semi-static pages, header/footer components.
-    - **Pros:** Reduces rendering time for common parts of the UI.
-    - **Cons:** Complex invalidation for dynamic content.
+   - **Concept:** Caching entire rendered HTML pages or specific parts (fragments) of a page.
+   - **Use Cases:** Static or semi-static pages, header/footer components.
+   - **Pros:** Reduces rendering time for common parts of the UI.
+   - **Cons:** Complex invalidation for dynamic content.
 
 There are also 5 important caching terms you need to know:
 
@@ -1656,7 +1647,7 @@ There are also 5 important caching terms you need to know:
 
 #### In-memory cache: redis
 
-In-memory caching involves storing data in a computer's main memory (RAM) to reduce the latency associated with retrieving data from slower storage mediums like hard drives or databases. 
+In-memory caching involves storing data in a computer's main memory (RAM) to reduce the latency associated with retrieving data from slower storage mediums like hard drives or databases.
 
 > [!NOTE]
 > Because RAM offers significantly faster read and write speeds compared to disk, in-memory caching can dramatically improve application responsiveness and reduce database load.
@@ -1680,6 +1671,7 @@ Here are the drawbacks:
 - **Memory Constraints:** RAM is a limited resource, so you need to carefully manage the cache size.
 - **Cache Invalidation Complexity:** Ensuring data consistency between the cache and the underlying data source can be challenging.
 - **Added Complexity:** Introducing a cache adds complexity to the application architecture.
+
 #### Custom in-memory cache
 
 Here is a custom in memory cache using typescript:
@@ -1696,7 +1688,8 @@ class InMemoryCache {
   private cleanupInterval: NodeJS.Timeout | null = null;
   private defaultTtl: number; // Default TTL in milliseconds
 
-  constructor(defaultTtlMs: number = 5 * 60 * 1000) { // Default to 5 minutes
+  constructor(defaultTtlMs: number = 5 * 60 * 1000) {
+    // Default to 5 minutes
     this.defaultTtl = defaultTtlMs;
     this.startCleanup();
   }
@@ -1730,7 +1723,7 @@ class InMemoryCache {
       const value = entry.value;
       this.delete(key); // Remove expired entry
       console.log(`Cache: Miss for key "${key}" (expired)`);
-      return value
+      return value;
     }
 
     console.log(`Cache: Hit for key "${key}"`);
@@ -1755,7 +1748,7 @@ class InMemoryCache {
    */
   public clear(): void {
     this.cache.clear();
-    console.log('Cache: Cleared all entries.');
+    console.log("Cache: Cleared all entries.");
   }
 
   /**
@@ -1768,7 +1761,8 @@ class InMemoryCache {
   /**
    * Starts a periodic cleanup process to remove expired entries.
    */
-  private startCleanup(intervalMs: number = 60 * 1000): void { // Run every minute
+  private startCleanup(intervalMs: number = 60 * 1000): void {
+    // Run every minute
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
     }
@@ -1794,7 +1788,7 @@ class InMemoryCache {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
-      console.log('Cache: Stopped automatic cleanup.');
+      console.log("Cache: Stopped automatic cleanup.");
     }
   }
 }
@@ -1806,10 +1800,10 @@ Here is an example using this in-memory cache:
 
 ```ts
 // src/app.ts
-import express from 'express';
-import InMemoryCache from './cache/InMemoryCache';
-import axios from 'axios'; // For making external API calls
-import rateLimit from 'express-rate-limit'; // Good practice with APIs
+import express from "express";
+import InMemoryCache from "./cache/InMemoryCache";
+import axios from "axios"; // For making external API calls
+import rateLimit from "express-rate-limit"; // Good practice with APIs
 
 const app = express();
 const port = 3000;
@@ -1821,65 +1815,70 @@ const apiCache = new InMemoryCache(60 * 1000);
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  message: "Too many requests from this IP, please try again after 15 minutes",
 });
 
-
 // Middleware for caching API responses
-app.get('/cached-posts', apiLimiter, async (req, res) => {
-  const cacheKey = 'all_posts'; // A simple key for all posts
+app.get("/cached-posts", apiLimiter, async (req, res) => {
+  const cacheKey = "all_posts"; // A simple key for all posts
 
   // 1. Try to get data from cache
   const cachedPosts = apiCache.get<any[]>(cacheKey);
   if (cachedPosts) {
-    console.log('Serving /cached-posts from cache');
-    return res.status(200).json({ source: 'cache', data: cachedPosts });
+    console.log("Serving /cached-posts from cache");
+    return res.status(200).json({ source: "cache", data: cachedPosts });
   }
 
   // 2. If not in cache, fetch from external API
-  console.log('Fetching /cached-posts from external API');
+  console.log("Fetching /cached-posts from external API");
   try {
-    const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
+    const response = await axios.get(
+      "https://jsonplaceholder.typicode.com/posts"
+    );
     const posts = response.data;
 
     // 3. Store in cache
     apiCache.set(cacheKey, posts); // Use default TTL (1 minute)
 
-    console.log('Serving /cached-posts from external API and caching it');
-    res.status(200).json({ source: 'external_api', data: posts });
+    console.log("Serving /cached-posts from external API and caching it");
+    res.status(200).json({ source: "external_api", data: posts });
   } catch (error: any) {
-    console.error('Error fetching posts:', error.message);
-    res.status(500).json({ error: 'Failed to fetch posts' });
+    console.error("Error fetching posts:", error.message);
+    res.status(500).json({ error: "Failed to fetch posts" });
   }
 });
 
 // A non-cached endpoint for comparison
-app.get('/uncached-posts', apiLimiter, async (req, res) => {
-  console.log('Fetching /uncached-posts from external API (no cache)');
+app.get("/uncached-posts", apiLimiter, async (req, res) => {
+  console.log("Fetching /uncached-posts from external API (no cache)");
   try {
-    const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
+    const response = await axios.get(
+      "https://jsonplaceholder.typicode.com/posts"
+    );
     const posts = response.data;
-    res.status(200).json({ source: 'external_api_uncached', data: posts });
+    res.status(200).json({ source: "external_api_uncached", data: posts });
   } catch (error: any) {
-    console.error('Error fetching uncached posts:', error.message);
-    res.status(500).json({ error: 'Failed to fetch posts' });
+    console.error("Error fetching uncached posts:", error.message);
+    res.status(500).json({ error: "Failed to fetch posts" });
   }
 });
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
   console.log(`Cached posts endpoint: http://localhost:${port}/cached-posts`);
-  console.log(`Uncached posts endpoint: http://localhost:${port}/uncached-posts`);
+  console.log(
+    `Uncached posts endpoint: http://localhost:${port}/uncached-posts`
+  );
 });
 
 // Important: Handle graceful shutdown to stop cache cleanup interval
-process.on('SIGINT', () => {
-  console.log('\nShutting down server...');
+process.on("SIGINT", () => {
+  console.log("\nShutting down server...");
   apiCache.stopCleanup();
   process.exit(0);
 });
-process.on('SIGTERM', () => {
-  console.log('\nShutting down server...');
+process.on("SIGTERM", () => {
+  console.log("\nShutting down server...");
   apiCache.stopCleanup();
   process.exit(0);
 });
@@ -1946,8 +1945,8 @@ Here's a custom file caching class:
 
 ```ts
 // src/cache/FileCache.ts
-import fs from 'fs/promises'; // Use promises-based fs
-import path from 'path';
+import fs from "fs/promises"; // Use promises-based fs
+import path from "path";
 
 interface FileCacheEntry {
   expiryTime: number; // Unix timestamp in milliseconds
@@ -1958,7 +1957,8 @@ class FileCache {
   private cacheDir: string;
   private defaultTtl: number; // Default TTL in milliseconds
 
-  constructor(cacheDir: string, defaultTtlMs: number = 5 * 60 * 1000) { // Default 5 mins
+  constructor(cacheDir: string, defaultTtlMs: number = 5 * 60 * 1000) {
+    // Default 5 mins
     this.cacheDir = cacheDir;
     this.defaultTtl = defaultTtlMs;
     // Ensure the cache directory exists
@@ -1968,12 +1968,12 @@ class FileCache {
   private getCacheFilePath(key: string): string {
     // Simple way to get a safe filename from a key. In production,
     // you might hash the key to ensure valid and unique filenames.
-    const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, "_");
     return path.join(this.cacheDir, `${safeKey}.json`);
   }
 
   private getMetaFilePath(key: string): string {
-    const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, "_");
     return path.join(this.cacheDir, `${safeKey}.meta.json`);
   }
 
@@ -1992,7 +1992,9 @@ class FileCache {
     try {
       await fs.writeFile(cacheFilePath, JSON.stringify(value));
       await fs.writeFile(metaFilePath, JSON.stringify({ expiryTime }));
-      console.log(`FileCache: Set key "${key}" with TTL ${effectiveTtl / 1000}s`);
+      console.log(
+        `FileCache: Set key "${key}" with TTL ${effectiveTtl / 1000}s`
+      );
     } catch (error) {
       console.error(`FileCache: Error setting key "${key}":`, error);
       throw error;
@@ -2010,7 +2012,7 @@ class FileCache {
 
     try {
       // Check if meta file exists and is valid first
-      const metaContent = await fs.readFile(metaFilePath, 'utf8');
+      const metaContent = await fs.readFile(metaFilePath, "utf8");
       const meta: FileCacheEntry = JSON.parse(metaContent);
 
       if (Date.now() >= meta.expiryTime) {
@@ -2021,14 +2023,14 @@ class FileCache {
       }
 
       // If meta is valid, read the data file
-      const fileContent = await fs.readFile(cacheFilePath, 'utf8');
+      const fileContent = await fs.readFile(cacheFilePath, "utf8");
       console.log(`FileCache: Hit for key "${key}"`);
       return JSON.parse(fileContent);
-
     } catch (error: any) {
       // If any file operation fails (e.g., file not found, JSON parse error)
       // or if it's an initial cache miss.
-      if (error.code === 'ENOENT') { // File not found
+      if (error.code === "ENOENT") {
+        // File not found
         console.log(`FileCache: Miss for key "${key}" (not found)`);
       } else {
         console.error(`FileCache: Error getting key "${key}":`, error);
@@ -2051,7 +2053,8 @@ class FileCache {
       await fs.unlink(metaFilePath);
       console.log(`FileCache: Deleted key "${key}"`);
     } catch (error: any) {
-      if (error.code !== 'ENOENT') { // Ignore "file not found" errors on delete
+      if (error.code !== "ENOENT") {
+        // Ignore "file not found" errors on delete
         console.error(`FileCache: Error deleting key "${key}":`, error);
       }
     }
@@ -2064,9 +2067,9 @@ class FileCache {
     try {
       await fs.rm(this.cacheDir, { recursive: true, force: true });
       await fs.mkdir(this.cacheDir, { recursive: true });
-      console.log('FileCache: Cleared all entries.');
+      console.log("FileCache: Cleared all entries.");
     } catch (error) {
-      console.error('FileCache: Error clearing cache:', error);
+      console.error("FileCache: Error clearing cache:", error);
     }
   }
 }
@@ -2077,7 +2080,6 @@ export default FileCache;
 ### cdn
 
 A Content Delivery Network (CDN) is a geographically distributed network of proxy servers and their data centers. The goal of a CDN is to serve content to users with high availability and high performance. Instead of a single origin server hosting all the content, a CDN caches content on multiple servers across the globe. When a user requests content, the CDN server closest to the user's location delivers the content.
-
 
 > [!NOTE]
 > Why a CDN? By serving data at "edge locations" - locations much closer to the end user - you can achieve faster server response speeds because the data travels a much shorter physical distance.
@@ -2091,7 +2093,7 @@ Here are the key components of a cdn:
 
 **cdn vs web host**
 
-It's important to distinguish between a CDN and a web hosting provider. A web host stores all of your website's files and serves them to users. A CDN, on the other hand, _caches_ specific content from your web host and distributes it across multiple servers. Think of your web host as the central library where all the books are stored, and the CDN as a network of smaller libraries that keep copies of the most popular books closer to readers.
+It's important to distinguish between a CDN and a web hosting provider. A web host stores all of your website's files and serves them to users. A CDN, on the other hand, *caches* specific content from your web host and distributes it across multiple servers. Think of your web host as the central library where all the books are stored, and the CDN as a network of smaller libraries that keep copies of the most popular books closer to readers.
 
 **how a cdn works**
 
@@ -2119,14 +2121,13 @@ Let's say a user in London visits `www.example.com`, which uses a CDN. The webs
 7. A user in Manchester then requests `logo.png`. The DNS directs the request to the closest edge server, which might also be the London server, or another edge server closer to Manchester.
 8. This edge server now has `logo.png` in its cache (a cache hit) and delivers it directly to the user in Manchester, without needing to contact the origin server.
 
-
 **cdn benefits summary**
 
 - **Compression:** CDNs can compress files (e.g., images, JavaScript, CSS) before delivering them to the user, reducing the file size and download time.
 - **HTTP/2 and HTTP/3 Support:** Modern CDNs support the latest HTTP protocols, such as HTTP/2 and HTTP/3, which offer significant performance improvements over HTTP/1.1, including multiplexing (allowing multiple requests to be sent over a single connection) and header compression.
 - **Connection Pooling:** CDNs maintain persistent connections to origin servers, reducing the overhead of establishing new connections for each request.
 - **TLS/SSL Optimization:** CDNs optimize TLS/SSL handshakes, reducing the time it takes to establish a secure connection.
-- **reduced latency**: serving on the edge closer to your user overcomes the physical speed problem of electricity, which can reduce dozens of milliseconds off of the inherent latency. 
+- **reduced latency**: serving on the edge closer to your user overcomes the physical speed problem of electricity, which can reduce dozens of milliseconds off of the inherent latency.
 - **reduced server load**: if you use CDNs, you have less users requesting resources from your server all the time, which leads to less server load and pressure.
 - **DDoS Protection:** Many CDNs offer robust protection against Distributed Denial of Service (DDoS) attacks, filtering malicious traffic before it reaches your server.
 - **High Availability:** If one CDN edge server goes down, traffic is automatically routed to another healthy server, ensuring continuous service.
@@ -2173,36 +2174,36 @@ This tells the CDN that it can cache the file and serve it for up to one week wi
 **1. On the CDN Provider's Dashboard:**
 
 - **Create a CDN Distribution/Service:**
-    - You'll typically create a new "distribution" (CloudFront term) or "service" (Fastly term).
+  - You'll typically create a new "distribution" (CloudFront term) or "service" (Fastly term).
 - **Specify Your Origin:**
-    - You tell the CDN where your original content lives. This will be the public URL or IP of your web server (e.g., yourserver.com or 123.45.67.89).
-    - You might specify specific paths to cache (e.g., /static/*).
+  - You tell the CDN where your original content lives. This will be the public URL or IP of your web server (e.g., yourserver.com or 123.45.67.89).
+  - You might specify specific paths to cache (e.g., /static/\*).
 - **Configure Caching Behavior:**
-    - **Default TTL/Max-Age:** Set how long the CDN should cache content by default if your origin doesn't specify Cache-Control.
-    - **Respect Origin Headers:** Crucially, configure the CDN to respect your origin's Cache-Control and Expires headers. This gives you granular control from your server (as we saw in Module 2).
-    - **Query String Handling:** Decide if query strings (e.g., ?v=123) should affect caching. Usually, you want them to be part of the cache key if you're using them for versioning.
+  - **Default TTL/Max-Age:** Set how long the CDN should cache content by default if your origin doesn't specify Cache-Control.
+  - **Respect Origin Headers:** Crucially, configure the CDN to respect your origin's Cache-Control and Expires headers. This gives you granular control from your server (as we saw in Module 2).
+  - **Query String Handling:** Decide if query strings (e.g., ?v=123) should affect caching. Usually, you want them to be part of the cache key if you're using them for versioning.
 - **Custom Domain (CNAME):**
-    - This is where you tell the CDN that you want to use a custom subdomain like static.yourdomain.com to point to their service. The CDN will provide you with a target hostname (e.g., d1234.cloudfront.net).
+  - This is where you tell the CDN that you want to use a custom subdomain like static.yourdomain.com to point to their service. The CDN will provide you with a target hostname (e.g., d1234.cloudfront.net).
 
 **2. Updating Your DNS Records:**
 
 - Go to your domain registrar or DNS management service (e.g., GoDaddy, Namecheap, Route 53).
 - Create a new **CNAME record**:
-    - **Host/Name:**static
-    - **Type:**CNAME
-    - **Value/Target:** The hostname provided by your CDN (e.g., d1234.cloudfront.net).
+  - **Host/Name:**static
+  - **Type:**CNAME
+  - **Value/Target:** The hostname provided by your CDN (e.g., d1234.cloudfront.net).
 - Save the record. DNS changes can take a few minutes to several hours to propagate globally.
 
-**3. Updating Your Website's Code (TypeScript/Node.js Context):**This is where you tell your frontend to request assets from the CDN's domain.In your Node.js/Express app, instead of linking to /static/style.css, you'd link to https://static.yourdomain.com/style.css.**Example in a Templating Engine (like EJS or Pug) or JSX (React):**If your Node.js application is rendering HTML, you'd change your asset URLs:
+**3. Updating Your Website's Code (TypeScript/Node.js Context):**This is where you tell your frontend to request assets from the CDN's domain.In your Node.js/Express app, instead of linking to /static/style.css, you'd link to https://static.yourdomain.com/style.css.**Example in a Templating Engine (like EJS or Pug) or JSX (React):\*\*If your Node.js application is rendering HTML, you'd change your asset URLs:
 
 ```html
 <!-- Before CDN -->
-<link rel="stylesheet" href="/css/main.css">
-<img src="/images/logo.png" alt="Logo">
+<link rel="stylesheet" href="/css/main.css" />
+<img src="/images/logo.png" alt="Logo" />
 
 <!-- After CDN (assuming your CDN is configured for static.yourdomain.com) -->
-<link rel="stylesheet" href="https://static.yourdomain.com/css/main.css">
-<img src="https://static.yourdomain.com/images/logo.png" alt="Logo">
+<link rel="stylesheet" href="https://static.yourdomain.com/css/main.css" />
+<img src="https://static.yourdomain.com/images/logo.png" alt="Logo" />
 ```
 
 **Dynamic CDN URL in TypeScript/Node.js:** You can make this dynamic using environment variables or configuration settings in your Node.js application.
@@ -2210,18 +2211,19 @@ This tells the CDN that it can cache the file and serve it for up to one week wi
 ```ts
 // config.ts
 export const config = {
-  cdnBaseUrl: process.env.NODE_ENV === 'production'
-    ? 'https://static.yourdomain.com'
-    : '', // Or a local URL for dev
+  cdnBaseUrl:
+    process.env.NODE_ENV === "production"
+      ? "https://static.yourdomain.com"
+      : "", // Or a local URL for dev
   // ... other configs
 };
 
 // In your Express app (assuming you're rendering templates or serving HTML)
-import { config } from './config';
+import { config } from "./config";
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   // If using a templating engine like EJS
-  res.render('index', {
+  res.render("index", {
     cssUrl: `${config.cdnBaseUrl}/css/main.css`,
     imageUrl: `${config.cdnBaseUrl}/images/logo.png`,
   });
@@ -2239,9 +2241,9 @@ app.get('/', (req, res) => {
 module.exports = {
   output: {
     // This tells webpack to prepend 'https://static.yourdomain.com' to asset URLs
-    publicPath: 'https://static.yourdomain.com/',
-    filename: '[name].[contenthash].js',
-    path: path.resolve(__dirname, 'dist'),
+    publicPath: "https://static.yourdomain.com/",
+    filename: "[name].[contenthash].js",
+    path: path.resolve(__dirname, "dist"),
   },
   // ... other configs
 };
@@ -2261,7 +2263,6 @@ Databases are often the bottleneck in web applications. Every time your applicat
 - **Reduced Network Latency:** If your database is on a different server (or even a different region/cloud availability zone) than your application, caching data locally or in a nearby caching layer reduces the network round-trip time for each data request.
 - **Cost Savings:** Less load on the database can mean you can run it on smaller, less expensive instances or delay costly horizontal scaling initiatives.
 
-
 **query caching vs object caching**
 
 When talking about database caching, it is extremely important to understand the difference between query caching and object caching.
@@ -2276,22 +2277,20 @@ When talking about database caching, it is extremely important to understand the
 - **when to use**: for frequent READ access of a resource by its primary key, returning a single record
 - **challenges**: Difficult cache invalidation when querying for multiple resources (more than one), and when querying by anything other than a unique key or primary key.
 
-> [!TIP]
-> **Recommendation:** For most applications, **object caching is generally preferred over query caching** due to its simpler invalidation and more intuitive alignment with object-oriented application design. Query caching is best left to be handled by highly optimized, specific layers (like a CDN for API responses) rather than being manually implemented within your application's database access layer.
-
+> [!TIP] > **Recommendation:** For most applications, **object caching is generally preferred over query caching** due to its simpler invalidation and more intuitive alignment with object-oriented application design. Query caching is best left to be handled by highly optimized, specific layers (like a CDN for API responses) rather than being manually implemented within your application's database access layer.
 
 #### Query caching
 
 - **Concept:** This involves caching the _results_ of specific database queries. When the exact same query is issued again, the cached result set is returned directly without hitting the database.
 - **Where it occurs:**
-    - **Within the database engine itself:** Some database systems (like older versions of MySQL) have a built-in query cache. However, many modern databases have removed or deprecated these (e.g., MySQL 8.0 removed its query cache) because they are notoriously difficult to invalidate effectively (a single row change can invalidate many cached queries).
-    - **At the ORM/Application level:** You implement logic in your application to cache the results of specific queries (e.g., store the array of Post objects returned by SELECT * FROM posts WHERE status = 'published').
-    - **Using dedicated caching layers:** Tools like Redis or Memcached can store query results, typically as serialized JSON or similar.
+  - **Within the database engine itself:** Some database systems (like older versions of MySQL) have a built-in query cache. However, many modern databases have removed or deprecated these (e.g., MySQL 8.0 removed its query cache) because they are notoriously difficult to invalidate effectively (a single row change can invalidate many cached queries).
+  - **At the ORM/Application level:** You implement logic in your application to cache the results of specific queries (e.g., store the array of Post objects returned by SELECT \* FROM posts WHERE status = 'published').
+  - **Using dedicated caching layers:** Tools like Redis or Memcached can store query results, typically as serialized JSON or similar.
 - **Pros:** Can provide a significant speedup if the exact same queries are run repeatedly and the underlying data changes infrequently.
 - **Cons:**
-    - **Strict Matching:** Most query caches require an _exact_ match of the query string, including whitespace and parameter order.
-    - **Invalidation Complexity:** The biggest challenge. If _any_ data involved in the query changes, the cached result becomes stale. Invalidating all affected queries can be very complex and resource-intensive, often leading to more performance problems than it solves. This is why database-level query caches are often problematic.
-    - **Large Result Sets:** Caching very large query results can consume significant memory.
+  - **Strict Matching:** Most query caches require an _exact_ match of the query string, including whitespace and parameter order.
+  - **Invalidation Complexity:** The biggest challenge. If _any_ data involved in the query changes, the cached result becomes stale. Invalidating all affected queries can be very complex and resource-intensive, often leading to more performance problems than it solves. This is why database-level query caches are often problematic.
+  - **Large Result Sets:** Caching very large query results can consume significant memory.
 
 **benefits**
 
@@ -2310,15 +2309,15 @@ When talking about database caching, it is extremely important to understand the
 
 - **Concept:** Instead of caching raw query results, you cache specific _objects_ or _entities_ that represent rows in your database. For example, caching a User object with ID 123 or a Product object with SKU XYZ.
 - **Where it occurs:**
-    - **ORM Level (1st/2nd Level Cache):** Many Object-Relational Mappers (ORMs) like TypeORM or Sequelize offer a first-level cache (within the current transaction/session) and sometimes a second-level cache (shared across the application).
-    - **Application Level with External Cache:** You fetch an object from the database, store it in an external cache (Redis/Memcached) under a key related to its ID (e.g., user:123, product:XYZ), and then retrieve it directly by ID from the cache on subsequent requests.
+  - **ORM Level (1st/2nd Level Cache):** Many Object-Relational Mappers (ORMs) like TypeORM or Sequelize offer a first-level cache (within the current transaction/session) and sometimes a second-level cache (shared across the application).
+  - **Application Level with External Cache:** You fetch an object from the database, store it in an external cache (Redis/Memcached) under a key related to its ID (e.g., user:123, product:XYZ), and then retrieve it directly by ID from the cache on subsequent requests.
 - **Pros:**
-    - **Easier Invalidation:** Invalidation is simpler because you invalidate by object ID. If User 123 changes, you just invalidate user:123 in the cache.
-    - **Flexible Access:** You can fetch an object by its ID from the cache, even if it was originally retrieved as part of a different query.
-    - **Reduced Serialization:** Often, ORMs work directly with objects, minimizing serialization overhead if cached within the ORM.
+  - **Easier Invalidation:** Invalidation is simpler because you invalidate by object ID. If User 123 changes, you just invalidate user:123 in the cache.
+  - **Flexible Access:** You can fetch an object by its ID from the cache, even if it was originally retrieved as part of a different query.
+  - **Reduced Serialization:** Often, ORMs work directly with objects, minimizing serialization overhead if cached within the ORM.
 - **Cons:**
-    - **"N+1 Query" problem mitigation:** Object caching is excellent for preventing N+1 queries for related data (e.g., fetching a user and then iterating to fetch each of their orders individually).
-    - **Still need queries for lists/searches:** You still need to query the database (or use query caching) for list pages or search results that return multiple objects based on criteria other than their primary ID.
+  - **"N+1 Query" problem mitigation:** Object caching is excellent for preventing N+1 queries for related data (e.g., fetching a user and then iterating to fetch each of their orders individually).
+  - **Still need queries for lists/searches:** You still need to query the database (or use query caching) for list pages or search results that return multiple objects based on criteria other than their primary ID.
 
 **Benefits of Object Caching**
 
@@ -2344,115 +2343,115 @@ This here is a code example of how to use object caching and querying caching in
  */
 
 class Cacher<T> {
-  protected cache: Map<string, T> = new Map()
+  protected cache: Map<string, T> = new Map();
 
   get(key: string): T | undefined {
-    return this.cache.get(key)
+    return this.cache.get(key);
   }
 
   set(key: string, value: T): void {
-    this.cache.set(key, value)
+    this.cache.set(key, value);
   }
 
   delete(key: string): void {
-    this.cache.delete(key)
+    this.cache.delete(key);
   }
 
   clear(): void {
-    this.cache.clear()
+    this.cache.clear();
   }
 
   size(): number {
-    return this.cache.size
+    return this.cache.size;
   }
 
   keys(): string[] {
-    return Array.from(this.cache.keys())
+    return Array.from(this.cache.keys());
   }
 
   values(): T[] {
-    return Array.from(this.cache.values())
+    return Array.from(this.cache.values());
   }
 }
 
 export class ObjectCacher<T> extends Cacher<T> {
-  async getCacheFirst(key: string, revalidate: () => Promise<T | null>): Promise<T | null> {
-    const cached = this.get(key)
+  async getCacheFirst(
+    key: string,
+    revalidate: () => Promise<T | null>
+  ): Promise<T | null> {
+    const cached = this.get(key);
     if (cached) {
-      return cached
+      return cached;
     }
-    const value = await revalidate()
+    const value = await revalidate();
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 
-  async getWithRevalidate(key: string, revalidate: () => Promise<T | null>): Promise<T | null> {
-    const cached = this.get(key)
+  async getWithRevalidate(
+    key: string,
+    revalidate: () => Promise<T | null>
+  ): Promise<T | null> {
+    const cached = this.get(key);
     if (cached) {
-      const value = await revalidate()
+      const value = await revalidate();
       if (value) {
-        this.set(key, value)
-        return value
-      }
-      else {
-        return cached
+        this.set(key, value);
+        return value;
+      } else {
+        return cached;
       }
     }
-    const value = await revalidate()
+    const value = await revalidate();
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 }
 
 export class QueryCacher<T> extends Cacher<T> {
   constructor(private exec: (query: string) => Promise<T | null>) {
-    super()
+    super();
   }
 
   async getCacheFirst(key: string): Promise<T | null> {
-    const cached = this.get(key)
+    const cached = this.get(key);
     if (cached) {
-      return cached
+      return cached;
     }
-    const value = await this.exec(key)
+    const value = await this.exec(key);
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 
   async getWithRevalidate(key: string): Promise<T | null> {
-    const cached = this.get(key)
+    const cached = this.get(key);
     if (cached) {
-      const value = await this.exec(key)
+      const value = await this.exec(key);
       if (value) {
-        this.set(key, value)
-        return value
-      }
-      else {
-        return cached
+        this.set(key, value);
+        return value;
+      } else {
+        return cached;
       }
     }
-    const value = await this.exec(key)
+    const value = await this.exec(key);
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 }
@@ -2463,30 +2462,30 @@ export class QueryCacher<T> extends Cacher<T> {
 This is arguably the most challenging aspect of database caching: ensuring cached data is always fresh and consistent with the underlying database. A stale cache can lead to users seeing incorrect information, which is worse than no cache at all.Here are common strategies, many of which TypeORM attempts to handle for you, but it's important to understand them:
 
 1. **Time-To-Live (TTL):**
-    - **Concept:** Each cache entry is given a maximum lifespan. After this time expires, the entry is automatically removed or marked as stale. The next request will then fetch fresh data from the database.
-    - **Pros:** Simplest to implement. Guarantees eventual consistency.
-    - **Cons:** Data can be stale for the duration of the TTL. Not suitable for rapidly changing data or data that needs immediate consistency. This is what cache: { duration: ... } uses in TypeORM.
+   - **Concept:** Each cache entry is given a maximum lifespan. After this time expires, the entry is automatically removed or marked as stale. The next request will then fetch fresh data from the database.
+   - **Pros:** Simplest to implement. Guarantees eventual consistency.
+   - **Cons:** Data can be stale for the duration of the TTL. Not suitable for rapidly changing data or data that needs immediate consistency. This is what `cache: { duration: ... }` uses in TypeORM.
 2. **Write-Through / Write-Back:**
-    - **Concept:**
-        - **Write-Through:** When data is written (updated/deleted) to the database, it's _also_ immediately written to (or deleted from) the cache. The write operation only completes after both operations are successful.
-        - **Write-Back:** Data is written only to the cache first. The cache then asynchronously writes the data to the database. Faster writes, but higher risk of data loss on cache crash before persistence. (Less common for primary application caching, more for specialized high-performance systems).
-    - **Pros (Write-Through):** Strong consistency. Cache always reflects the latest state of the database.
-    - **Cons:** Slower write operations because two operations must complete. More complex to manage errors.
-    - TypeORM's automatic invalidation on save/update/delete when cache: true is used for findOne queries is an example of a write-through pattern (it clears/updates the cache immediately on write).
+   - **Concept:**
+     - **Write-Through:** When data is written (updated/deleted) to the database, it's _also_ immediately written to (or deleted from) the cache. The write operation only completes after both operations are successful.
+     - **Write-Back:** Data is written only to the cache first. The cache then asynchronously writes the data to the database. Faster writes, but higher risk of data loss on cache crash before persistence. (Less common for primary application caching, more for specialized high-performance systems).
+   - **Pros (Write-Through):** Strong consistency. Cache always reflects the latest state of the database.
+   - **Cons:** Slower write operations because two operations must complete. More complex to manage errors.
+   - TypeORM's automatic invalidation on save/update/delete when cache: true is used for findOne queries is an example of a write-through pattern (it clears/updates the cache immediately on write).
 3. **Cache-Aside with Invalidation on Write:** (Most common for application-level caches)
-    - **Concept:** (As demonstrated in our in-memory cache and TypeORM setup)
-        - On read: Check cache first. If miss, read from DB, then populate cache.
-        - On write (update/delete): Write to the database first. _Then, explicitly invalidate (delete) the relevant entry from the cache._ The next read will be a cache miss, forcing a fresh fetch from the database.
-    - **Pros:** Simpler to implement than write-through if not directly integrated with ORM. Flexible. Good for consistency if invalidation is handled correctly.
-    - **Cons:** Requires careful management of invalidation. If you forget to invalidate, stale data will persist. This is the pattern you'll mostly implement manually if not using ORM's built-in features.
+   - **Concept:** (As demonstrated in our in-memory cache and TypeORM setup)
+     - On read: Check cache first. If miss, read from DB, then populate cache.
+     - On write (update/delete): Write to the database first. _Then, explicitly invalidate (delete) the relevant entry from the cache._ The next read will be a cache miss, forcing a fresh fetch from the database.
+   - **Pros:** Simpler to implement than write-through if not directly integrated with ORM. Flexible. Good for consistency if invalidation is handled correctly.
+   - **Cons:** Requires careful management of invalidation. If you forget to invalidate, stale data will persist. This is the pattern you'll mostly implement manually if not using ORM's built-in features.
 4. **Version-Based / Content Hashing:**
-    - **Concept:** Append a version number or a hash of the content to the cache key (e.g., user:123:v1, posts_published:hash123). When content changes, the version/hash changes, effectively creating a new cache key.
-    - **Pros:** Guarantees fresh data because the key itself changes. No explicit invalidation needed for old keys.
-    - **Cons:** Can lead to rapid cache growth (many old versions remaining until TTL). Requires application logic to manage versions/hashes. Less common for object caching directly within ORMs, but seen in distributed systems for larger objects.
+   - **Concept:** Append a version number or a hash of the content to the cache key (e.g., user:123:v1, posts_published:hash123). When content changes, the version/hash changes, effectively creating a new cache key.
+   - **Pros:** Guarantees fresh data because the key itself changes. No explicit invalidation needed for old keys.
+   - **Cons:** Can lead to rapid cache growth (many old versions remaining until TTL). Requires application logic to manage versions/hashes. Less common for object caching directly within ORMs, but seen in distributed systems for larger objects.
 5. **Event-Driven Invalidation (Pub/Sub):**
-    - **Concept:** When data changes in the database, the database (via triggers), an ORM hook, or an application service publishes an event (e.g., "Post 123 updated"). Cache listeners subscribe to these events and invalidate specific entries.
-    - **Pros:** Highly scalable and decoupled. Enables real-time invalidation across distributed cache instances.
-    - **Cons:** More complex to set up (requires a message queue like Kafka, RabbitMQ, or Redis Pub/Sub). Adds an additional point of failure.
+   - **Concept:** When data changes in the database, the database (via triggers), an ORM hook, or an application service publishes an event (e.g., "Post 123 updated"). Cache listeners subscribe to these events and invalidate specific entries.
+   - **Pros:** Highly scalable and decoupled. Enables real-time invalidation across distributed cache instances.
+   - **Cons:** More complex to set up (requires a message queue like Kafka, RabbitMQ, or Redis Pub/Sub). Adds an additional point of failure.
 
 ### Cache Invalidation Strategies
 
@@ -2505,22 +2504,21 @@ When implementing cache invalidation strategies, you need to pick the right one.
 - **Cache Size:** How large is your cache?
 - **Access Patterns:** How frequently is data accessed and updated?
 
-
 #### TTL (time to live)
 
 - **Concept:** Each cache entry is given a fixed duration for which it's considered valid. Once this time expires, the entry is automatically marked as stale and will be re-fetched from the origin on the next request.
 - **Mechanism:** Usually implemented by storing an expiryTime (timestamp) with each cache entry.
 - **Pros:**
-    - Simple to implement and manage.
-    - Guarantees eventual consistency (data will eventually be fresh).
-    - Requires no explicit invalidation logic on writes.
+  - Simple to implement and manage.
+  - Guarantees eventual consistency (data will eventually be fresh).
+  - Requires no explicit invalidation logic on writes.
 - **Cons:**
-    - Data can be stale for the duration of the TTL. If a TTL is 1 hour, updates won't reflect for up to an hour.
-    - Choosing the right TTL is crucial: too short, and you lose cache benefits; too long, and data stays stale for too long.
+  - Data can be stale for the duration of the TTL. If a TTL is 1 hour, updates won't reflect for up to an hour.
+  - Choosing the right TTL is crucial: too short, and you lose cache benefits; too long, and data stays stale for too long.
 - **Use Cases:**
-    - Data that changes infrequently (e.g., daily reports, rarely updated configurations).
-    - Data where slight staleness is acceptable (e.g., popular articles, non-critical dashboards).
-    - Browser caching max-age is a prime example.
+  - Data that changes infrequently (e.g., daily reports, rarely updated configurations).
+  - Data where slight staleness is acceptable (e.g., popular articles, non-critical dashboards).
+  - Browser caching max-age is a prime example.
 
 ##### Advantages of TTL
 
@@ -2544,59 +2542,58 @@ The ideal TTL value depends on several factors:
 
 - **Concept:** When the content of a resource changes, its URL is modified (e.g., by adding a version number, a timestamp, or a content hash as a query parameter or part of the filename).
 - **Mechanism:**
-    - style.css?v=1.0.0 becomes style.css?v=1.0.1
-    - bundle.js becomes bundle.1a2b3c4d.js
+  - style.css?v=1.0.0 becomes style.css?v=1.0.1
+  - bundle.js becomes bundle.1a2b3c4d.js
 - **Pros:**
-    - Highly effective for long-lived caches (like browser and CDN caches).
-    - No explicit invalidation needed; new URLs are simply new cache entries.
-    - Old versions remain cached, which can be useful for users still on old pages.
+  - Highly effective for long-lived caches (like browser and CDN caches).
+  - No explicit invalidation needed; new URLs are simply new cache entries.
+  - Old versions remain cached, which can be useful for users still on old pages.
 - **Cons:**
-    - Requires a build process or server-side logic to generate unique URLs.
-    - Can lead to many old, unused files accumulating on the server if not cleaned up.
-- **Use Cases:** Static assets (CSS, JS, images, fonts) served via browser cache or CDN.****
+  - Requires a build process or server-side logic to generate unique URLs.
+  - Can lead to many old, unused files accumulating on the server if not cleaned up.
+- **Use Cases:** Static assets (CSS, JS, images, fonts) served via browser cache or CDN.\*\*\*\*
 
 #### Write through / Write back
 
 - **Concept:** These strategies link cache updates directly to write operations on the origin.
 - **Write-Through:** On a write to the database, data is simultaneously written to the cache. Ensures cache and DB are always consistent.
-    - _Pros:_ High consistency.
-    - _Cons:_ Slower writes, more complex error handling (what if DB succeeds but cache fails?).
+  - _Pros:_ High consistency.
+  - _Cons:_ Slower writes, more complex error handling (what if DB succeeds but cache fails?).
 - **Write-Back:** Data is written to the cache first, then asynchronously synced to the database.
-    - _Pros:_ Faster writes.
-    - _Cons:_ Data loss risk on cache failure.
+  - _Pros:_ Faster writes.
+  - _Cons:_ Data loss risk on cache failure.
 - **Cache-Aside with Invalidation (Most Common):**
-    - **Read:** Check cache; if miss, read from DB, then populate cache.
-    - **Write:** Write to DB, then **explicitly invalidate (delete) the corresponding item(s) from the cache**.
-    - _Pros:_ Clear separation of concerns. Simpler than write-through. Good consistency.
-    - _Cons:_ Requires explicit invalidation logic; easy to forget. Potential for a "thundering herd" if many requests hit the cache simultaneously just after invalidation (they all miss and hit the origin at once).
+  - **Read:** Check cache; if miss, read from DB, then populate cache.
+  - **Write:** Write to DB, then **explicitly invalidate (delete) the corresponding item(s) from the cache**.
+  - _Pros:_ Clear separation of concerns. Simpler than write-through. Good consistency.
+  - _Cons:_ Requires explicit invalidation logic; easy to forget. Potential for a "thundering herd" if many requests hit the cache simultaneously just after invalidation (they all miss and hit the origin at once).
 - **Use Cases:** Data that changes frequently and needs to be highly consistent (e.g., product prices, user balances, inventory).
-
 
 #### Event driven invalidation
 
 Event-based invalidation involves invalidating the cache when a specific event occurs that changes the underlying data.
 
-> [!NOTE]
-> _Example:_
-> ****
+> [!NOTE] > _Example:_
+>
+> ---
+>
 > When a user updates their profile information, an event is triggered to invalidate the cached profile data. This ensures that the next time the user's profile is accessed, the updated information is retrieved from the database.
 
 - **Concept:** The underlying data source or the service responsible for its changes publishes an event when an update occurs. Cache services subscribe to these events and invalidate relevant entries upon receiving an event.
 - **Mechanism:** Requires a message queue or publish/subscribe system (e.g., Redis Pub/Sub, Kafka, RabbitMQ).
 - **Pros:**
-    - Highly scalable for distributed systems.
-    - Near real-time invalidation.
-    - Decouples the data source from the cache.
-    - Provides more immediate invalidation than TTL.
-    - Reduces the risk of serving stale data.
+  - Highly scalable for distributed systems.
+  - Near real-time invalidation.
+  - Decouples the data source from the cache.
+  - Provides more immediate invalidation than TTL.
+  - Reduces the risk of serving stale data.
 - **Cons:**
-    - Adds complexity to the architecture (another system to manage).
-    - Requires careful design of event granularity and listener logic.
+  - Adds complexity to the architecture (another system to manage).
+  - Requires careful design of event granularity and listener logic.
 - **Use Cases:** Large-scale microservices architectures, real-time data synchronization across many cache nodes.
 
 > [!TIP]
 > This approach is particularly useful in distributed systems where multiple services might be caching the same data.
-
 
 #### LRU, LFU, FIFO - cache eviction
 
@@ -2613,12 +2610,12 @@ And here are the main takeaways of cache eviction policies:
 - **Use Cases:** Any type of cache with a finite size (in-memory, Redis, Memcached).
 
 **LRU cache**
-****
+
+---
 
 LRU is a cache eviction policy that removes the least recently used items from the cache when the cache is full. While not strictly an invalidation strategy, it helps to ensure that the cache contains the most relevant data.
 
 Each time an item is accessed in the cache, its "recency" is updated. When the cache is full and a new item needs to be added, the LRU algorithm identifies the item that hasn't been accessed for the longest time and removes it to make space for the new item
-
 
 _Pros:_
 
@@ -2635,24 +2632,23 @@ _Cons:_
 One way to mitigate cache pollution is to use a variant of LRU called **LRU-K**. LRU-K tracks the last K accesses for each item, rather than just the most recent one. This makes the algorithm less susceptible to short bursts of infrequent accesses.
 
 **LFU cache**
-****
-LFU evicts the least frequently used items from the cache. Unlike LRU, which considers recency, LFU focuses on the overall access frequency.
 
+---
+
+LFU evicts the least frequently used items from the cache. Unlike LRU, which considers recency, LFU focuses on the overall access frequency.
 
 Each item in the cache maintains a counter that tracks how many times it has been accessed. When the cache is full, the item with the lowest access count is evicted.
 
-*Advantages*
+_Advantages_
 
 - **Prioritizes Frequently Used Items:** LFU ensures that the most frequently accessed items remain in the cache.
 
-*Cons*
+_Cons_
 
 - **Initial Learning Phase:** It takes time for LFU to accurately identify the most frequently used items.
 - **Can Retain Unpopular Items:** Items that were frequently accessed in the past but are no longer popular might remain in the cache for a long time.
 
-
 #### Cache Invalidation Class
-
 
 ```ts
 // src/cache/InMemoryCache.ts (modified)
@@ -2666,7 +2662,8 @@ class InMemoryCache {
   private cleanupInterval: NodeJS.Timeout | null = null;
   private defaultTtl: number; // Default TTL in milliseconds
 
-  constructor(defaultTtlMs: number = 5 * 60 * 1000) { // Default to 5 minutes
+  constructor(defaultTtlMs: number = 5 * 60 * 1000) {
+    // Default to 5 minutes
     this.defaultTtl = defaultTtlMs;
     this.startCleanup();
   }
@@ -2726,7 +2723,9 @@ class InMemoryCache {
         console.log(`[Cache] Invalidated key by prefix: "${key}"`);
       }
     }
-    console.log(`[Cache] Invalidated ${invalidatedCount} entries with prefix "${prefix}"`);
+    console.log(
+      `[Cache] Invalidated ${invalidatedCount} entries with prefix "${prefix}"`
+    );
     return invalidatedCount;
   }
 
@@ -2735,7 +2734,7 @@ class InMemoryCache {
    */
   public clear(): void {
     this.cache.clear();
-    console.log('[Cache] Cleared all entries.');
+    console.log("[Cache] Cleared all entries.");
   }
 
   public size(): number {
@@ -2765,7 +2764,7 @@ class InMemoryCache {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
-      console.log('[Cache] Stopped automatic cleanup.');
+      console.log("[Cache] Stopped automatic cleanup.");
     }
   }
 }
@@ -2776,8 +2775,8 @@ export default InMemoryCache;
 #### Important Caching Metrics
 
 - **Cache Hit Ratio:** This is the most important metric. It's the percentage of requests served directly from the cache (hits) versus those that had to go to the origin (misses).
-    - Hit Ratio = (Cache Hits / (Cache Hits + Cache Misses)) * 100
-    - A high hit ratio (e.g., 80-95% for static assets, 50-80% for dynamic content) indicates effective caching. A low ratio means your cache is not very useful.
+  - Hit Ratio = (Cache Hits / (Cache Hits + Cache Misses)) \* 100
+  - A high hit ratio (e.g., 80-95% for static assets, 50-80% for dynamic content) indicates effective caching. A low ratio means your cache is not very useful.
 - **Cache Size/Memory Usage:** How much memory or disk space is your cache consuming? Is it within acceptable limits?
 - **Eviction Rate:** How often are items being evicted from the cache (due to TTL, LRU, etc.)? A very high eviction rate might indicate your cache is too small or TTLs are too short.
 - **Network Latency (to Cache vs. Origin):** Compare the response times when data is served from the cache versus when it has to go to the database or external API.
@@ -2787,29 +2786,23 @@ export default InMemoryCache;
 In depth:
 
 - **Cache Hit Rate:** This is the most fundamental metric. It represents the percentage of requests that are served directly from the cache, without needing to access the origin server or database. A high hit rate indicates that the cache is effectively serving content, reducing latency and load on backend systems.
-    
-    - _Example:_ If your website receives 1000 requests and 800 are served from the cache, your cache hit rate is 80%.
-    - _Importance:_ A low hit rate suggests that your cache is not being utilized effectively, possibly due to aggressive invalidation, small cache size, or inappropriate caching strategies.
+  - *Example:* If your website receives 1000 requests and 800 are served from the cache, your cache hit rate is 80%.
+  - *Importance:* A low hit rate suggests that your cache is not being utilized effectively, possibly due to aggressive invalidation, small cache size, or inappropriate caching strategies.
 - **Cache Miss Rate:** This is the inverse of the cache hit rate. It represents the percentage of requests that result in a cache miss, requiring the system to fetch data from the origin server.
-    
-    - _Example:_ If your website receives 1000 requests and 200 result in a cache miss, your cache miss rate is 20%.
-    - _Importance:_ A high miss rate can negate the benefits of caching, increasing latency and load on backend systems. Analyzing the reasons for cache misses is crucial for optimizing your caching strategy.
+  - *Example:* If your website receives 1000 requests and 200 result in a cache miss, your cache miss rate is 20%.
+  - *Importance:* A high miss rate can negate the benefits of caching, increasing latency and load on backend systems. Analyzing the reasons for cache misses is crucial for optimizing your caching strategy.
 - **Cache Eviction Rate:** This metric indicates how frequently items are being removed from the cache to make room for new data. High eviction rates can suggest that your cache is too small or that your invalidation policy is too aggressive.
-    
-    - _Example:_ If your cache has a maximum capacity of 1000 items and evicts 100 items per hour, your eviction rate is 10% per hour (relative to the cache size).
-    - _Importance:_ Monitoring eviction rates helps you understand if your cache size is appropriate for your workload and if your eviction policy (e.g., LRU, TTL) is effective.
+  - *Example:* If your cache has a maximum capacity of 1000 items and evicts 100 items per hour, your eviction rate is 10% per hour (relative to the cache size).
+  - *Importance:* Monitoring eviction rates helps you understand if your cache size is appropriate for your workload and if your eviction policy (e.g., LRU, TTL) is effective.
 - **Cache Latency:** This measures the time it takes to retrieve data from the cache. Low latency is essential for a good user experience.
-    
-    - _Example:_ The average time to retrieve data from the cache is 2 milliseconds.
-    - _Importance:_ High cache latency can indicate performance bottlenecks within the caching system itself, such as slow storage media or inefficient data structures.
+  - *Example:* The average time to retrieve data from the cache is 2 milliseconds.
+  - *Importance:* High cache latency can indicate performance bottlenecks within the caching system itself, such as slow storage media or inefficient data structures.
 - **Cache Size/Capacity:** This refers to the total amount of storage available to the cache. Monitoring cache size helps you ensure that you have enough capacity to store frequently accessed data.
-    
-    - _Example:_ Your Redis cache is configured with a maximum memory limit of 10 GB.
-    - _Importance:_ If the cache is constantly full, it can lead to high eviction rates and reduced hit rates.
+  - *Example:* Your Redis cache is configured with a maximum memory limit of 10 GB.
+  - *Importance:* If the cache is constantly full, it can lead to high eviction rates and reduced hit rates.
 - **Resource Utilization (CPU, Memory, Network):** Monitoring the resources consumed by the caching system itself is important for identifying performance bottlenecks and ensuring that the cache is not negatively impacting other parts of your infrastructure.
-    
-    - _Example:_ The Redis server is consistently using 80% of available CPU.
-    - _Importance:_ High resource utilization can indicate that the caching system is overloaded and needs to be scaled up or optimized.
+  - *Example:* The Redis server is consistently using 80% of available CPU.
+  - *Importance:* High resource utilization can indicate that the caching system is overloaded and needs to be scaled up or optimized.
 
 ### Best practices for caching
 
@@ -2840,7 +2833,6 @@ The size of your cache is a critical factor in its performance. If the cache is 
 - **Determining the Optimal Size:** The optimal cache size depends on your workload and the amount of data you need to cache. You can use monitoring data to determine the appropriate size. Start with a reasonable estimate and then gradually increase or decrease the size based on the cache hit rate and eviction rate.
 - **Dynamic Cache Sizing:** Some caching systems support dynamic cache sizing, which automatically adjusts the cache size based on the workload. This can be useful for handling fluctuating traffic patterns.
 
-
 #### Mitigating the thundering herd
 
 The "cache stampede" is a critical performance bottleneck that can cripple web applications. It occurs when a large number of requests hit the cache simultaneously, find that the cached data is expired or missing, and then all attempt to regenerate the data at the same time. This sudden surge of requests overwhelms the backend servers, leading to slow response times, service degradation, or even complete failure. Understanding the causes of cache stampedes and implementing effective mitigation strategies is essential for building resilient and scalable web applications.
@@ -2851,16 +2843,15 @@ We have these mitigation strategies in place:
 
 This approach uses a lock (also known as a mutex) to ensure that only one process or thread can regenerate the cache at a time. When the cache expires, the first request acquires the lock, regenerates the data, updates the cache, and then releases the lock. Subsequent requests that arrive while the lock is held wait for the lock to be released and then retrieve the updated data from the cache.
 
-
 **Probabilistic Early Expiration (Stale-While-Revalidate)**
 
-Instead of waiting for the TTL to expire, this approach proactively refreshes the cache _before_ it expires. Each time a request hits the cache, the system checks if the remaining TTL is below a certain threshold. If it is, the system _asynchronously_ regenerates the cache in the background while still serving the stale data to the user. This ensures that the cache is refreshed before it actually expires, reducing the likelihood of a stampede.
+Instead of waiting for the TTL to expire, this approach proactively refreshes the cache *before* it expires. Each time a request hits the cache, the system checks if the remaining TTL is below a certain threshold. If it is, the system *asynchronously* regenerates the cache in the background while still serving the stale data to the user. This ensures that the cache is refreshed before it actually expires, reducing the likelihood of a stampede.
 
 **Thundering Herd Prevention**
 
 This strategy involves a single request being allowed to refresh the cache, while all other requests are temporarily held back. Once the cache is refreshed, the held-back requests are then served from the updated cache. This can be implemented using semaphores or similar synchronization primitives.
-#### Understand when to cache and how to cache
 
+#### Understand when to cache and how to cache
 
 **when to cache**
 
@@ -2910,6 +2901,7 @@ CDNs cache static content (e.g., images, CSS, JavaScript) on a network of server
 - **Benefits:** Reduced latency, improved user experience, reduced load on origin server.
 - **Drawbacks:** Cost, potential for stale data, added complexity.
 - **Use Cases:** Static assets, large files, geographically distributed users.
+
 ### Complete custom caching Utils
 
 ```ts
@@ -2917,8 +2909,8 @@ CDNs cache static content (e.g., images, CSS, JavaScript) on a network of server
  * A generic class that allows for object caching single database records.
  */
 
-import path from 'node:path'
-import { FileManager } from './CLI'
+import path from "node:path";
+import { FileManager } from "./CLI";
 
 export const ttlMap = {
   n_seconds: (n: number) => 1000 * n,
@@ -2928,68 +2920,70 @@ export const ttlMap = {
   n_weeks: (n: number) => 1000 * 60 * 60 * 24 * 7 * n,
   n_months: (n: number) => 1000 * 60 * 60 * 24 * 30 * n,
   n_years: (n: number) => 1000 * 60 * 60 * 24 * 365 * n,
-}
+};
 
 class Cacher<T> {
-  protected cache: Map<string, T> = new Map()
-  protected cacheWithTTL: Map<string, { value: T, expiresAt: Date }> = new Map()
+  protected cache: Map<string, T> = new Map();
+  protected cacheWithTTL: Map<string, { value: T; expiresAt: Date }> =
+    new Map();
 
-  constructor(protected ttl: number = ttlMap.n_days(1)) {
-  }
+  constructor(protected ttl: number = ttlMap.n_days(1)) {}
 
   setTTL(ttl: number): void {
-    this.ttl = ttl
+    this.ttl = ttl;
   }
 
   getWithTTL(key: string): T | undefined {
-    const cached = this.cacheWithTTL.get(key)
+    const cached = this.cacheWithTTL.get(key);
     if (cached) {
       if (cached.expiresAt > new Date()) {
-        return cached.value
-      }
-      else {
-        this.cacheWithTTL.delete(key)
-        return cached.value
+        return cached.value;
+      } else {
+        this.cacheWithTTL.delete(key);
+        return cached.value;
       }
     }
-    return undefined
+    return undefined;
   }
 
   setWithTTL(key: string, value: T, ttl: number): void {
-    this.cacheWithTTL.set(key, { value, expiresAt: new Date(Date.now() + ttl) })
+    this.cacheWithTTL.set(key, {
+      value,
+      expiresAt: new Date(Date.now() + ttl),
+    });
   }
 
   get(key: string): T | undefined {
-    return this.cache.get(key)
+    return this.cache.get(key);
   }
 
   set(key: string, value: T): void {
-    this.cache.set(key, value)
+    this.cache.set(key, value);
   }
 
   delete(key: string): void {
-    this.cache.delete(key)
+    this.cache.delete(key);
   }
 
   clear(): void {
-    this.cache.clear()
-    this.cacheWithTTL.clear()
+    this.cache.clear();
+    this.cacheWithTTL.clear();
   }
 
   size(): number {
-    return this.cache.size
+    return this.cache.size;
   }
 
   keys(): string[] {
-    return Array.from(this.cache.keys())
+    return Array.from(this.cache.keys());
   }
 
   values(): T[] {
-    return Array.from(this.cache.values())
+    return Array.from(this.cache.values());
   }
 
-  valuesWithTTL(): { value: T, expiresAt: Date }[] {
-    return Array.from(this.cacheWithTTL.values())
+  valuesWithTTL(): { value: T; expiresAt: Date }[] {
+    return Array.from(this.cacheWithTTL.values());
   }
 }
 
@@ -2997,172 +2991,183 @@ class Cacher<T> {
  * Map should be some arbitrary key to filepath.
  */
 export class Base64FileCacher extends Cacher<string> {
-  private cacheDirCreated = false
-  private withTTL: boolean = false
+  private cacheDirCreated = false;
+  private withTTL: boolean = false;
   constructor(private cacheDir: string, ttl: number | undefined) {
-    super(ttl)
+    super(ttl);
     if (ttl) {
-      this.withTTL = true
+      this.withTTL = true;
     }
   }
 
   private getCachePath(value: string): string {
-    return path.join(this.cacheDir, value)
+    return path.join(this.cacheDir, value);
   }
 
   private async upsertCacheDirectory() {
     if (!this.cacheDirCreated) {
-      await FileManager.createDirectory(this.cacheDir, { overwrite: false })
-      this.cacheDirCreated = true
+      await FileManager.createDirectory(this.cacheDir, { overwrite: false });
+      this.cacheDirCreated = true;
     }
   }
 
-  private async getCacheFile(key: string, options?: { withTTL: boolean }): Promise<string | null> {
-    await this.upsertCacheDirectory()
-    const value = options?.withTTL ? this.getWithTTL(key) : this.get(key)
+  private async getCacheFile(
+    key: string,
+    options?: { withTTL: boolean }
+  ): Promise<string | null> {
+    await this.upsertCacheDirectory();
+    const value = options?.withTTL ? this.getWithTTL(key) : this.get(key);
     if (!value) {
-      return null
+      return null;
     }
-    const cachePath = this.getCachePath(value)
+    const cachePath = this.getCachePath(value);
     try {
-      const content = await FileManager.readFileAsBase64(cachePath)
+      const content = await FileManager.readFileAsBase64(cachePath);
       if (!content) {
-        return null
+        return null;
+      } else {
+        console.log(`Cache hit for ${key}`);
+        return content;
       }
-      else {
-        console.log(`Cache hit for ${key}`)
-        return content
-      }
-    }
-    catch (error) {
-      console.error(`Error reading cache file ${cachePath}:`, error)
-      return null
+    } catch (error) {
+      console.error(`Error reading cache file ${cachePath}:`, error);
+      return null;
     }
   }
 
-  private async writeCacheFile(key: string, base64String: string, options?: { withTTL: boolean }) {
-    await this.upsertCacheDirectory()
-    const filename = options?.withTTL ? this.getWithTTL(key) : this.get(key)
+  private async writeCacheFile(
+    key: string,
+    base64String: string,
+    options?: { withTTL: boolean }
+  ) {
+    await this.upsertCacheDirectory();
+    const filename = options?.withTTL ? this.getWithTTL(key) : this.get(key);
     if (!filename) {
-      return
+      return;
     }
-    const cachePath = this.getCachePath(filename)
-    await FileManager.createFileFromBase64(cachePath, base64String, { overwrite: true })
+    const cachePath = this.getCachePath(filename);
+    await FileManager.createFileFromBase64(cachePath, base64String, {
+      overwrite: true,
+    });
   }
 
-  async getCacheFirst(key: string, options?: {
-    getBase64Revalidate: () => Promise<{
-      filename: string
-      base64String: string
-    } | null>
-  }): Promise<string | null> {
-    const cachedBase64 = await this.getCacheFile(key, { withTTL: this.withTTL })
+  async getCacheFirst(
+    key: string,
+    options?: {
+      getBase64Revalidate: () => Promise<{
+        filename: string;
+        base64String: string;
+      } | null>;
+    }
+  ): Promise<string | null> {
+    const cachedBase64 = await this.getCacheFile(key, {
+      withTTL: this.withTTL,
+    });
     if (cachedBase64) {
-      return cachedBase64
+      return cachedBase64;
     }
-    const data = await options?.getBase64Revalidate()
+    const data = await options?.getBase64Revalidate();
     if (!data) {
-      return null
-    }
-    else {
-      this.addFilenameToCache(key, data.filename)
-      await this.writeCacheFile(key, data.base64String, { withTTL: this.withTTL })
-      return data.base64String
+      return null;
+    } else {
+      this.addFilenameToCache(key, data.filename);
+      await this.writeCacheFile(key, data.base64String, {
+        withTTL: this.withTTL,
+      });
+      return data.base64String;
     }
   }
 
   addFilenameToCache(key: string, filename: string) {
     if (this.withTTL) {
-      this.setWithTTL(key, filename, this.ttl)
-    }
-    else {
-      this.set(key, filename)
+      this.setWithTTL(key, filename, this.ttl);
+    } else {
+      this.set(key, filename);
     }
   }
 }
 
 export class ObjectCacher<T> extends Cacher<T> {
-  async getCacheFirst(key: string, revalidate: () => Promise<T | null>): Promise<T | null> {
-    const cached = this.get(key)
+  async getCacheFirst(
+    key: string,
+    revalidate: () => Promise<T | null>
+  ): Promise<T | null> {
+    const cached = this.get(key);
     if (cached) {
-      return cached
+      return cached;
     }
-    const value = await revalidate()
+    const value = await revalidate();
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 
-  async getWithRevalidate(key: string, revalidate: () => Promise<T | null>): Promise<T | null> {
-    const cached = this.get(key)
+  async getWithRevalidate(
+    key: string,
+    revalidate: () => Promise<T | null>
+  ): Promise<T | null> {
+    const cached = this.get(key);
     if (cached) {
-      const value = await revalidate()
+      const value = await revalidate();
       if (value) {
-        this.set(key, value)
-        return value
-      }
-      else {
-        return cached
+        this.set(key, value);
+        return value;
+      } else {
+        return cached;
       }
     }
-    const value = await revalidate()
+    const value = await revalidate();
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 }
 
 export class QueryCacher<T> extends Cacher<T> {
   constructor(private exec: (query: string) => Promise<T | null>) {
-    super()
+    super();
   }
 
   async getCacheFirst(key: string): Promise<T | null> {
-    const cached = this.get(key)
+    const cached = this.get(key);
     if (cached) {
-      return cached
+      return cached;
     }
-    const value = await this.exec(key)
+    const value = await this.exec(key);
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 
   async getWithRevalidate(key: string): Promise<T | null> {
-    const cached = this.get(key)
+    const cached = this.get(key);
     if (cached) {
-      const value = await this.exec(key)
+      const value = await this.exec(key);
       if (value) {
-        this.set(key, value)
-        return value
-      }
-      else {
-        return cached
+        this.set(key, value);
+        return value;
+      } else {
+        return cached;
       }
     }
-    const value = await this.exec(key)
+    const value = await this.exec(key);
     if (!value) {
-      return null
-    }
-    else {
-      this.set(key, value)
-      return value
+      return null;
+    } else {
+      this.set(key, value);
+      return value;
     }
   }
 }
-
 ```
 
 ## Backend performance
@@ -3173,7 +3178,7 @@ export class QueryCacher<T> extends Cacher<T> {
 
 Memory leaks typically arise from errors in code that manages memory allocation and deallocation. Here are some common scenarios:
 
-- **Unreleased Objects:** Objects are created and allocated memory, but the program loses all references to them before freeing the memory. The garbage collector (in languages that have one) can't reclaim this memory because it still _thinks_ the object is in use.
+- **Unreleased Objects:** Objects are created and allocated memory, but the program loses all references to them before freeing the memory. The garbage collector (in languages that have one) can't reclaim this memory because it still *thinks* the object is in use.
 - **Circular References:** Two or more objects hold references to each other, preventing the garbage collector from identifying them as unused, even if no other part of the application references them.
 - **Unclosed Resources:** Resources like file handles, network connections, and database connections consume memory. Failing to close these resources after use can lead to memory leaks.
 - **Event Listeners:** In languages with event-driven architectures, failing to remove event listeners can keep objects alive longer than necessary, leading to memory leaks.
@@ -3184,6 +3189,7 @@ Memory leaks typically arise from errors in code that manages memory allocation 
 - **Avoid using global variables unnecessarily.** Global variables can prevent memory from being released because they are always in scope. Instead, use local variables with limited scope.
 - **use object pools**: For frequently created and destroyed objects, consider using object pools. Object pools can reduce memory allocation overhead by reusing existing objects instead of creating new ones.
 - **avoid circular references**: Be careful when creating circular references between objects. If possible, avoid circular references altogether. If you must use them, consider using weak references to break the cycle and allow the garbage collector to reclaim the memory.
+
 #### Excessive creating and deletion of objects
 
 **Concept:** "Improper Instantiation" refers to the anti-pattern where an application unnecessarily creates new objects or allocates new resources, often repeatedly, when existing or shared resources could be reused or when the object creation is simply not needed. This includes:
@@ -3208,8 +3214,7 @@ This anti-pattern is particularly prevalent in languages with automatic garbage 
 - Rapidly increasing memory usage graphs (sawtooth pattern, where memory climbs then drops sharply after GC).
 - Overall application sluggishness.
 
-> [!TIP]
-> **Key Takeaway for Improper Instantiation:** Be mindful of where and when you create objects, especially within hot code paths (frequently called functions or loops). If an object is stateless, thread-safe, and expensive to create, use a singleton pattern or inject a single instance. If it's a simple temporary object that doesn't need to be recreated, consider if its allocation can be moved out of a loop or avoided altogether.
+> [!TIP] > **Key Takeaway for Improper Instantiation:** Be mindful of where and when you create objects, especially within hot code paths (frequently called functions or loops). If an object is stateless, thread-safe, and expensive to create, use a singleton pattern or inject a single instance. If it's a simple temporary object that doesn't need to be recreated, consider if its allocation can be moved out of a loop or avoided altogether.
 
 #### Resource Contention
 
@@ -3248,50 +3253,49 @@ TDLR:
 Addressing the Noisy Neighbor anti-pattern requires a combination of architectural, operational, and code-level strategies:
 
 1. **Resource Isolation / Dedicated Resources:**
-    - **Concept:** Provide dedicated resources for critical components or different applications to prevent them from interfering with each other.
-    - **Strategies:**
-        - **Separate VMs/Containers:** Run different services on separate virtual machines or containers (e.g., Docker, Kubernetes Pods) with defined resource limits.
-        - **Dedicated Database Instances:** Give each major service its own database instance or schema.
-        - **Cloud Services:** Leverage managed cloud services that handle resource allocation and isolation (e.g., AWS RDS for databases, ECS/EKS for containers).
-        - **Microservices Architecture:** Encourages isolation by deploying services independently.
-    - **Pros:** Strongest isolation, high predictability.
-    - **Cons:** Higher infrastructure costs, increased operational overhead.
+   - **Concept:** Provide dedicated resources for critical components or different applications to prevent them from interfering with each other.
+   - **Strategies:**
+     - **Separate VMs/Containers:** Run different services on separate virtual machines or containers (e.g., Docker, Kubernetes Pods) with defined resource limits.
+     - **Dedicated Database Instances:** Give each major service its own database instance or schema.
+     - **Cloud Services:** Leverage managed cloud services that handle resource allocation and isolation (e.g., AWS RDS for databases, ECS/EKS for containers).
+     - **Microservices Architecture:** Encourages isolation by deploying services independently.
+   - **Pros:** Strongest isolation, high predictability.
+   - **Cons:** Higher infrastructure costs, increased operational overhead.
 2. **Resource Throttling / Rate Limiting:**
-    - **Concept:** Limit the rate at which a specific component or user can consume a shared resource.
-    - **Strategies:**
-        - **API Rate Limiting:** Limit the number of requests per second for certain API endpoints.
-        - **Concurrency Limits:** Limit the number of concurrent database connections a service can open or the number of concurrent operations in a thread pool.
-        - **Queueing:** Put excessive requests into a queue to be processed at a controlled rate, preventing resource saturation.
-    - **Pros:** Prevents single components from monopolizing resources.
-    - **Cons:** Can lead to rejected requests or increased latency if limits are too low.
+   - **Concept:** Limit the rate at which a specific component or user can consume a shared resource.
+   - **Strategies:**
+     - **API Rate Limiting:** Limit the number of requests per second for certain API endpoints.
+     - **Concurrency Limits:** Limit the number of concurrent database connections a service can open or the number of concurrent operations in a thread pool.
+     - **Queueing:** Put excessive requests into a queue to be processed at a controlled rate, preventing resource saturation.
+   - **Pros:** Prevents single components from monopolizing resources.
+   - **Cons:** Can lead to rejected requests or increased latency if limits are too low.
 3. **Prioritization and Quality of Service (QoS):**
-    - **Concept:** Assign higher priority to critical tasks or services, allowing them to access shared resources preferentially.
-    - **Strategies:**
-        - **Separate Thread Pools:** Use different thread pools for high-priority vs. low-priority tasks.
-        - **Weighted Load Balancing:** Route more traffic to healthier or less loaded instances.
-        - **Traffic Shaping:** Prioritize certain types of network traffic.
-    - **Pros:** Ensures critical functions remain performant.
-    - **Cons:** Can starve lower-priority tasks, increasing their latency.
+   - **Concept:** Assign higher priority to critical tasks or services, allowing them to access shared resources preferentially.
+   - **Strategies:**
+     - **Separate Thread Pools:** Use different thread pools for high-priority vs. low-priority tasks.
+     - **Weighted Load Balancing:** Route more traffic to healthier or less loaded instances.
+     - **Traffic Shaping:** Prioritize certain types of network traffic.
+   - **Pros:** Ensures critical functions remain performant.
+   - **Cons:** Can starve lower-priority tasks, increasing their latency.
 4. **Performance Profiling and Optimization:**
-    - **Concept:** Identify the exact source of the "noise" (e.g., a specific slow query, a memory-intensive calculation) and optimize it.
-    - **Strategies:**
-        - **Code Profiling:** Use tools (e.g., Node.js perf_hooks, v8-profiler) to identify CPU-intensive functions.
-        - **Database Query Optimization:** Identify and optimize slow queries (missing indexes, inefficient joins).
-        - **Memory Profiling:** Find and fix memory leaks or excessive allocations.
-        - **I/O Monitoring:** Pinpoint excessive disk or network I/O operations.
-    - **Pros:** Addresses the root cause of the noise.
-    - **Cons:** Requires specialized skills and tools.
+   - **Concept:** Identify the exact source of the "noise" (e.g., a specific slow query, a memory-intensive calculation) and optimize it.
+   - **Strategies:**
+     - **Code Profiling:** Use tools (e.g., Node.js perf_hooks, v8-profiler) to identify CPU-intensive functions.
+     - **Database Query Optimization:** Identify and optimize slow queries (missing indexes, inefficient joins).
+     - **Memory Profiling:** Find and fix memory leaks or excessive allocations.
+     - **I/O Monitoring:** Pinpoint excessive disk or network I/O operations.
+   - **Pros:** Addresses the root cause of the noise.
+   - **Cons:** Requires specialized skills and tools.
 5. **Monitoring and Alerting:**
-    - **Concept:** Continuously monitor shared resource utilization and set up alerts for abnormal behavior.
-    - **Strategies:**
-        - **Centralized Logging:** Aggregate logs from all services to trace issues.
-        - **APM Tools:** Use tools like Prometheus, Grafana, Datadog, New Relic to monitor CPU, memory, I/O, network, and database metrics.
-        - **Alerts:** Notify operations teams when resource thresholds are breached.
-    - **Pros:** Early detection of noisy neighbor problems.
-    - **Cons:** Requires investment in monitoring infrastructure.
+   - **Concept:** Continuously monitor shared resource utilization and set up alerts for abnormal behavior.
+   - **Strategies:**
+     - **Centralized Logging:** Aggregate logs from all services to trace issues.
+     - **APM Tools:** Use tools like Prometheus, Grafana, Datadog, New Relic to monitor CPU, memory, I/O, network, and database metrics.
+     - **Alerts:** Notify operations teams when resource thresholds are breached.
+   - **Pros:** Early detection of noisy neighbor problems.
+   - **Cons:** Requires investment in monitoring infrastructure.
 
 By applying these strategies, you can minimize the impact of noisy neighbors and ensure a more predictable and stable performance profile for your applications. It often involves a trade-off between isolation (higher cost, more complexity) and sharing (lower cost, higher risk of contention).
-
 
 ### Retry Storm
 
@@ -3325,8 +3329,8 @@ The **Circuit Breaker pattern** is a crucial design pattern to prevent the "Retr
 1. **Closed:** (Normal operation) Requests pass through to the downstream service. If a failure threshold is met (e.g., N consecutive failures, or a certain error rate within a time window), the circuit transitions to **Open**.
 2. **Open:** (Tripped state) All requests are immediately rejected by the circuit breaker (fail fast). No requests are sent to the downstream service. After a defined **sleep window** (e.g., 5 seconds), it transitions to **Half-Open**.
 3. **Half-Open:** (Test state) A single, probationary request is allowed to pass through to the downstream service.
-    - If this request succeeds, the circuit transitions back to **Closed**.
-    - If this request fails, the circuit immediately transitions back to **Open** for another sleep window.
+   - If this request succeeds, the circuit transitions back to **Closed**.
+   - If this request fails, the circuit immediately transitions back to **Open** for another sleep window.
 
 **Why it's a Solution:**
 
@@ -3373,21 +3377,19 @@ Doing something like fetching all records from a table or collection without a f
 
 ```ts
 // BAD: Fetches all users, then filters in memory
-const users = await db.query('SELECT * FROM users');
-const active = users.filter(u => u.active);
+const users = await db.query("SELECT * FROM users");
+const active = users.filter((u) => u.active);
 ```
 
 - **mistake 1**: will load potentially millions of records in memory if the `users` table is big.
-
 
 **2) no caching**
 
 Frequent, redundant queries slow down your app and your database. For data that doesn't change often and isn't dependent on any dynamic user data or request bodies, you can easily cache that.
 
-
 ```ts
 // BAD: Always hits the database
-app.get('/products/:id', async (req, res) => {
+app.get("/products/:id", async (req, res) => {
   const product = await db.getProductById(req.params.id);
   res.json(product);
 });
@@ -3396,22 +3398,20 @@ app.get('/products/:id', async (req, res) => {
 > [!NOTE]
 > A prime candidate for a route like this is an in-memory LRU cache or redis-implementation of it.
 
-
 **blocking operations (Synchronous I/O)**
 
 Synchronous code blocks the event loop, making your backend unresponsive to other requests.
 
-
 ```ts
 // BAD: Synchronous file read in a Node.js request handler
-app.get('/config', (req, res) => {
-  const config = fs.readFileSync('config.json', 'utf8'); // blocks event loop!
+app.get("/config", (req, res) => {
+  const config = fs.readFileSync("config.json", "utf8"); // blocks event loop!
   res.json(JSON.parse(config));
 });
 ```
 
 - **mistake 1**: reading a file synchronously. I/O work should never be done synchronously
-- **mistake 2:** using `JSON.parse()` on potentially large amounts of data. Since `JSON.parse()` is synchronous, it will block the event loop even when used in an async method. 
+- **mistake 2:** using `JSON.parse()` on potentially large amounts of data. Since `JSON.parse()` is synchronous, it will block the event loop even when used in an async method.
 
 To solve these issues, there are these mitigations:
 
@@ -3422,7 +3422,7 @@ To solve these issues, there are these mitigations:
 
 **Common Causes leading to a slow Database:**
 
-- **Inefficient Queries:** As we'll discuss, SELECT *, N+1 queries, missing indexes, complex joins without proper optimization.
+- **Inefficient Queries:** As we'll discuss, SELECT \*, N+1 queries, missing indexes, complex joins without proper optimization.
 - **Lack of Caching:** No application-level or database-level caching, forcing every read to hit the disk.
 - **High Write Volume:** Too many concurrent write operations on critical tables without proper transaction management.
 - **Schema Design Issues:** Non-normalized data, poor data types, lack of primary/foreign keys.
@@ -3430,7 +3430,7 @@ To solve these issues, there are these mitigations:
 - **Lack of Archiving/Purging:** Databases grow excessively large with old, unused data, making queries slower.
 - **Reporting Queries:** Running complex, analytical queries directly on the production OLTP (Online Transaction Processing) database.
 
-####  Chatty I/O: Reducing Database Round Trips
+#### Chatty I/O: Reducing Database Round Trips
 
 **Concept:** "Chatty I/O" (or "Chatty Database Interactions") refers to an anti-pattern where an application makes an excessive number of small, inefficient requests to the database to retrieve or update data that could be fetched or manipulated in fewer, larger, and more efficient operations. This is also often referred to as the **"N+1 Query Problem"**.Each database request (round trip) incurs overhead: network latency, connection pool acquisition, query parsing, execution plan generation, and result set transfer. Accumulating many small round trips adds up quickly, severely impacting performance.**Why it's a problem:**
 
@@ -3442,12 +3442,10 @@ To solve these issues, there are these mitigations:
 **Common Manifestations (The N+1 Query Problem):**This is the quintessential example of Chatty I/O. It typically occurs when you fetch a list of "parent" entities, and then, for each parent, you execute a _separate query_ to fetch its related "child" entities.
 
 - **Example 1: Fetching Users and Their Posts:**
-    
-    1. Query: SELECT * FROM users; (fetches 100 users)
-    2. Loop through each user:
-        - Query: SELECT * FROM posts WHERE userId = <user_id>; (100 separate queries)
-    
-    - **Total:** 1 (for users) + N (for each user's posts) = N+1 queries.
+  1. Query: SELECT \* FROM users; (fetches 100 users)
+  2. Loop through each user:
+     - Query: SELECT \* FROM posts WHERE userId = `<user_id>`; (100 separate queries)
+  - **Total:** 1 (for users) + N (for each user's posts) = N+1 queries.
 - **Example 2: Populating an Object Graph:**An ORM might be configured to lazily load relationships. If you then iterate through a collection and access a lazily loaded related object for each item, it triggers an N+1.
 
 **Symptoms of Chatty I/O / N+1:**
@@ -3460,19 +3458,17 @@ To solve these issues, there are these mitigations:
 **mitigations of chatty IO**
 
 - **Batching:** Combine multiple small operations into a single, larger operation.
-    - Database: Use IN clauses, bulk inserts/updates.
-    - APIs: Design APIs that allow fetching multiple resources in one request.
-    - File System: Buffer writes, read whole files/chunks.
+  - Database: Use IN clauses, bulk inserts/updates.
+  - APIs: Design APIs that allow fetching multiple resources in one request.
+  - File System: Buffer writes, read whole files/chunks.
 - **Buffering:** Accumulate data in memory before performing an I/O operation (e.g., log buffering).
 - **Caching:** Store frequently accessed I/O results (e.g., API responses, file contents) in memory.
 - **Connection Pooling:** Reuse established connections (database connection pools, HTTP connection pooling).
 - **Event-Driven / Long Polling:** For message queues or real-time updates, use event-driven consumers or long-polling instead of frequent short poll
 
-
 ##### Mitigation: Procedures
 
 Stored procedures are precompiled SQL code stored within the database. They can perform multiple operations in a single call, reducing network traffic and improving performance.
-
 
 ```sql
 -- Example of a stored procedure to process an order
@@ -3505,12 +3501,11 @@ EXEC ProcessOrder @customer_id = 123, @order_id = 456;
 
 ##### N+1 query
 
-The N+1 query problem is a common performance bottleneck in web applications that interact with databases. It arises when an application executes one query to retrieve a list of records, and then executes additional queries (one for each record) to fetch related data. 
+The N+1 query problem is a common performance bottleneck in web applications that interact with databases. It arises when an application executes one query to retrieve a list of records, and then executes additional queries (one for each record) to fetch related data.
 
 This can lead to a significant increase in the number of database queries, especially when dealing with large datasets, severely impacting application performance and scalability. Understanding how to identify and resolve this antipattern is crucial for building efficient and responsive web applications.
 
 Here are the issues the N+1 query problem leads to:
-
 
 - **Increased Database Load:** The database server has to handle a large number of small queries, which can strain its resources.
 - **Network Latency:** Each query involves network communication between the application server and the database server. The overhead of multiple round trips can significantly increase response times.
@@ -3520,83 +3515,83 @@ Here are the issues the N+1 query problem leads to:
 Here is an example of the N+1 query in action
 
 ```ts
-    // --- Anti-Pattern: N+1 Query ---
-    app.get('/posts-chatty', async (req, res) => {
-      console.log('\n--- /posts-chatty: Demonstrating N+1 Query Anti-Pattern ---');
-      try {
-        // Step 1: Fetch all posts
-        const posts = await postRepository.find(); // A single query: SELECT * FROM posts
+// --- Anti-Pattern: N+1 Query ---
+app.get("/posts-chatty", async (req, res) => {
+  console.log("\n--- /posts-chatty: Demonstrating N+1 Query Anti-Pattern ---");
+  try {
+    // Step 1: Fetch all posts
+    const posts = await postRepository.find(); // A single query: SELECT * FROM posts
 
-        const results = [];
-        // Step 2: For EACH post, fetch its author. This is the N+1 problem.
-        for (const post of posts) {
-          // This will trigger a separate SELECT for each author if not cached
-          const author = await userRepository.findOne({ where: { id: post.author.id } }); // N queries: SELECT * FROM users WHERE id = X
-          results.push({
-            id: post.id,
-            title: post.title,
-            content: post.content,
-            authorName: author ? author.name : 'Unknown',
-          });
-        }
-        res.json(results);
-      } catch (error: any) {
-        console.error('Error in /posts-chatty:', error.message);
-        res.status(500).json({ error: 'Failed to fetch posts (chatty)' });
-      }
-    });
+    const results = [];
+    // Step 2: For EACH post, fetch its author. This is the N+1 problem.
+    for (const post of posts) {
+      // This will trigger a separate SELECT for each author if not cached
+      const author = await userRepository.findOne({
+        where: { id: post.author.id },
+      }); // N queries: SELECT * FROM users WHERE id = X
+      results.push({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        authorName: author ? author.name : "Unknown",
+      });
+    }
+    res.json(results);
+  } catch (error: any) {
+    console.error("Error in /posts-chatty:", error.message);
+    res.status(500).json({ error: "Failed to fetch posts (chatty)" });
+  }
+});
 ```
 
 And here is a mitigation: use batching to do a conditional query fetching multiple children records at a time based on an array of IDs.
 
 ```ts
-    // --- Solution 2: Manual Batching (Less common with ORMs, but good for raw SQL or specific cases) ---
-    app.get('/posts-batch', async (req, res) => {
-      console.log('\n--- /posts-batch: Fixing N+1 with Manual Batching ---');
-      try {
-        const posts = await postRepository.find();
-        if (posts.length === 0) {
-          return res.json([]);
-        }
+// --- Solution 2: Manual Batching (Less common with ORMs, but good for raw SQL or specific cases) ---
+app.get("/posts-batch", async (req, res) => {
+  console.log("\n--- /posts-batch: Fixing N+1 with Manual Batching ---");
+  try {
+    const posts = await postRepository.find();
+    if (posts.length === 0) {
+      return res.json([]);
+    }
 
-        // Extract all unique author IDs
-        const authorIds = [...new Set(posts.map(post => post.author.id))];
+    // Extract all unique author IDs
+    const authorIds = [...new Set(posts.map((post) => post.author.id))];
 
-        // Fetch all authors in a single query using 'IN' clause
-        const authors = await userRepository.findBy({
-          id: In(authorIds) // Using TypeORM's In operator for WHERE IN (id1, id2, ...)
-        });
-        const authorMap = new Map(authors.map(author => [author.id, author]));
-
-        const results = posts.map(post => ({
-          id: post.id,
-          title: post.title,
-          content: post.content,
-          authorName: authorMap.get(post.author.id)?.name || 'Unknown',
-        }));
-        res.json(results);
-      } catch (error: any) {
-        console.error('Error in /posts-batch:', error.message);
-        res.status(500).json({ error: 'Failed to fetch posts (batch)' });
-      }
+    // Fetch all authors in a single query using 'IN' clause
+    const authors = await userRepository.findBy({
+      id: In(authorIds), // Using TypeORM's In operator for WHERE IN (id1, id2, ...)
     });
+    const authorMap = new Map(authors.map((author) => [author.id, author]));
+
+    const results = posts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      authorName: authorMap.get(post.author.id)?.name || "Unknown",
+    }));
+    res.json(results);
+  } catch (error: any) {
+    console.error("Error in /posts-batch:", error.message);
+    res.status(500).json({ error: "Failed to fetch posts (batch)" });
+  }
+});
 ```
 
 #### `SELECT *` antipattern (fetching all columns)
 
-
 The `SELECT *` antipattern is a common mistake in database querying that can significantly impact backend performance. It involves retrieving all columns from a table when only a subset of those columns is actually needed. This seemingly small inefficiency can lead to increased I/O, memory consumption, and network traffic, especially when dealing with large tables or complex queries. Understanding and avoiding this antipattern is crucial for building efficient and scalable web applications.
 
-- **Problem:** Fetching all columns from a table (SELECT *) when you only need a few. This transfers more data over the network, consumes more memory, and potentially makes the database do more work.
+- **Problem:** Fetching all columns from a table (SELECT \*) when you only need a few. This transfers more data over the network, consumes more memory, and potentially makes the database do more work.
 - **Solution:** Always specify only the columns you need: SELECT id, name, email FROM users;.
 - **TypeORM:** Use the select option in find or findOne:
-    
-    ```ts
-    // GOOD: only fetch what we need
-    const users = await userRepository.find({
-      select: ['id', 'name', 'email'],
-    })
-    ```
+  ```ts
+  // GOOD: only fetch what we need
+  const users = await userRepository.find({
+    select: ["id", "name", "email"],
+  });
+  ```
 
 Here are the negatives of the `SELECT *` antipattern:
 
@@ -3611,8 +3606,8 @@ Here are the negatives of the `SELECT *` antipattern:
 
 **Large Offset/Limit Queries (Pagination):**
 
-- **Problem:** For large tables, queries like SELECT * FROM products ORDER BY id LIMIT 10 OFFSET 100000; become incredibly slow because the database still has to scan and sort 100,000 records before returning the next 10.
-- **Solution:** Use "keyset pagination" (also known as "cursor-based pagination"). Instead of an offset, use the WHERE clause based on the last fetched item's ID or timestamp: SELECT * FROM products WHERE id > <last_id> ORDER BY id LIMIT 10;. This uses indexes much more efficiently.
+- **Problem:** For large tables, queries like SELECT \* FROM products ORDER BY id LIMIT 10 OFFSET 100000; become incredibly slow because the database still has to scan and sort 100,000 records before returning the next 10.
+- **Solution:** Use "keyset pagination" (also known as "cursor-based pagination"). Instead of an offset, use the WHERE clause based on the last fetched item's ID or timestamp: SELECT \* FROM products WHERE id > `<last_id>` ORDER BY id LIMIT 10;. This uses indexes much more efficiently.
 
 ### Server Antipatterns
 
@@ -3640,7 +3635,6 @@ The "Large Payload" antipattern manifests when an API sends more data than is st
 
 - **file compression**: Compress text and files the server sends to the client using GZIP or brotli.
 
-
 ## How databases work
 
 ### Intro
@@ -3656,22 +3650,21 @@ favicon: ""
 aspectRatio: "61.478599221789885"
 ```
 
-
-A standard table in SQL has rows and columns, but the database behind the scenes uniquely identifies each row by giving each row its own id. 
+A standard table in SQL has rows and columns, but the database behind the scenes uniquely identifies each row by giving each row its own id.
 
 Each database provider like MySQl or PostgreSQL has its own unique way of actually defining how the unique row id gets implemented, like whether it gets its unique id from the primary key of the record or as a randomly generated id.
 
 ![](https://www.deepintodev.com/_next/image?url=%2Fimages%2Fhow-databases-store-your-tables-on-disk%2Ftable2.png&w=1200&q=75)
 
 #### **storage models**
-****
+
+---
 
 A **storage model** refers to the design in a database of how the data is physically stored on the disk. There are two different types of ways you could do it:
 
 **Row Store (Row-based storage)**
 
 In a row store, **all the column values for a single row are stored together**. Example:
-
 
 ```js
 Row 1: [id=1, name="Ali", age=25]
@@ -3696,9 +3689,10 @@ Column age:  [25, 30]
 
 #### Pages, buffer pool, disk vs RAM
 
-
 **pages**
-****
+
+---
+
 **A page is basically a fixed-size block of data, either in memory or on disk.**
 
 Databases don’t read a single row; instead, they read a page or more in a single I/O, giving us many rows at once. This is because databases read from the disk, not from RAM, getting into some important RAMifications we need to understand when it comes to RAM vs disk reading:
@@ -3706,17 +3700,17 @@ Databases don’t read a single row; instead, they read a page or more in a sing
 - **reading from disk**: Reading from disk is slow since there is inherent 3-9 ms physical latency in accessing the specific data. Therefore, to avoid many round trips, it is more efficient to gather data in bulk, which means grabbing data in **pages**
 - **reading from RAM**: there is no physical latency when reading from RAM, so you don't run into the disadvantage of many round trips, making reading from RAM ideal for the use case of grabbing small pieces of data.
 
-
 When a database reads from disk, it **doesn’t grab just one row** of a table — it grabs a whole chunk of data at once.
 
 That chunk is called a **“page”**, and it’s a fixed size (commonly 4 KB or 8 KB). This is because disks are slow, so reading in **bulk** is more efficient than one tiny piece at a time.
-    
+
 In contrast, RAM is fast and **can access any location directly**, so small reads are fine there.
 
 **buffer pool**
-****
 
-To mitigate some of the inherent latency behind reading from the disk and fetching data in pages, databases have a concept of the **buffer pool**, which acts an in-memory cache of pages. 
+---
+
+To mitigate some of the inherent latency behind reading from the disk and fetching data in pages, databases have a concept of the **buffer pool**, which acts an in-memory cache of pages.
 
 - The database keeps a chunk of RAM called a **buffer pool**.
 - When it reads a page from disk, it **stores it in the buffer pool**. That way, if it needs that page again soon, it’s already in RAM — **much faster** than reading disk again.
@@ -3746,11 +3740,11 @@ In a heap, pages aren’t stored in any particular order. Data gets placed where
 
 #### Indexes
 
-Traversing the heap is an expensive operation since it contains _everything_. That’s why we need some kind of logic to help us find exactly which page we’re interested in, in other words, which page holds the data we’re looking for. 
+Traversing the heap is an expensive operation since it contains *everything*. That’s why we need some kind of logic to help us find exactly which page we’re interested in, in other words, which page holds the data we’re looking for.
 
 That’s where indexes come in. Indexes help us to tell exactly what part of the heap we need to read, or in other words, **which page(s) of the heap to pull**.
 
-Indexes store pointers to the actual pages in the heap in an ordered b-tree separate from the heap, which enables O(log n) access to pages based on a specific index sorting behavior you define ahead of time. 
+Indexes store pointers to the actual pages in the heap in an ordered b-tree separate from the heap, which enables O(log n) access to pages based on a specific index sorting behavior you define ahead of time.
 
 > [!IMPORTANT]
 > But indexes aren’t a magical thing, they’re also stored as pages in the B-tree and require I/O to read their entries. So we need to be careful with indexes. The smaller the index, the more of it can fit in memory, and the faster the search will be.
@@ -3760,11 +3754,9 @@ Indexes work as storing pages in a b-tree, where each page stores a record where
 Let's walk through an example:
 
 1. A database record with page number 3, row id 56, and primary key `id` = 72 is getting indexed. We are indexing on the `id` field
-2. in the index b-tree, a new record is added to an available page mapping the value of the indexing column, `id`, which equals 72, to the page number (3) and row id (56) of the record with that column value. 
-3. Now, if we want to query `SELECT * FROM table_name WHERE id = 72`, we perform an I/O request to the b-tree to find the page that has a record with a row-id/primary key equal to 72. 
+2. in the index b-tree, a new record is added to an available page mapping the value of the indexing column, `id`, which equals 72, to the page number (3) and row id (56) of the record with that column value.
+3. Now, if we want to query `SELECT * FROM table_name WHERE id = 72`, we perform an I/O request to the b-tree to find the page that has a record with a row-id/primary key equal to 72.
 4. From that record in the index, we get the page number and row id of the actual record we want to query. This lets us directly fetch the actual record.
-
-
 
 #### Clustered index
 
@@ -3777,9 +3769,9 @@ Let's consider a table: `Users(id, name, age)`
 
 - If this table has no indexes, it is called a **heap table**. (like we said earlier.)
 - If we create a clustered index on the `id` column:
-    - The table is now physically sorted based on the `id` column.
-    - The database stores the data according to this order.
-    - This makes queries like `WHERE id = 100` much faster.
+  - The table is now physically sorted based on the `id` column.
+  - The database stores the data according to this order.
+  - This makes queries like `WHERE id = 100` much faster.
 
 **the harm of using UUIDs**
 
@@ -3791,7 +3783,7 @@ This is actually very important to understand. Let’s say you’re using InnoDB
 Here is the thought process behind why you should not use UUIDs as a primary key:
 
 - If you use UUIDs as a primary key, that clusters the database based on that key.
-- SInce UUIDs are random, this means sorting a database based on them is impossible. 
+- SInce UUIDs are random, this means sorting a database based on them is impossible.
 - As a result, disk and memory accesses increase, and both write and read performance degrade.
 
 **UUIDs vs autoincrement for primary key**
@@ -3840,7 +3832,7 @@ This was the most basic connection ever. IN fact, here were the three main limit
 
 #### HTTP/1.0 - 1996
 
-HTTP 1 added response headers, the POST method, and also response body types. 
+HTTP 1 added response headers, the POST method, and also response body types.
 
 Here's an example of what an HTTP 1 request would have looked like:
 
@@ -3883,9 +3875,9 @@ To close the connections, the header Connection: close had to be available on th
 
 However, you still have one major limitation of HTTP 1.1:
 
- **❌ Head-of-Line Blocking**
+**❌ Head-of-Line Blocking**
 
-Even though requests are pipelined, **responses must come back in order**. If the first one is slow, all others are blocked. You can have up to 5 requests happening in parallel, but any large one can block any others coming behing it. 
+Even though requests are pipelined, **responses must come back in order**. If the first one is slow, all others are blocked. You can have up to 5 requests happening in parallel, but any large one can block any others coming behing it.
 
 To overcome these shortcomings of HTTP/1.1, the developers started implementing the workarounds, for example use of spritesheets, encoded images in CSS, single humungous CSS/Javascript files, domain sharding etc. - anything to bypass the issue of something blocking the network waterfall.
 
@@ -3910,27 +3902,26 @@ HTTP/2 was designed for low latency transport of content. Here are the key featu
 
 **frames and streams**
 
-Every HTTP/2 request and response is given a unique stream ID and it is divided into frames. 
+Every HTTP/2 request and response is given a unique stream ID and it is divided into frames.
 
-- **frame**: binary pieces of data. 
-- **Stream**: A collection of frames  
+- **frame**: binary pieces of data.
+- **Stream**: A collection of frames
 
 Since there is a many to one relationship of frames to streams, each frame has a stream id that identifies the stream to which it belongs and each frame has a common header.
 
 **aborting requests**
 
- RST_STREAM is a special frame type that is used to abort some stream i.e. client may send this frame to let the server know that I don’t need this stream anymore. 
+RST_STREAM is a special frame type that is used to abort some stream i.e. client may send this frame to let the server know that I don’t need this stream anymore.
 
 This leads us to a major advantage HTTP 2 has over HTTP 1.1, which is the ability to abort requests gracefully and still keep the connection to the server open.
- 
- In HTTP/1.1 the only way to make the server stop sending the response to client was closing the connection which resulted in increased latency because a new connection had to be opened for any consecutive requests. While in HTTP/2, client can use RST_STREAM and stop receiving a specific stream while the connection will still be open and the other streams will still be in play.
- 
+
+In HTTP/1.1 the only way to make the server stop sending the response to client was closing the connection which resulted in increased latency because a new connection had to be opened for any consecutive requests. While in HTTP/2, client can use RST_STREAM and stop receiving a specific stream while the connection will still be open and the other streams will still be in play.
+
 **server push**
 
 Server push is another tremendous feature of HTTP/2 where the server, knowing that the client is going to ask for a certain resource, can push it to the client without even client asking for it. For example, let’s say a browser loads a web page, it parses the whole page to find out the remote content that it has to load from the server and then sends consequent requests to the server to get that content.
 
 Server push allows the server to decrease the roundtrips by pushing the data that it knows that client is going to demand. How it is done is, server sends a special frame called PUSH_PROMISE notifying the client that, “Hey, I am about to send this resource to you! Do not ask me for it.” The PUSH_PROMISE frame is associated with the stream that caused the push to happen and it contains the promised stream ID i.e. the stream on which the server will send the resource to be pushed.
-
 
 #### HTTP/3 – QUIC Protocol (2022+)
 
@@ -3944,13 +3935,14 @@ The disadvantages that TCP has that QUIC solves are as follows:
 
 Here are the key features of the QUIC protocol:
 
-| Feature                   | HTTP/3 Benefit                                |
-| ------------------------- | --------------------------------------------- |
+| Feature                    | HTTP/3 Benefit                                |
+| -------------------------- | --------------------------------------------- |
 | ✅ UDP-based               | Avoids TCP head-of-line blocking              |
 | ✅ 0-RTT Connection Resume | Faster handshakes, even on reconnect          |
 | ✅ Built-in Encryption     | TLS 1.3 is part of QUIC itself                |
 | ✅ Multiplexed Streams     | Independent streams — no blocking             |
 | ✅ Improved mobility       | Seamlessly handles IP changes or network hops |
+
 Here are the deployment considerations for HTTP 2 vs HTTP 3:
 
 - **HTTP/2** is widely adopted; most CDNs and browsers support it.
@@ -3967,15 +3959,13 @@ Both parties will use the same key for encryption and decryption, meaning anyone
 
 However, symmetric keys are sensitive info and are hard to distribute discreetly.
 
-
 #### **public key encryption**
 
 Each party has their own public and private key pair.
 
 Whatever one person encrypts with their public key, only their private key can decrypt that. So here is a clever way of using encryption:
 
-1. Both parties exchange their public keys with each other. 
-2. The sending party, party A will use party B's public key ot encrypt the message. 
+1. Both parties exchange their public keys with each other.
+2. The sending party, party A will use party B's public key ot encrypt the message.
 3. Party A sends the encrypted message to party B
 4. Party B receives the encrypted message, and since it was encrypted with its own public key, it can easily decrypt it with its private key.
-
