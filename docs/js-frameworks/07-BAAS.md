@@ -426,23 +426,13 @@ supabase db reset --linked
 
 Here I will walk you through a complete supabase setup with stripe.
 
-The first step is to create a `stripe_customers` table that maps to a normal logged in user, but also contains info about the current user susbscription.
+The first step is to run this migration:
 
-```sql
-create table
-  public.stripe_customers (
-    id uuid not null default uuid_generate_v4 (),
-    user_id uuid not null,
-    stripe_customer_id text not null,
-    total_downloads integer null default 0,
-    plan_active boolean not null default false,
-    plan_expires bigint null,
-    subscription_id text null,
-    constraint stripe_customers_pkey primary key (id),
-    constraint stripe_customers_stripe_customer_id_key unique (stripe_customer_id),
-    constraint stripe_customers_user_id_fkey foreign key (user_id) references auth.users (id)
-  ) tablespace pg_default;
-```
+Then to add fields to your user:
+
+Add triggers to automatically create customer ID for a user once they're created in supabase, which is much easier than manually adding the customer id.
+
+
 ## Firebase
 
 ## Appwrite

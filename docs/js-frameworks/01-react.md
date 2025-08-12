@@ -2108,6 +2108,22 @@ fastify.get("/react-flight", function reactFlightHandler(request, reply) {
 });
 ```
 
+## Deploying on Vercel
+
+### redirects with Vite
+
+When doing client side routing, you MUST have a `vercel.json` in the root of your project that specifies to redirect all requests to the index HTML:
+
+```json title="vercel.json"
+    {
+      "rewrites": [
+        {
+          "source": "/:path*",
+          "destination": "/index.html"
+        }
+      ]
+    }
+```
 ## Custom components
 ### Boop
 
