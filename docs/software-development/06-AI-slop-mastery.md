@@ -533,7 +533,28 @@ You can add MCP config in a `.mcp.json` in the current directory, which claude c
 It should be in this format:
 
 ```json
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer <ACCESS_TOKEN_HERE>" 
+      }
+    }
+  }
+}
+
 ```
+
+Here are some important things to keep in mind:
+
+- The `type` property is required in MCP configuration with claude, and should be one of these three types:
+	- `"http"`: HTTP transport server
+	- `"stdio"`: locally running STDIO transport server
+	- `"sse"`: SSE transport server
+
+The access token must be valid and scoped correctly, having at least the repo permissions.
 ## Vibe coding mastery
 
 ### tech stack
