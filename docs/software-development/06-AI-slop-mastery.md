@@ -522,7 +522,18 @@ web_fetch(
 google_web_search(query="Your query goes here.")
 ```
 
+### Claude code
 
+#### CLI options
+
+#### MCP
+
+You can add MCP config in a `.mcp.json` in the current directory, which claude can access and load the MCP servers from.
+
+It should be in this format:
+
+```json
+```
 ## Vibe coding mastery
 
 ### tech stack
