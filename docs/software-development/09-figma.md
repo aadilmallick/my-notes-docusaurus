@@ -14,9 +14,8 @@ These are the basic shortcut to navigate the canvas
 |            |          |
 |            |          |
 
-dffdf
 
-#### Shapes
+### Shapes
 
 You can create shapes with these shortcuts
 
@@ -33,6 +32,53 @@ However, you can combine them with these two keyboard presses into order to draw
 
 - **shift**: locks aspect ratio to be 1:1 for shapes, or moves lines in 45 degree angles when drawing lines.
 - **alt**: draws the shape from the center going out instead of an edge by default.
+
+#### Ellipses
+
+For ellipses, we can draw an inner ring, sweep out sectors, and rotate it to create interesting shapes.
+
+
+![](https://i.imgur.com/8VVGGSD.jpeg)
+
+#### Combining shapes
+
+we are going to learn how to use the union, subtraction, and other exclusion operators.
+
+This is the shape we'll start off with, two circles with the left on top of the right.
+
+![](https://i.imgur.com/EQFGUPp.png)
+
+**union**
+
+Union joins the two shapes together, including overlapping parts.
+
+![](https://i.imgur.com/bq3C9i6.png)
+
+
+**subtraction**
+
+subtraction removes the shape on top and also deletes $A \cap B$ :
+
+![](https://i.imgur.com/tNV5y6f.png)
+
+**intersection**
+
+Intersection only includes the part of $A \cap B$, which is the overlapping part.
+
+![](https://i.imgur.com/ydjWFB4.png)
+
+**exclude**
+
+the exclude operator takes A and B but excluding $A \cap B$, which is the part in which both circles overlap. It deletes that part.
+
+![](https://i.imgur.com/Xjn1UOg.png)
+
+**flatten**
+
+The flatten tool combines both shapes by putting them both on the same layer. This has the effect of seeing the shapes as if they are on the same plane of existence:
+
+![](https://i.imgur.com/6FwXVnj.png)
+
 
 ### plugins
 
