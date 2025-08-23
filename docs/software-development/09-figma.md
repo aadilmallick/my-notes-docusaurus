@@ -14,6 +14,8 @@ These are the basic shortcut to navigate the canvas
 |            |          |
 |            |          |
 
+dffdf
+
 #### Shapes
 
 You can create shapes with these shortcuts
