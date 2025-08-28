@@ -54,6 +54,9 @@ Prefer pure functions - functions without side effects
     - Combine guards with extracting logic into functions, making your code even slimmer.
 - A better way instead of returning early is to create **error guards**. This means you throw an error to stop execution, and then handle the error in your code.
 
+
+
+
 ## Classes
 
 ### Single responsibility principle
@@ -333,6 +336,20 @@ For example, this is how a single feature in NextJS would look like, being subdi
 ![](https://i.imgur.com/68i9H4M.png)
 
 ## Antipatterns
+
+### Storing booleans in DB
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/xIRL3klHM9I?si=EFRAa_a98Cua35Yv" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+> if data can be derived, then derive it instead of storing it.
+
+Booleans are the main issue with the above law of coding. Often, you will have data stored in your DB that you can use to derive some boolean value. These booleans should not be stored in the DB but rather derived at runtime from data.
+
+here are the numerous advantages of deriving booleans instead of storing them:
+
+- Less data to be stored in DB
+- Less faulty logic - multiple booleans lead to terrible logic and broken states.
 
 ### deeply nested data
 
