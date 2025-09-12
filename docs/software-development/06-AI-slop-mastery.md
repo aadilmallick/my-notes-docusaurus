@@ -39,7 +39,6 @@ Here are the most useful ones:
 - `/fix`: fixes the selected code
 - `/doc`: creates documentation for the selected code, like JSdoc
 - `/tests`: creates unit tests for the selected code
-- `/explain`: explains the selected code
 
 #### Github copilot CLI
 
@@ -89,7 +88,15 @@ You can also instead of asking it to generate or edit code, ask a quick question
 
 ![](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1748293987/image-clipboard-assets/ut9zdv3eklbjpj8qegh0.webp)
 
-#### adding docs
+#### Adding context
+
+You can add context with the `@` symbol as a prefix.
+
+- `@docs`: adds documentation
+- `@web`: tells cursor to do a web search
+- `@<filename>`: adds the specific file as context
+
+##### Adding docs
 
 You can add certain websites' documentation to cursor, and cursor will index it and be able to reference it via the `@docs` context command. There are two ways to add documentation to certain websites you want:
 
