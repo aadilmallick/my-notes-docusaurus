@@ -544,6 +544,36 @@ google_web_search(query="Your query goes here.")
 When inside a conversation with claude code, you have access to these special slash commands:
 
 - `/model <model>`: change the model mid convo to one of `haiku`, `sonnet`, or `opus`
+- `/compact`: compacts previous conversation history into a summary. Useful when you've now moved on to a different task.
+- `/clear`: clears the conversation history
+- `/init`: reads the current codebase and based off that creates a `CLAUDE.md` file
+- `/status`: shows current token and session info
+
+#### Commands
+
+Commands are special markdown files that must live within the `.claude/commands` folder, and can be used as custom slash commands. 
+
+- For example, a `.claude/commands/goal.md` can be invoked via the `/goal` slash command.
+
+> [!NOTE]
+> The main use case of commands is to prompt for repetitive tasks like linting, testing, or adding documentation. You can also do neat stuff like dynamically add arguments and interpolate bash commands in these markdown files.
+
+#### Hooks
+
+Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
+
+**pre tool use hooks**
+
+With a pre tool use hook, you can inspect and potentially block certain actions, such as preventing git commits with no verify flag, checking shell commands before execution, or verifying file edits before they occur.
+
+#### Techniques and strategies
+
+**forcing thinking**
+
+To force thinking, you can use these keywords in your prompt:
+
+- **"think"**: reasoning up to 4000 tokens
+- **"think harder"**: reasoning up to 10000 tokens
 
 #### MCP
 
