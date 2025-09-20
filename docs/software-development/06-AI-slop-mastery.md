@@ -533,6 +533,18 @@ google_web_search(query="Your query goes here.")
 
 #### CLI options
 
+- `claude -p <prompt>`: runs a one-off prompt
+- `claude --model=<model>`: runs claude with a specific model. Here are the different values you can pass for the `--model` parameter:
+	- `sonnet`
+	- `opus`
+	- `haiku`
+
+#### Slash options
+
+When inside a conversation with claude code, you have access to these special slash commands:
+
+- `/model <model>`: change the model mid convo to one of `haiku`, `sonnet`, or `opus`
+
 #### MCP
 
 You can add MCP config in a `.mcp.json` in the current directory, which claude can access and load the MCP servers from.
