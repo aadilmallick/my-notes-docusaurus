@@ -4648,10 +4648,21 @@ You can also set local MCP settings for your workspace, which is often way more 
 }
 ```
 
-### Awesome MCP
+### Awesome MCP: list of MCP servers
 
 - https://mcpmcp.io/#install: mcp server to ask your agent about what MCP servers there are
 - https://github.com/regenrek/deepwiki-mcp: to find info about a specific repo
+
+#### Image transformation MCP servers
+
+### MCP strategies
+
+#### Condensing docs
+
+One of the most important uses of MCP is giving online, up-to-date docs for an AI agent to consume. There are two ways you can do this:
+
+- **Context7**: An MCP server that has tools to fetch online documentation and return it as markdown.
+- **RepoMix**: Go to the [Repomix website](https://repomix.com/) to download the entire docs as a markdown file you cna then feed into LLMs.
 
 ## AI resources
 
