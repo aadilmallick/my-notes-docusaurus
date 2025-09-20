@@ -566,6 +566,15 @@ Claude hooks are bash commands that run at different lifecycle moments such as s
 
 With a pre tool use hook, you can inspect and potentially block certain actions, such as preventing git commits with no verify flag, checking shell commands before execution, or verifying file edits before they occur.
 
+#### Subagents
+
+Subagents in claude are just several different agents each with their own system prompt and context window.
+
+You can create subagents with the `/agents` command. Here is an example of the different types of subagent personalities you can create.
+
+![](https://i.imgur.com/36NkZ2h.jpeg)
+
+
 #### Techniques and strategies
 
 **forcing thinking**
