@@ -4655,6 +4655,24 @@ You can also set local MCP settings for your workspace, which is often way more 
 
 #### Image transformation MCP servers
 
+```embed
+title: "GitHub - BoomLinkAi/image-worker-mcp: Effortlessly resize, convert, optimize, and transform images with a single MCP server—then upload them directly to S3, Cloudflare R2, or Google Cloud Storage. Ideal for AI workflows, automation scripts, and developers who want seamless image handling in one tool."
+image: "https://opengraph.githubassets.com/3ff12fed5d0f07d944f7b8289dfc146ad5408466b21a4ecd324c3e83d729a675/BoomLinkAi/image-worker-mcp"
+description: "Effortlessly resize, convert, optimize, and transform images with a single MCP server—then upload them directly to S3, Cloudflare R2, or Google Cloud Storage. Ideal for AI workflows, automation scr..."
+url: "https://github.com/BoomLinkAi/image-worker-mcp"
+favicon: ""
+aspectRatio: "50"
+```
+
+```embed
+title: "GitHub - InhiblabCore/mcp-image-compression: A high-performance image compression microservice based on MCP (Modal Context Protocol)"
+image: "https://opengraph.githubassets.com/f710c12e91c1387a11c3dfe14d7a0cd52e8c045d6172bdfa7cc589b8395da83f/InhiblabCore/mcp-image-compression"
+description: "A high-performance image compression microservice based on MCP (Modal Context Protocol) - InhiblabCore/mcp-image-compression"
+url: "https://github.com/InhiblabCore/mcp-image-compression"
+favicon: ""
+aspectRatio: "50"
+```
+
 ### MCP strategies
 
 #### Condensing docs
