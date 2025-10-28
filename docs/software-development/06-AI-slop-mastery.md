@@ -814,6 +814,18 @@ NotebookLM is really cool and has a great use case for generating minutes of aud
 
 - **language use case**: Use it to generate lessons and roadmaps of language learning content, and then create podcasts or voice lessons in your target language.
 
+### Perplexity/Comet
+
+#### Shortcuts
+
+In comet, you can register special slash commands that basically just copy and paste a predefined prompt, which is useful for saving keystrokes. Here are some good shortcuts
+
+![perplexity shortcuts](https://substackcdn.com/image/fetch/$s_!bvAb!,w_1456,c_limit,f_webp,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F81f10e9e-88e9-4e86-b9c6-5981552a1c1d_1024x1536.png)
+
+#### Context
+
+
+
 ## Local LLMs
 
 You can use local LLMs in a chat interface either with LMStudio desktop app or the Ollama CLI. 
