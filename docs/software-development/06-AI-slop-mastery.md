@@ -824,6 +824,8 @@ In comet, you can register special slash commands that basically just copy and p
 
 #### Context
 
+- Use `@tab` or `@productpage` to reference any open tabs.
+
 
 
 ## Local LLMs
