@@ -125,6 +125,7 @@ These websites have all-in-one solutions to many problems:
 - [resize images](https://www.resizepixel.com/)
 - [Remove watermark](https://www.watermarkremover.io/)
 - [Remove background from images](https://www.erase.bg/)
+- [Image Background Remover | Text over Image tool | The place where you can share your business ideas or projects.](https://human-ideas.giessen.dev/tools/bg-remover)
 - [Remove unwanted things from iamge](https://magicstudio.com/magiceraser/)
 - [Image upscaler](https://icons8.com/upscaler)
 - [Remove background from image](https://www.pixcleaner.com/)
