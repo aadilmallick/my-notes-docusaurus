@@ -1139,3 +1139,24 @@ Here are some useful examples:
 ### Running cron jobs
 
 Cron jobs do not have the ability to print to stdout, so if they fail, the fail silently. The best practice is to redirect all stdout from a cron job into a file and also redirect stderr into a file.
+
+## Linux Admin
+
+### Learning the Linux Filesystem
+
+here are the folders that come preinstalled in the linux filesystem
+
+- `/bin` - Essential command binaries
+- `/sbin` - Essential system binaries, usually to be run by root
+- `/dev` - Device files, special files that often are interfaces to hardware devices
+- `/etc` - Host-specific system-wide configuration files
+- `/home` - Home directories for users in the system
+- `/lib` - Common libraries for system programs
+- `/opt` - Optional application software
+- `/sys` - Contains information and configuration for the system (covered in the [first lecture](https://missing.csail.mit.edu/2020/course-shell/))
+- `/tmp` - Temporary files (also `/var/tmp`). Usually deleted between reboots.
+- `/usr/` - Read only user data
+    - `/usr/bin` - Non-essential command binaries
+    - `/usr/sbin` - Non-essential system binaries, usually to be run by root
+    - `/usr/local/bin` - Binaries for user compiled programs
+- `/var` - Variable files like logs or caches
