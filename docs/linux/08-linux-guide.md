@@ -369,6 +369,13 @@ The `nl` command is used to number lines of a file or text content from stdin.
 
 The `uniq <file>` command displays only unique lines of text.
 
+Here is an example of sorting lines alphabetically and then removing duplicates, and counting the number of duplicates for a line.
+
+```bash
+cat filename.txt | sort | uniq -c
+```
+
+- `-c`: displays duplicate counts for each line
 #### `tr`
 
 The `tr` command either changes characters or deletes them. It gets its input from standard input, so it can only be used with piping or the stdin redirection operator.
@@ -411,6 +418,8 @@ You essentially have 4 components in the “sed string” you have to pass in, e
 - `oldtext` : the text to replace, or a regex pattern to match
 - `newtext` : the text or regex pattern to replace the oldtext with
 - `g` : any regex flags, like g for global
+	- `g`: global
+	- ``
 
 You can use different delimiters instead of `/`, which is useful when the pattern or replacement contains slashes:
 
@@ -423,8 +432,15 @@ Here is another example of using regex with sed:
 - Replaces all strings with `path: ` in it with `path: $(pwd)/mongodb-pv`, showcasing the power of programmatic replacement.
 
 ```sh
-cat file.yaml | sed "s|path: .*|path: $(pwd)/mongodb-pv|"
+cat file.yaml | sed -E 's|path: .*|path: $(pwd)/mongodb-pv|'
 ```
+
+It's very important to use the `-E` option to enable extended regular expression mode, which works with more modern syntax.
+
+**deleting text**
+
+- `sed 's/.*Disconnected from//'`: deletes everything containing the string 'Disconnected from', because it searches for that pattern and then replaces that pattern with an empty string.
+- 
 #### `awk`
 
 AWK allows you to split text into an array and then print out the specific parts you want. The `awk -F<separator>` command basically splits the string on a specific separator. Then you can do a `{print $1}` to print the first part of the string resulting from the split.
@@ -643,12 +659,16 @@ command1 | tee <filename> | command2
 
 #### `xargs`
 
-The `xargs` command is used to bundle output into input for commands that don’t usually accept standard input. For example, using `xargs` you can pip to commands like `ls` , which don’t accept standard input.
+The `xargs` command is used to bundle output into input for commands that don’t usually accept standard input. For example, using `xargs` you can pipe to commands like `ls` , which don’t accept standard input.
 
-Here are some examples
+`xargs` takes stdin, separates by spaces or by lines, and transforms that into a list of arguments.
+
+Here are some examples:
 
 - `find -name "*pen15*" | xargs ls` : finds all files with “pen15” somewhere in them and runs `ls` on the output.
-- `echo hello world | xargs mkdir` : gets the strings “hello” and “world” and makes folders with their names.
+- `echo {hello,world} | xargs mkdir` : gets the strings “hello” and “world” and makes folders with their names.
+
+
 
 ### Meta characters
 
@@ -1160,3 +1180,14 @@ here are the folders that come preinstalled in the linux filesystem
     - `/usr/sbin` - Non-essential system binaries, usually to be run by root
     - `/usr/local/bin` - Binaries for user compiled programs
 - `/var` - Variable files like logs or caches
+
+### MakeFiles
+
+All linux systems come equipped with the `make` command, which you can think of as a generic process-watcher hot reload system.
+
+Every `make` command runs and watches a `MakeFile` in the current directory, which looks like so:
+
+```make
+paper.pdf: paper.tex plot-data.png
+	pdflatex paper.tex
+```
