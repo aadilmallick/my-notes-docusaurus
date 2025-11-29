@@ -1185,9 +1185,18 @@ here are the folders that come preinstalled in the linux filesystem
 
 All linux systems come equipped with the `make` command, which you can think of as a generic process-watcher hot reload system.
 
-Every `make` command runs and watches a `MakeFile` in the current directory, which looks like so:
+Every `make` command runs and watches a `MakeFile` in the current directory, which looks like so, which is a list of **directives**.
 
-```make
-paper.pdf: paper.tex plot-data.png
-	pdflatex paper.tex
+```bash
+paper.pdf: paper.tex plot-data.png. # directive
+	pdflatex paper.tex              # rule
+	
+plot-%.png: %.dat plot.py           # directive
+	./plot.py -i $*.dat -o $@       # rule
 ```
+
+- `%`: placeholder for some wildcard text. Think of this as the same as a regex capturing group.
+- `$*`: reference substitution to whatever was captured by `%`. Think of this as the same as regex capturing group reference.
+- `$@`: name of the target, like name of the output file.
+
+The main advantage of `make` is that it only reruns the process if and only if the dependencies change.
