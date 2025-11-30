@@ -6,7 +6,9 @@ The main principles of writing are as follows:
 	- Use as few words as possible and prefer simple words rather than complex ones.
 2. **clarity**: Make writing easy to understand
 3. **elegance**: makes writing flow well
+	- Have good sentence structure and vary sentence lengths.
 4. **evocativeness**: makes writing captivating, and stimulating
+	- Always avoid passive voice and always use strong verbs
 
 ### Crash Course
 
@@ -56,6 +58,14 @@ Evocativeness is about using language that connects to the reader's senses, emot
 
 ### Simplicity and clarity
 
+**never use a long word when a short one will do**
+
+| Wordy                     | Concise |
+| ------------------------- | ------- |
+| at this point in time     | now     |
+| determine the location of | find    |
+| is able to                | can     |
+
 **There is, there are**
 
 avoid starting sentences with “There is” or “There are” because these pair a generic subject with a generic verb and make sentences vague.
@@ -76,4 +86,44 @@ If there is no clear subject in a sentence, then you may be tempted to use "ther
 	- Here we specify "clients" as the concrete subject.
 
 **avoid adjectives**
+
+Avoid overusing adjectives and especially adverbs
+
+****
 ## Technical Writing specifics
+
+### Avoid Gatekeeping
+
+**gatekeeping words** are ones that alienate your readers, so you should avoid them.
+
+### Each sentence should be only about 1 idea
+
+Focus each sentence on a single idea, thought, or concept. Just as statements in a program execute a single task, sentences should execute a single idea.
+
+An easy way to tell if a sentence is too long and has more than one idea is if it has a **subordinate clause**, which is a sentence fragment starting with the following demonstrative adjectives:
+
+- which
+- that
+- because
+- unless
+
+
+> [!NOTE]
+> If the subordinate clause of a sentence is a different idea than the main sentence, extract it out into its own sentence so you can adhere to the one-idea-per-sentence rule
+
+### Lists
+
+Items in a list whether ordered or unordered should be **parallel**, meaning they have the same structure in all these 4 aspects: grammar, capitalization, punctuation, and logic.
+
+![](https://i.imgur.com/e1fKqBn.png)
+
+Here are the basic grammar rules concerning lists:
+
+- **use imperative verbs for numbered lists**: Each sentence of an item in an ordered list must start with an imperative verb, like a command.
+- **start each list item with a capital letter**: Each item in a list should start with a capital letter.
+- **always introduce a list or table**: Always provide context for a list or table before presenting it, often by using the word "following"
+	- **example**: *The following list identifies key performance parameters*
+
+### Paragraphs
+
+The opening sentence of each paragraph should always state the main purpose or main idea of the paragraph, and should be setup for the rest of the paragraph.
