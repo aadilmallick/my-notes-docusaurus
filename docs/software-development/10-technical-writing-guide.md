@@ -96,6 +96,16 @@ Avoid overusing adjectives and especially adverbs
 
 **gatekeeping words** are ones that alienate your readers, so you should avoid them.
 
+A lot of times, writers don’t realize they’re gatekeeping. Here are some expressions they may use:
+
+- obviously
+- simply
+- of course (something is such-and-such)
+- as everyone knows
+- as you’ve probably heard
+- (something) is easy
+- any (“idiot”, “fool”, “newbie”, “script kiddie”, etc.) can (do something)
+
 ### Each sentence should be only about 1 idea
 
 Focus each sentence on a single idea, thought, or concept. Just as statements in a program execute a single task, sentences should execute a single idea.
@@ -194,13 +204,28 @@ Keep in mind the curse of knowledge and always make sure your defined audience w
 
 ### Structure
 
+
+Roughly, blog structure should be something like this:
+
+1. Tell them what you’re going to tell them
+2. Tell them
+3. Tell them what you told them
+
+So in summary, here are the three parts to an article:
+  
+1. Intro: What is this thing, and why should the reader give af be interested? Explain what type of audience your article is suited for and who would benefit from this article.
+2. Body
+3. Recap: Summarize the article, key takeaways, and actionable tips, then finish with some call to action.
+
 #### Introduction
 
-Here is how you should structure the intro to a document, like a tutorial:
+Here is how you should structure the intro to a document, like a tutorial. These steps should be followed in order.
 
 1. What the document covers.
 2. What prior knowledge you expect readers to have.
 3. What the document doesn't cover.
+
+Then you should also add a table of contents for easy navigation, especially if you're writing a long article.
 ### Writing tutorials
 
 - Before you ask your reader to perform a task, explain to them why they are doing it.
