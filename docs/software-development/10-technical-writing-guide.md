@@ -126,4 +126,83 @@ Here are the basic grammar rules concerning lists:
 
 ### Paragraphs
 
+**TLDR**
+
+1. Each paragraph should have an effective opening sentence that states the main purpose or idea opf the apragraph
+2. Each paragraph should be about one topic only
+3. paragraphs answer *what, why, how* questions. When a paragraph is about a concept, it must answer the following questions:
+	- how to introduce the concept (what),
+	- motivate it (why), 
+	- explain how to apply it or interpret its output (how).
+
+**in depth**
+
 The opening sentence of each paragraph should always state the main purpose or main idea of the paragraph, and should be setup for the rest of the paragraph.
+
+
+> [!NOTE] 
+> A good opener states or strongly hints at the paragraph’s main point, while a bad opener misleads the reader about what the paragraph will cover.
+
+Each paragraph should be about one concept only, and an effective paragraph conveys that concept because good paragraphs answer the following three questions:
+
+1. **What** are you trying to tell your reader?
+2. **Why** is it important for the reader to know this?
+3. **How** should the reader use this knowledge? Alternatively, how should the reader know your point to be true?
+
+Here is an example of an effective paragraph that tackles a single concept by answering three questions about the concept:
+
+![](https://i.imgur.com/YlfnB11.png)
+
+### Audience
+
+A great article means understanding your audience and writing for your intended audience. To create writing for an intended audience, you need to learn these three principles:
+
+1. Define your audience.
+2. Determine what your audience needs to learn.
+3. Fit documentation to your audience.
+
+**define your audience**
+
+Begin by identifying your audience's **role**(s). Sample roles include:
+
+- Software engineers
+- Technical, non-engineer roles (such as technical program managers)
+- Scientists
+- Professionals in scientific fields (for example, physicians)
+- Undergraduate engineering students
+- Graduate engineering students
+- Non-technical positions
+
+You then refine this by considering “proximity to the knowledge”: how close each group is to your specific project, tools, or domain and how time may have eroded earlier knowledge (like forgotten calculus).
+
+You can further define your audience by asking these 4 questions:
+
+- Who is your target audience?
+- What is your target audience's goal? Why are they reading this document?
+- What do your readers already know _before_ they read your document?
+- What should your readers know or be able to do _after_ they read your document?
+
+**Determine what your audience needs to learn**
+
+Write a concrete list of what your audience should be able to do after reading your article, and those topics will be your goalpost for what you want to teach your audience.
+
+**Fit documentation to your audience**
+
+Keep in mind the curse of knowledge and always make sure your defined audience would be able to understand what you are writing.
+
+## Tech Blogs
+
+### Structure
+
+#### Introduction
+
+Here is how you should structure the intro to a document, like a tutorial:
+
+1. What the document covers.
+2. What prior knowledge you expect readers to have.
+3. What the document doesn't cover.
+### Writing tutorials
+
+- Before you ask your reader to perform a task, explain to them why they are doing it.
+- Consider explaining a concept and then demonstrating how the reader can apply it either in a sample project or in their own work. Documents that alternate between conceptual information and practical steps can be a particularly engaging way to learn.
+- Structure your outline so that your document introduces information when it's most relevant to your reader.
