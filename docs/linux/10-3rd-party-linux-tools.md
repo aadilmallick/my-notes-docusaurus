@@ -159,3 +159,21 @@ Use the `identify` command to get detailed information about an image. 
 ```
 magick identify -verbose input.png
 ```
+
+## Playing sounds
+
+**Playing sounds on a mac**
+
+This is some built in code for zsh that allows us to play system sounds:
+
+```
+afplay /System/Library/Sounds/Glass.aiff
+```
+
+**saying text**
+
+This is how to do robotic text to speech: use the `say` command
+
+```
+say 'process complete'
+```
