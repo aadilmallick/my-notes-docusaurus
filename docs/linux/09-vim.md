@@ -34,8 +34,8 @@ Here are the different ways to navigate a file in vim while in edit mode
 - **G** - move to the last line in the file
 - **w** - move forward one word
 - **b** - move backward one word
-- **{** - move backward one paragraph
-- **}** - move forward one paragraph
+- `{` - move backward one paragraph
+- `}` - move forward one paragraph
 
 You also have these commands that take in numerical arguments:
 
