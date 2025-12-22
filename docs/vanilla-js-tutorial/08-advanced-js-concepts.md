@@ -947,7 +947,7 @@ All the below methods take in an array of promises and return a single promise a
 - `Promise.race()`: Given an array of promises, this returns the first promise in the array that gets fulfilled. It doesn't matter whether it resolves or rejects. All the promises race against each other to finish, hence the name.
 - `Promise.any()`: Given an array of promises, this returns the first promise in the array that resolves successfully. If all the promises reject, then the promise returned by `Promise.any()` rejects.
 
-### **with resolvers**
+### Creating promises with resolvers
 
 There is a new way to promisify functions without going into `new Promise(res, rej)` callback hell: use `Promise.withResolvers()`:
 
@@ -1889,6 +1889,41 @@ async function runExamples() {
 // Uncomment to run examples
 // runExamples().catch(console.error);
 ```
+
+### `using`
+
+In TypeScript 5.2 and later, the **`using`** keyword is used for **Explicit Resource Management**. It allows you to declare a variable whose resources are automatically cleaned up when it goes out of scope.
+
+When a variable declared with `using` leaves its containing block (scope), its disposal method is automatically triggered.
+
+Here is how to use `using`:
+
+- **synchronous `using`**: You can define a disposal method on any JavaScript object or class by implementing the **`Symbol.dispose`** method, and then implement automatic cleanup with the `using` keyword.
+-  **asynchronous `using`**: For resources that require asynchronous cleanup (like database connections), you can use **`await using`**, which triggers a method defined under **`Symbol.asyncDispose`**
+
+```ts
+// Define a disposable resource
+const getResource = () => ({
+  [Symbol.dispose]: () => console.log("Cleaning up!")
+});
+
+{
+  using resource = getResource();
+  // Do work with resource...
+} 
+// "Cleaning up!" is automatically logged here as it leaves the block.
+```
+
+
+
+**use cases**
+
+Here are the most common use cases for using `using`:
+
+- **File Handles**: Automatically closing a file after reading or writing to ensure no locks remain.
+- **Database Connections**: Ensuring connections are released back to the pool immediately after use.
+- **Network Streams**: Closing sockets or streams to prevent resource leaks.
+- **Memory Management**: Releasing unmanaged memory or cleaning up temporary files.
 ## Decorators
 
 Decorators in javascript work just like they do in Python. They are syntactic sugar around functions that return wrapper functions and add some extra reusable functionality. 
