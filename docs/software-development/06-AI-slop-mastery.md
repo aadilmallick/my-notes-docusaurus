@@ -142,7 +142,15 @@ favicon: ""
 aspectRatio: "52.5"
 ```
 
-### Warp
+### Antigravity
+
+#### Intro
+
+Open up the current folder in antigravity using the `agy` command
+
+
+- **implementation plans**: WHen you're in planning mode you'll be able to create implementation plans and then you can even comment on those plans to have the AI implement your suggestions.
+- **inbox**: when you click on the home screen icon, you're taking to a place where you can start a bunch of AI threads in parallel and they can even work on the same project.
 
 ### Gemini CLI
 
