@@ -621,6 +621,11 @@ Here are some important things to keep in mind:
 	- `"sse"`: SSE transport server
 
 The access token must be valid and scoped correctly, having at least the repo permissions.
+
+### CodeRabbit CLI
+
+- `coderabbit`: runs a normal code review session
+- `coderabbit --plain`: runs a normal code review session
 ## Vibe coding mastery
 
 ### tech stack
