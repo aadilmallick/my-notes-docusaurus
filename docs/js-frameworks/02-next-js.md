@@ -1365,18 +1365,43 @@ You can also add different combinations manually by passing in an object of thos
 - `expire`: how long after the cache should expire in seconds.
 
 ```ts
-"use cache" // 1. must cache page with 'use cache' directive to use cache life
+import { cacheLife } from 'next/cache'
 
-import {unstable_cacheLife as cacheLife } from "next/cache"
-
-export default async function Page() {
-	cacheLife({
-		stale: 2, // caches only for 2 seconds
-		revalidate: 10, // revalidates every 10 seconds
-		expire 20 // expires after 20 seconds.
-	})
-	return <><>
+async function getData() {
+  'use cache'
+  
+  cacheLife({
+    stale: 300,      // 5 minutes - client uses cache without checking
+    revalidate: 900, // 15 minutes - server revalidates in background
+    expire: 3600     // 1 hour - cache completely expires
+  })
+  
+  return await fetch('/api/data').then(r => r.json())
 }
+```
+
+```tsx
+'use cache'
+cacheLife('seconds') // Ultra-fresh data
+// stale: 30s, revalidate: 1s, expire: 1m
+
+cacheLife('minutes') // Rapidly changing data
+// stale: 5m, revalidate: 1m, expire: 1h
+
+cacheLife('hours') // Moderately fresh data
+// stale: 5m, revalidate: 1h, expire: 1d
+
+cacheLife('days') // Stable content
+// stale: 5m, revalidate: 1d, expire: 1w
+
+cacheLife('weeks') // Very stable content
+// stale: 5m, revalidate: 1w, expire: 30d
+
+cacheLife('max') // Nearly immutable
+// stale: 5m, revalidate: 30d, expire: never
+
+cacheLife('default') // Balanced
+// stale: 5m, revalidate: 15m, expire: never
 ```
 
 
@@ -1387,24 +1412,22 @@ When you cache at the page level, you are telling NextJS to **statically prerend
 > [!WARNING]
 > Since `"use cache"` has buildtime behavior here, you CANNOT use dynamic data associated with requests like `cookies()` or `headers()`.
 
-Remember to implement revalidation with `revalidatePath()` if you choose to cache at the page level. 
+Remember to implement revalidation with `revalidatePath()` if you choose to cache at the page level, which invalidates all caches used in a route.
 
 1. Call `"use cache"` at the page level
 2. In some server action or server side function that mutates backend data, call `revalidatePath(path)` and pass in the route your want to invalidate the cache for.
 
 ```tsx file="post/actions.ts"
 'use server'
- 
+
 import { revalidatePath } from 'next/cache'
- 
-export async function createPost() {
-  try {
-    // ...
-  } catch (error) {
-    // ...
-  }
- 
-  revalidatePath('/posts')
+
+export async function updateUserProfile(userId: string) {
+  await db.users.update(userId)
+  
+  revalidatePath('/profile')         // Single page
+  revalidatePath(`/users/${userId}`) // Dynamic route
+  revalidatePath('/blog', 'layout')  // All pages in /blog
 }
 ```
 #### 2) Caching at the component level
@@ -1435,8 +1458,10 @@ You can cache async function calls with the `"use cache"` directive to cache the
 2. To invalidate the cache for the function, first attach a specific reference name to that function by invoking `cacheTag(some_tag)` within the function body, and then call `revalidateTag(some_tag)` to invalidate the cache of the function referenced by that tag.
 
 You have two methods for invalidation:
-- `revalidateTag(tag, cachelife)`: performs stale while revalidate with some cache life 
+- `revalidateTag(tag, cachelife)`: performs stale while revalidate with some cache life
+	- **use case**: for content where slight delays are acceptable, like blogs or product catalogs.
 - `updateTag(tag)`: invalidates the cache and immediately serves fresh data
+	- **use case**: for immediate consistency, like user-created content where the user needs to immediately see the data they created.
 
 A basic technique is to cache data fetching functions and to reset the cache when a new resource is created or updated:
 
@@ -1459,23 +1484,40 @@ export const createIssue = async () => {
 }
 ```
 
-Here's a more detailed example:
+**`revalidateTag(tag)`**
 
 ```ts
-import { unstable_cacheTag as cacheTag } from 'next/cache'
- 
-interface BookingsProps {
-  type: string
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export async function updateArticle(articleId: string) {
+  await db.articles.update(articleId)
+  
+  // Mark as stale - users see old content while it revalidates
+  revalidateTag(`article-${articleId}`, 'max')
 }
- 
-export async function Bookings({ type = 'haircut' }: BookingsProps) {
-  async function getBookingsData() {
-    'use cache'
-    const data = await fetch(`/api/bookings?type=${encodeURIComponent(type)}`)
-    cacheTag('bookings-data' + data.id)
-    return data
-  }
-  return //...
+```
+
+**`updateTag(tag)`**
+
+```ts
+'use server'
+
+import { updateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData: FormData) {
+  const post = await db.posts.create({
+    title: formData.get('title'),
+    content: formData.get('content'),
+  })
+  
+  // Immediately expire - user must see new post now
+  updateTag('posts')
+  updateTag(`post-${post.id}`)
+  
+  redirect(`/posts/${post.id}`)
 }
 ```
 
@@ -1558,21 +1600,186 @@ export default async function Page({
 ```
 
 
-### Next 16 cache components
+### Next 16 Three cache directives
 
-Next 16 introduces cache components. It is just the stable version of dynamic IOP
+The main issue with dynamicIO caching was that the cache was global across the server, meaning all users shared the same cache.
 
-```ts
-import type { NextConfig } from "next";
+But now, Next.js 16 offers three cache types for different use cases:
 
-const nextConfig: NextConfig = {
-  cacheComponents: true
-};
+| Feature                                 | `use cache`                     | `'use cache: remote'`             | `'use cache: private'` |
+| --------------------------------------- | ------------------------------- | --------------------------------- | ---------------------- |
+| **Server-side caching**                 | In-memory or cache handler      | Remote cache handler              | None                   |
+| **Cache scope**                         | Shared across all users         | Shared across all users           | Per-client (browser)   |
+| **Can access cookies/headers directly** | No (must pass as arguments)     | No (must pass as arguments)       | Yes                    |
+| **Server cache utilization**            | May be low outside static shell | High (shared across instances)    | N/A                    |
+| **Additional costs**                    | None                            | Infrastructure (storage, network) | None                   |
+| **Latency impact**                      | None                            | Cache handler lookup              | None                   |
 
-export default nextConfig;
+#### 1. Static Cache (Default `use cache`)
+
+**When to use:** Build-time data shared by all users
+
+typescript
+
+```typescript
+async function getProductDetails(id: string) {
+  'use cache'
+  cacheTag(`product-${id}`)
+  
+  // Cached at BUILD TIME, shared across all users
+  return db.products.find({ where: { id } })
+}
 ```
 
+- ✅ Cached at build time
+- ✅ Included in static HTML shell
+- ✅ Zero database load
+- ❌ Can't access runtime APIs (cookies, headers)
 
+#### 2. Remote Cache (`use cache: remote`)
+
+**When to use:** Runtime data shared across users
+
+typescript
+
+```typescript
+import { connection } from 'next/server'
+import { cacheLife, cacheTag } from 'next/cache'
+
+async function DashboardStats() {
+  await connection() // Defer to request time
+  
+  const stats = await getGlobalStats()
+  return <StatsDisplay stats={stats} />
+}
+
+async function getGlobalStats() {
+  'use cache: remote'
+  cacheTag('global-stats')
+  cacheLife({ expire: 60 }) // 1 minute
+  
+  // Cached at RUNTIME, shared across all users
+  const stats = await db.analytics.aggregate({
+    total_users: 'count',
+    active_sessions: 'count',
+  })
+  
+  return stats
+}
+```
+
+- ✅ Cached at request time
+- ✅ Shared across serverless instances
+- ✅ Can run after dynamic operations
+- ⚠️ Requires `await connection()` to defer
+- ❌ Higher database load than static cache
+
+**Use cases:**
+
+- Expensive computations after auth checks
+- Data that changes frequently but can be shared
+- Product prices for all users with same currency
+
+#### 3. Private Cache (`use cache: private`)
+
+**When to use:** Per-user personalized data
+
+typescript
+
+```typescript
+async function getRecommendations(productId: string) {
+  'use cache: private'
+  cacheTag(`recommendations-${productId}`)
+  cacheLife({ stale: 60 }) // Minimum 30s required
+  
+  const sessionId = (await cookies()).get('session-id')?.value
+  
+  // Cached PER USER, never shared
+  return db.recommendations.findMany({
+    where: { productId, sessionId }
+  })
+}
+```
+
+- ✅ Cached per user
+- ✅ Can access cookies, headers
+- ✅ Enables runtime prefetching for personalized content
+- ⚠️ Requires minimum 30s stale time
+- ❌ Higher memory usage (one cache per user)
+
+**Use cases:**
+
+- Shopping cart contents
+- User-specific recommendations
+- Personalized dashboards
+
+
+
+#### Combining all three
+
+```tsx
+import { Suspense } from 'react'
+
+export default async function ProductPage({ params }) {
+  const { id } = await params
+  
+  return (
+    <div>
+      {/* Static cache - build time */}
+      <ProductDetails id={id} />
+      
+      {/* Remote cache - runtime shared */}
+      <Suspense fallback={<div>Loading price...</div>}>
+        <ProductPrice productId={id} />
+      </Suspense>
+      
+      {/* Private cache - per user */}
+      <Suspense fallback={<div>Loading recommendations...</div>}>
+        <Recommendations productId={id} />
+      </Suspense>
+    </div>
+  )
+}
+
+// Build-time static cache
+async function ProductDetails({ id }: { id: string }) {
+  'use cache'
+  cacheTag(`product-${id}`)
+  
+  return db.products.find({ where: { id } })
+}
+
+// Runtime shared cache
+async function ProductPrice({ productId }: { productId: string }) {
+  await connection() // Defer to request time
+  
+  const price = await getProductPrice(productId)
+  return <div>Price: ${price}</div>
+}
+
+async function getProductPrice(productId: string) {
+  'use cache: remote'
+  cacheTag(`product-price-${productId}`)
+  cacheLife({ expire: 300 })
+  
+  const currency = (await cookies()).get('currency')?.value ?? 'USD'
+  return db.products.getPrice(productId, currency)
+}
+
+// Per-user private cache
+async function Recommendations({ productId }: { productId: string }) {
+  const recommendations = await getRecommendations(productId)
+  return <RecommendationsList items={recommendations} />
+}
+
+async function getRecommendations(productId: string) {
+  'use cache: private'
+  cacheLife({ stale: 60 })
+  
+  const sessionId = (await cookies()).get('session-id')?.value
+  return db.recommendations.findMany({ where: { productId, sessionId } })
+}
+```
 ## API routes and middleware
 
 ### API routes
