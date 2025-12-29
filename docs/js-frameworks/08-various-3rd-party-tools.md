@@ -5,6 +5,16 @@
 
 #### NextJS starter
 
+```embed
+title: "Next.js ImageKit SDK"
+image: "https://ik.imgkit.net/ikmedia/logo/light_T4buIzohVH.svg"
+description: "Real-time image & video resizing, automatic optimization, and file uploading in Next.js using ImageKit.io."
+url: "https://imagekit.io/docs/integration/nextjs"
+favicon: ""
+aspectRatio: "21"
+```
+
+
 First, install.
 
 ```bash

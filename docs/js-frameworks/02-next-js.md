@@ -533,6 +533,64 @@ export default async function PostPage({ params }) {
 }
 ```
 
+### ISR
+
+Use nextjs caching to only revalidate or invalidate the cache for a page when the data the page uses has been mutated. You yourself need to manually set rules to invalidate the cache.
+
+### PPR
+
+Partial prerendering is new in nextjs and it is the "Holy Grail" of rendering. 
+
+- **concept**: combines SSG and Dynamic Rendering in the **same page**. You keep the outer shell (Navbar, Footer, Main Content) static, while isolating dynamic parts (like a "Recently Viewed" sidebar) in holes that are filled in dynamically.
+- **The Problem it Solves:** Previously, if one tiny component read a Cookie, the _entire page_ became Dynamic (SSR). With PPR, only that component is Dynamic.
+
+Here's an example:
+
+```tsx file="app/posts/page.tsx"
+import { Suspense } from "react";
+import { cookies } from "next/headers";
+
+// 1. The Page itself remains STATIC (SSG)
+export default function Page() {
+  return (
+    <main>
+      <h1>Static Blog Content</h1>
+      <p>This part is pre-rendered at build time.</p>
+
+      {/* 2. Boundary: Isolate the dynamic part */}
+      <Suspense fallback={<div>Loading personal history...</div>}>
+        <RecentlyViewed />
+      </Suspense>
+    </main>
+  );
+}
+
+// 3. This component accesses cookies, so it renders dynamically (SSR)
+async function RecentlyViewed() {
+  const cookieStore = cookies(); // 👈 This reads runtime info
+  const history = getHistory(cookieStore);
+  return <div>You recently viewed: {history}</div>;
+}
+```
+
+Partial prerendering is now baked into nextjs 16 and thus is the default. 
+
+However, in next 15, you enable it in the next config:
+
+```
+nextConfig.experimental.ppr = true
+```
+
+and then specify ppr for a page like so:
+
+```ts
+export const experimental_ppr = true;
+```
+
+Therefore, the new best practice is the following:
+
+- Always put your dynamic code `cookies()`, `fetch()`, etc. in an async component that is nested farther down the page level rather than wrapping the entire page, so you can take advantage of PPR and leave some parts of the page static while you leave other parts dynamic.
+
 ## Server Actions
 
 Server actions are syntactic sugar in NextJS that from a normal javascript function running in node, creates an API route behind the scenes that is automatically executed when a user submits a form. The reason why they are called *Server Actions* is because you pass the server action to the `action=` attribute on a form, which then tells NextJS to create a POST API route with the path equal to the name of the server action function, and then immediately requests it. 
@@ -869,6 +927,8 @@ Here are the properties on the object returned from the `useFormStatus()` hook:
 
 ## Caching
 
+### dynamic vs static in nextjs
+
 In NextJS 15, caching is heavily improved. To setup caching on the canary version of nextjs, do the following and first install the canary version with `npm install next@canary`. You then need to enable **dynamicIO**.
 
 ```ts
@@ -883,9 +943,28 @@ const nextConfig: NextConfig = {
 export default nextConfig
 ```
 
-Caching is done on the page level in the `page.tsx` component. NextJS forces you to explicitly define if you want a static cached page or a dynamic page.
+If in next 16, this feature is now stable and you can enable it via `cacheComponents` flag in the next config:
 
-You MUST define either caching or dynamic behavior if any server component rendered in your page is asynchronous.
+```ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  cacheComponents: true
+};
+
+export default nextConfig;
+```
+
+Caching is done on the page level in the `page.tsx` component. NextJS forces you to explicitly define if you want a static cached page or a dynamic page. 
+
+These behaviors sometimes happen by default:
+
+- **static by default**: A page component will be static by default if it is not asynchronous, meaning it does no data fetching or does not fetch anything like cookies or search parameters. All it does is return HTML.
+- **should be dynamic**: A page component is most likely dynamic if it is asynchronous or it uses `fetch()`, `cookies()`, `headers()`, or `searchParams()`
+
+> [!NOTE]
+> You MUST define either caching or dynamic behavior if any server component rendered in your page is asynchronous. NextJS will throw an error until you decide whether to make the page dynamic with `<Suspense>` or implement some sort of caching strategy with `"use cache"`
+
 ### `"use cache"`
 
 The `"use cache"` directive in NextJS 15 is the new way to opt into caching server-side.
@@ -1167,6 +1246,20 @@ export default async function Page({
 }
 ```
 
+
+### Next 16 cache components
+
+Next 16 introduces cache components. It is just the stable version of dynamic IOP
+
+```ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  cacheComponents: true
+};
+
+export default nextConfig;
+```
 
 
 ## API routes and middleware
@@ -1706,6 +1799,8 @@ export const maxDuration = 60
 The minimum value you can set is 10, and the maximum is 60.
 ## NextJS Config
 
+### The basic config
+
 ```ts
 import type { NextConfig } from 'next'
 
@@ -1726,7 +1821,14 @@ const nextConfig: NextConfig = {
 export default nextConfig
 ```
 
-**experimental config**
+### Experimental features
+
+All experimental features go under the `experimental` property:
+
+- `experimental.dynamicIO`: if set to true, then enables dynamicIO caching.
+- `experimental.ppr`: if set to true, then enables partial prerendering.
+
+### Config reference
 
 **typescript config**
 
