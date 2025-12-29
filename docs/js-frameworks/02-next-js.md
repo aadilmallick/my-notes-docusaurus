@@ -573,10 +573,26 @@ async function RecentlyViewed() {
 }
 ```
 
+**Concept:** Historically, you had to choose a rendering strategy for your **entire page**.
+- **Static (SSG):** Fast, cached at the edge, but cannot handle personalized data (e.g., "Welcome, User").
+- **Dynamic (SSR):** Personalized, but slower because the server must calculate the entire page before sending anything.
+    
+
+**The "Poisoning" Effect:** In Next.js, if you use a dynamic API (like `cookies()` or `headers()`) anywhere in your component tree, the **entire route** switches to Dynamic Rendering. This means even your static footer and logo wait for the database call to finish before loading.
+
+**Concept:** PPR uses **React Suspense** boundaries to isolate dynamic code. Next.js detects these boundaries at build time.
+
+1. **The Shell:** Everything _outside_ the Suspense boundary is pre-rendered as static HTML (the "Shell").
+    
+2. **The Holes:** Everything _inside_ the Suspense boundary is treated as dynamic. It is replaced with a fallback (loading state) in the initial HTML.
+    
+3. **Runtime:** When a user visits, they get the Shell immediately (from the Edge). The dynamic parts run on the server and stream in parallel.
+
 
 Therefore, the new best practice is the following:
 
 - Always put your dynamic code `cookies()`, `fetch()`, etc. in an async component that is nested farther down the page level rather than wrapping the entire page, so you can take advantage of PPR and leave some parts of the page static while you leave other parts dynamic.
+- In next 16, all you have to do is use `<Suspense>` to wrap dynamic asyn components, and then you automatically opt into partial prerendering
 
 #### Next 15
 
@@ -602,9 +618,9 @@ Server actions are syntactic sugar in NextJS that from a normal javascript funct
 
 There are three different ways to use server actions:
 
-1. **form action**: The reason why they are called *Server Actions* is because you can pass the server action to the `action=` attribute on a form, which will then trigger the server action with the `FormData` when the form is submitted.
+1. **form action**: The reason why they are called *Server Actions* is because you can pass the server action function to the `action=` attribute on a form, which will then trigger the server action with the `FormData` when the form is submitted.
 2. **button action**: On any button inside a form, you can pass in a server action function to the `formAction=` attribute.
-3. **invoke it manually**
+3. **invoke it manually**: Simply invoke it manually, passing in whatever params you want and returning whatever you want.
 
 Here are the benefits of server actions over normal API routes you can make in NextJS:
 
@@ -1140,6 +1156,80 @@ Here are the properties on the object returned from the `useFormStatus()` hook:
 - `data`
 - `pending`
 
+#### `useTransition`
+
+`useTransition()` is a react 19 hook that lets you perform blocking operations like server actions while keeping the UI snappy.
+
+- **Non-blocking updates**: Marking an update as a transition prevents it from blocking interaction with the UI.
+- **Handling multiple transitions**: Currently, React batches multiple transitions, although this may change in future releases.
+- **Limitations**: Transitions are not suitable for controlling text inputs and must be synchronous.
+
+```tsx
+// /actions/events.ts
+'use server'
+
+import { db } from '@/db/db'
+import { events } from '@/db/schema'
+import { delay } from '@/utils/delay'
+import { getCurrentUser } from '@/utils/users'
+import randomName from '@scaleway/random-name'
+
+export const createNewEvent = async () => {
+  await delay(1000)
+  const user = await getCurrentUser()
+
+  await db.insert(events).values({
+    startOn: new Date().toUTCString(),
+    createdById: user.id,
+    isPrivate: false,
+    name: randomName('event', ' '),
+  })
+}
+```
+
+```tsx
+// /components/Nav.tsx
+'use client'
+import { Input } from '@nextui-org/react'
+import { createNewEvent } from '@/actions/events'
+import { Button, Tooltip } from '@nextui-org/react'
+import { CirclePlus } from 'lucide-react'
+import { useTransition } from 'react'
+
+const Nav = () => {
+  const [isPending, startTransition] = useTransition()
+
+  const handleClick = () => {
+    startTransition(() => {
+      createNewEvent()
+    })
+  }
+
+  return (
+    <nav className="h-[65px] border-b border-default-50 flex items-center px-6 gap-4">
+      <div>
+        <Tooltip content="New Event">
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isLoading={isPending}
+            onClick={handleClick}
+          >
+            <CirclePlus size={16} />
+          </Button>
+        </Tooltip>
+      </div>
+      <div className="w-1/2">
+        <Input size="sm" variant="faded" placeholder="search" />
+      </div>
+    </nav>
+  )
+}
+
+export default Nav
+
+```
 ## Caching
 
 ### dynamic vs static in nextjs
