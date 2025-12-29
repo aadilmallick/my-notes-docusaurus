@@ -1606,6 +1606,8 @@ The main issue with dynamicIO caching was that the cache was global across the s
 
 But now, Next.js 16 offers three cache types for different use cases:
 
+- **`use cache`**: global in-memory cache shared by all clients who use your app
+
 | Feature                                 | `use cache`                     | `'use cache: remote'`             | `'use cache: private'` |
 | --------------------------------------- | ------------------------------- | --------------------------------- | ---------------------- |
 | **Server-side caching**                 | In-memory or cache handler      | Remote cache handler              | None                   |
