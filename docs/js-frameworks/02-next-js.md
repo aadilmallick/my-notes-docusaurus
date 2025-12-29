@@ -1622,9 +1622,8 @@ const decision = await arcjetLimiter.protect(req, { requested: 5 });
 ```
 
 
-### Running background jobs
 
-#### Extending function execution duration
+### Extending function execution duration
 
 The default timeout for a cloud function in Vercel is 10 seconds, which might be too small especially if you're doing some AI calls. You can set the max duration on a route handler by exporting this special value in a `route.ts` file:
 
@@ -1862,3 +1861,48 @@ export async function uploadFile(formData: FormData) {
   return Response.json(blob);
 }
 ```
+
+### Vercel Inngest background jobs
+
+## Best practices
+
+### Folder structure
+
+- `services`: a folder to store abstractions around third party libraries, like clerk, inngest, resend, etc. Each file in the `services` folder should correspond to one service.
+- `store`: any hooks that act as a global store
+- `db`: your database code
+- `features`: a folder that colocates all code for a feature in your nextjs app. It has these subfolders:
+	- `components`: all components used in the feature
+	- `hooks`: all hooks that are used solely for the feature
+	- `actions`: contains the server actions used for that feature
+		- `actions.ts`: contains the server actions, has `"use server"` at top.
+		- `schema.ts`: zod schema for the feature and server actions
+
+```
+/src
+  /features
+    /job-listing
+      /components
+        - JobCard.tsx
+        - FilterSidebar.tsx
+      /hooks
+        - useJobSearch.ts
+      /actions
+        - createJob.ts
+    /users
+      /components
+        - UserAvatar.tsx
+      /db
+        - userQueries.ts
+  /services
+    /clerk
+    /stripe
+```
+
+Whenever you're calling a lot of third party code sprinkled throughout your app, it's always a good idea to colocate all that logic into one single abstraction class, which lets you refactor very easily.
+
+### DAL
+
+DAL (data access layer) functions are server-side only functions meant for fetching data that will then be passed to the frontend and displayed.
+
+DAL functions are NOT server actions. They're just normal ass functions you run server-side.
