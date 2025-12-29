@@ -391,6 +391,10 @@ export function hasPermission(user, resource, action, data?) {
 }
 ```
 
+## Feature flags
+
+
+
 ## Antipatterns
 
 ### Storing booleans in DB
