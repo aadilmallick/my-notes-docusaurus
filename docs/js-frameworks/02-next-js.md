@@ -2437,6 +2437,81 @@ export async function getTodos() {
 }
 ```
 
+#### DAL junior vs senior
+
+A junior dev implementation of DAL would look something like this:
+
+```ts
+// ⚠️ data/todos.ts
+import { redirect } from "next/navigation";
+
+export async function getTodos() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login"); // 🔒 Hard-coded behavior
+  
+  return await db.query.todos.findMany();
+}
+```
+
+- **pros**: simple, easy to use
+- **cons**: not very reusable. For example, in API routes you may want to throw an error if the user is not authenticated, rather than redirecting.
+
+So this is the senior implementation:
+
+- **Concept:** The Data Access Layer should **only return data or errors**, never side effects (like redirects). It uses a standardized **Result Object** pattern. This allows the _consumer_ (the Page or the API) to decide how to handle the failure.
+
+```tsx
+// types.ts
+// STEP 1) TYPES
+type DalError = "NO_USER" | "NO_ACCESS" | "DB_ERROR" | "UNKNOWN";
+
+export type DalResult<T> = 
+  | { success: true; data: T }
+  | { success: false; error: DalError };
+
+// data/dal-helpers.ts
+import { getCurrentUser } from "@/auth";
+
+// STEP 2) HELPERS
+// Wrapper for operations requiring Authentication
+export async function dalRequireAuth<T>(
+  callback: (user: User) => Promise<T>,
+  roles: string[] = []
+): Promise<DalResult<T>> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "NO_USER" };
+
+  if (roles.length > 0 && !roles.includes(user.role)) {
+    return { success: false, error: "NO_ACCESS" };
+  }
+
+  try {
+    const data = await callback(user);
+    return { success: true, data };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "DB_ERROR" };
+  }
+}
+
+// STEP 3) IMPLEMENTATION
+// data/todos.ts
+import "server-only";
+import { db } from "@/db";
+import { dalRequireAuth } from "./dal-helpers";
+
+export async function getTodos() {
+  // Wraps logic in Auth + Error handling
+  return dalRequireAuth(async (user) => {
+    return await db.query.todos.findMany({
+      where: { userId: user.id }
+    });
+  });
+}
+```
+
+Now you can reuse the same DAL implementations in server actions, server components, or route handlers, and then choose to either throw an error or redirect based on the result.
+
 ### Data fetching on pages
 
 **The Mistake:** Fetching user data on the **Server** inside the root `layout.tsx` (e.g., for a Navbar).
