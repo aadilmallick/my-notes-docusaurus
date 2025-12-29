@@ -539,10 +539,10 @@ Use nextjs caching to only revalidate or invalidate the cache for a page when th
 
 ### PPR
 
-Partial prerendering is new in nextjs and it is the "Holy Grail" of rendering. 
+Partial prerendering is new in nextjs and it is the "Holy Grail" of rendering. It prevents making a whole route/page dynamic if it has a `<Suspense>` somewhere in its component tree.
 
 - **concept**: combines SSG and Dynamic Rendering in the **same page**. You keep the outer shell (Navbar, Footer, Main Content) static, while isolating dynamic parts (like a "Recently Viewed" sidebar) in holes that are filled in dynamically.
-- **The Problem it Solves:** Previously, if one tiny component read a Cookie, the _entire page_ became Dynamic (SSR). With PPR, only that component is Dynamic.
+- **The Problem it Solves:** Previously, if one tiny child component inside a page was asynchronous (called `fetch()`, `cookies()`, etc.), the _entire page_ became Dynamic (SSR). With PPR, only that component is Dynamic.
 
 Here's an example:
 
@@ -573,9 +573,14 @@ async function RecentlyViewed() {
 }
 ```
 
-Partial prerendering is now baked into nextjs 16 and thus is the default. 
 
-However, in next 15, you enable it in the next config:
+Therefore, the new best practice is the following:
+
+- Always put your dynamic code `cookies()`, `fetch()`, etc. in an async component that is nested farther down the page level rather than wrapping the entire page, so you can take advantage of PPR and leave some parts of the page static while you leave other parts dynamic.
+
+#### Next 15
+
+In next 15, you enable it in the next config:
 
 ```
 nextConfig.experimental.ppr = true
@@ -587,22 +592,28 @@ and then specify ppr for a page like so:
 export const experimental_ppr = true;
 ```
 
-Therefore, the new best practice is the following:
+#### Next 16
 
-- Always put your dynamic code `cookies()`, `fetch()`, etc. in an async component that is nested farther down the page level rather than wrapping the entire page, so you can take advantage of PPR and leave some parts of the page static while you leave other parts dynamic.
+Partial prerendering is now baked into nextjs 16 and thus is the default. 
 
 ## Server Actions
 
-Server actions are syntactic sugar in NextJS that from a normal javascript function running in node, creates an API route behind the scenes that is automatically executed when a user submits a form. The reason why they are called *Server Actions* is because you pass the server action to the `action=` attribute on a form, which then tells NextJS to create a POST API route with the path equal to the name of the server action function, and then immediately requests it. 
+Server actions are syntactic sugar in NextJS that from a normal javascript function running server-side, creates a POST API route behind the scenes that is automatically fetched when a user invokes the server action.
+
+There are three different ways to use server actions:
+
+1. **form action**: The reason why they are called *Server Actions* is because you can pass the server action to the `action=` attribute on a form, which will then trigger the server action with the `FormData` when the form is submitted.
+2. **button action**: On any button inside a form, you can pass in a server action function to the `formAction=` attribute.
+3. **invoke it manually**
 
 Here are the benefits of server actions over normal API routes you can make in NextJS:
 
 - You get type safety since server actions are just normal javascript functions you import into your client components.
 - You don't have to write cumbersome `fetch()` requests. Just set the `action=` prop on a form and set it to the server action function, and you're done.
 
-### How to use server actions
+### Server actions as form actions
 
-Server actions are normal javascript functions that always get passed in a single argument of form data of type `FormData` and can return anything they want. However, to make normal node functions into server actions, you **must** use the `"use server"` directive at the top of the file containing all your actions code.
+Server actions are normal javascript functions running server-side that you define. To define a server action, use the `"use server"` directive at the top of the file containing all your actions code.
 
 What the `"use server"` directive does is that it transforms what would otherwise be a normal JS function running in the node runtime into an HTTP route handler. Thus there are two important things that must be understood here:
 
@@ -809,6 +820,209 @@ Here's a simpler example:
   );
 ```
 
+Here's another example:
+
+```tsx
+'use client'
+
+import { useActionState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Issue, ISSUE_STATUS, ISSUE_PRIORITY } from '@/db/schema'
+import Button from './ui/Button'
+import {
+  Form,
+  FormGroup,
+  FormLabel,
+  FormInput,
+  FormTextarea,
+  FormSelect,
+  FormError,
+} from './ui/Form'
+import { createIssue, ActionResponse } from '@/app/actions/issues'
+
+interface IssueFormProps {
+  issue?: Issue
+  userId: string
+  isEditing?: boolean
+}
+
+const initialState: ActionResponse = {
+  success: false,
+  message: '',
+  errors: undefined,
+}
+
+export default function IssueForm({
+  issue,
+  userId,
+  isEditing = false,
+}: IssueFormProps) {
+  const router = useRouter()
+
+  // Use useActionState hook for the form submission action
+  const [state, formAction, isPending] = useActionState<
+    ActionResponse,
+    FormData
+  >(async (prevState: ActionResponse, formData: FormData) => {
+    // Extract data from form
+    const data = {
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      status: formData.get('status') as
+        | 'backlog'
+        | 'todo'
+        | 'in_progress'
+        | 'done',
+      priority: formData.get('priority') as 'low' | 'medium' | 'high',
+      userId,
+    }
+
+    try {
+      // Call the appropriate action based on whether we're editing or creating
+      const result = isEditing
+        ? await updateIssue(Number(issue!.id), data)
+        : await createIssue(data)
+
+      // Handle successful submission
+      if (result.success) {
+        router.refresh()
+        if (!isEditing) {
+          router.push('/dashboard')
+        }
+      }
+
+      return result
+    } catch (err) {
+      return {
+        success: false,
+        message: (err as Error).message || 'An error occurred',
+        errors: undefined,
+      }
+    }
+  }, initialState)
+
+  const statusOptions = Object.values(ISSUE_STATUS).map(({ label, value }) => ({
+    label,
+    value,
+  }))
+
+  const priorityOptions = Object.values(ISSUE_PRIORITY).map(
+    ({ label, value }) => ({
+      label,
+      value,
+    })
+  )
+
+  return (
+    <Form action={formAction}>
+      {state?.message && (
+        <FormError
+          className={`mb-4 ${
+            state.success ? 'bg-green-100 text-green-800 border-green-300' : ''
+          }`}
+        >
+          {state.message}
+        </FormError>
+      )}
+
+      <FormGroup>
+        <FormLabel htmlFor="title">Title</FormLabel>
+        <FormInput
+          id="title"
+          name="title"
+          placeholder="Issue title"
+          defaultValue={issue?.title || ''}
+          required
+          minLength={3}
+          maxLength={100}
+          disabled={isPending}
+          aria-describedby="title-error"
+          className={state?.errors?.title ? 'border-red-500' : ''}
+        />
+        {state?.errors?.title && (
+          <p id="title-error" className="text-sm text-red-500">
+            {state.errors.title[0]}
+          </p>
+        )}
+      </FormGroup>
+
+      <FormGroup>
+        <FormLabel htmlFor="description">Description</FormLabel>
+        <FormTextarea
+          id="description"
+          name="description"
+          placeholder="Describe the issue..."
+          rows={4}
+          defaultValue={issue?.description || ''}
+          disabled={isPending}
+          aria-describedby="description-error"
+          className={state?.errors?.description ? 'border-red-500' : ''}
+        />
+        {state?.errors?.description && (
+          <p id="description-error" className="text-sm text-red-500">
+            {state.errors.description[0]}
+          </p>
+        )}
+      </FormGroup>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormGroup>
+          <FormLabel htmlFor="status">Status</FormLabel>
+          <FormSelect
+            id="status"
+            name="status"
+            defaultValue={issue?.status || 'backlog'}
+            options={statusOptions}
+            disabled={isPending}
+            required
+            aria-describedby="status-error"
+            className={state?.errors?.status ? 'border-red-500' : ''}
+          />
+          {state?.errors?.status && (
+            <p id="status-error" className="text-sm text-red-500">
+              {state.errors.status[0]}
+            </p>
+          )}
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel htmlFor="priority">Priority</FormLabel>
+          <FormSelect
+            id="priority"
+            name="priority"
+            defaultValue={issue?.priority || 'medium'}
+            options={priorityOptions}
+            disabled={isPending}
+            required
+            aria-describedby="priority-error"
+            className={state?.errors?.priority ? 'border-red-500' : ''}
+          />
+          {state?.errors?.priority && (
+            <p id="priority-error" className="text-sm text-red-500">
+              {state.errors.priority[0]}
+            </p>
+          )}
+        </FormGroup>
+      </div>
+
+      <div className="flex justify-end gap-2 mt-6">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => router.back()}
+          disabled={isPending}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" isLoading={isPending}>
+          {isEditing ? 'Update Issue' : 'Create Issue'}
+        </Button>
+      </div>
+    </Form>
+  )
+}
+```
+
 ### Other ways to use server actions
 
 Since server actions are just syntactic sugar for fetching an API route you make, you can invoke them anywhere, in any event handler like `onClick=` or as a result of a form submission with the `action=` prop.
@@ -839,7 +1053,9 @@ export function Button() {
 
 #### Button with `onClick=`
 
-You can also use a server action in an `onClick=` prop like so:
+You can create a server action that accepts any arguments and returns data in any form, and then you can manually call that server action as a normal javascript function inside an event handler to data fetch it in a `useEffect`.
+
+For example, you can use a server action in an `onClick=` prop like so:
 `
 ```ts title="actions.ts"
 export async function deleteNoteAction(id: number) {
@@ -864,7 +1080,6 @@ export const TrashButton = ({ id }: { id: number }) => {
       className="text-sm text-gray-500 hover:text-red-500 cursor-pointer"
       onClick={async () => {
         await deleteNoteAction(id);
-        console.log("deleted");
         router.refresh();
       }}
     >
@@ -1173,6 +1388,12 @@ export async function Bookings({ type = 'haircut' }: BookingsProps) {
   return //...
 }
 ```
+
+#### Server-side refresh
+
+Before after invalidating the cache after mutating some server-side data, you had to send the response back to the client so that the client could call `router.refresh()` to soft refresh and see the new, fresh data.
+
+Now, you can do that server side via `refresh()` from the `"next/cache"` library in nextjs 16, which will make the current route the user is on perform a soft refresh client-side.
 
 ### Dynamic pages: `<Suspense>`
 
@@ -1830,6 +2051,8 @@ All experimental features go under the `experimental` property:
 
 ### Config reference
 
+- `reactCompiler`: setting this flag to `true` enables the react compiler and omits the need for `useMemo`, `useCallback`, `memo`, etc.
+
 **typescript config**
 
 The typescript config goes under the `typescript` key:
@@ -1841,6 +2064,8 @@ The typescript config goes under the `typescript` key:
 The typescript config goes under the `eslint` key:
 
 - `eslint.ignoreDuringBuilds` : if true, ignores eslint warnings during the build process, which prevents the build from failing due to errors.
+
+
 
 
 ## Libraries

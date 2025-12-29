@@ -1765,7 +1765,7 @@ export default function Posts({
 }
 ```
 
-### `useTransition
+### `useTransition()`
 
 
 The `useTransition()` hook allows developers to mark state updates as transitions. This can help keep the UI responsive by treating certain updates as non-urgent. Updates marked as transitions won't block urgent updates, such as typing in an input field.`
@@ -1857,6 +1857,40 @@ You can then create a "debouncing" effect by preventing action when the original
 ```ts
 const isUpdating = state !== deferredState
 ```
+
+### `useEffectEvent()`
+
+The `useEffectEvent()` hook creates a method that can be used in `useEffect` but doesn't need to be added to the dependency array.
+
+1. `useEffectEvent(cb)` takes in a callback and returns the callback, but no need for the dependency array.
+2. You can then use this callback inside a `useEffect` and no need to pass in that callback to the effect's dependency array.
+
+```tsx
+import { useEffect, useEffectEvent } from 'react';
+
+function Page({ url }) {
+  const { cartItems } = useContext(ShoppingCartContext);
+
+  // This is an Effect Event: it ALWAYS sees the latest cartItems
+  // but it is NOT a dependency for the Effect.
+  const onVisit = useEffectEvent((visitedUrl) => {
+    logAnalytics('visit', {
+      url: visitedUrl,
+      numberOfItems: cartItems.length // Fresh data, but non-reactive
+    });
+  });
+
+  useEffect(() => {
+    onVisit(url);
+    // ✅ The Effect only re-runs when the 'url' changes.
+    // Changes to 'cartItems' do NOT trigger a new log.
+  }, [url]); 
+}
+
+```
+
+
+
 
 ### `useActionState()`
 
