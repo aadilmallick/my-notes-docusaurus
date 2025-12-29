@@ -1677,6 +1677,15 @@ Just go here and copy his code, just import everything from the "novel" package,
 
 [next-novel/components/editor/editor.tsx at main · HamedBahram/next-novel](https://github.com/HamedBahram/next-novel/blob/main/components/editor/editor.tsx)
 
+
+## Auth
+
+### Clerk
+
+### Better Auth
+
+
+
 ## Vercel-specific offerings
 
 ### Vercel KV
@@ -1906,3 +1915,64 @@ Whenever you're calling a lot of third party code sprinkled throughout your app,
 DAL (data access layer) functions are server-side only functions meant for fetching data that will then be passed to the frontend and displayed.
 
 DAL functions are NOT server actions. They're just normal ass functions you run server-side.
+
+#### DAL with auth
+
+You almost always want to cache your main server-side auth function that retrieves the user. Cache it per request, using `cache()` from react to do so.
+
+```tsx file="services/clerk.ts"
+import { redirect } from "next/navigation";
+import { cache } from "react";
+import { getSession } from "@/lib/auth"; // Your auth provider
+
+// ✅ Cached for performance in a single render pass
+export const requireUser = cache(async () => {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  return session.user;
+});
+```
+
+And then inside DAL functions performing authenticated actions, call this authentication function that blocks the DAL if not authenticated.
+
+```tsx file="dal/todos.tsx"
+import "server-only"; // 🛡️ Prevents client-side usage
+import { db } from "@/lib/db";
+import { requireUser } from "./auth";
+
+export async function getTodos() {
+  // ✅ Auth check happens INSIDE the fetcher
+  // Impossible to fetch data without being logged in
+  const user = await requireUser();
+
+  return await db.todo.findMany({
+    where: { userId: user.id }
+  });
+}
+```
+
+### Data fetching on pages
+
+**The Mistake:** Fetching user data on the **Server** inside the root `layout.tsx` (e.g., for a Navbar).
+
+> [!WARNING]
+> **Consequence:** Because the Layout wraps _every_ page, fetching dynamic data there opts the **entire application** out of Static Site Generation (SSG). Every page becomes dynamic and slower.
+
+**The Solution:** For layout components like Navbars, fetch user session data on the **Client Side** (or use a specific client-hook provided by your Auth library).
+
+If one component is async and thus dynamic, every child of that component will also be dynamic and thus opt out of being statically rendered.
+
+```tsx
+// layout.tsx
+export default function Layout({ children }) {
+  return (
+    <html>
+      <body>
+        {/* ✅ Navbar fetches auth on client, preserving static pages */}
+        <NavbarClient /> 
+        {children}
+      </body>
+    </html>
+  );
+}
+```
