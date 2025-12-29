@@ -474,6 +474,65 @@ const NewIssue = async () => {
 export default NewIssue
 ```
 
+
+## Rendering strategies
+
+### CSR
+
+Client-side rendering is the traditional react way of using javascript to build out the page.
+
+In next.js, you can opt into this by using the `"use client"` directive on any component, making it client-side only.
+
+```tsx
+// components/UpvoteButton.tsx
+"use client"; // 👈 Marks this as a Client Component
+
+import { useState } from "react";
+
+export default function UpvoteButton() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <button onClick={() => setCount(count + 1)}>
+      Upvote ({count})
+    </button>
+  );
+}
+```
+
+> [!NOTE]
+> "Client Components" in Next.js are pre-rendered once on the server for the initial HTML, then "hydrated" in the browser to become interactive, so if you want to make pages static, use client-side data fetching to let the page be static but take advantage of hydration.
+
+### SSR
+
+SSR is the default in nextjs, where async page components means that the entire page is rendered server-side (except for nested client components) and is dynamic, meaning it fetches the data each and every time.
+
+- **Concept:** The page is rendered on the server **on demand** for every single request. 
+	- This happens automatically if you access runtime information (Cookies, Headers, Search Params).
+	- This can also happen when you use dynamicIO and wrap an async component within suspense instead of caching it with `"use cache"`
+- **Use Case:** Personalized dashboards, pages behind authentication, real-time data.
+
+### SSG
+
+Static site generation involves building out pages ahead of time, which is a technique we can use on route param routes like `/websites/[id]`.
+
+We do this by returning the `params` from `generateStaticParams()` on a dynamic route param route, and then for all params, nextjs will build out a version of that page for each param.
+
+```tsx file="app/posts/[id]/page.tsx"
+
+export async function generateStaticParams() {
+  const posts = await prisma.post.findMany();
+  
+  // Returns [{ id: '1' }, { id: '2' }]
+  // Next.js will build HTML for these specific pages at build time.
+  return posts.map((post) => ({ id: String(post.id) }));
+}
+
+export default async function PostPage({ params }) {
+  // ... renders static post
+}
+```
+
 ## Server Actions
 
 Server actions are syntactic sugar in NextJS that from a normal javascript function running in node, creates an API route behind the scenes that is automatically executed when a user submits a form. The reason why they are called *Server Actions* is because you pass the server action to the `action=` attribute on a form, which then tells NextJS to create a POST API route with the path equal to the name of the server action function, and then immediately requests it. 
@@ -881,7 +940,8 @@ By default, the `"use cache"` directive caches the page/component/function forev
 To implement manual revalidation, you can used a tags-based approach that lets you revalidate content connected to a specific tag:
 
 - `cacheTag(tag: string)`: caches the function/component under the specified tag
-- `revalidateTag(tag: string)`: from the specified tag, removes the function from the cache.
+- `revalidateTag(tag: string)`: from the specified tag, removes the function from the cache. However, this has **stale while revalidate** behavior, meaning that it still shows the initial cached version before getting the fresh data back.
+- `updateTag(tag: string)`: invalidates the cache of the function that the tag references. However, it immediately serves fresh data.
 
 **page based revalidation**
 ****
@@ -943,9 +1003,12 @@ When you cache at the page level, you are telling NextJS to **statically prerend
 > [!WARNING]
 > Since `"use cache"` has buildtime behavior here, you CANNOT use dynamic data associated with requests like `cookies()` or `headers()`.
 
-Remember to implement revalidation with `revalidatePath()` if you choose to cache at the page level.
+Remember to implement revalidation with `revalidatePath()` if you choose to cache at the page level. 
 
-```ts
+1. Call `"use cache"` at the page level
+2. In some server action or server side function that mutates backend data, call `revalidatePath(path)` and pass in the route your want to invalidate the cache for.
+
+```tsx file="post/actions.ts"
 'use server'
  
 import { revalidatePath } from 'next/cache'
@@ -980,9 +1043,16 @@ interface BookingsProps {
 ```
 
 The one exception to the serialized props is `children`, which can be different each time.
-#### 3) Caching data fetching
+#### 3) Caching at the function level.
 
-You can cache async function calls with the `"use cache"` directive to cache the function's return value. To opt into caching the return values of functions, use the `"use cache"` directive at the first line of the function body.
+You can cache async function calls with the `"use cache"` directive to cache the function's return value. 
+
+1. To opt into caching the return values of functions, use the `"use cache"` directive at the first line of the function body.
+2. To invalidate the cache for the function, first attach a specific reference name to that function by invoking `cacheTag(some_tag)` within the function body, and then call `revalidateTag(some_tag)` to invalidate the cache of the function referenced by that tag.
+
+You have two methods for invalidation:
+- `revalidateTag(tag, cachelife)`: performs stale while revalidate with some cache life 
+- `updateTag(tag)`: invalidates the cache and immediately serves fresh data
 
 A basic technique is to cache data fetching functions and to reset the cache when a new resource is created or updated:
 
@@ -1000,7 +1070,7 @@ const getIssues = async () => {
 import { revalidateTag } from 'next/cache'
 
 export const createIssue = async () => {
-  // after issue db insert
+  // after mutating data by adding issues, revalidate it
   revalidateTag('issues')
 }
 ```
@@ -1018,7 +1088,7 @@ export async function Bookings({ type = 'haircut' }: BookingsProps) {
   async function getBookingsData() {
     'use cache'
     const data = await fetch(`/api/bookings?type=${encodeURIComponent(type)}`)
-    cacheTag('bookings-data', data.id)
+    cacheTag('bookings-data' + data.id)
     return data
   }
   return //...
@@ -1096,6 +1166,8 @@ export default async function Page({
   )
 }
 ```
+
+
 
 ## API routes and middleware
 
@@ -1671,11 +1743,8 @@ The typescript config goes under the `eslint` key:
 
 ## Libraries
 
-### Rich style notion editor
 
-Just go here and copy his code, just import everything from the "novel" package, as `novel/extensions` doesn't exist. ShadCN is a requirement for this.
 
-[next-novel/components/editor/editor.tsx at main · HamedBahram/next-novel](https://github.com/HamedBahram/next-novel/blob/main/components/editor/editor.tsx)
 
 
 ## Auth
