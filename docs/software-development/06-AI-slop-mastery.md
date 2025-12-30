@@ -23,6 +23,16 @@ LLMs perform better when there is some sort of structure in your coding, for exa
 
 1. Create a `features.md` to track features, describe them, and cross them off incrementally.
 2. Always ask the agent to plan through solving a feature before implementing it.
+3. Always use a living document for features, saving progress you made on a feature and describing it so you can feed it as context even when starting a brand new convo.
+
+#### Summary
+
+
+1. **Plan First**: Never let the AI code without a `plan.md`. Read the plan. If the plan is wrong, the code will be wrong.
+    
+2. **Give it Eyes (Harnesses)**: The AI cannot see the UI. Give it a `dry-run` script or a `npm test` so it can "see" if it broke something.
+    
+3. **Review is Mandatory**: AI is not a replacement for knowing how to code. It is a replacement for _typing_. You must review every line (or use tools like Graphite/CodeRabbit for a second opinion).
 
 ### Github Copilot
 
@@ -782,6 +792,24 @@ You can tell claude to "make the plan multi-phase" which makes the plan, well, m
     - Whenever tests fail or requirements shift, tell the AI: “Update `plans/feature-X.md` to reflect what we’ve learned, then adjust the implementation.”​
         
     - For new related features, point the AI at existing plan files so it keeps architecture consistent.​
+
+**Living document feature: save to github issue.**
+
+Ask Claude to **save the current plan state to a GitHub Issue** before clearing the context.
+
+**Step A: Save State**
+
+> "Make a GitHub issue containing the current plan, checking off the items we have already completed."
+
+_Claude runs `gh issue create` automatically._
+
+**Step B: Reset & Resume**
+
+> /clear "Get GitHub issue #24 and enact Phase 4 of that plan."
+
+_Claude reads the issue from GitHub, sees where it left off, and resumes work with a fresh context window._
+
+
 
 #### Claude config
 
