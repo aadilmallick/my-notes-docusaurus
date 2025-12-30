@@ -573,8 +573,10 @@ When inside a conversation with claude code, you have access to these special sl
 - `/model <model>`: change the model mid convo to one of `haiku`, `sonnet`, or `opus`
 - `/compact`: compacts previous conversation history into a summary. Useful when you've now moved on to a different task.
 - `/clear`: clears the conversation history
-- `/init`: reads the current codebase and based off that creates a `CLAUDE.md` file
+- `/init`: reads the current codebase and based off that, creates a `CLAUDE.md` file
 - `/status`: shows current token and session info
+- `/review`: performs a code review
+- `/security-review`: performs a code review that searches for security flaws.
 
 #### Commands
 
