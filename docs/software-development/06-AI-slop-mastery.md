@@ -566,6 +566,10 @@ google_web_search(query="Your query goes here.")
 	- `opus`
 	- `haiku`
 
+#### Keyboard shortcuts
+
+- **auto accept modTO enter auto accept mode for edits, press `shift + tab` keyboard shortcut
+
 #### Slash options
 
 When inside a conversation with claude code, you have access to these special slash commands:
@@ -578,6 +582,7 @@ When inside a conversation with claude code, you have access to these special sl
 - `/status`: shows current token and session info
 - `/review`: performs a code review
 - `/security-review`: performs a code review that searches for security flaws.
+- `/install-github-app`: allows you to add claude as a collaborator to a github repoi so you can assign it issues and to pull requests
 
 #### Commands
 
@@ -613,6 +618,10 @@ To force thinking, you can use these keywords in your prompt:
 
 - **"think"**: reasoning up to 4000 tokens
 - **"think harder"**: reasoning up to 10000 tokens
+
+**switch models smartly**
+
+Use opus for planning, sonnet for execution.
 
 #### Claude config
 
@@ -663,6 +672,28 @@ Here are some important things to keep in mind:
 	- `"sse"`: SSE transport server
 
 The access token must be valid and scoped correctly, having at least the repo permissions.
+
+Here's an example of my favoriute MCP setuo:
+
+```json
+"mcpServers": {
+"playwright": {
+  "type": "stdio",
+  "command": "npx",
+  "args": [
+	"@playwright/mcp@latest"
+  ],
+  "env": {}
+},
+"context7": {
+  "type": "http",
+  "url": "https://mcp.context7.com/mcp",
+  "headers": {
+	"CONTEXT7_API_KEY": "apikeyhere"
+  }
+}
+},
+```
 
 ### CodeRabbit CLI
 
