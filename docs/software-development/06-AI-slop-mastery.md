@@ -568,7 +568,8 @@ google_web_search(query="Your query goes here.")
 
 #### Keyboard shortcuts
 
-- **auto accept modTO enter auto accept mode for edits, press `shift + tab` keyboard shortcut
+- **auto accept mode**: TO enter auto accept mode for edits, press `shift + tab` keyboard shortcut
+- **plan mode**: TO enter plan mode, press `shift + tab` twice
 
 #### Slash options
 
@@ -605,11 +606,16 @@ With a pre tool use hook, you can inspect and potentially block certain actions,
 
 Subagents in claude are just several different agents each with their own system prompt and context window.
 
-You can create subagents with the `/agents` command. Here is an example of the different types of subagent personalities you can create.
+You can create subagents with the `/agents` command, and the agent specification is like so:
+
+- **storage**: agents are stored as markdown files in the `.claude/agents` folder in your project
+- **tools**: You can specify which tools the agent has access to.
+
+Here is an example of the different types of subagent personalities you can create.
 
 ![](https://i.imgur.com/36NkZ2h.jpeg)
 
-
+![more subagent ideas](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1767097337/image-clipboard-assets/fjxy7nax7x6yhoyv1dcl.webp)
 #### Techniques and strategies
 
 **forcing thinking**
@@ -622,6 +628,10 @@ To force thinking, you can use these keywords in your prompt:
 **switch models smartly**
 
 Use opus for planning, sonnet for execution.
+
+**Use plan mode**
+
+You can tell claude to "make the plan multi-phase" which makes the plan, well, multi-phase.
 
 #### Claude config
 
@@ -699,6 +709,7 @@ Here's an example of my favoriute MCP setuo:
 
 - `coderabbit`: runs a normal code review session
 - `coderabbit --plain`: runs a normal code review session
+
 ## Vibe coding mastery
 
 ### tech stack
@@ -4469,6 +4480,11 @@ npx n8n
 docker volume create n8n_data
 docker run -it --rm --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n docker.n8n.io/n8nio/n8n
 ```
+
+## Claude Skills
+
+
+
 ## MCP
 
 MCP is a layer between tools available to the LLM and the LLM itself, making it very simple for the LLM to know what tools are available and when to use them. 
