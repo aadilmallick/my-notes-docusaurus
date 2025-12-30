@@ -574,6 +574,7 @@ When inside a conversation with claude code, you have access to these special sl
 - `/compact`: compacts previous conversation history into a summary. Useful when you've now moved on to a different task.
 - `/clear`: clears the conversation history
 - `/init`: reads the current codebase and based off that, creates a `CLAUDE.md` file
+- `/context`: visualize the current context and how much of it is taken up.
 - `/status`: shows current token and session info
 - `/review`: performs a code review
 - `/security-review`: performs a code review that searches for security flaws.
@@ -582,7 +583,7 @@ When inside a conversation with claude code, you have access to these special sl
 
 Commands are special markdown files that must live within the `.claude/commands` folder, and can be used as custom slash commands. 
 
-- For example, a `.claude/commands/goal.md` can be invoked via the `/goal` slash command.
+- For example, a `.claude/commands/goal.md` can be invoked via the `/goal` slash command, and it acts like a really big prompt to claude, giving it all the markdown content.
 
 > [!NOTE]
 > The main use case of commands is to prompt for repetitive tasks like linting, testing, or adding documentation. You can also do neat stuff like dynamically add arguments and interpolate bash commands in these markdown files.
@@ -613,7 +614,27 @@ To force thinking, you can use these keywords in your prompt:
 - **"think"**: reasoning up to 4000 tokens
 - **"think harder"**: reasoning up to 10000 tokens
 
-#### MCP
+#### Claude config
+
+**allowed tools**
+
+At the project or global level, you can set which tools claude does and doesn't need permission for:
+
+```json file=".claude/settings.local.json"
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch"
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
+```
+
+**MCP**
 
 You can add MCP config in a `.mcp.json` in the current directory, which claude can access and load the MCP servers from.
 
