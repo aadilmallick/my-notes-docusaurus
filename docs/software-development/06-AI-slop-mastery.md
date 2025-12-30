@@ -1,4 +1,23 @@
-## Developer focused AI tools
+## AI-assisted coding
+
+### The workflow
+
+#### 1) Context is king
+
+- **Problem**: The more context you feed to your agent, the worse it performs. Keep context small.
+- **Solution**: Use `/compact` to compact and summarize your conversation history in claude code, or just prompt the AI to summarize the entire conversation history and put that into a markdown file, which you can then feed as context into a new chat.
+
+#### 2) Write E2E tests
+
+End to end tests will give you the biggest bang for your buck.
+
+#### 3) Review every line of code
+
+No excuses. If you didn't write it, then review it.
+
+#### 4) Abstract first
+
+LLMs perform better when there is some sort of structure in your coding, for example, using TS or building abstractions in simple interfaces on top of third-party libraries will help the AI to understand your coding style, and it will build off of that. 
 
 ### Github Copilot
 
