@@ -19,6 +19,11 @@ No excuses. If you didn't write it, then review it.
 
 LLMs perform better when there is some sort of structure in your coding, for example, using TS or building abstractions in simple interfaces on top of third-party libraries will help the AI to understand your coding style, and it will build off of that. 
 
+### 5) Actually doing it
+
+1. Create a `features.md` to track features, describe them, and cross them off incrementally.
+2. Always ask the agent to plan through solving a feature before implementing it.
+
 ### Github Copilot
 
 You can also use copilot on the web here:
@@ -96,6 +101,19 @@ Provides additional context for asking questions abotu prisma
 Provides an additional context for asking questions about neon db.
 
 [go here](https://github.com/settings/installations/68475406)
+
+#### Copilot instruction files
+
+You can add copilot instruction files in the chat options, which apply to certain files or to all files. Think of these as a style guide and a way to let copilot know what your porject is about.
+
+#### Enabling mcp
+
+1. Create a `.vscode/mcp.json`
+2. Specify mcp servers like so:
+
+
+![](https://i.imgur.com/N0ogxoG.jpeg)
+
 
 ### Cursor
 
