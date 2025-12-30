@@ -609,9 +609,19 @@ To write a good `CLAUDE.md` file, we should follow these core principles:
 1. `CLAUDE.md` is for onboarding Claude into your codebase. It should define your project's **WHY**, **WHAT**, and **HOW**.
 2. **Less (instructions) is more**. While you shouldn't omit necessary instructions, you should include as few instructions as reasonably possible in the file.
 3. Keep the contents of your `CLAUDE.md` **concise and universally applicable**.
-4. Use **Progressive Disclosure** - don't tell Claude all the information you could possibly want it to know. Rather, tell it _how to find_ important information so that it can find and use it, but only when it needs to to avoid bloating your context window or instruction count.
+4. Use **Progressive Disclosure** - don't tell Claude all the information you could possibly want it to know. Rather, tell it _how to find_ important information so that it can find and use it, but only when it needs to to avoid bloating your context window or instruction count. Also, don't embed files directly with `@`, as that bloats the context. Just reference the file.
 5. Claude is not a linter. Use linters and code formatters, and use other features like [Hooks](https://code.claude.com/docs/en/hooks) and [Slash Commands](https://code.claude.com/docs/en/slash-commands) as necessary.
 6. **`CLAUDE.md` is the highest leverage point of the harness**, so avoid auto-generating it. You should carefully craft its contents for best results.
+
+ANother 4 principles:
+
+1. **Start with Guardrails, Not a Manual.** Your `CLAUDE.md` should start small, documenting based on what Claude is getting wrong.
+    
+2. **Don’t** `@`**-File Docs.** If you have extensive documentation elsewhere, it’s tempting to `@`-mention those files in your `CLAUDE.md`. This bloats the context window by embedding the entire file on every run. But if you just _mention_ the path, Claude will often ignore it. You have to _pitch_ the agent on _why_ and _when_ to read the file. “For complex … usage or if you encounter a `FooBarError`, see `path/to/docs.md` for advanced troubleshooting steps.”
+    
+3. **Don’t Just Say “Never.”** Avoid negative-only constraints like “Never use the `--foo-bar` flag.” The agent will get stuck when it thinks it _must_ use that flag. Always provide an alternative.
+    
+4. **Use** `CLAUDE.md` **as a Forcing Function.** If your CLI commands are complex and verbose, don’t write paragraphs of documentation to explain them. That’s patching a human problem. Instead, write a simple bash wrapper with a clear, intuitive API and document _that_. Keeping your `CLAUDE.md` as short as possible is a fantastic forcing function for simplifying your codebase and internal tooling.
 
 **principle 1 - Keep your claude md small**
 
@@ -628,6 +638,10 @@ This implies that your `CLAUDE.md` file should contain as few instructions as 
 
 The term Progressive disclosure is just a fancy way of saying to reference different markdown files inside your `CLAUDE.md` file and then give brief descriptions of those files so that Claude can decide whether or not to read those markdown files.
 
+However, referencing files directly with the `@` prefix is NOT progressive disclosure, as that just completely embeds the file content into the context. 
+
+Rather, in the `CLAUDE.md`, to implement progressive disclosure, just reference the filepath and describe what that file does, and claude will decide whether or not to look at that md file.
+
 #### CLI options
 
 - `claude -p <prompt>`: runs a one-off prompt
@@ -635,6 +649,8 @@ The term Progressive disclosure is just a fancy way of saying to reference diffe
 	- `sonnet`
 	- `opus`
 	- `haiku`
+- `claude --continue`: continue off from the last session
+- `claude --resume`: resume a specific session.
 
 #### Keyboard shortcuts
 
