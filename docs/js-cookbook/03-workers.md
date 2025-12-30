@@ -350,5 +350,3 @@ openMenuButton.addEventListener("click", (e) => {
 > What I didn’t initially understand was that **none of the** _**other**_ **listeners can fire if the thread is blocked**. Meaning: things get janky.
 
 Below is a codepen example of how clicking a button that then kicks off a long running calculation in the event listener (yes, especially if you await it) freezes all other event listeners and prevents them from firing.
-
-<iframe id="cp_embed_XWWKyGe" src="https://codepen.io/alexmacarthur/embed/preview/XWWKyGe?default-tabs=css%2Cresult&amp;height=300&amp;host=https%3A%2F%2Fcodepen.io&amp;slug-hash=XWWKyGe" title="Event Blocking - No Worker" scrolling="no" frameborder="0" height="300" allowtransparency="true" class="cp_embed_iframe" style="width: 100%; overflow: hidden;"></iframe>

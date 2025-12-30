@@ -19,7 +19,7 @@ No excuses. If you didn't write it, then review it.
 
 LLMs perform better when there is some sort of structure in your coding, for example, using TS or building abstractions in simple interfaces on top of third-party libraries will help the AI to understand your coding style, and it will build off of that. 
 
-### 5) Actually doing it
+#### 5) Actually doing it
 
 1. Create a `features.md` to track features, describe them, and cross them off incrementally.
 2. Always ask the agent to plan through solving a feature before implementing it.
@@ -749,6 +749,39 @@ Use opus for planning, sonnet for execution.
 **Use plan mode**
 
 You can tell claude to "make the plan multi-phase" which makes the plan, well, multi-phase.
+
+
+#### Process - Claude code planning workflow
+
+
+1. **Start each task with a plan file**
+    
+    - Create or designate a `plans/` folder in your repo (e.g. `plans/feature-query-builder.md`).
+        
+    - Ask the AI to write a plan into that file, not to write code yet.​
+        
+2. **Prompt the AI to draft the plan**  
+    Use a prompt along the lines of​
+    
+    - “Here is the feature I want. Create a detailed implementation plan and write it into `plans/feature-X.md`. Include: restated requirements, architecture, file-level changes, pseudo-code, and test/lint/type-check commands.”​
+        
+3. **Review and edit the plan with the AI**
+    
+    - Read the plan and comment like you would on a junior engineer’s design doc (e.g. “route naming is off”, “missing auth checks”, “doesn’t match existing patterns”).​
+        
+    - Ask the AI to revise the plan until it matches how you actually want to build the feature.​
+        
+4. **Implement strictly from the plan**
+    
+    - Once happy, say: “Now follow the plan in `plans/feature-X.md` and implement the changes step by step.”​
+        
+    - When things change, first update the plan file, then implement according to the updated plan.​
+        
+5. **Keep the plan as a living document**
+    
+    - Whenever tests fail or requirements shift, tell the AI: “Update `plans/feature-X.md` to reflect what we’ve learned, then adjust the implementation.”​
+        
+    - For new related features, point the AI at existing plan files so it keeps architecture consistent.​
 
 #### Claude config
 
