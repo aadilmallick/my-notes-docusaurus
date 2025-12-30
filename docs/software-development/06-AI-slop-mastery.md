@@ -171,6 +171,38 @@ Open up the current folder in antigravity using the `agy` command
 - **implementation plans**: WHen you're in planning mode you'll be able to create implementation plans and then you can even comment on those plans to have the AI implement your suggestions.
 - **inbox**: when you click on the home screen icon, you're taking to a place where you can start a bunch of AI threads in parallel and they can even work on the same project.
 
+
+### COpilot CLI
+
+The `copilot` command lets you pull up github copilot and use it like claude code. Everything there still applies.
+
+Here are also some one-off prompts you can do:
+
+```bash
+copilot "create a bash script to check for uncommitted changes and push if clean"
+```
+
+#### CLI options
+
+- `-p <prompt>`: lets you do a one-off promp
+- `--allow-all-tools`: gives copilot access to all tools. Maybe you want to run this in a dev container.
+
+Here's a useful alias that lets you run a one-off prompt with all tools allowed
+
+```bash
+cpcli='copilot --allow-all-tools -p "$@"'
+```
+
+Then you can use like so:
+
+```sh
+cpcli "Explain each of these scripts and offer improvements" 
+```
+
+#### Use cases and example prompts:
+
+1. Review the project README to make it easier for newcomers to understand
+2. What is taking up the most space on my own laptop?
 ### Gemini CLI
 
 #### CLI options
@@ -4497,6 +4529,22 @@ Here are 4 built in skills that claude already uses:
 | PowerPoint | `pptx` | Generate professional presentations with slides, charts, and transitions    |
 | PDF        | `pdf`  | Create formatted PDF documents with text, tables, and images                |
 | Word       | `docx` | Generate Word documents with rich formatting and structure                  |
+|            |        |                                                                             |
+|            |        |                                                                             |
+
+A claude skill is a zip fiel of a directory with one `SKILL.md` file. This file should:
+
+1. Have yaml frontmatter
+2. Markdown instructions describing the skill
+
+Claude chooses to activate a skill in three steps:
+
+1. **Preload skill**: claude loads the name and description of all skills it has available
+2. **Choose relevant skill**: Claude chooses a skill that is relevant to the task based off of its metadata.
+
+### SKill metadata
+
+IN the yaml frontmatter of the ``
 
 ## MCP
 
