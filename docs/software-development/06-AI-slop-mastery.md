@@ -648,6 +648,19 @@ Here is an example of the different types of subagent personalities you can crea
 ![](https://i.imgur.com/36NkZ2h.jpeg)
 
 ![more subagent ideas](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1767097337/image-clipboard-assets/fjxy7nax7x6yhoyv1dcl.webp)
+
+**subagents in claude code skills**
+
+You can specify skills that a subagent can access, as they don't inherit skills from the parent.
+
+```markdown
+# .claude/agents/code-reviewer/AGENT.md
+---
+name: code-reviewer
+description: Review code for quality and best practices
+skills: pr-review, security-check
+---
+```
 #### Techniques and strategies
 
 **forcing thinking**
@@ -4540,11 +4553,32 @@ A claude skill is a zip fiel of a directory with one `SKILL.md` file. This file 
 Claude chooses to activate a skill in three steps:
 
 1. **Preload skill**: claude loads the name and description of all skills it has available
-2. **Choose relevant skill**: Claude chooses a skill that is relevant to the task based off of its metadata.
+2. **Choose relevant skill**: Claude chooses a skill that is relevant to the task based off of its metadata. It then loads the entire `SKILL.md` into its context
+3. **Executes skill**: Claude executes the skill based on the contents of the `SKILL.md`, running any tools or python scripts as appropriate.
 
 ### SKill metadata
 
-IN the yaml frontmatter of the ``
+Here is an example `SKILL.md`:
+
+```markdown
+---
+name: pdf-processing
+description: Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files.
+---
+
+# PDF Processing
+
+## Quick Start
+Use pdfplumber to extract text from PDFs...
+
+## Advanced Usage
+For form filling, see [FORMS.md](FORMS.md).
+```
+
+In the yaml frontmatter, describing the metadata of the skill is really important. Here are the properties you have:
+
+- `name`: skill name, < 64 characters, lowercase, numbers, and hyphens only.
+- `description`: text description of skill, which claude uses to determine the relevance of the skill to a task.
 
 ## MCP
 
