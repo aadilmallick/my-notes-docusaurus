@@ -590,6 +590,37 @@ google_web_search(query="Your query goes here.")
 
 ### Claude code
 
+#### CLAUDE.md
+
+The `CLAUDE.md` file is based on three facts about LLM agents:
+
+1. Coding agents know absolutely nothing about your codebase at the beginning of each session.
+2. The agent must be told anything that's important to know about your codebase each time you start a session.
+3. `CLAUDE.md` is the preferred way of doing this.
+
+This file should clarify three questions:
+
+- **WHAT**: tell Claude about the tech, your stack, the project structure. Give Claude a map of the codebase. This is especially important in monorepos! Tell Claude what the apps are, what the shared packages are, and what everything is for so that it knows where to look for things
+- **WHY**: tell Claude the _purpose_ of the project and what everything is doing in the repository. What are the purpose and function of the different parts of the project?
+- **HOW**: tell Claude how it should work on the project. For example, do you use `bun` instead of `node`? You want to include all the information it needs to actually do meaningful work on the project. How can Claude verify Claude's changes? How can it run tests, typechecks, and compilation steps?
+
+To write a good `CLAUDE.md` file, we should follow these core principles:
+
+**principle 1 - Keep your claude md small**
+
+**As instruction count increases, instruction-following quality decreases uniformly**. This means that as you give the LLM more instructions, it doesn't simply ignore the newer ("further down in the file") instructions - it begins to **ignore all of them uniformly**
+
+This implies that your `CLAUDE.md` file should contain as few instructions as possible - ideally only ones which are universally applicable to your task.
+
+
+> [!TIP]
+> Aim for a `CLAUDE.md` less than 60 lines long
+
+
+**principle 2 - use progressive disclosure**
+
+The term Progressive disclosure is just a fancy way of saying to reference different markdown files inside your `CLAUDE.md` file and then give brief descriptions of those files so that Claude can decide whether or not to read those markdown files.
+
 #### CLI options
 
 - `claude -p <prompt>`: runs a one-off prompt
@@ -4550,12 +4581,27 @@ A claude skill is a zip fiel of a directory with one `SKILL.md` file. This file 
 1. Have yaml frontmatter
 2. Markdown instructions describing the skill
 
+So a claude skill looks like this:
+
+```
+my-skill/
+├── SKILL.md          # Required: instructions + metadata
+├── scripts/          # Optional: executable code
+├── references/       # Optional: documentation
+└── assets/           # Optional: templates, resources
+```
+
 Claude chooses to activate a skill in three steps:
 
 1. **Preload skill**: claude loads the name and description of all skills it has available
 2. **Choose relevant skill**: Claude chooses a skill that is relevant to the task based off of its metadata. It then loads the entire `SKILL.md` into its context
 3. **Executes skill**: Claude executes the skill based on the contents of the `SKILL.md`, running any tools or python scripts as appropriate.
 
+Or
+
+1. **Discovery**: At startup, agents load only the name and description of each available skill, just enough to know when it might be relevant.
+2. **Activation**: When a task matches a skill’s description, the agent reads the full `SKILL.md` instructions into context.
+3. **Execution**: The agent follows the instructions, optionally loading referenced files or executing bundled code as needed.
 ### SKill metadata
 
 Here is an example `SKILL.md`:
@@ -4564,6 +4610,7 @@ Here is an example `SKILL.md`:
 ---
 name: pdf-processing
 description: Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files.
+allowed-tools: Bash(git:*) Bash(jq:*) Read
 ---
 
 # PDF Processing
@@ -4579,7 +4626,56 @@ In the yaml frontmatter, describing the metadata of the skill is really importan
 
 - `name`: skill name, < 64 characters, lowercase, numbers, and hyphens only.
 - `description`: text description of skill, which claude uses to determine the relevance of the skill to a task.
+- `allowedTools`: a list of claude code tools the skill has approved access for.
 
+### Optional Folders and Entire Skills process
+
+Skills should be structured for efficient use of context:
+
+1. **Metadata** (~100 tokens): The `name` and `description` fields are loaded at startup for all skills
+2. **Instructions** (< 5000 tokens recommended): The full `SKILL.md` body is loaded when the skill is activated
+3. **Resources** (as needed): Files (e.g. those in `scripts/`, `references/`, or `assets/`) are loaded only when required
+
+Keep your main `SKILL.md` under 500 lines. Move detailed reference material to separate files.
+
+Here are the optional subfolders you can have in your skill:
+
+- `scripts/`: folder of coding scripts liek python or bash that act as tools the skill can execute.
+- `references/`: folder of more detailed markdown files going more into depth on what the skill has, maybe like documentation or something in `REFERENCES.md`
+
+When referencing other files in your skill, use relative paths from the skill root:
+
+```markdown
+See [the reference guide](references/REFERENCE.md) for details.
+
+Run the extraction script:
+scripts/extract.py
+```
+
+Keep file references one level deep from `SKILL.md`. Avoid deeply nested reference chains.
+
+![how claude skills load context](https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fa3bca2763d7892982a59c28aa4df7993aaae55ae-2292x673.jpg&w=3840&q=75)
+
+### Add skills to claude code
+
+
+
+The easiest way to add simple `SKILL.md` files to claude code is to just include them in your system prompt and give the filepaths to the `SKILL.md` files:
+
+```html
+<available_skills>
+  <skill>
+    <name>pdf-processing</name>
+    <description>Extracts text and tables from PDF files, fills forms, merges documents.</description>
+    <location>/path/to/skills/pdf-processing/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>data-analysis</name>
+    <description>Analyzes datasets, generates charts, and creates summary reports.</description>
+    <location>/path/to/skills/data-analysis/SKILL.md</location>
+  </skill>
+</available_skills>
+```
 ## MCP
 
 MCP is a layer between tools available to the LLM and the LLM itself, making it very simple for the LLM to know what tools are available and when to use them. 
