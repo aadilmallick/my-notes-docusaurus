@@ -4483,7 +4483,20 @@ docker run -it --rm --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n docker.n
 
 ## Claude Skills
 
+### Intro
 
+Claude skills are like MCP but just markdown files, whcih based off of that, claude creates some code attached to the skill.
+
+Skills are flexible, project-agnostic, and all around great.
+
+Here are 4 built in skills that claude already uses:
+
+| Skill      | ID     | Description                                                                 |
+| ---------- | ------ | --------------------------------------------------------------------------- |
+| Excel      | `xlsx` | Create and manipulate Excel workbooks with formulas, charts, and formatting |
+| PowerPoint | `pptx` | Generate professional presentations with slides, charts, and transitions    |
+| PDF        | `pdf`  | Create formatted PDF documents with text, tables, and images                |
+| Word       | `docx` | Generate Word documents with rich formatting and structure                  |
 
 ## MCP
 
