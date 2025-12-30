@@ -1645,7 +1645,7 @@ aspectRatio: "30.126582278481013"
 ```
 
 
-## AI Coding
+## AI Engineering
 
 ### LLM hyperparameters
 
