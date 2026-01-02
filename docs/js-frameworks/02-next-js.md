@@ -1606,7 +1606,20 @@ The main issue with dynamicIO caching was that the cache was global across the s
 
 But now, Next.js 16 offers three cache types for different use cases:
 
-- **`use cache`**: global in-memory cache shared by all clients who use your app
+- **`"use cache"`**: global in-memory cache during the server's lifetime, shared by all clients who use your app.
+
+	- **use case**: caching server-side data that is accessible by all clients.
+	- **in code**: cannot cache any function or component using `cookies()`, `headers()`, or any other dynamic request-based code.
+	
+- **`"use cache 'remote'"`**: caches to a third-party dedicated cache database like vercel kv or redis. This cache persists even across server restarts, since it's cached in the cloud.
+
+	- **use case**: caching server-side data that is accessible by all clients, anything you would use Redis for.
+	- **in code**: cannot cache any function or component using `cookies()`, `headers()`, or any other dynamic request-based code.
+	
+- `"use cache 'private'"`: local storage cache that lives only in browser memory, meaning it gets cleared once the browser is closed.
+
+	- **use case**: caching stuff only for the user, based on their private browser data like `cookies()` or `headers()`
+	- **in code**: you can cache anything using `cookies()`, `headers()`, or any other dynamic request-based code.
 
 | Feature                                 | `use cache`                     | `'use cache: remote'`             | `'use cache: private'` |
 | --------------------------------------- | ------------------------------- | --------------------------------- | ---------------------- |
