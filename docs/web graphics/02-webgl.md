@@ -14,7 +14,7 @@ const pixelRatio = window.devicePixelRatio || 1;
 canvas.width = Math.floor(canvas.clientWidth * pixelRatio);
 canvas.height = Math.floor(canvas.clientHeight * pixelRatio);
 
-// 1. set viewport
+// 1. set viewport toi set webgl to cover entire canvas
 gl.viewport(0, 0, canvas.width, canvas.height);
 
 // 2. set clear color
