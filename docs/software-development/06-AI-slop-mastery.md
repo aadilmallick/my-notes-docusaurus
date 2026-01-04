@@ -5363,15 +5363,15 @@ I am making a Todoist clone. I want it to have the following features
 
 For the tech stack, please use
 
-- Next.js and TypeScript
+- Next.js 16 and TypeScript
 - shadcn - please use shadcn as the styling method as much as possible to be consistent
-- Neon Postgres for the database
+- Neon Postgres for the database, connected via neon MCP
 - Neon Auth for the auth - please use Context7 to make sure you have up to date docs on Neon Auth
 - Drizzle for the ORM
 - TypeScript
 - ESLint
 - Vitest for testing
-- Playwright
+- Playwright for integration tests
 
 Please:
 

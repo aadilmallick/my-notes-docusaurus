@@ -159,6 +159,67 @@ export default async function Page({
 - Use the `searchParams` prop when you need search parameters to **load data for the page** (e.g. pagination, filtering from a database).
 - Use `useSearchParams` when search parameters are used **only on the client** (e.g. filtering a list already loaded via props).
 
+#### Search Param Helper Validator class
+
+```ts
+import { redirect } from "next/navigation";
+import { z } from "zod";
+
+export class NextJSSearchParams<T extends Record<string, any>> {
+  redirectWithPayload(url: string, payload: T) {
+    redirect(`${url}?payload=${encodeURIComponent(JSON.stringify(payload))}`);
+  }
+
+  getSearchParams(searchParams: T) {
+    return searchParams;
+  }
+}
+
+export type ParamsInferType<T extends Record<string, any>> = {
+  payload: T;
+};
+
+export type SearchParamsType = Promise<{
+  payload: string;
+}>;
+
+export class NextJSSearchParamsZod<T extends z.ZodObject<any>> {
+  constructor(private schema: T) {}
+  redirectWithPayload(url: string, payload: z.infer<T>) {
+    redirect(`${url}?payload=${encodeURIComponent(JSON.stringify(payload))}`);
+  }
+
+  getSearchParams(searchParams: { payload: string }) {
+    try {
+      const data = JSON.parse(searchParams.payload) as z.infer<T>;
+      return this.schema.safeParse(data).data as z.infer<T>;
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  isValidSearchParams(searchParams: { payload: string }) {
+    try {
+      const data = JSON.parse(searchParams.payload);
+      return this.schema.safeParse(data).success;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  createRouteGuard(
+    searchParams: {
+      payload: string;
+    },
+    fallbackUrl: string
+  ) {
+    if (!this.isValidSearchParams(searchParams)) {
+      redirect(fallbackUrl);
+    }
+  }
+}
+```
+
 ### **Parallel Routes**
 
 Parallel Routes in Next.js enable the simultaneous or conditional rendering of multiple pages or components within the same layout. This is especially beneficial for sections of an application that require dynamic content changes without navigating away from the page, like social media feeds or analytics dashboards.
