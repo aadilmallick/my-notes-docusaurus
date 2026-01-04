@@ -5050,19 +5050,29 @@ export type ResourceReturn = {
 };
 
 const path = "http://localhost:3000/dogs"
-const resource = server.resource("resource-name", path, async (uri) => {
+const resource = server.resource("resource-name", path, async (uri: URL) => {
 	let path = uri.href // uri is URL instance
 
 	return {
-		contents: [] as (TextResourceReturn | BlobResourceReturn)
-	}
+		contents: [
+			{mimeType: "text/plain", data: "Aadil Mallick" }
+		]
+	} as ResourceReturn
 })
 
 // 2. enable the resource
 resource.enable()
 ```
 
+And then when the MCP server with the resource starts working, you can add it to claude desktop and then access it like so:
+
+
+![](https://i.imgur.com/OClE6C0.jpeg)
+
+
 #### Tools
+
+Tools are by far the most useful aspect of mcp.
 
 You create a tool with the `server.tool()` method, which takes in a name, description, an object of parameters to pass (which can be a zod schema), and then a callback where you return an object with a `content` property.
 
@@ -5101,6 +5111,48 @@ const tool = server.tool("tool-name", "tool description", {
 	}
 )
 tool.enable()
+```
+
+#### Prompts
+
+
+
+```ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import { readFileSync } from "fs";
+
+const airbnbMarkdownPath = "/Users/brianholt/personal/hello-mcp/airbnb.md";
+const airbnbMarkdown = readFileSync(airbnbMarkdownPath, "utf-8");
+
+const server = new McpServer({
+  name: "code-review-server",
+  version: "1.0.0",
+});
+
+server.registerPrompt(
+  "review-code",
+  {
+    title: "Code Review",
+    description: "Review code for best practices and potential issues",
+    argsSchema: { code: z.string() },
+  },
+  ({ code }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Please review this code to see if it follows our best practices. Use this Airbnb style guide as a reference:\n\n=============\n\n${airbnbMarkdown}\n\n=============\n\n${code}`,
+        },
+      },
+    ],
+  })
+);
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
 ```
 
 ### SSE transport
@@ -5165,6 +5217,14 @@ This is a very new API, and maybe the python version will be a lot better, but f
 
 - **no console logging**: Side effects are not allowed in this server - only when registering a tool - so you are not allowed to invoke `console.log()`
 - **resource for tools not available** : Returning a `type: "resource"` object does not work in tool calls. Just stick to text, image, audio. 
+
+### Streamable HTTP
+
+Streamable HTTP is a much better option for creating an MCP server that is hosted on the web.
+
+#### MCP inspector
+
+RUn the `npx @modelcontextprotocol/inspector` package to run a local mcp inspector dashboard which lets you debug online streamable http MCPs.
 
 ### Deploying to MCP clients
 
