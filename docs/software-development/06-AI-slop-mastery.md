@@ -5323,6 +5323,65 @@ aspectRatio: "50"
 
 ### MCP strategies
 
+#### Ideas
+
+- **Github MCP/skill**: The most powerful way to use this MCP server is:
+	- **creating issues**: ask claude code to create a github issue, tag other AIs (like claude, jules, gemini cli, codex) as assignees
+	- **creating pull requests**: create a nicely formatted pull request
+	- **solve issues**: ask claude to look at a specific issue, read it, and then solve it.
+- **Playwright**: You can use this to create integration tests and take screenshots.
+
+#### Vibing with MCP
+
+Here is the ultimate way to vibe code using MCP servers:
+
+- **github skill**: create issues, PRs, assign AI bots to your pull requests
+- **neon MCP**: connect to a database so the schemas are known at all times.
+- **playwright MCP**: Tell it to "make liberal use of Playwright to make sure that UI looks and acts correctly and set up integration tests."
+- **context7**: context7 for docs, tell the model to use context7 for some libraries that might be esoteric.
+
+Tech stack:
+
+- **neon auth**
+- **neon db**: Use neon with drizzle, and specifically prompt it, "DO NOT MODIFY THE MIGRATIONS DIRECTLY, ONLY USE DRIZZLE"
+- **nextjs + typescript + shadcdn + tailwindcss**: specify nextjs 15 modern strategies like limiting client components
+- **zod, react query, zustand**
+
+Here is the full vibing prompt
+
+```
+---REPLACE PROMPT BELOW-----
+I am making a Todoist clone. I want it to have the following features
+
+- Multiple users
+- Users can CRUD their todos
+- Users can mark their todos as done
+- Users cannot share todos - you can assume that a todo belongs to one person
+- Users can use tags to tag their todos. Examples would be work, personal, or fun. Users can CRUD tags. A todo can have multiple tags.
+- Users can sign, sign out, and log out.
+------------------------------
+
+For the tech stack, please use
+
+- Next.js and TypeScript
+- shadcn - please use shadcn as the styling method as much as possible to be consistent
+- Neon Postgres for the database
+- Neon Auth for the auth - please use Context7 to make sure you have up to date docs on Neon Auth
+- Drizzle for the ORM
+- TypeScript
+- ESLint
+- Vitest for testing
+- Playwright
+
+Please:
+
+- include decent coverage of tests
+- use Playwright MCP server to test that UI is styled correctly and interactions work as planned
+- use Context7 liberally to make sure you have the latest docs for various libraries.
+- prepare this to be deployed to Vercel afterwards.
+- DO NOT WRITE OR MODIFY MIGRATIONS YOURSELF. ONLY USE DRIZZLE FOR MIGRATIONS.
+```
+
 #### Condensing docs
 
 One of the most important uses of MCP is giving online, up-to-date docs for an AI agent to consume. There are two ways you can do this:
