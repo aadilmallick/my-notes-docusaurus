@@ -24,4 +24,5 @@ It's crucial to understand the current market and any competitors in the same sp
 > The smaller your initial audience, the higher the probability of success. The more niche your product, the more loyal your audience and the higher your chances of success.
 
 
+## Product design
 
