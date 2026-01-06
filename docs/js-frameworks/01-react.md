@@ -1200,40 +1200,57 @@ export default function App() {
 }
 ```
 
-#### Context
-
-Understanding how to use context is important for improving performance in React applications: 
-
-When a component uses some value from context, and the context value changes, the component will re-render.
-- A good rule of thumb is to wrap the component you directly nest inside the context provider with `React.memo()`.
-- Put your context values that your provide to the `value` prop in the `<Context.Provider>` component in a `useMemo()` hook, to prevent unnecessary recreations.
 
 
 
+### Memoization in React: main performance boost
+#### `useMemo()` and `useCallback()` and `memo()`
+
+In React, JSX elements only rerender once their props change. To check if their props changed, they use a referential equality check `===`, which works for primitives but not for objects or functions. 
+
+> [!NOTE]
+> This means that if you create a function or object inside a component and then pass that as a prop to a JSX element, then that function or object gets recreated every single time and thus the props strict equality check does not work because the references are different, leading to the JSX element rerendering every time if you pass an object or a callback as a prop.
+
+The solution? Memoizing objects with `useMemo()` and functions with `useCallback()`
+
+- `useMemo(cb, deps)`: takes in a callback and a dependency array, returning the return value of the callback.
+	- The callback should return a value, and that value will be memoized, only changing when at least one of the variables in the dependency array changes.
+- `useCallback(cb, deps)`: takes in a callback and a dependency array, returns the callback as a memoized version of it.
+	- The callback will only get invoked again if any of the dependencies in the dependencies array changes. 
+	- This returns the callback itself.
+
+For both of the dependency arrays of `useMemo()` and `useCallback()`, the variables you pass into the dependency array must either be primitive values or memoized. 
+
+- **bad scenario**: If you pass unmemoized objects and functions as variables into the dependency array, then those objects/functions are getting recreated every time. 
 
 
-### `memo()`
+Now if you pass objects memoized with `useMemo()` and callbacks memoized with `useCallback()` as props to JSX elements, then that JSX element will not rerender unless the variables in the dependency arrays change.
 
-You can memoize a component by passing it into the `memo()` function from react, meaning that it won't rerender unless its props change.
+> [!NOTE]
+> You should use `useMemo()` primarily for memoizing objects instead of primitive values. This is because there is no need to memoize primitive values (since they pass strict equality checks). Only memoize primitive values if they are derived from an expensive calculation that should be cached for better performance.
 
-### `useMemo()` and `useCallback()`
-
-Objects are refferential and thus don't pass a strict equality check. Therefore you should use the two below hooks for optimizing and caching state that holds objects, class instances, or functions.
-
-- `useMemo(cb, deps)`: takes in a callback and a dependency array. The callback should return a value, and that callback will only get invoked again if any of the dependencies in the dependencies array changes. This returns the return value of the callback.
-- `useCallback(cb, deps)`: takes in a callback and a dependency array. The callback will only get invoked again if any of the dependencies in the dependencies array changes. This returns the callback itself.
-
-You should never use `useMemo()` for primitive values. Only for returning objects.
+**useMemo vs useCallback**
 
 The main difference between `useMemo()` and `useCallback()` is that `useMemo()` should be used for objects while `useCallback()` should be used to explicitly cache functions.
 
 However, `useCallback()` is just `useMemo()` but returning a function instead of a object - it's essentially just syntactic sugar.
 
-```ts
-// render and render2 are functionally equivalent
-const render = useMemo(() => (text) => marked.parse(text), []);
-const render2 = useCallback((text) => marked.parse(text), []);
-```
+**when to use each one**
+
+- **use `useMemo()` when**
+	- **case 1**
+
+
+#### Context
+
+Understanding how to use context is important for improving performance in React applications: 
+
+>When a component uses some value from context, and the context value changes, the component will re-render.
+
+Based off that, here are two important tips to implement:
+
+1. A good rule of thumb is to wrap the component you directly nest inside the context provider with `React.memo()`.
+2. Memoize any objects/functions/primitives that you provide to the `value` prop in the `<Context.Provider>` component, either using `useMemo()` or `useCallback()` to prevent unnecessary recreations.
 
 ### Using virtualized lists
 
