@@ -1235,16 +1235,46 @@ Here's an example of mitigation 1:
 
 ```tsx
 function App({person} : {person : {name: string; age: number}}) {
+	const greeting = useMemo(() => {
+		return `Hello ${person.name}. You are ${person.age} years old`
+	}, [person.name, person.age])
+}
+```
+
+Here's an example of mitigation 2:
+
+```tsx
+function App({person} : {person : {name: string; age: number}}) {
+
+	// memoized version of person
+	const newPerson = useMemo(() => {
+		return person
+	}, [person.name, person.age])
 	
+	// now it's safe to use newPerson as dependency, as it only changes
+	// when Object.is(newPerson, person) is false
+	const greeting = useMemo(() => {
+		return `Hello ${newPerson.name}. You are ${newPerson.age} years old`
+	}, [newPerson])
 }
 ```
 
 > [!NOTE]
 > You should use `useMemo()` primarily for memoizing objects instead of primitive values. This is because there is no need to memoize primitive values (since they pass strict equality checks). Only memoize primitive values if they are derived from an expensive calculation that should be cached for better performance.
 
+> [!IMPORTANT]
+> An also important thing to remember is that any `setState` callback is automatically memoized, so you don't need to pass that function into the dependency array as that function always has the same reference.
+
 Now if you pass objects memoized with `useMemo()` and callbacks memoized with `useCallback()` as props to JSX elements, then that JSX element will not rerender unless the variables in the dependency arrays change.
 
+However, it's a different story for components. Because React likes to err on the side of caution, components always rerender any time 1) a parent component rerenders 2) a state change in the component occurs.
 
+We use the `memo()` function to wrap a component such that the component will not rerender unless its props change from the last render. However, the props are compared with strict equality, so we must use `useMemo()` and `useCallback()` to also memoize any object/function props passed to the component, in tandem with wrapping with `memo()`.
+
+In summary, if you are passing an object or function as a prop:
+
+- **to prevent JSX Element rerender**: simply memoize that object or function with `useMemo()` or `useCallback()`
+- **to prevent component rerender**: You must wrap the component with `memo()` and then  memoize the object or function props with `useMemo()` or `useCallback()`
 
 **useMemo vs useCallback**
 
@@ -1254,8 +1284,11 @@ However, `useCallback()` is just `useMemo()` but returning a function instead of
 
 **when to use each one**
 
-- **use `useMemo()` when**
-	- **case 1**
+- **use `useMemo()` when**:
+	- **case 1**: trying to get a constant or predictable reference to an object so it only gets recreated when one of its dependencies changes.
+	- **case 2**: memoizing an expensive calculation result so it doesn't recompute on every rerender.
+- **use `useCallback()` when**
+	- **case 1**: needing to memoize a callback so it passes referential equality, only being recreated when one of its dependencies changes.
 
 
 #### Context
@@ -1268,6 +1301,13 @@ Based off that, here are two important tips to implement:
 
 1. A good rule of thumb is to wrap the component you directly nest inside the context provider with `React.memo()`.
 2. Memoize any objects/functions/primitives that you provide to the `value` prop in the `<Context.Provider>` component, either using `useMemo()` or `useCallback()` to prevent unnecessary recreations.
+
+
+### Transitions and deferred values
+
+#### `useTransition()`
+
+For anything we would want to debounce, like a search bar that performs an expensive search operation for every keystroke, we want to use the `use`
 
 ### Using virtualized lists
 
