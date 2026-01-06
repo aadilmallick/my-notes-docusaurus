@@ -1307,7 +1307,44 @@ Based off that, here are two important tips to implement:
 
 #### `useTransition()`
 
-For anything we would want to debounce, like a search bar that performs an expensive search operation for every keystroke, we want to use the `use`
+For anything we would want to debounce, like a search bar that performs an expensive search operation for every keystroke, we want to use the `useTransition()` hook.
+
+Often what happens for something like an expensive search query is that a user will typ a keystroke, initiating a laggy response, and then find that it's clunky and janky since the user input is disabled while the long search operation is taking place.
+
+This hooks solves that problem. The purpose of this hook is to keep the UI and user interactions snappy by setting low priority work (the search operation) to happen later when the DOM is not budy, so you can tackle the high priority work (setting keystroke state to keep snappy user interactions ) instead.
+
+```tsx
+function App() {
+	const [isPending, startTransition] = useTransition()
+	
+	// state that handles input user interaction, high priority
+	const [input, setInput] = useState("")
+	// state that is logical value of input, low prioirity, expensive work
+	const [query, setQuery] = useState("")
+	
+	
+	function onKeystroke(value) {
+		// high piroity work: immediately reflect user interaction in DOM
+		setInput(value)
+		
+		// low priority work: set state that will then kickoff expensive operation
+		startTransition(() => {
+			setQuery(value)
+		})
+	}
+	
+	useEffect(() => {
+		// perform expensive operation in idle time
+		expensiveSearchOperation(query)
+	}, [query])
+	
+	
+	
+}
+```
+
+
+- `isPending`: 
 
 ### Using virtualized lists
 
