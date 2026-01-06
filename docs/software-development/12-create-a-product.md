@@ -73,3 +73,70 @@ You want your app to be both user-friendly, intuitive, and accessible for disabl
 1. **intuitive**: is the web app easy to learn?
 2. **user-friendly**: is it simple and easy to complete common tasks?
 3. **forgiving**: is it forgiving of mistakes? Can you undo mistakes?
+
+### Creating MVPs
+
+#### MVP Philosophy
+
+People churn out MVPs as working, half-baked ideas, but MVPs are supposed to be a fully-polished product with a few good features such that you can acquire customer feedback and iterate on it.
+
+
+![](https://i.imgur.com/2zafr66.jpeg)
+
+As soon as you build your MVP with the core features, immediately launch it to a small group of users to receive user feedback. Follow this advice carefully:
+
+
+> [!IMPORTANT]
+> Iterate on that feedback. You should not have a backlog of features to implement once you put your MVP out. The cycle should be launch MVP -> get feedback -> implement new features based on feedback -> get feedback and so on. The consumers decide which features you put out, not you.
+
+
+#### Building an MVP
+
+When building an MVP, focus on these three components and build out your features based on your answers to these questions:
+
+1. **value proposition**: what pain point does your product solve and is how is it different from your competitors'?
+2. **user needs**: what are the core, essential features a user needs to achieve their goal and get the value from your value proposition?
+3. **time and effort**: which features can be built realitively easily? Include those first.
+
+#### Iterating on your MVP
+
+After receiving customer feedback, you need an organized way to choose which task to tackle next in your MVP. The best way to do this is through some sort of task manager which needs two important features:
+
+1. Ability to label tasks and sort them into different bins, like one for new features and one for improving existing features
+2. Ability to add a priority level to tasks to make some more important than others.
+
+Below is an example of how to organize your tasks, making sure you assign a priority level to each task so you know which ones to tackle first.
+
+- **optimization stream**: bin for tasks that are for improving existing features.
+- **innovation stream**: bin for tasks that are for implementing new features.
+
+
+> [!TIP] 
+> You can organize tasks based on the eisenhower matrix, where high important, low effort tasks shuld get the highest priority and the high effort, low importance tasks should get the lowest priority.
+
+
+
+![](https://i.imgur.com/QuruAR9.jpeg)
+
+### identifying customers
+
+#### Audience segmentation
+
+To find out your audience for your product, segment them by asking these questions:
+
+1. **questions**: what questions does your audience ask?
+2. **tasks**: what tasks would your audience want to complete?
+3. **different needs**: What are the different types of needs your audience would have? (Language, disabled, etc.)
+
+#### Creating a persona
+
+To create a persona that represents your audience, answer these 6 questions:
+
+
+![](https://i.imgur.com/vlaASdG.jpeg)
+
+
+
+After creating a persona, create a **persona statement**, which succinctly summarizes the target audience for your app.
+
+This lets y
