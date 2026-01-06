@@ -1,7 +1,6 @@
 import BoopExample from "@site/src/components/examples/Boop";
 
 
-
 ## 101 Tips
 
 ### 1. HOC

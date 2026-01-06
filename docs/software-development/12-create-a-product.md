@@ -139,4 +139,16 @@ To create a persona that represents your audience, answer these 6 questions:
 
 After creating a persona, create a **persona statement**, which succinctly summarizes the target audience for your app.
 
-This lets y
+> As a `____`, I want to `____` so I can `____`. And I'll know that I'm done when `____`.
+
+This lets you dive into the use cases:
+
+#### Use cases
+
+After creating a persona, find out which **use cases** your audience has, meaning which tasks they want to complete. And then see how to translate that into adding functionality to your app to achieve those use cases.
+
+### principle 3) Top Tasks
+
+The most important tasks of your web app, the so-called **top tasks**, must be readily accessible and easily initiated on your site as they are the most beneficial and important tasks for users. 
+
+Therefore you should develop and design your app in such a way that the top tasks are not impeded by less important tasks, and you can use the simplicity principles of delete, hide, or shrink to accomplish this.
