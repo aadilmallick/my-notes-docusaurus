@@ -1219,15 +1219,32 @@ The solution? Memoizing objects with `useMemo()` and functions with `useCallback
 	- The callback will only get invoked again if any of the dependencies in the dependencies array changes. 
 	- This returns the callback itself.
 
-For both of the dependency arrays of `useMemo()` and `useCallback()`, the variables you pass into the dependency array must either be primitive values or memoized. 
+The dependency arrays check if any dependency variables changed by strict equality (by reference with `===`). 
 
-- **bad scenario**: If you pass unmemoized objects and functions as variables into the dependency array, then those objects/functions are getting recreated every time. 
+This means that for both of the dependency arrays of `useMemo()` and `useCallback()`, the variables you pass into the dependency array must either be primitive values or memoized. 
 
+- **bad scenario**: If you pass unmemoized objects and functions as variables into the dependency array, then those objects/functions are getting recreated every time, thus have different references and thus `useMemo()` and `useCallback()` fails and just recreate the object/function each and every time.
 
-Now if you pass objects memoized with `useMemo()` and callbacks memoized with `useCallback()` as props to JSX elements, then that JSX element will not rerender unless the variables in the dependency arrays change.
+We can fix this bad scenario by adhering to two good techniques:
+
+- **mitigation 1 (use primitive dependencies only)**: Instead of putting entire objects as variables into the dependency array, put object properties that are primitive values. 
+	- Primitive values work with strict equality.
+- **mitigation 2 (memoize objects and callbacks)**: Go up the chain and use `useMemo()` and `useCallback()` to memoize any objects or functions you put inside the dependency array. This leads to referential equality working.
+
+Here's an example of mitigation 1:
+
+```tsx
+function App({person} : {person : {name: string; age: number}}) {
+	
+}
+```
 
 > [!NOTE]
 > You should use `useMemo()` primarily for memoizing objects instead of primitive values. This is because there is no need to memoize primitive values (since they pass strict equality checks). Only memoize primitive values if they are derived from an expensive calculation that should be cached for better performance.
+
+Now if you pass objects memoized with `useMemo()` and callbacks memoized with `useCallback()` as props to JSX elements, then that JSX element will not rerender unless the variables in the dependency arrays change.
+
+
 
 **useMemo vs useCallback**
 
