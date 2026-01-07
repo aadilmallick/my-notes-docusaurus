@@ -40,7 +40,15 @@ It's crucial to understand the current market and any competitors in the same sp
 > [!NOTE]
 > 42% of startups fail because there is no market need. Always make sure you are either 1) better than your competitors and 2) solve an actual pain point that people have.
 
-Always start with a niche audience. Don't go for a large broad audience, but rather find a select group of people who would be passionate about what you're selling
+Always start with a niche audience. 
+
+> "*Don't go for a large broad audience, but rather find a select group of people who would be passionate about what you're selling*" - Sam Altman
+
+Here are the reasons why you should always start by targeting a niche audience:
+
+1. **Bigger impact**: With a limited budget, you can make a bigger impact simply by targeting a smaller number of people.
+2. **loyalty and word of mouth**: effectively catering to a niche audience lets you get effective word-of-mouth around and loyalty from your customers.
+3. **going too big is bad**: going too big always comes back to bite you.
 
 #### Competitor research
 
@@ -81,7 +89,7 @@ You can also beat out your competitors in specific "gaps" that they leave open:
 You can also beat out competitors by just doing stuff better than them:
 
 - **faster**: Can you copy a competitors' functionality and make it faster, enabling people to do less in a shorter amount of time
-- **cheaper**: can you offer a better price point than your competitors?
+- **cheaper**: can you offer a better price point than your competitors, offering the same functionality but at a lower price point?
 
 ## Product design
 
