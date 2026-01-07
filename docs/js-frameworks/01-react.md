@@ -1352,11 +1352,317 @@ function App() {
 }
 ```
 
+Here are two cases when NOT to use transitions:
 
-- `isPending`: 
+- **state changes are user-visible and important**: navigations, error validation, alerts, are all high priority DOM manipulation work.
+- **state changes are simple and inexpensive**: Transitioning any simple state change that doesn't kick off any expensive operation or giant component tree rerender just causes additional overhead that doesn't solve anything.
 
+Here's another example:
+
+```tsx
+import { useTransition, useState } from 'react';
+
+// ✅ Smooth typing with transitions
+function SearchResults() {
+  const [query, setQuery] = useState('');
+  const [filteredQuery, setFilteredQuery] = useState('');
+  const [items] = useState(generateLargeDataset());
+  const [isPending, startTransition] = useTransition();
+
+  const filteredItems = items.filter((item) =>
+    item.name.toLowerCase().includes(filteredQuery.toLowerCase()),
+  );
+
+  const handleSearch = (value: string) => {
+    setQuery(value); // Urgent: update input immediately
+
+    startTransition(() => {
+      setFilteredQuery(value); // Non-urgent: defer filtering
+    });
+  };
+
+  return (
+    <div>
+      <input value={query} onChange={(e) => handleSearch(e.target.value)} placeholder="Search..." />
+      {isPending && <div>Filtering...</div>}
+      {filteredItems.map((item) => (
+        <div key={item.id}>{item.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+- **Immediate update**: `setQuery(value)` runs synchronously, and this sets the state of the controlled input, handling DOM manipulation and updates keystrokes so that they immediately visible to the user and so typing stays responsive
+- **Deferred update**: `setFilteredQuery(value)` inside `startTransition` gets lower priority, since we run expensive computation based on the value of that state3.
+- **Loading state**: `isPending` tells us when the transition is still processing, basically `isPending` will be true as long as the DOM is busy (doing a `setState()` call somewhere). 
+	- Think of it as automatic debouncing. It will be pending until the DOM sotps being busy (the user stops typing).
+
+
+Here is an example of combining debouncing with a transition
+
+```tsx
+function AdvancedSearch() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [isPending, startTransition] = useTransition();
+
+  // Debounce the search to avoid excessive API calls
+  const debouncedSearch = useCallback(
+    debounce((searchQuery: string) => {
+      startTransition(() => {
+        // This could be an API call or expensive filtering
+        performSearch(searchQuery).then(setResults);
+      });
+    }, 300),
+    [],
+  );
+
+  useEffect(() => {
+    if (query) {
+      debouncedSearch(query);
+    } else {
+      setResults([]);
+    }
+  }, [query, debouncedSearch]);
+
+  return (
+    <div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search products..."
+      />
+
+      {isPending && <div>Searching...</div>}
+
+      <div className="results">
+        {results.map((result) => (
+          <SearchResult key={result.id} item={result} />
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+There are two common problems to look out for, and tips on how to mitigate them:
+
+
+##### Stale Closures in Transitions
+
+Be careful with closures inside `startTransition`:
+
+```tsx
+// ❌ This captures stale values
+const handleUpdate = () => {
+  startTransition(() => {
+    // `someValue` might be stale if the transition is interrupted
+    setResults(processData(someValue));
+  });
+};
+
+// ✅ Get fresh values inside the transition
+const handleUpdate = () => {
+  startTransition(() => {
+    setResults((currentResults) => processData(getCurrentValue()));
+  });
+};
+```
+
+##### Transitions Don’t Make Code Faster
+
+Transitions don’t magically speed up your code—they just prevent slow code from blocking urgent updates:
+
+```tsx
+// ❌ Still slow, just non-blocking
+startTransition(() => {
+  setResults(reallySlowOperation(data)); // This is still slow!
+});
+
+// ✅ Combine with other optimizations
+startTransition(() => {
+  // Use web workers, memoization, virtualization, etc.
+  setResults(optimizedOperation(data));
+});
+```
 #### `useDeferredValue()`
 
+`useDeferredValue()` defers state changes that trigger expensive computation, delegating them to be run during browser idle time.
+
+```tsx
+import { useDeferredValue, useState, useMemo } from 'react';
+
+function SearchResults({ query }: { query: string }) {
+  // Defer state change based on prop `query` changing.
+  const deferredQuery = useDeferredValue(query);
+
+  // Only recompute when the deferred value changes
+  const results = useMemo(() => {
+    return searchExpensiveDatabase(deferredQuery);
+  }, [deferredQuery]);
+
+  return (
+    <div>
+      {results.map((result) => (
+        <div key={result.id}>{result.title}</div>
+      ))}
+    </div>
+  );
+}
+
+function App() {
+  const [query, setQuery] = useState('');
+
+  return (
+    <div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search products..."
+      />
+      <SearchResults query={query} />
+    </div>
+  );
+}
+```
+
+> [!IMPORTANT]
+> Always pair `useDeferredValue` with `useMemo` or `useCallback`—otherwise, your components will still re-render on every change, defeating the purpose.
+
+However, using `useDeferredValue()` leads to stale values while the transition is taking place, as opposed to the `isPending` variable from the `useTransition()` hook. 
+
+To mitigate this, we can simply say that the loading state happens when the data is stale, and that happens when the deferred value is not equal to the normal state value.
+
+```tsx
+function SearchWithLoadingState() {
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+
+  const results = useMemo(() => {
+    // Simulate expensive search
+    return performExpensiveSearch(deferredQuery);
+  }, [deferredQuery]);
+
+  // Key insight: results are "stale" when the current query
+  // doesn't match the deferred query
+  const isStale = query !== deferredQuery;
+
+  return (
+    <div>
+      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search..." />
+
+      <div className="results-container">
+        {isStale && <div className="loading-overlay">Searching...</div>}
+        <div className={isStale ? 'results stale' : 'results'}>
+          {results.map((result) => (
+            <div key={result.id}>{result.title}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+Here are some examples of when to use this hook and when not to use it:
+
+```tsx
+// ❌ Don't defer critical user feedback
+function LoginForm() {
+  const [email, setEmail] = useState('');
+  const deferredEmail = useDeferredValue(email); // Bad idea!
+
+  const validationErrors = useMemo(() => {
+    return validateEmail(deferredEmail);
+  }, [deferredEmail]);
+
+  // User expects immediate validation feedback
+  return (
+    <div>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      {validationErrors.map((error) => (
+        <div key={error}>{error}</div>
+      ))}
+    </div>
+  );
+}
+
+// ❌ Don't defer simple computations
+function SimpleCounter() {
+  const [count, setCount] = useState(0);
+  const deferredCount = useDeferredValue(count); // Unnecessary overhead
+
+  return <div>Count: {deferredCount}</div>;
+}
+
+// ✅ DO use it for expensive, non-critical updates
+function AnalyticsDashboard() {
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+
+  const expensiveStats = useMemo(() => {
+    return calculateComplexAnalytics(deferredQuery);
+  }, [deferredQuery]);
+
+  return (
+    <div>
+      <input value={query} onChange={(e) => setQuery(e.target.value)} />
+      <ComplexChart data={expensiveStats} />
+    </div>
+  );
+}
+```
+
+Here are some common gotchas:
+
+##### Gotcha #1: Missing Memoization
+
+```tsx
+// ❌ Still re-renders on every change
+function BadExample({ query }: { query: string }) {
+  const deferredQuery = useDeferredValue(query);
+
+  // This runs on every render!
+  const results = expensiveComputation(deferredQuery);
+
+  return <div>{results}</div>;
+}
+
+// ✅ Properly memoized
+function GoodExample({ query }: { query: string }) {
+  const deferredQuery = useDeferredValue(query);
+
+  const results = useMemo(() => {
+    return expensiveComputation(deferredQuery);
+  }, [deferredQuery]);
+
+  return <div>{results}</div>;
+}
+```
+
+##### Gotcha #2: Deferring the Wrong Thing
+
+```tsx
+// ❌ Deferring the final result instead of the input
+function BadExample({ items, query }: { items: Item[]; query: string }) {
+  const filteredItems = items.filter((item) => item.name.includes(query));
+  const deferredItems = useDeferredValue(filteredItems); // Wrong!
+
+  return <ItemList items={deferredItems} />;
+}
+
+// ✅ Defer the input, memoize the computation
+function GoodExample({ items, query }: { items: Item[]; query: string }) {
+  const deferredQuery = useDeferredValue(query);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => item.name.includes(deferredQuery));
+  }, [items, deferredQuery]);
+
+  return <ItemList items={filteredItems} />;
+}
+```
 #### Transitions vs deferred values
 
 - `useTransition` is used when you control the code and allows you to pass a function that marks certain operations as low priority. 
