@@ -1202,7 +1202,14 @@ export default function App() {
 
 
 
+### State-lifting vs colocation
 
+There are two ways we provide state to components in React.
+
+
+The default behavior of React is to rerender the entire component tree if any component within that tree has a state change. If we lift state too much, then the component tree becomes larger and larger and thus the app not only rerenders more often, but renders also become more expensive.
+
+We should prefer colocation to state lifting whenever possible.
 ### Memoization in React: main performance boost
 #### `useMemo()` and `useCallback()` and `memo()`
 
@@ -2252,13 +2259,13 @@ function TabContainer() {
 
 ### Optimistic UI udpates: `useOptimistic()`
 
-An optimistic uI update is the UI updating to reflect the desired state of some server action before the server action is actually completed. 
+An optimistic uI update is the UI updating to reflect the result of some data fetching or long-running asynchronous action before the data action actually completes
 
 This can lead to the UI feeling snappy, but if the server action fails, you have to rollback the ui updates to reflect the true result of the server action. This can be confusing for a user who was led to believe that the server action succeeded because of the optimistic UI update.
 
 To use this hook you need two existing pieces of code:
 
-- **transitions**: You need to nest any optimistic update code inside a `startTransition()` invocation from the `useTransition()` hook.
+- **transitions**: You need to nest any optimistic update code inside a `startTransition()` invocation from the `useTransition()` hook, since optimistic updates are always low-priority operations.
 - **standard state**: You need to pass in a standard state to the `useOptimistic()` hook so it can perform automatic rollbacks to that state. 
 
 ```ts
@@ -2268,14 +2275,22 @@ export function Example() {
 	const [optimisticNotes, addOptimisticNote] = useOptimistic(
 		notes, 
 		(oldNotes, newNote) => {
-			return [...oldNotes, newNote]
+			// if pending, optimistically show new note
+			if (newNote.isPending) {
+				return [...oldNotes, newNote]
+			}
+			// if not pending, roll back to old version
+			return oldNotes.filter(n -> n.id !== newNote.id)
 		}
 	)
 }
 ```
 
 - The first argument we pass to the `useOptimistic()` hook is the base state, which will be the initial value of the `optimisticNotes` state and also the rollback value for when the true state changes with `setNotes()`
-- The second argument we pass to the `useOptimistic()` hook is a mutation callback.
+- The second argument we pass to the `useOptimistic()` hook is a mutation callback where we set the state
+- The `isPending` property allows the UI to differentiate between optimistic (temporary) items and real items that have been confirmed by the server. This can be used to apply visual styling, such as a faded state, to indicate to the user that the item is still being saved and hasn't been confirmed yet.
+
+
 
 
 
