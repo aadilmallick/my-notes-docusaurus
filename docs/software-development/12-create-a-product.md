@@ -208,3 +208,22 @@ After creating a persona, find out which **use cases** your audience has, meanin
 The most important tasks of your web app, the so-called **top tasks**, must be readily accessible and easily initiated on your site as they are the most beneficial and important tasks for users. 
 
 Therefore you should develop and design your app in such a way that the top tasks are not impeded by less important tasks, and you can use the simplicity principles of delete, hide, or shrink to accomplish this.
+
+
+## Build a good landing page
+
+Your landing page will be the main source of conversions. It must have good copywriting, with intentional acts of selling.
+
+here are the important components to include in a landing page:
+
+1. **value proposition**: This should be the first thing shown in the landing page, and consists of three sub-components:
+	- **strapline**: Summarize your application in a single sentence
+	- **benefits**: list the ways the app helps users achieve their goals or overcome their pain points
+	- **features**: Detail the specific features in the app that allows users to get those benefits.
+2. **social proof**: add testimonials that don't look fake.
+3. **content blocks**: Each content block should go into detail of the benefit, and show include an image, headline, body text, and a link to learn more about that benefit.
+
+Here should be the overall page flow of the landing page:
+
+
+![](https://i.imgur.com/K18n53z.jpeg)
