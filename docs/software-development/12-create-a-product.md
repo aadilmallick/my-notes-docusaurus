@@ -72,6 +72,12 @@ You can often beat out competitors in either user experience, repeat use, or acc
 - **repeat use**: If there any annoying repeat actions in the competitors' app, you can provide some bulk CRUD functionality or simply an easier, faster way to do something such that it's not an annoyance.
 - **accessibility**: If you can make your app work for a wider audience in different circumstances, those people will appreciate your app for being accessible.
 
+You can also beat out your competitors in specific "gaps" that they leave open:
+
+- **feature gaps**: ANything your competitor is missing in features, like integrations, data ownership, and more.
+- **experience gaps**: Anything your competitor lacks in user experience that you could take advantage of by providing better UX, better UI, or customer support
+- **audience gap**: is there an audience niche that your competitor fails to target?
+
 ## Product design
 
 ### Product design philosophy
