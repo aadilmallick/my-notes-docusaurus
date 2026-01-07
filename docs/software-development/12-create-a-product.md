@@ -28,8 +28,10 @@ favicon: ""
 
 It's crucial to understand the current market and any competitors in the same space as you, and generate ideas on how to differentiate yourself. You want to broadly define your niche:
 
-1. Define your audience, make sure it's a small initial audience.
+1. Define your audience, make sure it's a small initial audience that's niche
 2. Define your offering and what would differentiate it from other companies.
+3. Identify market challenges, as in any challenges that would come up when you try to enter the market.
+4. 
 
 > [!NOTE]
 > The smaller your initial audience, the higher the probability of success. The more niche your product, the more loyal your audience and the higher your chances of success.
