@@ -1313,6 +1313,15 @@ Often what happens for something like an expensive search query is that a user w
 
 This hooks solves that problem. The purpose of this hook is to keep the UI and user interactions snappy by setting low priority work (the search operation) to happen later when the DOM is not budy, so you can tackle the high priority work (setting keystroke state to keep snappy user interactions ) instead.
 
+
+> [!NOTE] 
+> What marks high priority work? It's anything that deals with immediate DOM manipulation that is visible to the user, or DOM manipulation created by some user interaction.
+> 
+> Reflecting user input back to them is high priority because if the UI starts lagging and freezing, preventing users from seeing the results of their actions (like typing, hovering, or animations), it creates an infuriating user experience. Users expect immediate feedback from their interactions.
+
+
+
+
 ```tsx
 function App() {
 	const [isPending, startTransition] = useTransition()
@@ -1345,6 +1354,20 @@ function App() {
 
 
 - `isPending`: 
+
+#### `useDeferredValue()`
+
+#### Transitions vs deferred values
+
+- `useTransition` is used when you control the code and allows you to pass a function that marks certain operations as low priority. 
+	- **this is more common**
+- `useDeferredValue` is used when you don't control the code and works with a value that may trigger expensive operations, allowing you to defer updates to that value.
+	- **this is uncommon**
+
+
+> [!NOTE] 
+> You should reach for `useTransition` first when you control the code. If that doesn't fit due to constraints where you only have access to a value and don't have total control of the situation, then use `useDeferredValue`.
+
 
 ### Using virtualized lists
 
