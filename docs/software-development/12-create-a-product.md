@@ -31,11 +31,46 @@ It's crucial to understand the current market and any competitors in the same sp
 1. Define your audience, make sure it's a small initial audience that's niche
 2. Define your offering and what would differentiate it from other companies.
 3. Identify market challenges, as in any challenges that would come up when you try to enter the market.
-4. 
+4. Establish a strategy for you to succeed in the market
 
 > [!NOTE]
 > The smaller your initial audience, the higher the probability of success. The more niche your product, the more loyal your audience and the higher your chances of success.
 
+
+> [!NOTE]
+> 42% of startups fail because there is no market need. Always make sure you are either 1) better than your competitors and 2) solve an actual pain point that people have.
+
+Always start with a niche audience. Don't go for a large broad audience, but rather find a select group of people who would be passionate about what you're selling
+
+#### Competitor research
+
+here is how you can perform research on your competitors:
+
+1. Find your competitors
+2. Try out each of their offerings, write down what they do good and what they do bad.
+3. Pay attention to their reach. How much money do they have for marketing? You might have to walk away if they have too much marketing.
+
+Let's hone in on step 2. WHen trying out their offerings, these are the components you want to ascertain:
+
+- **core offering**: what's the focus of their app, what's the main functionality?
+- **unique features**: what unique features do they have that differentiate them form their other competitors?
+- **integrations**: Do they have integrations with other platforms, like apple calendar, google calendar, or notion?
+- **user experience**: Do they have good onboarding, and can people use their app without initial difficulty? The most loved apps are those with a low learning curve and a good onboarding process.
+- **repeat use**: Are there some actions you repeat so often that they become annoying and cumbersome to do? 
+- **accessibility**: Is their site widely available for all types of users on all types of devices, and is their site accessible?
+- **market position**: A combination of audience, pricing, and value proposition:
+	- **audience**: What audience are they targeting? Can you go more niche than that?
+	- **pricing**: What pricing model do they have? Can you be more generous than that?
+	- **value proposition**: WHat's their value proposition? Is there anything they're missing that you could capitalize on?
+- **customer feedback**: WHat do customers like about the product? What do they wish was different?
+
+#### How to beat competitors
+
+You can often beat out competitors in either user experience, repeat use, or accessibility:
+
+- **user experience**: You can provide a better onboarding experience, or make the app so easy to use that there's no learning curve.
+- **repeat use**: If there any annoying repeat actions in the competitors' app, you can provide some bulk CRUD functionality or simply an easier, faster way to do something such that it's not an annoyance.
+- **accessibility**: If you can make your app work for a wider audience in different circumstances, those people will appreciate your app for being accessible.
 
 ## Product design
 
