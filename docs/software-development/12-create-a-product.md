@@ -78,6 +78,11 @@ You can also beat out your competitors in specific "gaps" that they leave open:
 - **experience gaps**: Anything your competitor lacks in user experience that you could take advantage of by providing better UX, better UI, or customer support
 - **audience gap**: is there an audience niche that your competitor fails to target?
 
+You can also beat out competitors by just doing stuff better than them:
+
+- **faster**: Can you copy a competitors' functionality and make it faster, enabling people to do less in a shorter amount of time
+- **cheaper**: can you offer a better price point than your competitors?
+
 ## Product design
 
 ### Product design philosophy
