@@ -34,6 +34,39 @@ Here are the use cases of monoliths:
 
 - **small-scale applications**: suitable for startups where you need to move fast and not scale.
 
+### Generic services
+
+
+Generic services is the idea of running each component of the application in their own isolated environment and separately deploying them, like having one pod for frontend, one pod for backend, one pod for database, etc.
+
+
+![](https://i.imgur.com/ejyRBSL.jpeg)
+
+
+The benefits of this architecture are as follows:
+
+- **easy horizontal scaling of individual components**: You can scale the frontend, backend, or database, or any other service horizontally as much as you want to account for different needs.
+
 ### Microservices
 
-Microservice architecture is the idea of running each component of the application in their own isolated environment and separately deploying them, like having one pod for frontend, one pod for backend, one pod for database, etc.
+Microservices is like generic services except that each pod runs an isntance of the entire system, meaning each isolated component would have its own database, server, etc.
+
+- **pro**: distributed services have flexibility in changing the components of the entire system, allowing you to change each individual component quickly and without impacting other parts of the system.
+- **pro**: easier to add new features since you add features in isolation, not to an entire system. Also easier for CI/CD on large systems.
+
+Microservices communicate with each other via HTTP REST or messaging queues.
+
+**telling the difference between generic services and microservices**
+
+- **generic service**: If your service does multiple things, like being the backend for the entire application, then it's a generic service.
+- **microservices**: if your service does only one thing (like backend routes dealing only with payments) then you have a microservice.
+
+You have a microservice if you have one service per feature. It follows the single-responsiblity principle, where each service does only one thing or implements one feature.
+
+
+**when to use microservices**
+
+Microservices is absolute overkill if you're not a large company. Once you have a lot of traffic and need to scale, then microservices helps you deploy features quickly and more safely, and scale individual components (auth, database, payments) as traffic needs require.
+
+
+![](https://i.imgur.com/c03b49m.jpeg)
