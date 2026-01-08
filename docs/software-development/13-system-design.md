@@ -70,3 +70,23 @@ Microservices is absolute overkill if you're not a large company. Once you have 
 
 
 ![](https://i.imgur.com/c03b49m.jpeg)
+
+### Serverless
+
+Serverless architectures are the most simple out of all of these since you don't manage the backend yoruself. You either delegate all the backend work to a BAAS or a FAAS:
+
+- **BAAS (backend as a service)**: something like supabase or firebase, where you have the database, auth, functions, and storage all running in the cloud and infinitely scalable.
+- **FAAS (backend as a service)**: something like vercel or lambda, where you write the backend code but instead you host the server as isolated API routes as serverless function, which have infinite scaling capabilities.
+
+Here are the pros:
+
+- **pay for usage only**: As opposed to servers which are running 24/7, serverless functions are only invoked when you programmatically invoke them, leading to less uptime and less consumption of resources.
+- **infinitely scalable**: You no longer have to worry about and manage the uptime of the server. The BAAS of FAAS does that for you.
+- **no server management required**: great for solo developers who want to move fast
+
+Here are the cons:
+
+- **DDoS susceptibility**: with automated infinite scaling, comes the bad experience of being DDoSed and paying $100,000
+
+
+![](https://i.imgur.com/JknQeGR.jpeg)
