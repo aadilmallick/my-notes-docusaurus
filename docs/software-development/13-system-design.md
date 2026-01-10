@@ -122,7 +122,7 @@ Listing the functional and nonfunctional requirements of the app helps you under
 
 Here are the core questions you should ask in order to discover the functional requirements of your app:
 
-1. what are the core features?
+1. what are the core features? Are there different features for paid and free users?
 2. Who are the users? Who is the app meant for?
 3. What type of app is this? web, mobile, etc.
 4. Are there any edge cases or constraints to consider.
@@ -131,4 +131,16 @@ Here's an example of what the functional requirements are for a link-shortener a
 
 - **features**
 	- users should be able to convert long URLs into short ones
-	- Onc
+	- Once authenticated, users can perform CRUD on short links, ensuring short links must be unique.
+	- free users are limited to 50 short links, while paid users get unlimited links
+	- free users' links expire after 6 months, while paid users have permanent links
+
+### CAP theorem
+
+- **reliability**: the ability for a service to consistently function over time.
+- **uptime**: percentage of time the service is up
+- **downtime**: percentage of time the service is down (has an error)
+- **availability**: the ratio of uptime to downtime. The higher the availability, the more reliable the service is.
+- **resiliency**: how well your system can handle errors
+- **consistency**: how well you can ensure all clients have the same version of data at all times.
+- **partition tolerance**: 
