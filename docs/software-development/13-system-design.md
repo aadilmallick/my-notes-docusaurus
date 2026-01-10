@@ -155,6 +155,43 @@ Latency is how quickly a system responds to a request, while throughput is the a
 - Latency is more important for applications like shopping carts where users expect immediate feedback and will abandon slow-loading pages. 
 - Throughput is more important for applications handling large amounts of data, such as video streaming (like Netflix using 30% of internet bandwidth), real-time mapping, autonomous cars processing millions of data points, or AI models.
 
+
+#### Scaling
+
+**vertical scaling**
+
+Vertical scaling is increasing a machine's capability via increasing CPU, GPU, RAM, etc.
+
+- **pros**: simple to implement, no code changes required.
+- **cons**: expensive, doesn't increase reliability or resiliency, still has single point of failure.
+
+**horizontal scaling**
+
+Horizontal scaling is scaling via adding more instances of the system.
+
+- **pros**: less expensive, increased reliability, uptime, and resiliency
+- **cons**: complex to implement, requires an orchestration system that does automatic scaling in accordance to traffic, requires code changes
+
+**load balancer**
+
+The main issue that comes with horizontal scaling is that you now have several pods running the same system, but all with different DNS addresses. In our application code, how does the client know which pod to talk to?
+
+This is where a **load balancer** comes in. Via DNS, it automatically redirects traffic and distributes it equally across all our pods. In our application code, our "server" is the load balancer DNS, which then reroutes all requests to the actual individual pods.
+
+A reverse proxy, such as Nginx, can perform load balancing along with many other functions including HTTPS termination, route-based routing with deeper inspection, and health checks. 
+
+While dedicated load balancers exist for very high traffic applications (like Amazon Elastic Load Balancer), reverse proxies generally offer more flexibility. In system design discussions, the terms are often used interchangeably unless specific functionality needs to be clarified.
+
+**main strategy**
+
+
+> [!TIP] 
+> Horizontal scaling is typically the best option, and by starting out building with that as the default, there is no need to refactor later down the line, saving you a hassle.
+
+
+Starting with horizontal scaling from the beginning avoids the need to refactor code later. When moving from vertical to horizontal scaling, code must be refactored because APIs that were previously on the same machine may now be on different machines, which changes latency and requires architectural adjustments to handle distributed components.
+
+
 ### Requirements
 
 Listing the functional and nonfunctional requirements of the app helps you understand the problem and how to solve it.
@@ -213,7 +250,7 @@ High level design is done in a series of two steps:
 - **entity modeling**: identifying the core components and most important things in the system.
 - **API design**: defining the actions and operations of the system most commonly in a rest API.
 
-### Entity modeling
+#### Entity modeling
 
 Entity modeling is designing the database schema at a high level.
 
@@ -222,3 +259,23 @@ For example, a todo app will have these schemas:
 - `users`: has id, username, password
 - `task`: has id, title, contents, completed boolean, and foreign key to user 
 - `list`: has id, title, and list of taskIds
+
+#### API design
+
+Here are the different types of protocols available:
+
+- **gRPC**: Go's custom protocol enabling communication between microservices. 
+	- It is performant, but only works over HTTP/2
+- **graphQL**: alternative to REST that is useful for fetching only the desired data, fetching by entities rather than predefined endpoints.
+	- GraphQL can fetch data from multiple sources (like news feeds, pictures, and ads) and make it look like one endpoint, whereas REST would require multiple separate calls to different endpoints.
+- **REST**: standard for implementing HTTP-based API routes.
+- **SSE**: one-direction real-time communication from the server to the frontend.
+- **websockets**: bi-directional real-time communication between the server and the front end. Lower latency than HTTP
+
+![](https://i.imgur.com/jzL905Z.jpeg)
+
+Here is the complete walkthrough, from requirements to entity modeling to API design:
+
+
+![](https://i.imgur.com/ozOeueG.jpeg)
+
