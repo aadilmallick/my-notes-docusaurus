@@ -129,13 +129,31 @@ CAP theorem states the tradeoffs between consistency, availability, and partitio
 
 #### System quality
 
-Any good system must have all of these attributes:
+Any good system must have all of these 5 attributes:
 
 - **observability**: logging infrastructure in place so you can find out errors and problems.
 - **reliability**: a good mix of availability, consistency, and resiliency
 - **security**
-- **scalability**
-- **adaptability**: the ability to handle changin
+- **scalability**: Good systems should be abel to scale both horizontally and vertically with minimal effort and configuration.
+- **adaptability**: the ability to handle changing requirements or user behaviors
+- **performance**
+	- **low latency**: Since latency is a measure of how quickly a system responds to each user query, we want low latency systems.
+	- **high throughput**: Since throughput is a measure of how much data the app can concurrently handle at once, we want a high throughput to account for many concurrent users.
+
+**scalability**
+
+> [!NOTE]
+> Designing systems to scale both up and down is important because of cost efficiency and resource management. 
+> 
+> - Running systems at maximum capacity at all times is wasteful and expensive. Many applications experience seasonality, where traffic varies by time of year (like e-commerce during Black Friday versus January). 
+> - Cloud computing enables systems to scale up during high-traffic periods and scale down during quieter times, optimizing resource usage and costs.
+
+**performance**
+
+Latency is how quickly a system responds to a request, while throughput is the amount of data a system can handle. 
+
+- Latency is more important for applications like shopping carts where users expect immediate feedback and will abandon slow-loading pages. 
+- Throughput is more important for applications handling large amounts of data, such as video streaming (like Netflix using 30% of internet bandwidth), real-time mapping, autonomous cars processing millions of data points, or AI models.
 
 ### Requirements
 
@@ -161,4 +179,46 @@ Here's an example of what the functional requirements are for a link-shortener a
 	- free users are limited to 50 short links, while paid users get unlimited links
 	- free users' links expire after 6 months, while paid users have permanent links
 
+#### Nonfunctional requirements
 
+Nonfunctional requirements are established by asking questions about how the system should perform, concerning the 5 attributes of good systems, which are reliability, observability, security, scalability, and performance.
+
+1. **scalability**
+	- How many users do we expect?
+	- How many requests per second do we need to account for?
+2. **consistency**
+	- How consistent does the system need to be? Is it okay for users to see slightly stale data?
+3. **performance**
+	- What is the maximum latency?
+	- What is the desired throughput? What's the maximum number of concurrent users?
+	- What are the constraints on the data?
+4. **security**
+	- Which data needs to be protected?
+
+Here's an example of the non-functional requirements for a link shortener:
+
+- **performance**
+	- Redirects should happen with max latency 500ms
+	- short links should be max 1kb, long URLs should be max 3kb
+- **scalability**
+	- The system should handle 1 million requests per second
+
+
+### High-level design
+
+Once we have created our requirements, we move on to the high level design, using those requirements as a base.
+
+High level design is done in a series of two steps:
+
+- **entity modeling**: identifying the core components and most important things in the system.
+- **API design**: defining the actions and operations of the system most commonly in a rest API.
+
+### Entity modeling
+
+Entity modeling is designing the database schema at a high level.
+
+For example, a todo app will have these schemas:
+
+- `users`: has id, username, password
+- `task`: has id, title, contents, completed boolean, and foreign key to user 
+- `list`: has id, title, and list of taskIds
