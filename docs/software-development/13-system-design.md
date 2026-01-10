@@ -111,6 +111,32 @@ Here is the main approach to creating a system-design high level solution:
 2. **design the high level architecture**:
 3. **Address key challenges and tradeoffs**:
 
+#### CAP theorem
+
+- **reliability**: the ability for a service to consistently function over time.
+- **uptime**: percentage of time the service is up
+- **downtime**: percentage of time the service is down (has an error)
+- **availability**: the ratio of uptime to downtime. The higher the availability, the more reliable the service is.
+- **resiliency**: how well your system can handle errors
+- **consistency**: how well you can ensure all clients have the same version of data at all times.
+- **partition tolerance**: the system continues to operate even if messages are delayed or lost.
+
+CAP theorem states the tradeoffs between consistency, availability, and partition tolerance, stating that a distributed system can only have 2 of these simultaneously, leaving the third out.
+
+- C + A: having consistency and availability means that you're running on a single server that has reliable uptime and only one veersion of the data because it fetches from only one database, but when your server goes down or there is no internet, then the service is completely down, thus you have no partition tolerance.
+- C + P: always show the freshest data but unreliable performance in availability.
+- A + P: always responds but might show outdated data.
+
+#### System quality
+
+Any good system must have all of these attributes:
+
+- **observability**: logging infrastructure in place so you can find out errors and problems.
+- **reliability**: a good mix of availability, consistency, and resiliency
+- **security**
+- **scalability**
+- **adaptability**: the ability to handle changin
+
 ### Requirements
 
 Listing the functional and nonfunctional requirements of the app helps you understand the problem and how to solve it.
@@ -135,12 +161,4 @@ Here's an example of what the functional requirements are for a link-shortener a
 	- free users are limited to 50 short links, while paid users get unlimited links
 	- free users' links expire after 6 months, while paid users have permanent links
 
-### CAP theorem
 
-- **reliability**: the ability for a service to consistently function over time.
-- **uptime**: percentage of time the service is up
-- **downtime**: percentage of time the service is down (has an error)
-- **availability**: the ratio of uptime to downtime. The higher the availability, the more reliable the service is.
-- **resiliency**: how well your system can handle errors
-- **consistency**: how well you can ensure all clients have the same version of data at all times.
-- **partition tolerance**: 
