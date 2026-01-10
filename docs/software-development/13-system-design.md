@@ -90,3 +90,45 @@ Here are the cons:
 
 
 ![](https://i.imgur.com/JknQeGR.jpeg)
+
+## System Design
+
+### Basics
+
+Here are the basic components of any app
+
+![](https://i.imgur.com/0yZiKe2.jpeg)
+
+Here are the three core steps to creating effective system design of any app:
+
+1. Translate business requirements into technologies
+2. Design the API and architecture, map data flow of the app
+3. Understand the tradeoffs between different technologies
+
+Here is the main approach to creating a system-design high level solution:
+
+1. **scope the problem**: Establish what and who your app is meant for, the planned level of traffic, and the user base.
+2. **design the high level architecture**:
+3. **Address key challenges and tradeoffs**:
+
+### Requirements
+
+Listing the functional and nonfunctional requirements of the app helps you understand the problem and how to solve it.
+
+- **functional requirements**: describe what the system should do (features, functionality)
+- **nonfunctional requirements**: describe how the system should perform (the speed of features, which tradeoffs you're willing to make)
+
+#### Functional requirements
+
+Here are the core questions you should ask in order to discover the functional requirements of your app:
+
+1. what are the core features?
+2. Who are the users? Who is the app meant for?
+3. What type of app is this? web, mobile, etc.
+4. Are there any edge cases or constraints to consider.
+
+Here's an example of what the functional requirements are for a link-shortener app:
+
+- **features**
+	- users should be able to convert long URLs into short ones
+	- Onc
