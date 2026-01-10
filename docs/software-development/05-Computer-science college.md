@@ -3792,6 +3792,73 @@ So, if you must use UUIDs, it’s better to use them as a **non-clustered index
 
 For the PRIMARY KEY, using **auto-increment integer values** is usually better because inserts happen at the end of the table, reducing the need for reorganization.
 
+
+
+### Database scaling
+#### partitioning
+
+ACID compliant databases like SQL can only be viertically scaled, because otherwise horizontal scaling breaks ACID compliance.
+
+To get around this problem and horizontally scale the databases, we use **sharding**, but first we have to understand partitioning.
+
+
+![](https://i.imgur.com/SVj6QuQ.jpeg)
+
+Partitioning is simply splitting a large table into two or more subtables based on some condition. 
+
+Here is the thought process behind why partioning is so effective, using the example above:
+
+1. A table `users` indexed by `id` is large, containing let's say 10000 users, but we can split it into two subtables of equal size by splitting based on the condition `id < 5000`, which we'll call our **partition condition**
+2. Now we cut the B-tree representation of the `users` table in half, making linear searches two times faster and achieving exponential speedup when searching by the indexed `id` field.
+3. Performing CRUD on the partitioned data is also super easy, since we can find the appropriate subtable that contains the data via the partition condition.
+
+
+> [!IMPORTANT] 
+> Partitioning is simple. It's just creating subtables within the same database - it's not like you removed any data. 
+> 
+> The main difference between partitioning and sharding is that sharding splits subtables across different machines, leading to horizontal scaling of the databse.
+
+#### Sharding
+
+Sharding is partitioning but putting the subtables across different database instances, which achieves true **horizontal scaling** for databases.
+
+We will have multiple database instances and put a load balancer rerouting traffic to them based on a **shard key**, where each database instance has its own unique value for the shard key and thus that's how we know which subtable lives in which database instance.
+
+> [!WARNING]
+> A shard key is an arbitrary field used to determine how data is distributed across different sharded databases. 
+> 
+> - It's critical to choose it carefully because if chosen incorrectly, data may not be evenly distributed, leading to some database clusters being overloaded while others are underutilized. 
+> - For example, sharding by first name assumes names are evenly distributed across the alphabet, which may not be true.
+
+Here is how sharding works when performing CRUD on a table record:
+
+1. Use the **shard key** to determine which database instance the table record belongs to
+2. Query the table from that database instance.
+
+
+
+![](https://i.imgur.com/hWr1xNZ.jpeg)
+
+> [!NOTE]
+> The main difficulty in choosing the shard key is that sharding is most effective when you equally subdivide the data into equally-sized sections, as to take advantage of the exponential speedup that comes with downsizing B-trees to half their size.
+
+> [!TIP]
+> Obviously, don't shard if you don't need to. Reach for partitioning first, and then when necessary, shard, since sharding adds additional complexity and overhead compared to partitioning.
+
+Here are the main cons of sharding:
+
+- **complex and easy to mess up**: Sharding adds the overhead and complexity of a load balancer, and you must pick your shard key correctly to equally distribute the data across instances and reap any performance benefits.
+- **slower for joins and multi-table queries**: JOIN and any other multi-table statements will require multiple round trips to the load balancer and evaluation of shard keys, leading to slower execution time for complex queries.
+
+#### Sharding for NOSQL databases
+
+In NoSQL databases like mongo, sharding automatically happens, which is a huge advantage. This shows that NoSQL tools can be used for scale.
+
+### NoSQL 
+
+#### Column Databases
+
+Column databases are optimized for searching and situations where you don't need a strict structure. They store similar data together in columns (like all names in a name column), making queries for specific fields very fast. They can also reduce storage through encoding when there are repeated values, as the repetition can be represented more efficiently.
 ## Networking
 
 ### What is the internet?
