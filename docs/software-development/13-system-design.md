@@ -279,3 +279,18 @@ Here is the complete walkthrough, from requirements to entity modeling to API de
 
 ![](https://i.imgur.com/ozOeueG.jpeg)
 
+### Databases and caching
+
+#### Sharding vs partitioning
+
+#### caching
+
+#### Standard progression
+
+Each step should be implemented only when the previous approach reaches its limits.
+
+- **level 1 - add the cache**: For read-heavy applications, implement a cache layer like Redis in front of the database to speed up reads.
+- **level 2 - vertically scale**: Vertically scale your database instance to have more compute.
+- **level 3 - partition**: partition data to gain exponential speedups in CRUD for all data in the database.
+- **level 4 - sharding**: Shard the database and add a load balancer that reroutes queries with a shard key to the database instances.
+- **level 5 - replication**: Add replicas and use the primary/replica strategy to ensure fast reads and fast writes.

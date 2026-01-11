@@ -2098,6 +2098,18 @@ The cache-aside strategy is a simple, consistent, up-to-date way that always rea
 1. Write to database
 2. Write to cache
 
+#### Read-through (cache-first)
+
+1. On cache hit, return data
+2. On cache miss, read from DB and write to cache
+3. Read from cache and return cached data
+
+#### Write behind (stale while revalidate)
+
+1. Write to cache
+2. Immediately return cached data
+3. Asynchronously write to database
+
 ### cdn
 
 A Content Delivery Network (CDN) is a geographically distributed network of proxy servers and their data centers. The goal of a CDN is to serve content to users with high availability and high performance. Instead of a single origin server hosting all the content, a CDN caches content on multiple servers across the globe. When a user requests content, the CDN server closest to the user's location delivers the content.
@@ -3934,6 +3946,10 @@ This architecture is easier to reason about, where all database instances handle
 		- guarantees a rollback point to the last known good state. 
 		- Snapshots can also be taken at any desired frequency and are easier to distribute around the world since there's no time pressure.
 	- **tradeoff**:
+
+#### Sharding and replication
+
+When you replicate after sharding, you need to replicate each sharded database individually. This means the replication strategy must be applied across all shards, adding to the complexity and resource requirements of the system.
 
 ### NoSQL 
 
