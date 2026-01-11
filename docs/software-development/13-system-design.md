@@ -260,7 +260,7 @@ For example, a todo app will have these schemas:
 - `task`: has id, title, contents, completed boolean, and foreign key to user 
 - `list`: has id, title, and list of taskIds
 
-#### API design
+#### API design and protocols
 
 Here are the different types of protocols available:
 
@@ -270,7 +270,9 @@ Here are the different types of protocols available:
 	- GraphQL can fetch data from multiple sources (like news feeds, pictures, and ads) and make it look like one endpoint, whereas REST would require multiple separate calls to different endpoints.
 - **REST**: standard for implementing HTTP-based API routes.
 - **SSE**: one-direction real-time communication from the server to the frontend.
-- **websockets**: bi-directional real-time communication between the server and the front end. Lower latency than HTTP
+- **websockets**: bi-directional real-time communication between the server and the front end.
+	- **pro**: Lower latency than HTTP, same performance as server sent events
+	- **cons**: since it is stateful, it can't be horizontally scaled.
 
 ![](https://i.imgur.com/jzL905Z.jpeg)
 
@@ -294,3 +296,8 @@ Each step should be implemented only when the previous approach reaches its limi
 - **level 3 - partition**: partition data to gain exponential speedups in CRUD for all data in the database.
 - **level 4 - sharding**: Shard the database and add a load balancer that reroutes queries with a shard key to the database instances.
 - **level 5 - replication**: Add replicas and use the primary/replica strategy to ensure fast reads and fast writes.
+
+### Asynchronous workflows
+
+In the context of system design, asynchronous workflows are ways to set and forget an expensive operation like an LLM call or video processing and notifying the user when the background job is done.
+
