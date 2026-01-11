@@ -2077,6 +2077,27 @@ class FileCache {
 export default FileCache;
 ```
 
+### Basic caching strategies
+
+#### Cache-aside
+
+The cache-aside strategy is a simple, consistent, up-to-date way that always reads from the cache, but updates the cache whenever you write to the database. 
+
+- **pro**: fast reads, fresh data
+- **con**: slowish writes, since you write to database and cache.
+
+**reading**
+
+1. Read from cache. 
+	- If cache hit, return data
+	- If cache miss, continue
+2. Read from database and return that data
+
+**writing**
+
+1. Write to database
+2. Write to cache
+
 ### cdn
 
 A Content Delivery Network (CDN) is a geographically distributed network of proxy servers and their data centers. The goal of a CDN is to serve content to users with high availability and high performance. Instead of a single origin server hosting all the content, a CDN caches content on multiple servers across the globe. When a user requests content, the CDN server closest to the user's location delivers the content.
@@ -3853,6 +3874,66 @@ Here are the main cons of sharding:
 #### Sharding for NOSQL databases
 
 In NoSQL databases like mongo, sharding automatically happens, which is a huge advantage. This shows that NoSQL tools can be used for scale.
+
+### Database Availability
+
+#### Replication
+
+Replication is making copies of your data across multiple servers or locations, which increases fault tolerance (no single point of failure) and read performance (reads work like CDNs).
+
+Replication works by creating multiple database instances that hold the exact same data, but designating them as one of these two functions:
+
+- **primary**: The primary database isntance, handling all write operations. This is the ultimate source of truth.
+- **replica**: Database instances that copy whatever write operations happened in the primary. These are copies of the primary. Replicas handle all read operations, rerouted from a load balancer choosing which replica to query.
+
+> [!NOTE]
+> This separation of concerns, where the primary handles writes and the replicas handle reads allows for increased performance and speed.
+
+**primary / replica**
+
+1. Establish one database instance as the **primary**, which handles all write operations.
+2. After each write operation to the primary, each **replica** copies over that written data, getting in sync with the primary. All read operations are load balanced to replicas.
+3. If the primary fails, any available replica takes over and becomes the new primary.
+
+> [!NOTE]
+> The main advantage is improved performance for read-heavy applications, since the primary database handles all writes without being slowed down by reads, and replicas handle the read operations.
+
+![](https://i.imgur.com/fhRLP0r.jpeg)
+
+> [!WARNING]
+> The main con with this architecture is that you are not guaranteed consistency and you can suffer data loss. The latency between writes to the primary and updates to replicas creates this consistency gap.
+
+We can fix this main con by always doing writes to a primary within a transaction of two steps:
+
+1. Write to primary
+2. Write to replica
+
+This ACID transaction guarantees consistency, even though some data operations might fail just because of the replica even if writing to the primary succeeds.
+
+
+**primary/primary**
+
+This architecture is easier to reason about, where all database instances handle read and write operations and are essentially just full, bona-fide copies of each other, horizontally scaling exact copies of each database.
+
+
+![](https://i.imgur.com/llZHIsc.jpeg)
+
+> [!WARNING]
+> The main complexity is handling conflict resolution between servers - determining how to negotiate and reconcile differences when multiple primaries are writing simultaneously. This often requires an intermediary service to rectify the data before posting to full replicas.
+
+#### Replication Strategies
+
+- **transactional replication strategy**
+	- **description**: In a transactional replication strategy, a write or update is not considered complete until all copies have the same data and all replicas have confirmed the write. This creates a highly consistent system. 
+	- **tradeoff**: The trade-off is reduced performance and availability, as the system must wait for every database to acknowledge the write before responding, making it slower.
+- **snapshotting strategy**
+	- **description**: Snapshotting just captures the entire database file as it is, serving as a backup. 
+	- **advantages**:
+		- cheaper because it's not write-heavy (only occurring at periodic intervals)
+		- it provides better resiliency by preventing data corruption from spreading
+		- guarantees a rollback point to the last known good state. 
+		- Snapshots can also be taken at any desired frequency and are easier to distribute around the world since there's no time pressure.
+	- **tradeoff**:
 
 ### NoSQL 
 
