@@ -4787,6 +4787,8 @@ If you don't use evals (tests and finidng metrics for your LLM service), you wil
 
 ## OpenAI Whisper
 
+### Python
+
 Here is how you can use open ai whisper to transcribe or translate audio files:
 
 ```ts
@@ -4805,6 +4807,13 @@ Here are the different models you have access to, all unquantized.
 - `"tiny.en"`: the smallest english version, at 39M params
 - `"base.en"`: the smallest english version, at 74M params
 
+### Command line
+
+- `whisper <audio-file-path>`: transcribes the audio file with auto detecting the language
+
+Here are the different options you have
+- `--model <model>`: chooses the specific model
+- `--language <language-code>`: specifies the language the audio file is in. Pass in a language code, like `en` or `es`.
 
 ## N8N
 
