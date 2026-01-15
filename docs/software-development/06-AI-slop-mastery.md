@@ -720,6 +720,32 @@ To add custom skills to claude code, they should be `SKILL.md` files within the 
 
 Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
 
+You can specify the events to listen to and a file to run on those events, and you do all this from a json file.
+
+If you want to create a claude command that can easily create hooks for you, use this command:
+
+```embed
+title: "automated-notebooklm/.claude/commands/create-hook.md at main · omril321/automated-notebooklm"
+image: "https://opengraph.githubassets.com/30cad5e5dd2202e9efcd80dbb8ad749500d60fdac65f49c94f599ffdb95a8c08/omril321/automated-notebooklm"
+description: "Automation around NotebookLM, with a monday.com board integration - omril321/automated-notebooklm"
+url: "https://github.com/omril321/automated-notebooklm/blob/main/.claude/commands/create-hook.md"
+favicon: ""
+aspectRatio: "50"
+```
+
+Here is a typescript SDK for creating claude commands:
+
+```embed
+title: "GitHub - johnlindquist/claude-hooks"
+image: "https://camo.githubusercontent.com/1ab28d1e589dba211bec354e41b81e747e793e34e472b57a3abdebfd7a354ba9/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f636c617564652d686f6f6b732e737667"
+description: "Contribute to johnlindquist/claude-hooks development by creating an account on GitHub."
+url: "https://github.com/johnlindquist/claude-hooks"
+favicon: ""
+aspectRatio: "25"
+```
+
+
+
 **pre tool use hooks**
 
 With a pre tool use hook, you can inspect and potentially block certain actions, such as preventing git commits with no verify flag, checking shell commands before execution, or verifying file edits before they occur.
