@@ -708,6 +708,14 @@ Commands are special markdown files that must live within the `.claude/commands`
 > [!NOTE]
 > The main use case of commands is to prompt for repetitive tasks like linting, testing, or adding documentation. You can also do neat stuff like dynamically add arguments and interpolate bash commands in these markdown files.
 
+#### Skills
+
+List all skills claude has access to with `/skills` command.
+
+To add custom skills to claude code, they should be `SKILL.md` files within the `.claude/skills` folder
+
+![](https://i.imgur.com/tEYm0Ux.png)
+
 #### Hooks
 
 Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
@@ -813,11 +821,16 @@ _Claude reads the issue from GitHub, sees where it left off, and resumes work wi
 
 #### Claude config
 
+The claude config file lives here:
+
+- **global**: `~/.claude/settings.json`
+- **local**: `.claude/settings.local.json`
+
 **allowed tools**
 
 At the project or global level, you can set which tools claude does and doesn't need permission for:
 
-```json file=".claude/settings.local.json"
+```json title=".claude/settings.local.json"
 {
   "permissions": {
     "allow": [
