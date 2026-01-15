@@ -708,9 +708,12 @@ Commands are special markdown files that must live within the `.claude/commands`
 > [!NOTE]
 > The main use case of commands is to prompt for repetitive tasks like linting, testing, or adding documentation. You can also do neat stuff like dynamically add arguments and interpolate bash commands in these markdown files.
 
-#### Skills
+#### Skills / Plugins
 
-List all skills claude has access to with `/skills` command.
+You can install MCP servers and skills as "plugins" in claude code.
+
+- List all skills claude has access to with `/skills` command.
+- Manage plugins (install and delete) by using the `/plugins` command
 
 To add custom skills to claude code, they should be `SKILL.md` files within the `.claude/skills` folder
 
@@ -748,10 +751,107 @@ aspectRatio: "25"
 
 
 
-**pre tool use hooks**
+- **PreToolUse**: This hook runs _before_ a tool (like `edit_file` or `Bash`) is executed. It is the **most powerful point of control for preventative measures** and is the _only_ event that can proactively **block a tool’s execution**.
+- **PostToolUse**: This hook runs _after_ a tool has successfully completed. It’s ideal for reactive tasks like automatic formatting, running tests, or logging. It cannot block execution but can provide feedback to Claude.
+- **Notification**: This hook triggers whenever Claude Code sends a notification to the user, for example, when it’s waiting for input or has completed a long task. It is purely informational and cannot block execution.
+- **Stop**: This hook runs when the **main Claude Code agent finishes responding**. It can be configured to **prevent the agent from terminating**, forcing it to continue working until a specific condition is met.
+- **SubagentStop**: This hook runs when a sub-agent task completes its work. Like the `Stop` hook, it can block the sub-agent from stopping.
 
-With a pre tool use hook, you can inspect and potentially block certain actions, such as preventing git commits with no verify flag, checking shell commands before execution, or verifying file edits before they occur.
+You specify hooks in JSON in the `.claude/settings.local.json` under the `"hooks"` key
 
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '\\(.tool_input.command) - \\(.tool_input.description // \"No description\")' >> ~/.claude/bash-command-log.txt"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Hooks receive JSON data via standard input (stdin) that provides session information and event-specific data, such as `session_id`, `transcript_path`, and `tool_name`. They communicate status back to Claude Code primarily through **shell exit codes** and, for more advanced control, **structured JSON output** to stdout.
+
+- **Exit Code 0**: Indicates success. Any output to stdout is shown to the user in the transcript, but _not_ to the model.
+- **Exit Code 2**: Signals a **blocking error**. This tells Claude Code to halt the current action (for `PreToolUse` hooks) and processes the feedback from `stderr` as new input for Claude to understand the error and adjust its plan. It is crucial that error messages for blocking errors are sent to `stderr`.
+- **Other Non-Zero Exit Codes**: Indicate a non-blocking error. The hook failed, but execution continues. The error message from `stderr` is shown to the user, but not to Claude.
+
+> [!NOTE]
+> This means since hooks provide parameters in a deterministic format, we can programatically do stuff with those inputs in another program, like a python or bash script.
+
+
+For more examples on how to use hooks, look here:
+
+```embed
+title: "Claude Code Hooks | Developing with AI Tools | Steve Kinney"
+image: ""
+description: "Learn how to use event-driven hooks to provide deterministic control over Claude's behavior and automate development workflows"
+url: "https://stevekinney.com/courses/ai-development/claude-code-hooks"
+favicon: ""
+```
+
+
+**custom hook: deny dangerous commands**
+
+This hook is used to deny dangerous commands like `rm -rf` or curling to a non HTTPS string.
+
+```json title=".claude/settings.local.json"
+"hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pre-bash-firewall.sh"
+          }
+        ]
+      }
+    ]
+  }
+```
+
+```bash title=".claude/hooks/pre-bash-firewall.sh"
+#!/usr/bin/env bash
+set -euo pipefail
+
+# stdin: JSON with .tool_input.command
+cmd=$(jq -r '.tool_input.command // ""')
+
+# Block list (add as needed)
+deny_patterns=(
+  'rm\s+-rf\s+/'
+  'git\s+reset\s+--hard'
+  'curl\s+http'
+)
+
+for pat in "${deny_patterns[@]}"; do
+  if echo "$cmd" | grep -Eiq "$pat"; then
+    echo "Blocked command: matches denied pattern '$pat'. Use a safer alternative or explain why it's necessary." 1>&2
+    exit 2
+  fi
+done
+
+exit 0
+
+```
+
+**custom hook: write bash commands to a log**
+
+```bash title=".claude/hooks/pre-bash-log.sh"
+#!/usr/bin/env bash
+set -euo pipefail
+cmd=$(jq -r '.tool_input.command // ""')
+printf '%s %s\n' "$(date -Is)" "$cmd" >> .claude/bash-commands.log
+exit 0
+```
 #### Subagents
 
 Subagents in claude are just several different agents each with their own system prompt and context window.
@@ -807,6 +907,11 @@ This section should clearly define the sub agent's role, capabilities, personali
 | `description` | Yes      | A natural language description of the agent’s purpose, used by Claude for automatic delegation.                                                             |
 | `tools`       | No       | A comma-separated list of specific tools the agent can use. If omitted, it inherits all tools from the main agent, including any connected via MCP servers. |
 | `skills`      | No       | A command-separated list of skill names the agent can have access to.                                                                                       |
+
+#### Git worktrees
+
+Git worktrees are especially useful when running several agents in parallel.
+
 #### Techniques and strategies
 
 **forcing thinking**
@@ -873,6 +978,13 @@ _Claude runs `gh issue create` automatically._
 
 _Claude reads the issue from GitHub, sees where it left off, and resumes work with a fresh context window._
 
+#### Claude on your PRs
+
+Run the `/install-github-app` to install a claude code github action.
+
+- By default, the Claude Code GitHub Action listens for comments or issues mentioning `@claude`.
+
+This actions makes claude become a collaborator on your PRs for the current repo. You can now tag claude on issues, make it an assignee, etc.
 
 
 #### Claude config
