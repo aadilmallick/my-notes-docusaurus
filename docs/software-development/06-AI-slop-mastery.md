@@ -720,6 +720,8 @@ To add custom skills to claude code, they should be `SKILL.md` files within the 
 
 Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
 
+You can check all registered hooks with the `/hooks` command.
+
 You can specify the events to listen to and a file to run on those events, and you do all this from a json file.
 
 If you want to create a claude command that can easily create hooks for you, use this command:
@@ -759,6 +761,13 @@ You can create subagents with the `/agents` command, and the agent specification
 - **storage**: agents are stored as markdown files in the `.claude/agents` folder in your project
 - **tools**: You can specify which tools the agent has access to.
 
+You can also set agents on the global level:
+
+| Type        | Location            | Scope                                 | Priority |
+| ----------- | ------------------- | ------------------------------------- | -------- |
+| **Project** | `.claude/agents/`   | Available only in the current project | Highest  |
+| **User**    | `~/.claude/agents/` | Available across all your projects    | Lower    |
+
 Here is an example of the different types of subagent personalities you can create.
 
 ![](https://i.imgur.com/36NkZ2h.jpeg)
@@ -777,6 +786,27 @@ description: Review code for quality and best practices
 skills: pr-review, security-check
 ---
 ```
+
+Here's another example:
+
+```md
+---
+name: your-sub-agent-name
+description: A clear description of when this sub agent should be used.
+tools: tool1, tool2 # Optional - inherits all tools from the main agent if omitted.
+---
+
+Your sub agent's system prompt goes here.
+
+This section should clearly define the sub agent's role, capabilities, personality, and approach to solving problems. Include specific instructions, best practices, and any constraints the sub agent should follow.
+```
+
+| Field         | Required | Description                                                                                                                                                 |
+| ------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | Yes      | A unique identifier for the agent, using lowercase letters and hyphens.                                                                                     |
+| `description` | Yes      | A natural language description of the agent’s purpose, used by Claude for automatic delegation.                                                             |
+| `tools`       | No       | A comma-separated list of specific tools the agent can use. If omitted, it inherits all tools from the main agent, including any connected via MCP servers. |
+| `skills`      | No       | A command-separated list of skill names the agent can have access to.                                                                                       |
 #### Techniques and strategies
 
 **forcing thinking**

@@ -579,7 +579,7 @@ Static site generation involves building out pages ahead of time, which is a tec
 
 We do this by returning the `params` from `generateStaticParams()` on a dynamic route param route, and then for all params, nextjs will build out a version of that page for each param.
 
-```tsx file="app/posts/[id]/page.tsx"
+```tsx title="app/posts/[id]/page.tsx"
 
 export async function generateStaticParams() {
   const posts = await prisma.post.findMany();
@@ -607,7 +607,7 @@ Partial prerendering is new in nextjs and it is the "Holy Grail" of rendering. I
 
 Here's an example:
 
-```tsx file="app/posts/page.tsx"
+```tsx title="app/posts/page.tsx"
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 
@@ -1478,7 +1478,7 @@ Remember to implement revalidation with `revalidatePath()` if you choose to cach
 1. Call `"use cache"` at the page level
 2. In some server action or server side function that mutates backend data, call `revalidatePath(path)` and pass in the route your want to invalidate the cache for.
 
-```tsx file="post/actions.ts"
+```tsx title="post/actions.ts"
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -1870,7 +1870,7 @@ Here is the difference between serverless and server:
 | scales infinitely since you can spin up infinite cloud function calls | Needs load-balancing and scaling procedures once it reaches concurrency limit |
 | Has cold starts since it needs to spin up mini-server each time       | No cold-start once launched.                                                  |
 
-```ts file=app/api/hello/route.ts
+```ts title=app/api/hello/route.ts
 import { NextResponse } from 'next/server'
 
 export async function GET() {
@@ -2689,7 +2689,7 @@ DAL functions are NOT server actions. They're just normal ass functions you run 
 
 You almost always want to cache your main server-side auth function that retrieves the user. Cache it per request, using `cache()` from react to do so.
 
-```tsx file="services/clerk.ts"
+```tsx title="services/clerk.ts"
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { getSession } from "@/lib/auth"; // Your auth provider
@@ -2704,7 +2704,7 @@ export const requireUser = cache(async () => {
 
 And then inside DAL functions performing authenticated actions, call this authentication function that blocks the DAL if not authenticated.
 
-```tsx file="dal/todos.tsx"
+```tsx title="dal/todos.tsx"
 import "server-only"; // 🛡️ Prevents client-side usage
 import { db } from "@/lib/db";
 import { requireUser } from "./auth";
