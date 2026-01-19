@@ -1389,6 +1389,78 @@ const GithubButton = () => {
 export default GithubButton;
 ```
 
+### Which Auth Provider to choose
+
+**Verdict (2026):**
+
+- **Best for DX & Speed:** **Clerk** (Expensive at scale, but fastest to ship).
+- **Best Value Managed:** **Firebase** (Unbeatable free tier, very cheap scaling, but harder to implement).
+- **Best Middle Ground:** **Kinde** (Cheaper than Clerk, better DX than Firebase, includes billing/feature flags).
+- **Best Self-Hosted:** **Better Auth** (Free, modern, type-safe; superior to "rawdogging" it manually). 
+
+---
+
+**1. Pricing Comparison at a Glance**
+
+|Feature|**Clerk**|**Kinde**|**Firebase (Identity Platform)**|**Better Auth / Self-Hosted**|
+|---|---|---|---|---|
+|**Free Tier (MAUs)**|10,000|10,500|**50,000**|**Unlimited** (You pay infra)|
+|**Monthly Base Cost**|$0 (Free) / $25 (Pro)|$0 (Free) / $25 (Pro)|$0|$0 (Open Source)|
+|**Cost per extra MAU**|~$0.02|~$0.0175|**~$0.0025** (after 50k)|$0 (Your DB costs)|
+|**B2B / Orgs**|100 free, then ~$1/org|5 free, then ~$0.50/org|Custom impl. required|Included (Plugin)|
+|**Enterprise SSO**|+$100/mo add-on|Included in Scale ($250+)|~$0.015 per user|Included (Plugin)|
+
+---
+
+**2. Detailed Breakdown**
+
+**Clerk: The "Apple" of Auth**
+
+- **Pricing Model:** Generous start, expensive scaling.
+- **Sweet Spot:** Solo founders, B2B startups needing complex multi-tenancy immediately.
+- **The Cost:** Free for 10k monthly active users (MAUs). Once you grow, you pay **$25/mo** base + **$0.02 per user**.
+- **The "Gotcha":**
+    - **MFA & SSO:** Advanced security features (SAML, etc.) are often locked behind a **$100/mo** add-on.
+    - **B2B Scaling:** If you have many small organizations (e.g., a freemium B2B app), the **$1/organization** fee after the first 100 can balloon your bill faster than user growth. 
+
+**Kinde: The "All-in-One" Alternative** 
+
+- **Pricing Model:** Flat tiers with cheaper overage.
+- **Sweet Spot:** Startups who want Auth + Feature Flags + Billing in one SDK.
+- **The Cost:** Similar to Clerk ($25/mo base), but overage is slightly cheaper (**$0.0175/user**).
+- **The Benefit:** Unlike Clerk, Kinde doesn't charge massive add-ons for essential features. It bundles **user management, feature flags, and billing** (payment connection) into the platform.
+- **The "Gotcha":** The free tier only allows **5 active organizations** (B2B tenants). You must upgrade to Pro ($25/mo) to get 50 orgs, then pay ~$0.50 per extra org. 
+
+**Firebase Auth: The "Budget" Powerhouse**
+
+- **Pricing Model:** Loss leader for Google Cloud.
+- **Sweet Spot:** Consumer apps (B2C) with high volume (e.g., 100k+ users) or mobile-first apps.
+- **The Cost:** **Free for 50,000 MAUs.** After that, it is roughly **10x cheaper** than Clerk/Kinde ($0.0025 vs $0.02).
+- **The "Gotcha":**
+    - **SMS Costs:** There is **no free tier for SMS/Phone auth**. You pay carrier rates immediately (e.g., $0.01 in US, $0.06+ globally), which can get very expensive.
+    - **DX:** No pre-built "User Profile" or "Organization Switcher" components. You build all UI yourself. 
+
+**Better Auth: The Modern "Self-Hosted"** 
+
+- **Pricing Model:** Free software, pay for your own infrastructure.
+- **Sweet Spot:** Developers who want data ownership without the pain of writing auth from scratch.
+- **The Cost:** **$0** for the software. You pay for your database (Postgres/MySQL) and hosting (Vercel/[AWS](https://aws.amazon.com/)).
+- **Why it wins vs. Rawdogging:** "Rawdogging" auth requires you to manually handle session invalidation, CSRF tokens, and OAuth flows (Google, Apple callbacks). **Better Auth** provides these as a library (like NextAuth but typesafe and plugin-based) with support for Passkeys, 2FA, and Multi-tenancy out of the box.
+- **The "Gotcha":** You are responsible for security patches and database uptime. If your DB goes down, nobody can log in. 
+
+**Rawdogging OAuth + DB**
+
+- **Pricing:** $0 + Infinite Developer Tears.
+- **Reality:** Only do this for learning. Security risks (session fixation, token leakage) are high. Maintaining OAuth integrations (e.g., "Sign in with Apple" changes) is a long-term maintenance burden that libraries like Better Auth handle for you. 
+
+**Recommendation**
+
+1. **Start with Clerk** if you have budget and want to launch _today_. The $25/mo is negligible compared to the engineering hours saved on UI.
+2. **Switch to Better Auth** if you are bootstrapping with $0 budget or strictly require self-hosting/data ownership.
+3. **Use [Firebase](https://firebase.google.com/)** if you are building a B2C mobile app expecting 100k+ users (e.g., a social network). 
+
+These pages offer a comparative analysis of pricing models for Clerk, Kinde, Firebase Auth, and self-hosted authentication options:
+
 ### Handling permissions
 
 To handle permissions, we can go down the route of role-based access control, like so:
