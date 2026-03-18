@@ -5013,7 +5013,10 @@ Here are the commands to manage the gateway:
 - `openclaw gateway stop`: stops the gateway
 - `openclaw gateway restart`: restarts the gateway
 
-You can then open up the webui using the `openclaw dashboard` command.
+### Dashboard vs interactive CLI
+
+- **GUI**: You can then open up the webui using the `openclaw dashboard` command for the web UI
+- **cli**: Run the `openclaw tui` command to chat with openclaw in the CLI, which is better because you can run slash commands easily.
 
 
 ### Markdown Files
@@ -5025,6 +5028,16 @@ You can then open up the webui using the `openclaw dashboard` command.
 - `TOOLS.md`: environment specific keys and config 
 
 The entire point of OpenClaw is based on the `HEARTBEAT.md`, where tasks are run in a loop every 15 min or so.
+
+### Agents
+
+Agents are a way of saving a particular openclaw profile so you can quickly open a Copilot, OpenAI, Claude, or local agent with specific settings. 
+
+- `openclaw agents add <agent-name>`: adds an agent
+- `openclaw agents delete <agent-name>`: deletes an agent by its name
+- `openclaw agents list`: lists all agents.
+
+
 
 ### Launching models
 
