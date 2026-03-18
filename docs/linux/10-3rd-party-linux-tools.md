@@ -1,5 +1,22 @@
 # 10 - 3rd party linux tools
 
+## `gog`: manage google ecosystem
+
+### Setup
+
+To use `gog`, you first need OAuth permissions. Follow these steps:
+
+ 1. Go to the Google Cloud Console (https://console.cloud.google.com/apis).
+ 2. Create or select a project.                                                                                        
+ 3. Enable the Gmail API and Google Calendar API:                                                                      
+     - Go to "APIs & Services" > Library.                                                                              
+     - Search for "Gmail API" and "Google Calendar API," then enable both.
+ 4. Create OAuth 2.0 credentials:                                                                                      
+     - Go to "APIs & Services" > "Credentials."                                                                        
+     - Click "Create Credentials" > "OAuth Client ID."                                                                 
+     - Choose "Desktop App" or "Other" as the application type.
+     - Download the client_secret.json file after it’s created.
+
 ## ImageMagick
 
 You can install this CLI tool using brew on mac.
