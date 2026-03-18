@@ -5011,6 +5011,10 @@ Here are the commands to manage the gateway:
 
 - `openclaw gateway`: starts the gateway
 - `openclaw gateway stop`: stops the gateway
+- `openclaw gateway restart`: restarts the gateway
+
+You can then open up the webui using the `openclaw dashboard` command.
+
 
 ### Markdown Files
 
