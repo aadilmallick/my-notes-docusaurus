@@ -5003,6 +5003,15 @@ This is an Ollama LLM that excels at translation.
 
 ## OpenClaw
 
+### Gateway
+
+The openclaw gateway is a long-running process where the AI is available as long as your computer is up.
+
+Here are the commands to manage the gateway:
+
+- `openclaw gateway`: starts the gateway
+- `openclaw gateway stop`: stops the gateway
+
 ### Markdown Files
 
 - `SOUL.md`: for telling the AI its personality, purpose, and how it should behave, like a persona.
@@ -5012,6 +5021,16 @@ This is an Ollama LLM that excels at translation.
 - `TOOLS.md`: environment specific keys and config 
 
 The entire point of OpenClaw is based on the `HEARTBEAT.md`, where tasks are run in a loop every 15 min or so.
+
+### Launching models
+
+Some local models have commands right out of the gate to launch openclaw with:
+
+- `ollama launch openclaw --model ministral-3`: launches ministral3 in openclaw.
+
+You can also launch these cloud provider models:
+
+
 
 
 ## N8N
