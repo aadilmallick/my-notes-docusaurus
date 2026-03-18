@@ -5027,6 +5027,7 @@ The entire point of OpenClaw is based on the `HEARTBEAT.md`, where tasks are run
 Some local models have commands right out of the gate to launch openclaw with:
 
 - `ollama launch openclaw --model ministral-3`: launches ministral3 in openclaw.
+- `ollama launch openclaw --model nemotron-3-nano:4b`: launches nemotron in openclaw
 
 You can also launch these cloud provider models:
 
