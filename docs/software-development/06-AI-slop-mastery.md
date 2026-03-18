@@ -4966,9 +4966,10 @@ If you don't use evals (tests and finidng metrics for your LLM service), you wil
 
 -  Is the model calling the correct tool we expected?
 
-## OpenAI Whisper
+## Important Local Models
+### OpenAI Whisper
 
-### Python
+#### Python
 
 Here is how you can use open ai whisper to transcribe or translate audio files:
 
@@ -4988,13 +4989,30 @@ Here are the different models you have access to, all unquantized.
 - `"tiny.en"`: the smallest english version, at 39M params
 - `"base.en"`: the smallest english version, at 74M params
 
-### Command line
+#### Command line
 
 - `whisper <audio-file-path>`: transcribes the audio file with auto detecting the language
 
 Here are the different options you have
 - `--model <model>`: chooses the specific model
 - `--language <language-code>`: specifies the language the audio file is in. Pass in a language code, like `en` or `es`.
+
+### TranslateGemma
+
+This is an Ollama LLM that excels at translation.
+
+## OpenClaw
+
+### Markdown Files
+
+- `SOUL.md`: for telling the AI its personality, purpose, and how it should behave, like a persona.
+- `USER.md`: for telling the AI who the human user is, their name, any info about them, etc.
+- `HEARTBEAT.md`: a periodic long-polling check that the AI runs on a schedule.
+- `AGENTS.md`: instructions for how the agent should run, like commands to run on startup, memory protocol, and safety rules.
+- `TOOLS.md`: environment specific keys and config 
+
+The entire point of OpenClaw is based on the `HEARTBEAT.md`, where tasks are run in a loop every 15 min or so.
+
 
 ## N8N
 
