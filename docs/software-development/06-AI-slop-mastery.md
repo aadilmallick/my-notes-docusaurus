@@ -5686,6 +5686,42 @@ One of the most important uses of MCP is giving online, up-to-date docs for an A
 - **Context7**: An MCP server that has tools to fetch online documentation and return it as markdown.
 - **RepoMix**: Go to the [Repomix website](https://repomix.com/) to download the entire docs as a markdown file you cna then feed into LLMs.
 
+
+## Agentic AI Development
+
+### Agent fundamentals
+
+#### What is an Agent?
+
+Agents are proactive in determining what tools to use, and can take action without human input. They can generate chains of tool calls because essentially they just run in a loop.
+
+Agents are best suited for multi-step, dynamic problems.
+
+All agents are composed of three building blocks:
+
+1. **Model**: the LLM being used. This component makes the decisions for which tools to use and whether to continue the chain of tool use or stop and output a response.
+2. **Tools**: MCP, skills, etc.
+3. **Orchestration**: the inner workings of the agent loop and how input is passed to the LLM.
+
+Here is when to use agents over normal LLM calls:
+
+- Use agents when you need reasoning + adaptation + multi-step execution.
+- Skip agents when the task is simple, single-step, or deterministic.
+
+#### Agent loop
+
+Intelligent agents don't just act - they plan. here is the main loop:
+
+![](https://i.imgur.com/GMLd5Q9.jpeg)
+
+1. **Perceive**: plans how to comply with user's query
+2. **Think**: selects which tool to use
+3. **Act**: executes tool
+4. **Check**: based on tool response, checks if the tool result has finished what the user wants and either ends and spits out a response or continues the loop.
+
+Here's an example of the loop in action:
+
+![](https://i.imgur.com/WndAbQF.jpeg)
 ## AI resources
 
 ### Voice
