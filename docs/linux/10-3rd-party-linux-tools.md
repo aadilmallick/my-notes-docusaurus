@@ -17,6 +17,64 @@ To use `gog`, you first need OAuth permissions. Follow these steps:
      - Choose "Desktop App" or "Other" as the application type.
      - Download the client_secret.json file after it’s created.
 
+## Obsidian CLI
+
+The obsidian cli is run with the `obsidian` command which brings up a TUI (interactive CLI). The TUI and CLI are only available if the Obsidian app is currently open.
+
+### Vault Commands
+
+These commands run in the context of the current vault you have open in obsidian
+
+- `daily`: opens today's daily note in the current vault
+- `daily:append`: appends content to the daily note, and then you can pass in `key=value` arguments.
+- `search`: searches the current vault, and then you can pass in `key=value` arguments.
+- `create`: creates a new note, and then you can pass in `key=value` arguments.
+
+```bash
+# Open today's daily note
+obsidian daily
+
+# Add a task to your daily note
+obsidian daily:append content="- [ ] Buy groceries"
+
+# Search your vault
+obsidian search query="meeting notes"
+
+# Read the active file
+obsidian read
+
+# List all tasks from your daily note
+obsidian tasks daily
+
+# Create a new note from a template
+obsidian create name="Trip to Paris" template=Travel
+
+# Create a new note with content
+obsidian create name=Note content="# Title\n\nBody text"
+
+# List all tags in your vault with counts
+obsidian tags counts
+
+# Compare two versions of a file
+obsidian diff file=README from=1 to=3
+```
+
+### Switching vaults
+
+you can run vault commands in a different vault by specifying the vault name you want to target with the `vault=` command:
+
+```shell
+obsidian vault=Notes daily
+```
+
+### Opening a vault
+
+Open a vault from the TUI with the `vault:open` command, passing the name of the vault:
+
+```bash
+vault:open name=<name>        # (required) vault name
+```
+
 ## ImageMagick
 
 You can install this CLI tool using brew on mac.
