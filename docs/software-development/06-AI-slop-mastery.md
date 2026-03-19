@@ -5064,7 +5064,7 @@ You can create a custom skill by creating folders that contain `SKILL.md` files 
 	      },
 	      "send_telegram_message": {
 	        "enabled": true
-	      }
+	      } 
 	    }
 	},
 }
