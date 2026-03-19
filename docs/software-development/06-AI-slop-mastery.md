@@ -5744,7 +5744,13 @@ pipx install google-adk
 > [!IMPORTANT]
 > Your `agent.py` file must be in a subfolder.
 
-#### Basic Agent Code
+You can now run the agent via these different options:
+
+- `adk web <agent-subfolder-name>`: runs a server and displays a dashboard on localhost 8000
+- `adk api_server <agent-subfolder-name>`: deploys the specific agent in the subfolder as an API service
+- `adk run <agent-subfolder-name>`: runs in the terminal the specific agent in the subfolder
+
+#### Basic Agent Code with Python
 
 ```python
 from google.adk.agents.llm_agent import Agent
@@ -5767,6 +5773,15 @@ Here are the important kwargs to understand:
 
 > [!IMPORTANT]
 > The variable name `root_agent` is a convention that allows Gemini ADK to find this agent as the main orchestrator agent, and it must be named that.
+
+#### Creating a yaml based agent
+
+Instead of writing Python code to define agents, you can define agents using YAML, by creating the boilerplate first with `adk create --type=config` command:
+
+```bash
+adk create --type=config <agent-subfolder-name>
+```
+
 
 
 
