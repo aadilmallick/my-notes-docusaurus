@@ -5037,7 +5037,59 @@ Agents are a way of saving a particular openclaw profile so you can quickly open
 - `openclaw agents delete <agent-name>`: deletes an agent by its name
 - `openclaw agents list`: lists all agents.
 
+### Skills
 
+Here is the basic skills cli
+
+- `openclaw skills list`: lists all downloaded skills
+
+You can create a custom skill by creating folders that contain `SKILL.md` files within the `~/.openclaw/skills` directory, and then enable those skills to be registered in the `~/.openclaw/openclaw.json` config file:
+
+```json
+{
+	// ...
+	"skills": {
+	    "install": {
+	      "nodeManager": "npm"
+	    },
+	    "entries": {
+	      "nano-banana-pro": {
+	        "apiKey": "AIzaSyC9BtQwP-4jALriD54XRzuehSBHGVXBKxo"
+	      },
+	      "email_brief": {
+	        "enabled": true
+	      },
+	      "waadlingaadil_read_email": {
+	        "enabled": true
+	      },
+	      "send_telegram_message": {
+	        "enabled": true
+	      }
+	    }
+	},
+}
+```
+
+### Cron job
+
+You can set a cron job in openclaw using the `openclaw cron` CLI:
+
+```bash
+openclaw cron add \
+  --name "Daily Telegram Brief" \
+  --cron "0 8 * * *" \
+  --tz "America/New_York" \
+  --session isolated \
+  --message "Check my calendar and unread emails, then text me a summary of my day." \
+  --announce \
+  --channel telegram \
+  --to "chat:123456789"
+```
+
+- `openclaw cron add [...OPTIONS]`: adds a cron job
+- `openclaw cron list`: lists all registered cron jobs with their job IDs
+- `openclaw cron run <job-id>`: runs a specific job by its id
+- `openclaw cron runs --id <job-id>`: gets details of a specific job run
 
 ### Launching models
 
