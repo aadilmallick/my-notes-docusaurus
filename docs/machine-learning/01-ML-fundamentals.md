@@ -34,6 +34,11 @@ Here are all the components:
     3. As the hypothesis set gets less complex, the less data you need.
 5. **final hypothesis**: Our chosen best hypothesis  $g(\mathbb{x})$ from the hypothesis set, and we hope that  $g(\mathbb{x}) \approx f(\mathbb{x})$.
 
+> [!NOTE]
+> **Learning in a nutshell**
+> ***
+> From a large hypothesis set of potential hypothesis functions, we want to select the hypothesis function that has the lowest generalization error from the set, which means it generalizes well to new examples and is thus an effective model.
+
 ## Training, Validation, Test
 
 ### Generalization error
@@ -63,10 +68,10 @@ You will make $k$ models during this process.
 1. Split data into $k$ equally sized groups, called **folds**
 2. Use the first fold as a **validation fold**, which is the testing data, and then merge the rest of the $k-1$ folds into a group as the training data, called **train folds**.
 3. Move on to make the second fold as the validation fold, and then merge the rest of $k-1$ the folds into a group as the training data.
-4. Continue this process until you cover all the folds.
+4. Continue this process for $k$ iterations, covering all folds, and then compute the error for each iteration
+5. The total error is the average of all $k$ error yields.
 
-In total, each fold will be in the training data $k-1$  times and in the testing data 1 time. Per iteration, you have $k-1$ train folds
-
+In total, each fold will be in the training data $k-1$  times and in the testing data 1 time. Per iteration, you have $k-1$ train folds and 1 validation fold.
 
 ## Overfitting, Underfitting, Bias vs Variance
 
@@ -81,6 +86,54 @@ When we underfit a data set, it performs poorly on both the training set and and
 - **overfitting**: high internal validity, low external validity
 - **underfitting**: low internal validity, low external validity
 
+### How model complexity affects performance
+
+Model complexity affects performance because either your model is too complex and thus "memorizes" the training data while failing to generalize, or the model is too simple to capture any complex pattern in the data.
+
+We quantify the number of candidate hypotheses in the hypothesis set by **degrees of freedom**, also known as **VC dimension**. So degrees of freedom is just the cardinality of the hypothesis set.
+
+- **small VC dimension**: We may not even have a good hypothesis in the hypothesis set since it's so small, which is a symptom of choosing a simple model.
+- **large VC dimension**: Although it is likely we contain a good hypothesis somewhere in the hypothesis set, it's harder to find, which is a symptom of choosing an overly complex model.
+
+> [!NOTE]
+>**VC dimension in a nutshell**
+> ***
+> 
+> VC dimension is a way to quantify the complexity of a model, and mathematically it represents the cardinality of the hypothesis set.
+
+
+![](https://i.imgur.com/egzdjNF.jpeg)
+
+
+> [!NOTE]
+> **Overfitting in a nutshell**
+> ***
+> 
+> Overfitting is a symptom of having a too complex model for the data, leading to the model fitting the noise and thus overperforming on training data but failing to generalize to testing data.
+
+
+### How to mitigate overfitting
+
+We can see if a model is overfitting or underfitting by plotting a **learning curve**, which plots the model accuracy/performance on the y-axis against the number of training examples on the x-axis.
+
+
+![](https://i.imgur.com/djSb5He.jpeg)
+
+From the learning curve, we can see how to mitigate overfitting and improve performance:
+
+- **get more training data**: When we have more training data, it is less likely that by chance we choose the wrong hypothesis function. 
+
+### Bias-variance tradeoff
+
+- **low VC-dimension**: simple models have high bias and low variance, thus they underfit.
+	- **high bias**: the chance of finding the best hypothesis in the set is high.
+	- **low variance**: Since the VC dimension is low, there are not many variations of the hypothesis and thus not much of a chance of finding a better, more complex model.
+- **high VC-dimension**: complex models have low bias and high variance, thus they overfit.
+	- **low bias**: the chance of finding the best hypothesis in the set is low, since it's such a small subset of the hypothesis set.
+	- **high variance**: There are many variations of hypotheses, and even training on one different sample can lead to many different hypothesis functions in this set.
+
+
+![](https://i.imgur.com/f6BN3WV.jpeg)
 
 
 
