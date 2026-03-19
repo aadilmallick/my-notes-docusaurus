@@ -57,6 +57,11 @@ $$
 
 Here are some other limitations:
 
+1. **Small corpus size:** The Africa Galore dataset is small, which limits the model's ability to extract meaningful patterns about language.  
+2. **Inability to handle words that do not appear in the dataset:** If an n-gram model encounters a context sequence (n-gram) that is not found in the dataset, it is unable to estimate the probability of the next word and stops generating text.  
+3. **Predictability and repetitiveness:** The model relies on frequency counts to generate words, making outputs repetitive. Since the dataset is small, it will likely generate the same text structure every time.  
+4. **Lack of contextual awareness**: Since n-grams only consider the last $n-1$ words, they ignore long-range dependencies. For instance, for the prompt “Jide was hungry, so she went looking for”, a trigram model will predict the next word based on “looking for” but will not retain the more important broader context of Jide being hungry. Moreover, the model sometimes misgenders Jide and uses "he" to refer to her.
+
 ### Building an N-gram model
 
 To build an n-gram language model, you need to determine the counts of all n-grams and (n-1)-grams so you can find all the conditional probabilities.

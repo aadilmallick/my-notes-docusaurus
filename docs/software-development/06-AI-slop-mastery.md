@@ -5054,7 +5054,7 @@ You can create a custom skill by creating folders that contain `SKILL.md` files 
 	    },
 	    "entries": {
 	      "nano-banana-pro": {
-	        "apiKey": "AIzaSyC9BtQwP-4jALriD54XRzuehSBHGVXBKxo"
+	        "apiKey": "AI***"
 	      },
 	      "email_brief": {
 	        "enabled": true
