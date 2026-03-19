@@ -112,7 +112,7 @@ We quantify the number of candidate hypotheses in the hypothesis set by **degree
 > Overfitting is a symptom of having a too complex model for the data, leading to the model fitting the noise and thus overperforming on training data but failing to generalize to testing data.
 
 
-### How to mitigate overfitting
+### Learning curves
 
 We can see if a model is overfitting or underfitting by plotting a **learning curve**, which plots the model accuracy/performance on the y-axis against the number of training examples on the x-axis.
 
@@ -122,6 +122,9 @@ We can see if a model is overfitting or underfitting by plotting a **learning cu
 From the learning curve, we can see how to mitigate overfitting and improve performance:
 
 - **get more training data**: When we have more training data, it is less likely that by chance we choose the wrong hypothesis function. 
+- **regularization**: to prevent fitting to too much noise, making a complex model simpler.
+
+
 
 ### Bias-variance tradeoff
 
@@ -135,8 +138,26 @@ From the learning curve, we can see how to mitigate overfitting and improve perf
 
 ![](https://i.imgur.com/f6BN3WV.jpeg)
 
+This is a fitting graph, which plots model error on the Y-axis and VC-dimension on the X-axis:
 
 
+![](https://i.imgur.com/bAGUNkQ.jpeg)
+
+
+### Regularization
+
+Regularization is a technique to mitigate overfitting by penalizing noise through a parameter $\lambda$, with the purpose of trying to make a complex model (cause of overfitting) simpler.
+
+The greater the parameter $\lambda$ the more penalization there is for parameters being too large and that's how it makes a simpler model. 
+
+- **small $\lambda$**: If lambda is small then basically no regularization happens and the model retains its complexity
+- **large $\lambda$**: If lambda is large, then large parameters get penalized and become smaller to avoid blowing up error and thus the model becomes simpler.
+
+Here is an example of how one would undertake regularization:
+
+1. Perform k-fold cross validation with different values of $\lambda$.
+2. Choose the $\lambda$ value that gave the lowest cross-validation error.
+3. Retrain on all the training data with the found $\lambda$ value, and then test and see the generalization error.
 ## Mathematical View of Machine Learning
 
 
