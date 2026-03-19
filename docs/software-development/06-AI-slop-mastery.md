@@ -5722,6 +5722,55 @@ Intelligent agents don't just act - they plan. here is the main loop:
 Here's an example of the loop in action:
 
 ![](https://i.imgur.com/WndAbQF.jpeg)
+
+### Google ADK
+
+#### Installation and CLI
+
+You install the `adk` cli like so
+
+```bash
+pipx install google-adk
+```
+
+1. Create a new folder and CD into it
+2. Create the necessary AI boilerplate with the `adk create` command.
+3. Install dependencies, put stuff in gitignore.
+
+
+![](https://i.imgur.com/7M0Rp4D.jpeg)
+
+
+> [!IMPORTANT]
+> Your `agent.py` file must be in a subfolder.
+
+#### Basic Agent Code
+
+```python
+from google.adk.agents.llm_agent import Agent
+
+# main agent variable
+root_agent = Agent(
+    model='gemini-2.5-flash',
+    name='root_agent',
+    description='A helpful assistant for user questions.',
+    instruction='Answer user questions to the best of your knowledge',
+)
+```
+
+Here are the important kwargs to understand:
+
+- `model`: LLM to use
+- `name`: agent identifier
+- `description`: what other agents look at so they can decide whether or not to call upon this agent based on the description.
+- `instruction`: a system instruction for the agent detailing what tools it has and its purpose.
+
+> [!IMPORTANT]
+> The variable name `root_agent` is a convention that allows Gemini ADK to find this agent as the main orchestrator agent, and it must be named that.
+
+
+
+
 ## AI resources
 
 ### Voice
