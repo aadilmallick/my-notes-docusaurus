@@ -52,7 +52,10 @@ $$
 	- Even for $n=2$, about 99.95% of bigrams have a probability of 0, meaning they don't appear even once even in a dataset of 26,000,000 bigram possibilities.
 	- For any context A, the probability $𝑃(B∣A)$ will be 0 for most tokens B.
 
-Because of these limitations, transformers are much better for predicting the next word, since a transformer trains enough to understand grammar rules and context.
+> [!NOTE]
+> Because of these limitations, transformers are much better for predicting the next word, since a transformer trains enough to understand grammar rules and context.
+
+Here are some other limitations:
 
 ### Building an N-gram model
 
@@ -193,13 +196,289 @@ def build_ngram_model(
 
 ### Next-word prediction
 
+1. Create the dictionary mapping the $n-1$ token context to its conditional distribution given the context.
+2. Given a random combination of $n - 1$ tokens, generate words by sampling from the conditional distribution, given that combination of $n-1$ tokens actually exists in our dictionary. You should notice that next tokens with the highest probability will be chosen more often.
+3. Once a token is chosen/generated, slide the window to leave out the first token and only include the last $n - 1$ tokens as context for the next generation. Repeat this step until you generate as many words as you want.
+
 
 > [!WARNING] 
 > While it intuitively seems that a larger context (greater 𝑛) would lead to better quality output by capturing more long-range dependencies in language, it quickly runs into the problem of data sparsity since most n-grams will never be observed in the dataset.
 
+```python
+def generate_next_n_tokens(
+    n: int,
+    ngram_model: dict[str, dict[str, float]],
+    prompt: str,
+    num_tokens_to_generate: int,
+) -> str:
+    """Generates `num_tokens_to_generate` tokens following a given prompt using
+    an n-gram language model.
 
+    This function takes an n-gram model and uses it to predict the most
+    likely next token for the given prompt. The generation process
+    continues iteratively, appending predicted tokens to the prompt until the
+    desired number of tokens is generated or a context is
+    encountered for which the model has no predictions.
 
+    Args:
+        n: The size of the n-grams to use (e.g., 2 for a bigram model).
+        ngram_model: A dictionary representing the n-gram language model.
+        prompt: The starting text prompt for generating the next tokens.
+        num_tokens_to_generate: The number of words to generate following
+            the prompt.
 
+    Returns:
+        A string containing the original prompt followed by the generated
+        tokens. If no valid continuation is found for a given context, the
+        function will return the text generated up to that point and print a
+        message indicating that no continuation could be found.
+    """
+
+    # Split prompt into individual tokens.
+    generated_words = space_tokenize(prompt)
+
+    for _ in range(num_tokens_to_generate):
+        # Get last (n-1) tokens as context.
+        context = generated_words[-(n - 1):]
+        context = " ".join(context)
+        if context in ngram_model:
+            # Sample next word based on probabilities.
+            next_word = random.choices(
+                list(ngram_model[context].keys()),
+                weights=ngram_model[context].values()
+            )[0]
+
+            generated_words.append(next_word)
+        else:
+            print(
+                "⚠️ No valid continuation found. Change the prompt or"
+                " try sampling another continuation.\n"
+            )
+            break
+
+    return " ".join(generated_words)
+```
+
+### Custom class
+
+```python
+class NLP_utils():
+
+  @staticmethod
+  def space_tokenize(text: str) -> list[str]:
+    tokens = text.split(" ")
+    return tokens
+
+class N_grams():
+  ngram_model: dict[str, dict[str, float]]
+
+  def __init__(self, n : int, dataset: list[str]) -> None:
+      self.n = n
+      self.dataset = dataset
+      self.build_ngram_model()
+  
+  def generate_ngrams(self, text: str) -> list[tuple[str]]:
+    """Generates n-grams from a given text.
+
+    Args:
+        text: The input text string.
+        n: The size of the n-grams (e.g., 2 for bigrams, 3 for trigrams).
+
+    Returns:
+        A list of n-grams, each represented as a list of tokens.
+    """
+
+    # Tokenize text.
+    tokens = NLP_utils.space_tokenize(text)
+
+    # Construct the list of n-grams.
+    ngrams = []
+
+    # Add your code here.
+    n = self.n
+    for i in range(len(tokens) - n + 1):
+      ngrams.append(tuple(tokens[i:i+n]))
+
+    return ngrams
+  
+  def get_ngram_counts(self) -> dict[str, Counter]:
+    """Computes the n-gram counts from a dataset.
+
+    This function takes a list of text strings (paragraphs or sentences) as
+    input, constructs n-grams from each text, and creates a dictionary where:
+
+    * Keys represent n-1 token long contexts `context`.
+    * Values are a Counter object `counts` such that `counts[next_token]` is the
+      count of `next_token` following `context`.
+
+    Args:
+        dataset: The list of text strings in the dataset.
+        n: The size of the n-grams to generate (e.g., 2 for bigrams, 3 for
+            trigrams).
+
+    Returns:
+        A dictionary where keys are (n-1)-token contexts and values are Counter
+        objects storing the counts of each next token for that context.
+
+    """
+    ngram_counts = defaultdict(Counter)
+    n = self.n
+
+    for paragraph in self.dataset:
+        # Add your code here.
+        n_grams = self.generate_ngrams(paragraph, n)
+        for ngram in n_grams:
+          context = " ".join(ngram[:-1])
+          next_token = ngram[-1]
+          ngram_counts[context][next_token] += 1
+
+    return dict(ngram_counts)
+    
+  def generate_next_n_tokens_greedy_sampling(
+    self,
+    prompt: str,
+    num_tokens_to_generate: int,
+) -> str:
+    """Generates `num_tokens_to_generate` tokens following a given prompt using
+    an n-gram language model.
+
+    This function takes an n-gram model and uses it to predict the most
+    likely next token for the given prompt. The generation process
+    continues iteratively, appending predicted tokens to the prompt until the
+    desired number of tokens is generated or a context is
+    encountered for which the model has no predictions.
+
+    Args:
+        n: The size of the n-grams to use (e.g., 2 for a bigram model).
+        ngram_model: A dictionary representing the n-gram language model.
+        prompt: The starting text prompt for generating the next tokens.
+        num_tokens_to_generate: The number of words to generate following
+            the prompt.
+
+    Returns:
+        A string containing the original prompt followed by the generated
+        tokens. If no valid continuation is found for a given context, the
+        function will return the text generated up to that point and print a
+        message indicating that no continuation could be found.
+    """
+
+    # Split prompt into individual tokens.
+    generated_words = NLP_utils.space_tokenize(prompt)
+    n = self.n
+
+    for _ in range(num_tokens_to_generate):
+        # Get last (n-1) tokens as context.
+        context = generated_words[-(n - 1):]
+        context = " ".join(context)
+        if context in self.ngram_model:
+            # Choose next word via MAP estimate (highest probability)
+            next_word_index = list(self.ngram_model[context].values()).index(max(self.ngram_model[context].values()))
+            next_word = list(self.ngram_model[context].keys())[next_word_index]
+            generated_words.append(next_word)
+        else:
+            print(
+                "⚠️ No valid continuation found. Change the prompt or"
+                " try sampling another continuation.\n"
+            )
+            break
+
+    return " ".join(generated_words)
+  
+  def build_ngram_model(
+    self,
+) -> dict[str, dict[str, float]]:
+    """Builds an n-gram language model.
+
+    This function takes a list of text strings (paragraphs or sentences) as
+    input, generates n-grams from each text using the function get_ngram_counts
+    and converts them into probabilities.  The resulting model is a dictionary,
+    where keys are (n-1)-token contexts and values are dictionaries mapping
+    possible next tokens to their conditional probabilities given the context.
+
+    Args:
+        dataset: A list of text strings representing the dataset.
+        n: The size of the n-grams (e.g., 2 for a bigram model).
+
+    Returns:
+        A dictionary representing the n-gram language model, where keys are
+        (n-1)-tokens contexts and values are dictionaries mapping possible next
+        tokens to their conditional probabilities.
+    """
+
+    # A dictionary to store P(B | A).
+    # ngram_model[context][token] should store P(token | context).
+    ngram_model = {}
+    n = self.n
+
+    # Use the ngram_counts as computed by the get_ngram_counts function.
+    ngram_counts = get_ngram_counts(self.dataset, n)
+
+    # Loop through the possible contexts. `context` is a string
+    # and `next_tokens` is a dictionary mapping possible next tokens to their
+    # counts of following `context`.
+    for context, next_tokens in ngram_counts.items():
+
+        # Compute Count(A) and P(B | A) here.
+        # Add your code here.
+        ngram_model[context] = {}
+        for token, count in next_tokens.items():
+          ngram_model[context][token] = count / next_tokens.total()
+
+    self.ngram_model = ngram_model
+
+  def generate_next_n_tokens(
+    self,
+    prompt: str,
+    num_tokens_to_generate: int,
+) -> str:
+    """Generates `num_tokens_to_generate` tokens following a given prompt using
+    an n-gram language model.
+
+    This function takes an n-gram model and uses it to predict the most
+    likely next token for the given prompt. The generation process
+    continues iteratively, appending predicted tokens to the prompt until the
+    desired number of tokens is generated or a context is
+    encountered for which the model has no predictions.
+
+    Args:
+        n: The size of the n-grams to use (e.g., 2 for a bigram model).
+        ngram_model: A dictionary representing the n-gram language model.
+        prompt: The starting text prompt for generating the next tokens.
+        num_tokens_to_generate: The number of words to generate following
+            the prompt.
+
+    Returns:
+        A string containing the original prompt followed by the generated
+        tokens. If no valid continuation is found for a given context, the
+        function will return the text generated up to that point and print a
+        message indicating that no continuation could be found.
+    """
+
+    # Split prompt into individual tokens.
+    generated_words = NLP_utils.space_tokenize(prompt)
+    n = self.n
+
+    for _ in range(num_tokens_to_generate):
+        # Get last (n-1) tokens as context.
+        context = generated_words[-(n - 1):]
+        context = " ".join(context)
+        if context in self.ngram_model:
+            # Sample next word based on probabilities.
+            next_word = random.choices(
+                list(self.ngram_model[context].keys()),
+                weights=self.ngram_model[context].values()
+            )[0]
+
+            generated_words.append(next_word)
+        else:
+            print(
+                "⚠️ No valid continuation found. Change the prompt or"
+                " try sampling another continuation.\n"
+            )
+            break
+
+    return " ".join(generated_words)
+```
 ## Tokenization
 
 A tokenizer is a way to split up text into groups of tokens.
