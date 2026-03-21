@@ -5788,6 +5788,58 @@ Instead of writing Python code to define agents, you can define agents using YAM
 adk create --type=config <agent-subfolder-name>
 ```
 
+#### Architecture
+
+| Primitive    | Purpose                                                                      |
+| ------------ | ---------------------------------------------------------------------------- |
+| **Agent**    | The fundamental worker — LLM-powered or deterministic workflow controller    |
+| **Tool**     | Gives agents capabilities beyond conversation (APIs, search, code execution) |
+| **Session**  | Manages conversation context, event history, and working state               |
+| **Memory**   | Long-term cross-session knowledge store                                      |
+| **Runner**   | Engine orchestrating execution flow via events                               |
+| **Event**    | Basic communication unit — everything that happens is an event               |
+| **Callback** | Hook points for guardrails, logging, and behavior modification               |
+
+
+#### Agent Types
+
+**Type 1: LLM agents**
+
+LLM agents use a language model for reasoning, tool selection, and response generation. Read the [Docs](https://google.github.io/adk-docs/agents/) here.
+
+You use an LLM agent with the `LLMAgent` or more commonly, the `Agent` class.
+
+```python
+from google.adk.agents import Agent  # Agent is an alias for LlmAgent
+
+agent = Agent(
+    name="my_agent",              # Required: unique identifier (avoid "user")
+    model="gemini-2.0-flash",     # Required: model string
+    description="Handles weather queries.",  # Recommended for multi-agent routing
+    instruction="You are a helpful weather assistant.",  # System prompt
+    tools=[get_weather],          # List of tools (functions auto-wrapped)
+    output_key="result",          # Auto-save response to state["result"]
+)
+```
+
+- `model`: LLM to use
+- `name`: agent identifier
+- `description`: what other agents look at so they can decide whether or not to call upon this agent based on the description.
+- `instruction`: a system instruction for the agent detailing what tools it has and its purpose.
+- `tools`: list of tools
+- `output_key`: for state management
+- `generate_content_config`: LLM param settings
+- `output_schema`: Pydantic model for structured output
+
+**Type 2: workflow agents**
+
+There are three types of workflow agents:
+
+- **`SequentialAgent`**: Executes sub-agents in order.  Data passes between steps via shared session state using `output_key`.
+- **`ParallelAgent`**: Executes sub-agents concurrently. Each should write to distinct state keys to avoid race conditions.
+- **`LoopAgent`**: Repeatedly executes sub-agents until `max_iterations` is hit or a sub-agent escalates.
+
+**Type 3: custom agents**
 
 
 
