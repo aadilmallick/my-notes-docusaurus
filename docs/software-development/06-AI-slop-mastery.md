@@ -1064,6 +1064,12 @@ Here's an example of my favoriute MCP setuo:
 },
 ```
 
+
+### Claude Cowork
+
+#### Scheduled tasks
+
+Run scheduled tasks by using the `/schedule` command.
 ### CodeRabbit CLI
 
 - `coderabbit`: runs a normal code review session
