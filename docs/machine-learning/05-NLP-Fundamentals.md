@@ -491,3 +491,84 @@ A tokenizer is a way to split up text into groups of tokens.
 ### Simple tokenizers
 
 - **space tokenizers**: splits text into individual words by splitting on space characters.
+
+## Word Embeddings
+
+### Why word embeddings
+
+
+**motivation**
+***
+
+
+We need a way to semantically represent words in a language so that a computer can "understand" a language mathematically. 
+
+This means we have to convert words into numbers, which is something a computer can understand. We call these word to number conversions as **embeddings**, and they must have these properties in order to be useful.
+
+Finding a word embedding is the idea of somehow representing the meaning of word with a vector of numbers. 
+
+
+**vector similarity**
+***
+
+
+Word embedding similarity is embodied by subtracting vectors. Here is an example:
+
+$$ e_{man} - e_{woman} \approx e_{king} - e_{queen} $$
+
+A neural network that learns word embeddings would encode difference between words as a direction, like how the difference between a man and woman is the same difference as the difference between a king and queen, which is gender.
+
+Therefore you could encode the word “queen” like so:
+
+$$ e_{queen} = e_{king} - (e_{man} - e_{woman}) $$
+
+Another cool effect is that this works the exact same as analogies: *“man:woman as king:queen”.*
+
+Therefore there are two desirable properties of good word embeddings:
+
+- Words representing similar concepts will be closer together in the vector space.
+- Words representing different concepts will be farther away and have a lower similarity score.
+
+**cosine similarity**
+***
+
+Cosine similarity uses the property of the dot product to measure how close two vectors are together in space.
+
+$$ sim(u, v) = \cos \theta = \frac{u \cdot v}{\| u \| \| v \|} $$
+
+> [!NOTE]
+> We use cosine similarity to measure how similar two word embeddings are because that metric works the same no matter the dimensionality.
+
+**main goal of language models**
+
+![](https://jalammar.github.io/images/word2vec/language_model_blackbox_output_vector.png)
+
+The purpose of language models is based on a word embedding or groups of them, to predict the next word. It does this by outputting a probability distribution where the random variable ranges over all vocabulary words.
+
+
+**embedding matrix representation**
+
+We represent the matrix of word embeddings as a $d \times v$ matrix, where $d$ is the dimensionality of the embedding and $v$ is the vocabulary length - as in all the words you’re trying to embed.
+
+
+### Previous approaches
+
+
+We want to numerically represent words and sentences somehow so we can train a system on textual info. Here are two existing techniques that are inferior to word embeddings:
+
+- **bag of words:** Simply encoding frequency of words within a sentence. This does not encode grammar correctly, making it useless for slightly complex sentences.
+- **one hot encoding:** Doesn’t take into account similarity between words.
+
+#### Cons of one-hot encoding
+
+Similar vectors would be words that mean similar things - that's the essence of what makes for a good word embedding.
+
+However, each one-hot encoded vocab embedding is orthogonal to each other (have a dot product of 0 thus similarity of 0), meaning they all have the exact same similarity.
+
+
+![](https://i.imgur.com/oBz8jBw.jpeg)
+
+
+### Why transformers work better
+
+The same word can mean differen
