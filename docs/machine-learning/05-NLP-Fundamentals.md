@@ -569,6 +569,28 @@ However, each one-hot encoded vocab embedding is orthogonal to each other (have 
 ![](https://i.imgur.com/oBz8jBw.jpeg)
 
 
-### Why transformers work better
+### Word embedding approaches overview
 
-The same word can mean differen
+#### NNLM
+
+NNLMs try to deal with one-hot encoded words as word embeddings by taking the neural network approach to train on those one-hot encoded vectors.
+
+
+![](https://i.imgur.com/EBNgOcc.jpeg)
+
+However, there are three main drawbacks to this approach:
+
+1. **computationally expensive**: With a vocab size of just 10,000, even a single hidden layer could mean hundreds of millions of parameters.
+2. **order is not encoded**: All one-hot encoded vectors are fed in at once to a dense layer, meaning order is not encoded at all.
+3. **training time is slow**
+#### Word2Vec
+
+#### Glove
+
+#### Transformers
+
+The same word can mean different things depending on the sentence context, like "blue" for the color or feeling sad. Transformers solve this problem via self-attention, meaning they understand context as opposed to simple Word2Vec.
+
+
+### Word2Vec
+
