@@ -546,9 +546,11 @@ $$ sim(u, v) = \cos \theta = \frac{u \cdot v}{\| u \| \| v \|} $$
 The purpose of language models is based on a word embedding or groups of them, to predict the next word. It does this by outputting a probability distribution where the random variable ranges over all vocabulary words.
 
 
-**embedding matrix representation**
+### Visualizing word embeddings
 
-We represent the matrix of word embeddings as a $d \times v$ matrix, where $d$ is the dimensionality of the embedding and $v$ is the vocabulary length - as in all the words you’re trying to embed.
+Good word embeddings will have similar words be closer together in the vector space and more different words farther apart. To verify this is the case however, we need some way of projecting a multi-dimensional word embedding into two dimensions so we plot them on a cartesian coordinate space.
+
+We can do this with TSNE
 
 
 ### Previous approaches
@@ -569,6 +571,20 @@ However, each one-hot encoded vocab embedding is orthogonal to each other (have 
 ![](https://i.imgur.com/oBz8jBw.jpeg)
 
 
+### Embedding matrix representation
+
+**embedding matrix representation**
+
+We represent the matrix of word embeddings as a $d \times v$ matrix $E$, where $d$ is the dimensionality of the embedding and $v$ is the vocabulary length - as in all the words you’re trying to embed.
+
+- $o_{i}$: denotes the one-hot encoded vector of the $i$th word in the vocab
+- $e_{i}$: denotes the embedding of the $i$th word in the vocab
+
+The embedding matrix is useful because it lets us translate from one-hot encoded vectors to word embedding vectors:
+
+$$e_i = E o_i$$
+
+
 ### Word embedding approaches overview
 
 #### NNLM
@@ -577,6 +593,12 @@ NNLMs try to deal with one-hot encoded words as word embeddings by taking the ne
 
 
 ![](https://i.imgur.com/EBNgOcc.jpeg)
+
+Therefore the neural network architecture is as follows:
+
+- **input layer:** A $d$ (embedding dimensionality) long one-hot vector encoding the “context” word for a unigram architecture, or $nd$ dimensional one-hot vector for an n-gram architecture where you concatenate $n$ one-hot encoded vectors together.
+- **first layer:** A dense layer, which should be larger than the input layer as to not lose information.
+- **output layer:** A softmax layer of $d$ elements built to predict the target word from the context, where if element indexed $i$ has the largest probability in the distribution, then $o_i$ is the output.
 
 However, there are three main drawbacks to this approach:
 
@@ -592,5 +614,10 @@ However, there are three main drawbacks to this approach:
 The same word can mean different things depending on the sentence context, like "blue" for the color or feeling sad. Transformers solve this problem via self-attention, meaning they understand context as opposed to simple Word2Vec.
 
 
+
 ### Word2Vec
+
+#### Token Semantics
+
+We often remove stop words like “is”, “or”, “both” because they don’t have a lot of semantic meaning and are context-specific. There is no point creating embeddings for those.
 
