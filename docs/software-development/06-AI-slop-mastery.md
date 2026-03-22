@@ -5780,6 +5780,40 @@ Here are the important kwargs to understand:
 > [!IMPORTANT]
 > The variable name `root_agent` is a convention that allows Gemini ADK to find this agent as the main orchestrator agent, and it must be named that.
 
+#### Using other models
+
+You can use other models like so, using the `LiteLlm` class to instantiate an LLM provider with a specific API key.
+
+```python
+import os
+from google.adk.models.lite_llm import LiteLlm
+from google.adk.agents import Agent
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CONSTANTS = {
+    "GITHUB_API_KEY": os.getenv("GITHUB_API_KEY")
+}
+
+if not CONSTANTS["GITHUB_API_KEY"]:
+    raise ValueError("GITHUB_API_KEY not found in environment variables")
+
+
+AGENT_MODEL = LiteLlm(
+    model="github/gpt-4o-mini", # Note the 'github/' prefix
+    api_key=CONSTANTS["GITHUB_API_KEY"]
+)
+
+
+root_agent = Agent(
+    name="gh_agent",
+    description="An agent that welcomes the user.",
+    instruction="Answer user questions to the best of your knowledge",
+    model=AGENT_MODEL
+)
+```
+
 #### Creating a yaml based agent
 
 Instead of writing Python code to define agents, you can define agents using YAML, by creating the boilerplate first with `adk create --type=config` command:
@@ -5788,7 +5822,7 @@ Instead of writing Python code to define agents, you can define agents using YAM
 adk create --type=config <agent-subfolder-name>
 ```
 
-#### Architecture
+#### Architecture and main flow
 
 | Primitive    | Purpose                                                                      |
 | ------------ | ---------------------------------------------------------------------------- |
@@ -5799,6 +5833,175 @@ adk create --type=config <agent-subfolder-name>
 | **Runner**   | Engine orchestrating execution flow via events                               |
 | **Event**    | Basic communication unit — everything that happens is an event               |
 | **Callback** | Hook points for guardrails, logging, and behavior modification               |
+
+##### Sessions and runners
+
+Since hundreds of people have have concurrent requests with a single agent, you need some way to distinguish between different chat sessions, which is where the idea of **sessions** come into play. 
+
+We uniquely identify a session with a session id, app name, and user id.
+
+```python
+from google.adk.sessions import InMemorySessionService
+
+session_service = InMemorySessionService()
+
+APP_NAME = "math_tutor_app"
+USER_ID = "student_1"
+SESSION_ID = "session_001"
+
+async def init_session():
+	await session_service.create_session(
+	        app_name=APP_NAME,
+	        user_id=USER_ID,
+	        session_id=SESSION_ID
+	    )
+```
+
+A runner defines the agent loop and executes the agent for a single session. Here are the kwargs it takes:
+
+- `agent`: the `Agent` instance to execute
+- `session_service`: the `SessionService` instance to run in the context of.
+- `app_name`: app to run in.
+
+```python
+from google.adk.runners import Runner
+
+runner = Runner(
+    agent=agent,
+    app_name=APP_NAME,
+    session_service=session_service
+)
+```
+
+Here is a complete example:
+
+```python
+import asyncio
+import os
+from dotenv import load_dotenv
+from google.adk.agents.llm_agent import Agent
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai.types import Content, Part
+
+load_dotenv()
+
+# 1. Define the Agent
+agent = Agent(
+    model='gemini-2.5-flash',
+    name='math_tutor',
+    instruction="""You are a patient math tutor.
+    Guide students through problems step-by-step.
+    Don't just give answers help them discover solutions."""
+)
+
+# 2. Setup Orchestration
+APP_NAME = "math_tutor_app"
+USER_ID = "student_1"
+SESSION_ID = "session_001"
+
+session_service = InMemorySessionService()
+runner = Runner(
+    agent=agent,
+    app_name=APP_NAME,
+    session_service=session_service
+)
+
+# 3. Define the Execution Logic
+async def run_agent():
+    # Initialize the session
+    await session_service.create_session(
+        app_name=APP_NAME,
+        user_id=USER_ID,
+        session_id=SESSION_ID
+    )
+    
+    # Format the user message
+    user_message = Content(
+        role="user",
+        parts=[Part(text="How do I solve $2x+5=13$?")]
+    )
+
+    # Stream the response
+    async for event in runner.run_async(
+        user_id=USER_ID,
+        session_id=SESSION_ID,
+        new_message=user_message
+    ):
+        if event.is_final_response() and event.content and event.content.parts:
+            print(f"Agent: {event.content.parts[0].text}")
+
+# 4. Run the script
+if __name__ == "__main__":
+    asyncio.run(run_agent())
+```
+
+And here is the same example, but adapted to be a long-running agent loop:
+
+```python
+from google.adk.agents.llm_agent import Agent
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai.types import Content, Part
+
+
+class AgentSession:
+    def __init__(
+	    self, 
+	    agent: Agent, 
+	    app_name: str, 
+	    session_service: InMemorySessionService
+    ):
+        self.agent = agent
+        self.app_name = app_name
+        self.session_service = session_service
+        self.runner = Runner(
+	        agent=agent, 
+	        session_service=session_service, 
+	        app_name=app_name
+	    )
+    
+    @staticmethod
+    def create_agent_session(agent: Agent, app_name: str):
+        session_service = InMemorySessionService()
+        return AgentSession(agent, app_name, session_service)
+
+
+	# instantiates a session if not already created, runs query against LLM
+    async def call_agent_async(self, query: str, user_id: str, session_id: str):
+        if not await self.session_service.get_session(
+			app_name=self.app_name, 
+			user_id=user_id, 
+			session_id=session_id
+		):
+            await self.session_service.create_session(
+	            app_name=self.app_name, 
+	            user_id=user_id, 
+	            session_id=session_id
+	        )
+
+        # Package the user's query into ADK format
+        content = Content(role='user', parts=[Part(text=query)])
+        final_response_text = "Agent did not produce a final response."
+
+        # Iterate through streamed agent responses
+        async for event in self.runner.run_async(
+	        user_id=user_id, 
+	        session_id=session_id, 
+	        new_message=content
+        ):
+            if event.is_final_response(): 
+                if event.content and event.content.parts:
+                    final_response_text = event.content.parts[0].text # 
+                break # Stop listening after final response is received
+        print(f"<<< Agent Response: {final_response_text}")
+```
+
+And here is how we implement it:
+
+```
+```
+
 
 
 #### Agent Types
