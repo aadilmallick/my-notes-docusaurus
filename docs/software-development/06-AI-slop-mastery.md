@@ -699,6 +699,17 @@ When inside a conversation with claude code, you have access to these special sl
 - `/security-review`: performs a code review that searches for security flaws.
 - `/install-github-app`: allows you to add claude as a collaborator to a github repoi so you can assign it issues and to pull requests
 
+#### Managing context
+
+Hit the `esc` key twice to stop a response while Claude is generating. Then you can start a user query by prefixing with a `#` to start a **memory** which claude code will remember during the conversation.
+
+Also use these slash commands to manage memory:
+
+- `/clear`: clears the conversation history
+- `/compact`: compacts previous conversation history into a summary. Useful when you've now moved on to a different task.
+
+
+
 #### Commands
 
 Commands are special markdown files that must live within the `.claude/commands` folder, and can be used as custom slash commands. 
@@ -723,9 +734,8 @@ To add custom skills to claude code, they should be `SKILL.md` files within the 
 
 Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
 
-You can check all registered hooks with the `/hooks` command.
-
-You can specify the events to listen to and a file to run on those events, and you do all this from a json file.
+> [!NOTE]
+> You can check all registered hooks with the `/hooks` command.
 
 If you want to create a claude command that can easily create hooks for you, use this command:
 
@@ -749,7 +759,7 @@ favicon: ""
 aspectRatio: "25"
 ```
 
-
+You can specify the events to listen to and a file to run on those events, and you do all this from a json file. These are the lifecycle hooks you can listen for:
 
 - **PreToolUse**: This hook runs _before_ a tool (like `edit_file` or `Bash`) is executed. It is the **most powerful point of control for preventative measures** and is the _only_ event that can proactively **block a tool’s execution**.
 - **PostToolUse**: This hook runs _after_ a tool has successfully completed. It’s ideal for reactive tasks like automatic formatting, running tests, or logging. It cannot block execution but can provide feedback to Claude.
@@ -757,7 +767,10 @@ aspectRatio: "25"
 - **Stop**: This hook runs when the **main Claude Code agent finishes responding**. It can be configured to **prevent the agent from terminating**, forcing it to continue working until a specific condition is met.
 - **SubagentStop**: This hook runs when a sub-agent task completes its work. Like the `Stop` hook, it can block the sub-agent from stopping.
 
-You specify hooks in JSON in the `.claude/settings.local.json` under the `"hooks"` key
+You specify hooks in JSON in the `.claude/settings.local.json` under the `"hooks"` key:
+
+- `"matcher"`: the tools to match on
+- `"hooks"`: the files to run when matched
 
 ```json
 {
@@ -777,7 +790,9 @@ You specify hooks in JSON in the `.claude/settings.local.json` under the `"hooks
 }
 ```
 
-Hooks receive JSON data via standard input (stdin) that provides session information and event-specific data, such as `session_id`, `transcript_path`, and `tool_name`. They communicate status back to Claude Code primarily through **shell exit codes** and, for more advanced control, **structured JSON output** to stdout.
+Hooks receive JSON data via standard input (stdin) that provides session information and event-specific data, such as `session_id`, `transcript_path`, and `tool_name`. 
+
+They communicate status back to Claude Code primarily through **shell exit codes** and, for more advanced control, **structured JSON output** to stdout.
 
 - **Exit Code 0**: Indicates success. Any output to stdout is shown to the user in the transcript, but _not_ to the model.
 - **Exit Code 2**: Signals a **blocking error**. This tells Claude Code to halt the current action (for `PreToolUse` hooks) and processes the feedback from `stderr` as new input for Claude to understand the error and adjust its plan. It is crucial that error messages for blocking errors are sent to `stderr`.
@@ -5999,7 +6014,41 @@ class AgentSession:
 
 And here is how we implement it:
 
-```
+```python
+import asyncio
+import os
+from dotenv import load_dotenv
+from google.adk.agents.llm_agent import Agent
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai.types import Content, Part
+from agent_utils import AgentSession
+
+load_dotenv()
+
+# 1. Define the Agent
+agent = Agent(
+    model='gemini-2.5-flash',
+    name='math_tutor',
+    instruction="""You are a patient math tutor.
+    Guide students through problems step-by-step.
+    Don't just give answers help them discover solutions."""
+)
+
+# 2. Setup Orchestration
+APP_NAME = "math_tutor_app"
+USER_ID = "student_1"
+SESSION_ID = "session_001"
+
+agent_session = AgentSession.create_agent_session(agent, APP_NAME)
+
+# 4. Run the script
+if __name__ == "__main__":
+    while True:
+        user_input = input(">>> User Query: ")
+        response = asyncio.run(
+	        agent_session.call_agent_async(user_input, USER_ID, SESSION_ID)
+        )
 ```
 
 
