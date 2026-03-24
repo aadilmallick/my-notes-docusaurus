@@ -6093,6 +6093,67 @@ There are three types of workflow agents:
 
 **Type 3: custom agents**
 
+#### Adding tools
+
+This is how you can add custom tools, where the tool name, args, and description must be put in the docstring, and the AI will dynamically read the docstring at runtime to understand how to use the tool:
+
+```python
+# weather_agent/agent.py
+import datetime
+from zoneinfo import ZoneInfo
+from google.adk.agents import Agent
+
+def get_weather(city: str) -> dict:
+    """Retrieves the current weather report for a specified city.
+
+    Args:
+        city (str): The name of the city for which to retrieve the weather report.
+
+    Returns:
+        dict: status and result or error msg.
+    """
+    # Mock database — replace with real API in production
+    mock_db = {
+        "new york": "Sunny, 25°C (77°F)",
+        "london": "Cloudy, 15°C (59°F)",
+        "tokyo": "Light rain, 18°C (64°F)",
+    }
+    weather = mock_db.get(city.lower())
+    if weather:
+        return {"status": "success", "report": f"Weather in {city}: {weather}"}
+    return {"status": "error", "error_message": f"No weather data for '{city}'."}
+
+def get_current_time(city: str) -> dict:
+    """Returns the current time in a specified city.
+
+    Args:
+        city (str): The name of the city for which to retrieve the current time.
+
+    Returns:
+        dict: status and result or error msg.
+    """
+    timezones = {
+        "new york": "America/New_York",
+        "london": "Europe/London",
+        "tokyo": "Asia/Tokyo",
+    }
+    tz_id = timezones.get(city.lower())
+    if not tz_id:
+        return {"status": "error", "error_message": f"No timezone info for {city}."}
+
+    now = datetime.datetime.now(ZoneInfo(tz_id))
+    return {"status": "success", "report": f"Current time in {city}: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}"}
+
+# The LLM decides which tool to call based on the user's question
+root_agent = Agent(
+    name="weather_time_agent",
+    model="gemini-2.0-flash",
+    description="Agent to answer questions about the time and weather in a city.",
+    instruction="You are a helpful agent who can answer user questions about "
+                "the time and weather in a city.",
+    tools=[get_weather, get_current_time],  # Functions auto-wrapped as FunctionTool
+)
+```
 
 
 
