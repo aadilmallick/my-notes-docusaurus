@@ -6155,7 +6155,239 @@ root_agent = Agent(
 )
 ```
 
+When creating a custom tool function, you can pass any arguments you want, but a useful thing to pass in as the last argument is the `ToolContext` instance:
 
+```python
+# multi_tool_agent/agent.py
+from google.adk.agents import Agent
+from google.adk.tools import ToolContext
+
+def search_products(query: str) -> dict:
+    """Searches the product catalog for items matching the query.
+
+    Args:
+        query (str): Search terms to find products.
+
+    Returns:
+        dict: Search results with status.
+    """
+    catalog = {
+        "laptop": [
+            {"name": "ProBook 15", "price": 999, "id": "PB15"},
+            {"name": "AirLight 13", "price": 1299, "id": "AL13"},
+        ],
+        "headphones": [
+            {"name": "SoundMax Pro", "price": 249, "id": "SM01"},
+        ],
+    }
+    for keyword, products in catalog.items():
+        if keyword in query.lower():
+            return {"status": "success", "products": products}
+    return {"status": "error", "error_message": f"No products found for '{query}'."}
+
+def add_to_cart(product_id: str, tool_context: ToolContext) -> dict:
+    """Adds a product to the user's shopping cart.
+
+    Args:
+        product_id (str): The unique product identifier to add.
+
+    Returns:
+        dict: Confirmation of the cart update.
+    """
+    # ToolContext gives access to session state — auto-injected, not in docstring
+    cart = tool_context.state.get("user:cart", [])
+    cart.append(product_id)
+    tool_context.state["user:cart"] = cart  # Persists across sessions for this user
+    return {"status": "success", "message": f"Added {product_id}. Cart: {cart}"}
+
+def get_cart(tool_context: ToolContext) -> dict:
+    """Returns the current contents of the user's shopping cart.
+
+    Returns:
+        dict: Current cart contents.
+    """
+    cart = tool_context.state.get("user:cart", [])
+    return {"status": "success", "cart": cart, "item_count": len(cart)}
+
+root_agent = Agent(
+    name="shopping_agent",
+    model="gemini-2.0-flash",
+    description="A shopping assistant that helps find and purchase products.",
+    instruction="You are a shopping assistant. Help users search for products, "
+                "add items to their cart, and review their cart. Always confirm "
+                "actions with the user.",
+    tools=[search_products, add_to_cart, get_cart],
+)
+```
+
+The `tool_context` parameter is automatically injected by ADK — it provides read/write access to session state. These are the different prefixes you can use:
+
+| Prefix    | Scope                      | Persists across sessions?      |
+| --------- | -------------------------- | ------------------------------ |
+| No prefix | Current session only       | With persistent SessionService |
+| `user:`   | All sessions for this user | Yes                            |
+| `app:`    | All users and sessions     | Yes                            |
+| `temp:`   | Current invocation only    | Never                          |
+
+```python
+# In a tool or callback:
+tool_context.state["current_query"] = "weather"        # Session-scoped
+tool_context.state["user:language"] = "en"              # User-scoped (persistent)
+tool_context.state["app:version"] = "2.1"               # App-wide (persistent)
+tool_context.state["temp:intermediate"] = raw_data       # Gone after invocation
+```
+
+Here's another example:
+
+```python
+```
+
+#### Sequential agents
+
+Sequential agents run other agents sequentially in order as part of a pipeline:
+
+```python
+root_agent = SequentialAgent(
+    name="pipeline",
+    sub_agents=[agent1, agent2, agent3],
+)
+```
+
+Here is a complete example, where you can pass agent results from one agent to another in the pipeline via the `output_key=` kwarg when instantiating an LLM agent. You can then interpolate that output key langchain style to access the previous agent's output.
+
+````python
+# pipeline_agent/agent.py
+from google.adk.agents import Agent
+from google.adk.agents.sequential_agent import SequentialAgent
+
+MODEL = "gemini-2.0-flash"
+
+# Step 1: Generate initial code from a specification
+code_writer = Agent(
+    name="CodeWriter",
+    model=MODEL,
+    instruction="""You are a Python code generator. Write clean, well-documented
+    Python code based on the user's request. Output ONLY the Python code,
+    wrapped in a code block.""",
+    description="Writes initial Python code based on a specification.",
+    output_key="generated_code",  # Saves response to state["generated_code"]
+)
+
+# Step 2: Review the code — reads from state via {generated_code} template
+code_reviewer = Agent(
+    name="CodeReviewer",
+    model=MODEL,
+    instruction="""You are an expert Python code reviewer. Review this code:
+```python
+{generated_code}
+```
+
+Provide specific feedback on:
+1. Correctness and potential bugs
+2. Code style and readability
+3. Performance considerations
+4. Suggested improvements
+
+Be constructive and specific.""",
+    description="Reviews the generated code and provides feedback.",
+    output_key="code_review",  # Saves review to state["code_review"]
+)
+
+# Step 3: Refine based on review feedback
+code_refiner = Agent(
+    name="CodeRefiner",
+    model=MODEL,
+    instruction="""You are a code refiner. Here is the original code:
+```python
+{generated_code}
+```
+
+And here is the review feedback:
+{code_review}
+
+Rewrite the code incorporating ALL the review feedback. Output the final,
+improved Python code.""",
+    description="Refines code based on reviewer feedback.",
+    output_key="final_code",
+)
+
+# SequentialAgent runs CodeWriter → CodeReviewer → CodeRefiner in order
+root_agent = SequentialAgent(
+    name="CodePipeline",
+    sub_agents=[code_writer, code_reviewer, code_refiner],
+)
+````
+
+#### Parallel agent
+
+The `ParallelAgent` agent runs all subagents in parallel.
+
+```python
+# ParallelAgent runs all three concurrently
+root_agent = ParallelAgent(
+    name="parallel_pipeline",
+    sub_agents=[agent1, agent2, agent3],
+)
+```
+
+```python
+# parallel_agent/agent.py
+from google.adk.agents import Agent
+from google.adk.agents.parallel_agent import ParallelAgent
+from google.adk.agents.sequential_agent import SequentialAgent
+
+MODEL = "gemini-2.0-flash"
+
+# These three agents run concurrently — each writes to a distinct state key
+weather_fetcher = Agent(
+    name="WeatherFetcher",
+    model=MODEL,
+    instruction="Provide a brief weather summary for San Francisco today. "
+                "Keep it to 2-3 sentences.",
+    output_key="weather_info",  # Each parallel agent needs a unique key
+)
+
+news_fetcher = Agent(
+    name="NewsFetcher",
+    model=MODEL,
+    instruction="Provide 3 brief headline summaries of today's top tech news.",
+    output_key="news_info",
+)
+
+stock_fetcher = Agent(
+    name="StockFetcher",
+    model=MODEL,
+    instruction="Provide a brief summary of how major tech stocks (AAPL, GOOG, "
+                "MSFT) are performing today.",
+    output_key="stock_info",
+)
+
+# ParallelAgent runs all three concurrently
+info_gatherer = ParallelAgent(
+    name="InfoGatherer",
+    sub_agents=[weather_fetcher, news_fetcher, stock_fetcher],
+)
+
+# After parallel execution, a summarizer reads all gathered data
+summarizer = Agent(
+    name="Summarizer",
+    model=MODEL,
+    instruction="""Create a morning briefing from these sources:
+
+**Weather:** {weather_info}
+**News:** {news_info}
+**Stocks:** {stock_info}
+
+Format as a concise, professional morning briefing.""",
+    output_key="briefing",
+)
+
+# Sequential wraps parallel gathering → summarization
+root_agent = SequentialAgent(
+    name="MorningBriefing",
+    sub_agents=[info_gatherer, summarizer],
+)
+```
 
 ## AI resources
 
