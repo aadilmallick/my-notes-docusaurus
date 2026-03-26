@@ -17,6 +17,14 @@ To use `gog`, you first need OAuth permissions. Follow these steps:
      - Choose "Desktop App" or "Other" as the application type.
      - Download the client_secret.json file after it’s created.
 
+### CLI setup
+
+You can use `gog` to manage multiple google email workspaces at the same time. To do so, you must first login:
+
+```bash
+gog login <email>
+```
+
 ## Obsidian CLI
 
 The obsidian cli is run with the `obsidian` command which brings up a TUI (interactive CLI). The TUI and CLI are only available if the Obsidian app is currently open.
