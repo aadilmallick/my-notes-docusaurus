@@ -6095,7 +6095,30 @@ There are three types of workflow agents:
 
 #### Adding tools
 
-This is how you can add custom tools, where the tool name, args, and description must be put in the docstring, and the AI will dynamically read the docstring at runtime to understand how to use the tool:
+This is how you can add custom tools, where the tool name, args, and description must be put in the docstring, and the AI will dynamically read the docstring at runtime to understand how to use the tool.
+
+It's good practice to write your tools like so:
+
+```python
+def my_tool(param: str) -> dict:
+    """Tool description here.
+
+    Args:
+        param (str): Parameter description.
+
+    Returns:
+        dict: Result with status.
+    """
+    try:
+        result = perform_operation(param)
+        return {"status": "success", "data": result}
+    except ValueError as e:
+        return {"status": "error", "error_message": f"Invalid input: {e}"}
+    except Exception as e:
+        return {"status": "error", "error_message": f"Unexpected error: {e}"}
+```
+
+Here is a complete example:
 
 ```python
 # weather_agent/agent.py
@@ -6240,6 +6263,151 @@ tool_context.state["temp:intermediate"] = raw_data       # Gone after invocation
 Here's another example:
 
 ```python
+# typed_tools/agent.py
+from google.adk.agents import Agent
+from google.adk.tools import ToolContext
+from typing import Optional
+
+def create_task(
+    title: str,
+    priority: str,
+    description: Optional[str] = None,
+    tool_context: ToolContext = None,
+) -> dict:
+    """Creates a new task in the task management system.
+
+    Args:
+        title (str): The title of the task.
+        priority (str): Priority level - must be 'low', 'medium', or 'high'.
+        description (str): Optional detailed description of the task.
+
+    Returns:
+        dict: The created task details with status.
+    """
+    # Validate priority
+    if priority.lower() not in ("low", "medium", "high"):
+        return {"status": "error", "error_message": f"Invalid priority '{priority}'. Use low/medium/high."}
+
+    # Read existing tasks from state, create if not present
+    tasks = tool_context.state.get("user:tasks", [])
+    task_id = f"TASK-{len(tasks) + 1:03d}"
+
+    new_task = {
+        "id": task_id,
+        "title": title,
+        "priority": priority.lower(),
+        "description": description or "",
+        "status": "open",
+    }
+    tasks.append(new_task)
+    tool_context.state["user:tasks"] = tasks  # Persist across sessions
+
+    return {"status": "success", "task": new_task}
+
+def list_tasks(status_filter: Optional[str] = None, tool_context: ToolContext = None) -> dict:
+    """Lists all tasks, optionally filtered by status.
+
+    Args:
+        status_filter (str): Optional filter — 'open', 'done', or 'all'. Defaults to 'all'.
+
+    Returns:
+        dict: List of matching tasks.
+    """
+    tasks = tool_context.state.get("user:tasks", [])
+    if status_filter and status_filter != "all":
+        tasks = [t for t in tasks if t["status"] == status_filter]
+    return {"status": "success", "tasks": tasks, "count": len(tasks)}
+
+root_agent = Agent(
+    name="task_manager",
+    model="gemini-2.0-flash",
+    instruction="You are a task management assistant. Help users create, list, "
+                "and manage their tasks. Always confirm task creation details.",
+    tools=[create_task, list_tasks],
+)
+```
+
+#### Delegating to subagents
+
+For all `Agent` instances and subclasses, you can define a `subagents=` kwarg and pass in a list of subagents to delegate tasks to.
+
+In the example below, we create a root `Agent` instance that delegates to other agents based on their description and usefulness to the query.
+
+```python
+# team_agent/agent.py
+from google.adk.agents import Agent
+from typing import Optional
+
+# --- Specialist tools ---
+def get_weather(city: str) -> dict:
+    """Retrieves the current weather report for a specified city.
+
+    Args:
+        city (str): The name of the city.
+
+    Returns:
+        dict: Weather information with status.
+    """
+    db = {
+        "new york": {"status": "success", "report": "New York: Sunny, 25°C"},
+        "london": {"status": "success", "report": "London: Cloudy, 15°C"},
+        "tokyo": {"status": "success", "report": "Tokyo: Light rain, 18°C"},
+    }
+    return db.get(city.lower(), {"status": "error", "error_message": f"No data for '{city}'."})
+
+def say_hello(name: Optional[str] = None) -> str:
+    """Provides a friendly greeting, optionally personalized with a name.
+
+    Args:
+        name (str): Optional name to personalize the greeting.
+
+    Returns:
+        str: A greeting message.
+    """
+    return f"Hello, {name}! Welcome!" if name else "Hello there! Welcome!"
+
+def say_goodbye() -> str:
+    """Provides a polite farewell message.
+
+    Returns:
+        str: A farewell message.
+    """
+    return "Goodbye! Have a wonderful day."
+
+# --- Specialist agents (sub-agents) ---
+greeting_agent = Agent(
+    model="gemini-2.0-flash",
+    name="greeting_agent",
+    # description is CRITICAL — the coordinator reads this to decide routing
+    description="Handles greetings, hellos, and welcoming users.",
+    instruction="You are the Greeting Agent. Your ONLY task is to provide a "
+                "friendly greeting using the 'say_hello' tool. Do not handle "
+                "any other type of request.",
+    tools=[say_hello],
+)
+
+farewell_agent = Agent(
+    model="gemini-2.0-flash",
+    name="farewell_agent",
+    description="Handles farewells, goodbyes, and ending conversations.",
+    instruction="You are the Farewell Agent. Your ONLY task is to provide a "
+                "polite goodbye using the 'say_goodbye' tool.",
+    tools=[say_goodbye],
+)
+
+# --- Coordinator agent ---
+# The coordinator handles weather itself, delegates greetings/farewells to sub-agents
+root_agent = Agent(
+    name="team_coordinator",
+    model="gemini-2.0-flash",
+    description="Main coordinator that routes requests to the right specialist.",
+    instruction="You are the main coordinator agent managing a team. "
+                "For weather questions, handle them yourself using 'get_weather'. "
+                "For greetings, delegate to 'greeting_agent'. "
+                "For farewells, delegate to 'farewell_agent'.",
+    tools=[get_weather],
+    sub_agents=[greeting_agent, farewell_agent],  # Enables automatic delegation
+)
 ```
 
 #### Sequential agents
@@ -6386,6 +6554,159 @@ Format as a concise, professional morning briefing.""",
 root_agent = SequentialAgent(
     name="MorningBriefing",
     sub_agents=[info_gatherer, summarizer],
+)
+```
+
+#### Persistent sessions
+
+Use the `DatabaseSessionService` class to persesit sessions to a SQL db
+
+```python
+# persistent_agent.py
+import asyncio
+from google.adk.agents import Agent
+from google.adk.runners import Runner
+from google.adk.sessions import DatabaseSessionService
+from google.adk.memory import InMemoryMemoryService
+from google.adk.tools import load_memory
+from google.genai import types
+
+# DatabaseSessionService requires an async database driver
+# pip install aiosqlite  (for SQLite)
+# pip install asyncpg    (for PostgreSQL)
+DB_URL = "sqlite+aiosqlite:///./agent_sessions.db"
+
+APP_NAME = "persistent_app"
+USER_ID = "user_1"
+
+# Agent that can recall information from past sessions
+agent = Agent(
+    name="memory_agent",
+    model="gemini-2.0-flash",
+    instruction="You are a helpful assistant with long-term memory. "
+                "Use the 'load_memory' tool to recall information from "
+                "past conversations when the user asks about something "
+                "you discussed before.",
+    tools=[load_memory],  # Built-in tool for searching memory service
+)
+
+async def main():
+    # DatabaseSessionService persists sessions to SQLite
+    # Tables created automatically: app_state, raw_events, sessions, user_state
+    session_service = DatabaseSessionService(db_url=DB_URL)
+    memory_service = InMemoryMemoryService()
+
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        memory_service=memory_service,  # Pass memory service to Runner
+    )
+
+    # Session 1: Capture information
+    session1_id = "session_info"
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=USER_ID, session_id=session1_id
+    )
+    content = types.Content(
+        role="user",
+        parts=[types.Part(text="My favorite project is Project Alpha and I work on AI.")],
+    )
+    async for event in runner.run_async(
+        user_id=USER_ID, session_id=session1_id, new_message=content
+    ):
+        if event.is_final_response() and event.content and event.content.parts:
+            print(f"Agent: {event.content.parts[0].text}")
+
+    # Add completed session to long-term memory
+    completed = await session_service.get_session(
+        app_name=APP_NAME, user_id=USER_ID, session_id=session1_id
+    )
+    await memory_service.add_session_to_memory(completed)
+
+    # Session 2: Recall from memory in a new session
+    session2_id = "session_recall"
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=USER_ID, session_id=session2_id
+    )
+    recall_content = types.Content(
+        role="user",
+        parts=[types.Part(text="What is my favorite project?")],
+    )
+    async for event in runner.run_async(
+        user_id=USER_ID, session_id=session2_id, new_message=recall_content
+    ):
+        if event.is_final_response() and event.content and event.content.parts:
+            print(f"Agent (recall): {event.content.parts[0].text}")
+
+asyncio.run(main())
+```
+
+#### Reasoning
+
+You can make models think and output their think trace before answering as to get better answers by passing in a ReAct type planner into the `planner=` kwarg when creating an `Agent` instance.
+
+- `BuiltInPlanner`: basic planner to enable thinking tokens
+- `PlanReActPlanner`: ReAct style thinking
+
+```python
+from google.adk.agents import Agent
+from google.adk.planners import BuiltInPlanner
+from google.genai.types import ThinkingConfig
+
+reasoning_agent = Agent(
+    model="gemini-2.5-flash",  # Thinking works best with 2.5+ models
+    name="reasoning_agent",
+    instruction="You are a research assistant. Think through problems carefully "
+                "before answering. Break complex questions into smaller parts.",
+    planner=BuiltInPlanner(
+        thinking_config=ThinkingConfig(
+            include_thoughts=True,   # Include reasoning in response
+            thinking_budget=1024,    # Token budget for thinking
+        )
+    ),
+    tools=[],  # Add your tools here
+)
+```
+
+```Python
+from google.adk.agents import Agent
+from google.adk.planners import PlanReActPlanner
+
+def search_database(query: str) -> dict:
+    """Searches the knowledge database for relevant information.
+
+    Args:
+        query (str): The search query.
+
+    Returns:
+        dict: Search results.
+    """
+    return {"status": "success", "results": f"Found 3 articles about '{query}'."}
+
+def calculate(expression: str) -> dict:
+    """Evaluates a mathematical expression.
+
+    Args:
+        expression (str): A mathematical expression to evaluate.
+
+    Returns:
+        dict: The calculation result.
+    """
+    try:
+        result = eval(expression)  # Use a safe evaluator in production
+        return {"status": "success", "result": result}
+    except Exception as e:
+        return {"status": "error", "error_message": str(e)}
+
+# PlanReActPlanner injects structured reasoning directives
+root_agent = Agent(
+    model="gemini-2.5-flash",
+    name="research_agent",
+    instruction="You are a research analyst. For complex questions, break them "
+                "into steps, research each part, and synthesize findings.",
+    planner=PlanReActPlanner(),  # Enables Plan-Reason-Act-Replan cycle
+    tools=[search_database, calculate],
 )
 ```
 
