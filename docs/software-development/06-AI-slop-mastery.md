@@ -573,6 +573,8 @@ By far the most important properties are the ones enabling and disabling tools, 
 - **Default:** `false`
 - **Example:** `"sandbox": "docker`
 
+##### Enabling MCP servers
+
 To enable MCP servers per project, you can add them through the `mcpServers` key like so:
 
 ```json
@@ -598,6 +600,26 @@ To enable MCP servers per project, you can add them through the `mcpServers` key
 }
 ```
 
+##### Blocking tool use
+
+You can restrict the shell commands that can be executed by the run_shell_command tool by using the tools.core and tools.exclude settings in your config file:
+
+- `tools.core`: Specifies an allowlist of commands.
+- `tools.exclude`: Specifies a blocklist of commands. The blocklist takes precedence over the allowlist.
+
+Here is an example config that allows git commands but blocks `git push` commands:
+
+```json title=".gemini/settings.json"
+{
+// ...
+ "tools": {
+	  "core": [ "run_shell_command(git)" ],
+	  "exclude": [ "run_shell_command(git push)" ]
+ }
+ // ...
+}
+```
+
 
 #### Using tools
 
@@ -614,6 +636,26 @@ web_fetch(
 
 ```python
 google_web_search(query="Your query goes here.")
+```
+
+#### Sandboxing
+
+There are three different ways to sandbox a one-off gemini CLI run or a TUI session into an isolated docker container:
+
+```
+# Enable sandboxing with a command-line flag
+gemini --sandbox --prompt "run the test suite"
+
+# Use environment variable
+export GEMINI_SANDBOX=true
+gemini --prompt-interactive "explain this code"
+
+# Configure in settings.json
+{
+  "tools": {
+    "sandbox": "docker"
+  }
+}
 ```
 
 ### Claude code
@@ -6051,7 +6093,23 @@ if __name__ == "__main__":
         )
 ```
 
+##### Session state
 
+You can pass agent results from one agent to another in the pipeline via the `output_key=` kwarg when instantiating an LLM agent. 
+
+```python
+structured_agent = LlmAgent(
+ model="gemini-2.5-flash",
+ instruction="Extract capital city as JSON",
+ output_schema=CapitalOutput,
+ output_key="found_capital" # Store in session.state["found_capital"]
+)
+```
+
+You can then retrieve that value in one of two ways:
+
+- **method 1 (access from session state)**: Whatever agent gets run in a session, you can access any output key via the `session.state[output_key]` syntax
+- **method 2 (interpoalte in an agent chain)**: when using a parallel or sequential agent pipeline with multiple subagents, a subagent running immediately after another one can access the value of the `output_key` of the previous agent during runtime via interpolation, which lets you dynamically craft the instructions of a subagent in a pipeline based on the results of the previous agent output.
 
 #### Agent Types
 
@@ -6093,6 +6151,29 @@ There are three types of workflow agents:
 
 **Type 3: custom agents**
 
+
+#### Structured Output
+
+You cna tell an agent to output structured output as JSON via a Pydantic model schema:
+
+```python
+from pydantic import BaseModel, Field
+
+
+class ProductInfo(BaseModel):
+ product_name: str = Field(description="The name of the product")
+ price: float = Field(description="The price in USD")
+ storage: str = Field(description="The storage capacity")
+
+
+structured_agent = LlmAgent(
+ model="gemini-2.5-flash",
+ instruction="""Extract product information and respond with JSON.
+ Format: {"product_name": "name", "price": 999.99, "storage": "256GB"}""",
+ output_schema=ProductInfo # Enforces this exact structure
+)
+```
+
 #### Adding tools
 
 This is how you can add custom tools, where the tool name, args, and description must be put in the docstring, and the AI will dynamically read the docstring at runtime to understand how to use the tool.
@@ -6116,6 +6197,61 @@ def my_tool(param: str) -> dict:
         return {"status": "error", "error_message": f"Invalid input: {e}"}
     except Exception as e:
         return {"status": "error", "error_message": f"Unexpected error: {e}"}
+```
+
+Here is the modern way to use tools:
+
+```python
+import asyncio
+import os
+from google.adk.agents.llm_agent import Agent
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.tools import FunctionTool, google_search # New imports
+from google.genai.types import Content, Part
+
+# 1. Define a Custom Tool
+# The docstring below is critical; it's how the AI understands what the tool does.
+def calculate_tax(price: float, rate: float = 0.07) -> dict:
+    """Calculates the tax amount for a given price and tax rate.
+    Args:
+        price: The total price of the item.
+        rate: The tax rate as a decimal (default is 0.07).
+    """
+    tax = price * rate
+    return {"status": "success", "tax_amount": round(tax, 2)}
+
+# 2. Define the Agent with Tools
+agent = Agent(
+    model='gemini-2.5-flash',
+    name='shopping_assistant',
+    instruction="""You are a helpful shopping assistant. 
+    Use the calculate_tax tool for all price calculations. 
+    Use google_search to find current prices if the user asks.""",
+    # Add your tools to this list
+    tools=[FunctionTool(calculate_tax), google_search]
+)
+
+# 3. Execution Setup (same as before)
+APP_NAME = "shop_app"
+USER_ID = "user_123"
+SESSION_ID = "session_456"
+
+session_service = InMemorySessionService()
+runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+
+async def run_agent():
+    await session_service.create_session(APP_NAME, USER_ID, SESSION_ID)
+    
+    # Try a query that triggers the custom tool
+    user_message = Content(role="user", parts=[Part(text="What is the tax on a $150 jacket?")])
+
+    async for event in runner.run_async(USER_ID, SESSION_ID, user_message):
+        if event.is_final_response() and event.content and event.content.parts:
+            print(f"Agent: {event.content.parts[0].text}")
+
+if __name__ == "__main__":
+    asyncio.run(run_agent())
 ```
 
 Here is a complete example:
@@ -6708,6 +6844,50 @@ root_agent = Agent(
     planner=PlanReActPlanner(),  # Enables Plan-Reason-Act-Replan cycle
     tools=[search_database, calculate],
 )
+```
+
+
+#### Use cases
+
+##### OpenAPI built-in integration: Github API master
+
+For any API that has an OpenAPI specification, you can immediately give an agent up to date, complete knowledge on how to use that API and all tools available by just linking the APIs `openapi.json` file.
+
+```python
+import os
+import asyncio
+from google.adk.agents.llm_agent import Agent
+from google.adk.tools.openapi_tool import OpenAPIToolset
+from google.adk.runners import Runner
+
+# Step 1: Load GitHub OpenAPI Spec & Credentials
+# You would download the github_openapi.json from GitHub's docs
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+toolset = OpenAPIToolset(
+    spec_path="github_openapi.json",
+    headers={"Authorization": f"Bearer {GITHUB_TOKEN}"}
+)
+
+# Step 2: Create the Agent
+agent = Agent(
+    model='gemini-2.5-pro',
+    name='github_expert',
+    instruction="You help manage GitHub repos. You can list, create, and edit issues.",
+    tools=toolset.get_tools() # This adds hundreds of GitHub actions as tools
+)
+
+# Step 3: Run the Agent
+runner = Runner(agent=agent)
+
+async def main():
+    user_msg = {"role": "user", "parts": [{"text": "List my open issues in the 'adk-project' repo."}]}
+    async for event in runner.run_async(user_id="u1", session_id="s1", new_message=user_msg):
+        if event.is_final_response():
+            print(f"Agent: {event.content.parts[0].text}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## AI resources
