@@ -642,6 +642,10 @@ google_web_search(query="Your query goes here.")
 
 There are three different ways to sandbox a one-off gemini CLI run or a TUI session into an isolated docker container:
 
+1. Run with the `--sandbox` option
+2. Export the `GEMINI_SANDBOX=true` env var into the current shell session
+3. Set the `tools.sandbox` key in the `settings.json` to `"docker"`.
+
 ```
 # Enable sandboxing with a command-line flag
 gemini --sandbox --prompt "run the test suite"
@@ -6785,6 +6789,12 @@ You can make models think and output their think trace before answering as to ge
 - `BuiltInPlanner`: basic planner to enable thinking tokens
 - `PlanReActPlanner`: ReAct style thinking
 
+
+Here is how to use the built-in planner. When passing in a `ThinkingConfig()` object, these are the kwargs you can pass:
+
+- `include_thoughts`: **boolean**. If set to true, then the thinking trace is shown.
+- `thinking_budget`: **int**. THe maximum amount of tokens to allow for thinking
+
 ```python
 from google.adk.agents import Agent
 from google.adk.planners import BuiltInPlanner
@@ -6804,6 +6814,8 @@ reasoning_agent = Agent(
     tools=[],  # Add your tools here
 )
 ```
+
+The `PlanReActPlanner()` planner type enables ReAct type reasoning, which is great for dumber models which don't usually have reasoning capabilities. It manually simulates model reasoning via intelligent prompting.
 
 ```Python
 from google.adk.agents import Agent
