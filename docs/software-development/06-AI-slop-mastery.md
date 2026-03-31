@@ -6115,6 +6115,96 @@ You can then retrieve that value in one of two ways:
 - **method 1 (access from session state)**: Whatever agent gets run in a session, you can access any output key via the `session.state[output_key]` syntax
 - **method 2 (interpoalte in an agent chain)**: when using a parallel or sequential agent pipeline with multiple subagents, a subagent running immediately after another one can access the value of the `output_key` of the previous agent during runtime via interpolation, which lets you dynamically craft the instructions of a subagent in a pipeline based on the results of the previous agent output.
 
+
+##### Tools with session state
+
+You can write your own custom tools as Python functions which return a python dictionary, where the best practice is to return an object interface like so:
+
+```ts
+interface FunctionResponse {
+	status: "error" | "success";
+	error_message?: string;
+	data?: any;
+}
+```
+
+```python
+def my_tool(param: str) -> dict:
+    """Tool description here.
+
+    Args:
+        param (str): Parameter description.
+
+    Returns:
+        dict: Result with status.
+    """
+    try:
+        result = perform_operation(param)
+        return {"status": "success", "data": result}
+    except ValueError as e:
+        return {"status": "error", "error_message": f"Invalid input: {e}"}
+    except Exception as e:
+        return {"status": "error", "error_message": f"Unexpected error: {e}"}
+```
+
+Here's a complete example of the pipeline to hook up tools:
+
+1. Define a custom tool function or import a built-in tool
+2. Pass in a list of tools to register 
+
+```python
+import asyncio
+import os
+from google.adk.agents.llm_agent import Agent
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.tools import FunctionTool, google_search # New imports
+from google.genai.types import Content, Part
+
+# 1. Define a Custom Tool
+# The docstring below is critical; it's how the AI understands what the tool does.
+def calculate_tax(price: float, rate: float = 0.07) -> dict:
+    """Calculates the tax amount for a given price and tax rate.
+    Args:
+        price: The total price of the item.
+        rate: The tax rate as a decimal (default is 0.07).
+    """
+    tax = price * rate
+    return {"status": "success", "tax_amount": round(tax, 2)}
+
+# 2. Define the Agent with Tools
+agent = Agent(
+    model='gemini-2.5-flash',
+    name='shopping_assistant',
+    instruction="""You are a helpful shopping assistant. 
+    Use the calculate_tax tool for all price calculations. 
+    Use google_search to find current prices if the user asks.""",
+    # Add your tools to this list
+    tools=[FunctionTool(calculate_tax), google_search]
+)
+
+# 3. Execution Setup (same as before)
+APP_NAME = "shop_app"
+USER_ID = "user_123"
+SESSION_ID = "session_456"
+
+session_service = InMemorySessionService()
+runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+
+async def run_agent():
+    await session_service.create_session(APP_NAME, USER_ID, SESSION_ID)
+    
+    # Try a query that triggers the custom tool
+    user_message = Content(role="user", parts=[Part(text="What is the tax on a $150 jacket?")])
+
+    async for event in runner.run_async(USER_ID, SESSION_ID, user_message):
+        if event.is_final_response() and event.content and event.content.parts:
+            print(f"Agent: {event.content.parts[0].text}")
+
+if __name__ == "__main__":
+    asyncio.run(run_agent())
+```
+
 #### Agent Types
 
 **Type 1: LLM agents**
@@ -6178,7 +6268,7 @@ structured_agent = LlmAgent(
 )
 ```
 
-#### Adding tools
+#### Tools deep deive
 
 This is how you can add custom tools, where the tool name, args, and description must be put in the docstring, and the AI will dynamically read the docstring at runtime to understand how to use the tool.
 
