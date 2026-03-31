@@ -6113,10 +6113,40 @@ structured_agent = LlmAgent(
 You can then retrieve that value in one of two ways:
 
 - **method 1 (access from session state)**: Whatever agent gets run in a session, you can access any output key via the `session.state[output_key]` syntax
-- **method 2 (interpoalte in an agent chain)**: when using a parallel or sequential agent pipeline with multiple subagents, a subagent running immediately after another one can access the value of the `output_key` of the previous agent during runtime via interpolation, which lets you dynamically craft the instructions of a subagent in a pipeline based on the results of the previous agent output.
+- **method 2 (interpoalte in an agent chain)**: when using a parallel or sequential agent pipeline with multiple subagents, a subagent running immediately after another one can access the value of the `output_key` of the previous agent during runtime via interpolation, which lets you dynamically craft the instructions of a subagent in a pipeline based on the results of the previous agent output
+
+Here's an example of method 2, where you interpolate the `output_key` in an agent chain:
+
+```python
+# pipeline_agent/agent.py
+from google.adk.agents import Agent
+from google.adk.agents.sequential_agent import SequentialAgent
+
+MODEL = "gemini-2.0-flash"
+
+# Step 1: Generate initial code from a specification
+code_writer = Agent(
+    name="CodeWriter",
+    model=MODEL,
+    instruction="""You are a Python code generator. Write clean, well-documented
+    Python code based on the user's request. Output ONLY the Python code,
+    wrapped in a code block.""",
+    description="Writes initial Python code based on a specification.",
+    output_key="generated_code",  # Saves response to state["generated_code"]
+)
+
+# Step 2: Review the code — reads from state via {generated_code} template
+code_reviewer = Agent(
+    name="CodeReviewer",
+    model=MODEL,
+    instruction="""You are an expert Python code reviewer. Review this code:
+
+```python
+{generated_code}
+```
 
 
-##### Tools with session state
+##### Basic Tools
 
 You can write your own custom tools as Python functions which return a python dictionary, where the best practice is to return an object interface like so:
 
@@ -6150,7 +6180,7 @@ def my_tool(param: str) -> dict:
 Here's a complete example of the pipeline to hook up tools:
 
 1. Define a custom tool function or import a built-in tool
-2. Pass in a list of tools to register 
+2. Pass in a list of tools to register to the `tools=` kwarg in the `Agent` class.
 
 ```python
 import asyncio
@@ -6204,6 +6234,10 @@ async def run_agent():
 if __name__ == "__main__":
     asyncio.run(run_agent())
 ```
+
+##### Tools and session state
+
+
 
 #### Agent Types
 
