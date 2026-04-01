@@ -621,3 +621,57 @@ The same word can mean different things depending on the sentence context, like 
 
 We often remove stop words like “is”, “or”, “both” because they don’t have a lot of semantic meaning and are context-specific. There is no point creating embeddings for those.
 
+
+## Transformers
+
+### Self-attention
+
+#### Motivation
+
+Word embeddings cannot take context into account, which is important to truly master a language.
+
+Take the word **"Bank"**. In a static embedding space, "Bank" only has _one_ coordinate. But consider these two sentences:
+
+1. "I sat by the river **bank**."
+2. "I deposited money in the **bank**."
+
+Self-attention via transformers solves this problem by creating a mathematical method to give a word a **contextualized vector** representation that changes based on the context of the surrounding words in a sentence.
+
+For example, self-attention should accomplish the following:
+
+- In sentence 1, "bank" should pay attention to "river"
+- In sentence 2, "bank" should pay attention to "money".
+
+#### Matrix Formalism
+
+We use three matrices in self-attention: **Queries (Q)**, **Keys (K)**, and **Values (V)**
+
+Think of it like a database:
+
+- **Query (Q):** What you type into the search bar (e.g., "calculus tutorial"). 
+	- This is what a word is _looking for_.
+- **Key (K):** The video title/tags (e.g., "Math 101: Derivatives"). 
+	- This is what a word _offers_ to others.
+- **Value (V):** The actual video content you watch. 
+	- This is the underlying meaning the word provides if it's a good match.
+
+
+In a Transformer, _every single word_ in a sentence generates its own Query, Key, and Value vectors by multiplying its original word embedding by three learned weight matrices ($W^Q, W^K, W^V$) which are learned via backpropagation.
+
+The first step is to gather the three matrices you need: $Q$, $K$, and $V$, which are derived from multiplying each input word embedding by the associated weights:
+
+$$ q^{<t>} = W_Q \cdot x^{<t>}$$
+
+$$k^{<t>} = W_K \cdot x^{<t>} $$
+
+$$ v^{<t>} = W_V \cdot x^{<t>}$$
+
+- $x^{<t>}$: the positionally-encoded version of a word embedding. Has $d$ elements, which is the embedding size.
+- $k^{<t>}$: the key vector 
+- **weights**: Each weight matrix $W^Q, W^K, W^V$ is $d \times d$ dimensional, which will result in a linear transformation of the positionally-encoded embedding (it will retain the same size).
+
+You can then form $Q$, $K$, and $V$ by just stacking each vector on top of each other in rows.
+
+Here's the full  formula
+
+$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
