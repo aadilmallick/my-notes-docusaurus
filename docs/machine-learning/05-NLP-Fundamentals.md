@@ -666,12 +666,39 @@ $$k^{<t>} = W_K \cdot x^{<t>} $$
 
 $$ v^{<t>} = W_V \cdot x^{<t>}$$
 
-- $x^{<t>}$: the positionally-encoded version of a word embedding. Has $d$ elements, which is the embedding size.
-- $k^{<t>}$: the key vector 
-- **weights**: Each weight matrix $W^Q, W^K, W^V$ is $d \times d$ dimensional, which will result in a linear transformation of the positionally-encoded embedding (it will retain the same size).
+- $x^{<t>}$: the **positionally-encoded** version of a word embedding. Has $d$ elements, which is the embedding size.
+- $k^{<t>}$: the key vector for the word $x^{<t>}$.
+- $q^{<t>}$: the query vector for the word $x^{<t>}$.
+- $v^{<t>}$: the value vector for the word $x^{<t>}$.
 
-You can then form $Q$, $K$, and $V$ by just stacking each vector on top of each other in rows.
+> [!NOTE]
+> Each weight matrix $W^Q, W^K, W^V$ is $d \times d$ dimensional, which will result in a linear transformation of the positionally-encoded embedding (it will retain the same size).
 
-Here's the full  formula
+You can then form $Q$, $K$, and $V$ by just stacking each generated $k^{<t>}, q^{<t>}, v^{<t>}$ on top of each other in rows.
+
+Here's the full  formula:
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+
+- **$QK^T$ (The Dot Product):** We take the dot product of every word's Query with every other word's Key. As we learned in Step 1, the dot product measures _similarity_. If the Query of "bank" aligns well with the Key of "river", the resulting dot product is a large positive number!
+- **$\sqrt{d_k}$ (The Scaling Factor):** We divide by the square root of the dimension of the key vectors. This is a neat calculus/probability trick: if dimensions get too high, dot products explode in magnitude, which pushes the softmax function into regions with tiny gradients (vanishing gradients). Scaling fixes this.
+- **$\text{softmax}(\dots)$:** We apply the softmax function to turn these raw similarity scores into a probability distribution (weights that sum up to 1)
+
+### Multi-head attention
+
+But language is incredibly complex. Consider the word "saw" in: _"I saw the man with the saw."_ A word might need to track several different types of relationships at the same time:
+
+- Who is doing the action? (Subject-Verb)
+- What is the object?
+- What is the tense? (Past/Present)
+    
+
+If we only have one set of Q, K, V matrices (one "attention head"), the model has to average all these relationships together, muddying the math.
+
+**The Solution:** We create multiple "Heads"! Instead of one $W^Q, W^K, W^V$, we initialize, say, 8 different sets of these matrices. We project our word embeddings into 8 smaller, distinct mathematical subspaces.
+
+- Head 1 might learn to pay attention to grammar.
+- Head 2 might learn to pay attention to rhyming words.
+- Head 8 might track emotional tone.
+
+We run the Scaled Dot-Product Attention equation on all 8 heads in parallel, concatenate their resulting matrices, and multiply them by a final output weight matrix to get our new, incredibly rich, contextualized word embeddings.
