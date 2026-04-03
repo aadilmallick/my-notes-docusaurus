@@ -662,6 +662,108 @@ gemini --prompt-interactive "explain this code"
 }
 ```
 
+#### Agent skills
+
+You can add custom agent skills to gemini, which gemini will recognize in a `.agents/skills` folder or the `.gemini/skills` folder.
+
+To enable globally available skills and have them be automatically recognized, put them in the `~/.agents/skills` folder.
+
+**CLI**
+
+- `gemini skills list`: lists all active skills
+
+Here's the complete way to use the cli:
+
+
+```bash
+# List all discovered skills
+gemini skills list
+
+# Link agent skills from a local directory via symlink
+# Discovers skills (SKILL.md or */SKILL.md) and creates symlinks in ~/.gemini/skills
+# (or ~/.agents/skills)
+gemini skills link /path/to/my-skills-repo
+
+# Link to the workspace scope (.gemini/skills or .agents/skills)
+gemini skills link /path/to/my-skills-repo --scope workspace
+
+# Install a skill from a Git repository, local directory, or zipped skill file (.skill)
+# Uses the user scope by default (~/.gemini/skills or ~/.agents/skills)
+gemini skills install https://github.com/user/repo.git
+gemini skills install /path/to/local/skill
+gemini skills install /path/to/local/my-expertise.skill
+
+# Install a specific skill from a monorepo or subdirectory using --path
+gemini skills install https://github.com/my-org/my-skills.git --path skills/frontend-design
+
+# Install to the workspace scope (.gemini/skills or .agents/skills)
+gemini skills install /path/to/skill --scope workspace
+
+# Uninstall a skill by name
+gemini skills uninstall my-expertise --scope workspace
+
+# Enable a skill (globally)
+gemini skills enable my-expertise
+
+# Disable a skill. Can use --scope to specify workspace or user (defaults to workspace)
+gemini skills disable my-expertise --scope workspace
+```
+
+#### Plan mode
+
+You can have gemini follow a plan by just telling it to plan out a feature:
+
+
+![](https://i.imgur.com/v6KlAki.jpeg)
+
+You can also use the `/plan` command to manually trigger plan mode, and then send messages mid-conversation to steer the agent in the right direction.
+
+```embed
+title: "Use Plan Mode with model steering for complex tasks"
+image: "https://geminicli.com/assets/social-poster.png"
+description: ""
+url: "https://geminicli.com/docs/cli/tutorials/plan-mode-steering/"
+favicon: ""
+aspectRatio: "56.38461538461539"
+```
+
+#### MCP
+
+You can enable mcp servers in the gemini settings JSON:
+
+1. Open `~/.gemini/settings.json` (or the project-specific `.gemini/settings.json`).
+2. Add the `mcpServers` block. This tells Gemini: “Run this docker container and talk to it.”
+
+```json title=".gemini/settings.json"
+{
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server:latest"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+> [!TIP]
+> TO avoid hardcoding secrets into the settings JSON, you can first export any secrets as an environment variable into the current session and then you can interpolate via `${}` syntax in the JSON file.
+
+To verify connections, you can use the `/mcp` command:
+
+- `/mcp list`: lists all currently active MCP servers
+- `/mcp reload`: reloads the MCP server
+
+
 ### Claude code
 
 #### CLAUDE.md
