@@ -691,6 +691,18 @@ And here is the NOT short circuit operator:
 
 For example, C# allows implicit conversion from int to double (e.g., converting 5 to 5.000), but does not allow implicit conversion from double to int, which would result in a compiler error
 
+```csharp
+int a = 5;
+double b = a; // Implicit conversion from int to double
+```
+
+Implicit conversion only works with types when casting a subset type (stricter) to a superset type (less strict). For example, casting an string to an int and vice versa will fail. 
+
+```csharp
+int a = 5;
+string b = a; // This will cause a compilation error
+```
+
 #### Explicit Casting
 
 You do explicit casting when you want to convert from a broader type to a stricter type. 
@@ -704,6 +716,16 @@ double d = 3.14;
 int i = (int) d; // Explicit cast, truncates to 3
 Console.WriteLine($"Explicit cast: {i}");
 ```
+
+
+#### Casting summary
+
+For types that share properties in common, like `int` and `double`, you use casting to convert between those types:
+
+- **implicit casting**: casting from a stricter subset type to a less strict superset type, and precision is not lost.
+- **explicit casting**: casting from a less strict superset type to a more strict subset type, but precision is lost.
+
+Some types cannot be type casted, like string and int.
 
 #### Parsing
 
@@ -719,17 +741,43 @@ There are two ways to achieve this:
 
 **unsafe parsing with `Parse()`**
 
+The `Parse()` static method takes in a string and tries to forcibly convert it to the data type class specifically calling it. 
+
+If not possible to convert the string to the data type, then an exception is thrown.
+
+```csharp
+int a = int.Parse("5"); // Converts "5" to 5, throws error if not possible
+double d = double.Parse("5.678")
+```
+
+
+
 **safe parsing with `TryParse()`**
 
 `TryParse()` allows type conversion from a string to a specific type (like int, bool, DateTime) without throwing an exception. 
 
-It returns a boolean indicating success and uses an **out** parameter to store the converted value.
+It returns a boolean indicating success and uses an **out** parameter to store the converted value, which is convenient syntactic sugar that saves many lines of code.
 
 Here's the basic syntax:
 
 ```csharp
 bool result = int.TryParse(inputString, out var parsedValue)
 ```
+
+The old way was to declare the **out variable** beforehand.
+
+```csharp
+// way 1: declare placeholder variable before
+int a;
+bool success = int.TryParse("5", out a); // Converts "5" to 5 and returns true
+```
+
+The newer syntax requires less code and is more readable by doing it all in one line:
+
+```csharp
+int.TryParse("5", out int a); // Converts "5" to 5 and returns true
+```
+
 
 #### Conversion methods
 
