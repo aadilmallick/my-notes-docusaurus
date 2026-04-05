@@ -1,5 +1,5 @@
 
-## Imaage and Media
+## Image and Media
 
 ### ImageKit
 
@@ -74,3 +74,8 @@ export default function Page() {
   )
 }
 ```
+
+## Email
+
+### Resend
+
