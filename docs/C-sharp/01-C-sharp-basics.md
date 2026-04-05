@@ -97,7 +97,14 @@ const string CompanyName = "Acme Corp";
 
 #### Object Type
 
-All primitives and objects in C# inherit from the built-in `object` type
+All primitives and objects in C# inherit from the built-in `object` type, which means every data type is technically an `object` type.
+
+This gives you an escape route from static typing and allows you to set a variable to a different data type than it was initialized as, because `object` is the broadest, least strict type possible.
+
+```csharp
+object thisWillChange = 3;
+thisWillChange = "hello" // completely valid.
+```
 
 ### Functions
 
