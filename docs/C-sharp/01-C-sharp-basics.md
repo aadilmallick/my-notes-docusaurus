@@ -425,6 +425,73 @@ bool areEqual = String.Equals(str1, str2, StringComparison.OrdinalIgnoreCase)
 
 ### Control Flow
 
+#### Switch Statements
+
+This is a standard `switch` statement.
+
+
+> [!IMPORTANT]
+> In C#, fall-through cases are not allowed. At the end of each `case` body, you must exit the case with a `break` statement.
+
+
+```csharp
+int day = 3;
+switch (day)
+{
+    case 1:
+        Console.WriteLine("Monday");
+        break;
+    case 2:
+        Console.WriteLine("Tuesday");
+        break;
+    case 3:
+        Console.WriteLine("Wednesday");
+        break;
+    case 4:
+        Console.WriteLine("Thursday");
+        break;
+    case 5:
+        Console.WriteLine("Friday");
+        break;
+    case 6:
+        Console.WriteLine("Saturday");
+        break; 
+    case 7:
+        Console.WriteLine("Sunday");
+        break;
+    default:
+        Console.WriteLine("Invalid day.");
+        break;
+}
+```
+
+C# also offers syntactic sugar over the switch statement, leading to a less cumbersome version:
+
+```csharp
+int day = 3;
+string dayName = day switch
+{
+    1 => "Monday",
+    2 => "Tuesday",
+    3 => "Wednesday",
+    4 => "Thursday",
+    5 => "Friday",
+    6 => "Saturday",
+    7 => "Sunday",
+    _ => "Invalid day"
+};
+Console.WriteLine(dayName);
+```
+
+#### For loop
+
+```csharp
+for (int i = 0; i < 5; i++)
+{
+    Console.WriteLine(i);
+}
+```
+
 #### **foreach loop**
 
 The `foreach` loop allows you to loop element-wise through some iterable collection.
@@ -455,16 +522,105 @@ finally
 }
 ```
 
+You can create custom exceptions by inheriting from the `Exception` base class:
+
+```csharp
+public class MyCustomException : Exception
+{
+    public MyCustomException(string message) : base(message)
+    {
+    }
+}
+```
+
 #### **pattern matching**
 
-Pattern matching is syntactic sugar to check the data type of an object and immediately do something with, avoiding type casting.
+Pattern matching is syntactic sugar to check the data type of an object and create a local variable copy of it, type casted automatically.
+
+Pattern matching is done with the `is` boolean operator.
+
+There are three types of pattern matching:
+
+**type pattern matching**
+
+Control flow that checks whether a variable is of a specific data type of not, and if it is, then treat it like that data type (casts it) into a new local variable.
+
+
+```csharp
+object value = "Hello, World!";
+
+// if value is string, create copy str = value and cast it as string
+if (value is string str) {
+    Console.WriteLine($"The value is a string: {str}");
+}
+
+else {
+    Console.WriteLine("The value is not a string.");
+}
+```
 
 ```csharp
 var num = 10;
 
-// if num is an int, then store a copy of it in integer.
+// if num is an int, then store a copy of it in new local var integer.
 if (num is int integer) {
     Console.WriteLine(integer);
+}
+```
+
+**value pattern matching**
+
+You can use the `is` keyword as a standard boolean operator for simpler conditional statements, as syntactic sugar over `==` and multiple conditional statements. 
+
+> [!NOTE]
+> This skips creating the local variable type casted copy.
+
+```csharp
+int number = 42;
+
+if (number is 42) {
+    Console.WriteLine("The number is 42.");
+}
+
+else {
+    Console.WriteLine("The number is not 42.");
+}
+```
+
+
+```csharp
+int number = 42;
+if (number is >= 0 and <= 100)
+{
+    Console.WriteLine("The number is between 0 and 100.");
+}
+```
+
+**logical pattern matching**
+
+Local pattern matching is a combination of value pattern matching and type pattern matching, allowing you to create both a local type-casted variable copy and do value pattern matching:
+
+```csharp
+object value = "Hello, World!";
+if (value is string str && str.Length > 5) {
+    Console.WriteLine("The string is longer than 5 characters.");
+}
+else {
+    Console.WriteLine("The string is not longer than 5 characters.");
+}
+```
+
+
+> [!NOTE] 
+> This is essentially just syntactic sugar over multiple if-else statements.
+
+
+```csharp
+string str = "Hello, World!";
+
+if (str is string newstr && newstr.StartsWith("Hello"))
+{
+    Console.WriteLine($"The string is: {newstr}");
 }
 ```
 
