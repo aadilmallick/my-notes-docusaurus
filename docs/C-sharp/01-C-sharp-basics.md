@@ -115,6 +115,19 @@ thisWillChange = "hello" // completely valid.
 - **Value types** (like int, bool) are passed by copy and have default values (e.g., int defaults to 0)
 - **reference types** (like objects and classes) are passed by reference, where the pointer to certain obejct properties is what is stored in memory.
 
+Here is a list of the common value and reference types:
+
+
+| Data Type             | Type      |
+| --------------------- | --------- |
+| `string`              | reference |
+| `object`              | reference |
+| `int`, `double`, etc. | value     |
+| `char`                | value     |
+| `bool`                | value     |
+| `null`                | reference |
+
+
 Here are the main differences between value and reference types:
 
 **Value Types:**
@@ -129,6 +142,12 @@ Here are the main differences between value and reference types:
 - Slower access - indirect memory allocation. Reference typed variables, technically speaking, are pointers to the object's location in memory.
 - Cleaned up via garbage collection, which is managed by the .NET runtime. Not automatically removed from memory when out of scope
 
+**summary**
+
+> [!NOTE]
+> **Use in methods**
+> ***
+> Value types are passed by copy, creating a new instance with the same value, while reference types are passed by reference, allowing direct modification of the original object.
 
 #### Nullability
 
@@ -146,12 +165,14 @@ To deal with potentially null values and mark not only reference but also primit
 Here is an example of creating an integer that could possibly be null via suffixing the `?` operator after the data type declaration:
 
 ```csharp
-int? nullableInt = null;
+string str = null; // Valid for reference types
+int? nullableInt = null; // Valid for nullable value types
 ```
 
 Basically when using the `?` operator to create a nullable version of a variable, that returns a `Nullable<T>` instance, and all nullable variables have these two useful properties:
 
 - `nullable.HasValue`: returns true if the value is not null, else return false.
+- `nullable.Value`: the actual value of the nullable, either of type `null` or `T`.
 
 ```csharp
 int? nullableInt = null;
@@ -163,6 +184,21 @@ else
 {
     Console.WriteLine("Nullable integer is null.");
 }
+```
+
+#### Boxing and Unboxing
+
+- **Boxing** is the process of converting a value type to a reference type.  
+- **Unboxing** is the process of converting a reference type back to a value type.
+
+You can box by casting a value data type to the `object` data type, and you can unbox by casting a reference data type to a value type (if possible)
+
+```csharp
+int number = 42;
+object boxed = number; // Boxing
+
+object boxed = 42;
+int number = (int)boxed; // Unboxing
 ```
 
 ### Functions
@@ -921,20 +957,33 @@ Console.WriteLine("Username is: " + userName);
 - `Math.Sqrt(a)`: returns the sqrt of the number
 - `Math.Abs(a)`: returns the absolute value of the number
 - `Math.Rounds(a)`: rounds the number to nearest integer and returns it
-## Building CLI applications
 
-### Dealing with user input
+## OOP
 
-Use the `Console.ReadLine()` method to read a line of user input.
+### Basic Classes
 
-```csharp
-// Type your username and press enter
-Console.WriteLine("Enter username:");
+#### Getters and Setters
 
-// Create a string variable and get user input from the keyboard and store it in the variable
-string userName = Console.ReadLine();
+First, some terminology:
 
-// Print the value of the variable (userName), which will display the input value
-Console.WriteLine("Username is: " + userName);
-```
+- **Fields** are simple object variables on a class
+- **Properties** are an abstraction over fields that control access to data, allowing customization of getter and setter behaviors with optional accessibility modifiers.
+- **Computed properties** are read-only properties that dynamically calculate their value based on other properties, such as creating a FullName property that combines FirstName and LastName
+
+Here are what the different access modifiers do:
+
+- `get`: syntactic sugar over `public get`. This makes the property public and available for consumers to read.
+- `private get`: This makes the property private and unavailable for consumers to read. You can only read from this property and access it within the class definition.
+- `set`: syntactic sugar over `public set`. This makes the property public and available for anybody to write to.
+- `private set`: This makes the property private and unavailable for consumers to write top. You can only write to this property within the class definition.
+
+The absence of modifiers also has special meaning:
+
+- **no getter defined**: Nobody can read from this property, you can only access it within the constructor.
+- **no setter defined**: Nobody can write to this property, not even within it the class definition. You can only set it within the constructor.
+
+**Creating a read-only property**
+
+You can create a read-only property over a field by defining a public getter but only a private setter or no setter at all.
+
 
