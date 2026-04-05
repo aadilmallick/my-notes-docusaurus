@@ -189,7 +189,7 @@ And here are some static parsing methods on the `DateTime` class.
 
 #### Arrays
 
-There are 
+There are two ways to instantiate an array
 
 Here is how to instantiate a typed array in C#:
 
