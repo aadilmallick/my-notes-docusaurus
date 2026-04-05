@@ -70,6 +70,9 @@ Here are all the useful data types:
 - `float`: 32 bit floating point
 - `double`: 64 bit floating point
 - `decimal`: 128 bit floating point
+- `bool`: boolean
+- `char`: single character, defined with single quotes
+- `string`: string, defined with double quotes.
 
 
 C# also offers two additional variable declaration keywords you can use that have different properties:
@@ -181,3 +184,68 @@ And here are some static parsing methods on the `DateTime` class.
 - `DateTime.TryParseExact()`: Attempts to convert a string representation of a date and time into a `DateTime` object using a specified format and culture-specific format information, and returns a boolean indicating whether the conversion succeeded.
 - `DateTime.TryParseExact()`: Attempts to convert a string representation of a date and time into a `DateTime` object using a specified format and culture-specific format information, and returns a boolean indicating whether the conversion succeeded.
 - `DateTime.TryParseExact()`: Attempts to convert a string representation of a date and time into a `DateTime` object using a specified format and culture-specific format information, and returns a boolean indicating whether the conversion succeeded.
+
+### Built-in data structures
+
+#### Arrays
+
+There are 
+
+Here is how to instantiate a typed array in C#:
+
+```csharp
+int[] myIntArray = new int[3];
+myIntArray[0] = 1;
+myIntArray[1] = 2;
+myIntArray[2] = 3;
+```
+
+Here are properties and methods on arrays:
+
+- `arr.Length` : gets the length of an array
+
+Here is a cheatsheet:
+
+```csharp
+int[] arr = { 1, 2, 3, 4, 5 };
+// Array properties
+Console.WriteLine($"Length: {arr.Length}");
+Console.WriteLine($"Rank: {arr.Rank}");
+Console.WriteLine($"First index: {arr.GetLowerBound(0)}");
+Console.WriteLine($"Last index: {arr.GetUpperBound(0)}");
+
+// Array access helpers
+Console.WriteLine($"First item: {arr[0]}");
+arr[0] = 99;
+
+// Search
+int firstIndex = Array.IndexOf(arr, 3);
+int lastIndex = Array.LastIndexOf(arr, 3);
+bool hasFour = Array.Exists(arr, x => x == 4);
+int firstGreaterThanTwo = Array.Find(arr, x => x > 2);
+int[] evenItems = Array.FindAll(arr, x => x % 2 == 0);
+
+// Transform
+Array.Sort(arr);
+Array.Reverse(arr);
+
+// Copy and clear
+int[] copy = new int[arr.Length];
+Array.Copy(arr, copy, arr.Length);
+Array.Clear(copy, 0, copy.Length);
+
+// Quick cheat sheet:
+// Length        -> number of elements
+// Rank          -> number of dimensions
+// GetLowerBound -> smallest valid index
+// GetUpperBound -> largest valid index
+// IndexOf       -> first matching index
+// LastIndexOf   -> last matching index
+// Exists        -> predicate check
+// Find          -> first matching item
+// FindAll       -> all matching items
+// Sort          -> ascending order
+// Reverse       -> reverse order
+// Copy          -> duplicate values
+// Clear         -> reset values
+```
