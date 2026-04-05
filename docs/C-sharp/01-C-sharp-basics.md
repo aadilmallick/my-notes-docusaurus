@@ -113,7 +113,57 @@ thisWillChange = "hello" // completely valid.
 #### Value vs Reference Types
 
 - **Value types** (like int, bool) are passed by copy and have default values (e.g., int defaults to 0)
-- **reference types** (like objects and classes) are passed by reference and have different memory allocation characteristics.
+- **reference types** (like objects and classes) are passed by reference, where the pointer to certain obejct properties is what is stored in memory.
+
+Here are the main differences between value and reference types:
+
+**Value Types:**
+
+- Stored on the stack.
+- Faster access - direct memory allocation
+- Automatic memory management - collected by the runtime when out of scope
+
+**Reference Types:**
+
+- Stored on the heap.
+- Slower access - indirect memory allocation. Reference typed variables, technically speaking, are pointers to the object's location in memory.
+- Cleaned up via garbage collection, which is managed by the .NET runtime. Not automatically removed from memory when out of scope
+
+
+#### Nullability
+
+The `null` value is also a datatype in C# that you have to watch out for, since some operations may return `null`.
+
+However, the `null` value is only valid  to assign for reference variables, not primitive values:
+
+```csharp
+string str = null; // Valid for reference types
+int number = null; // This will cause a compilation error - value types cannot be null
+```
+
+To deal with potentially null values and mark not only reference but also primitive values as nullable, we use the nullability operator `?`.
+
+Here is an example of creating an integer that could possibly be null via suffixing the `?` operator after the data type declaration:
+
+```csharp
+int? nullableInt = null;
+```
+
+Basically when using the `?` operator to create a nullable version of a variable, that returns a `Nullable<T>` instance, and all nullable variables have these two useful properties:
+
+- `nullable.HasValue`: returns true if the value is not null, else return false.
+
+```csharp
+int? nullableInt = null;
+if (nullableInt.HasValue)
+{
+    Console.WriteLine($"Nullable integer has value: {nullableInt.Value}");
+}
+else
+{
+    Console.WriteLine("Nullable integer is null.");
+}
+```
 
 ### Functions
 
@@ -132,7 +182,9 @@ int result = add(10, 20);
 Console.WriteLine("Result: " + result);
 ```
 
-**optional arguments and variadic arguments**
+#### Optional Arguments
+
+You can specify optional arguments by providing a default value for the parameter in a method, with the exact same syntax as of python:
 
 ```csharp
 void GreetUser1(string name) {
@@ -144,6 +196,18 @@ void GreetUser2(string name = "User") {
     Console.WriteLine("Hello, " + name);
 }
 
+GreetUser1("John");
+GreetUser2();
+```
+
+#### Variadic Arguments
+
+Variatic arguments allow you to pass a variable number of arguments that get stored into a list, the same as in other languages like Python and JavaScript. 
+
+1. You specify variadic arguments with the `params` keyword before a `string[]` array parameter.
+2. A variadic argument must be the last parameter in the method signature.
+
+```csharp
 // passing arbitrary number of arguments
 void GreetUser3(params string[] names) {
     foreach (string name in names) {
@@ -151,11 +215,39 @@ void GreetUser3(params string[] names) {
     }
 }
 
-GreetUser1("John");
-GreetUser2();
 GreetUser3("John", "Jane", "Jim");
 ```
 
+#### Named arguments
+
+Named arguments allow you to supply parameter values out of order, just like in Python when using keyword arguments.
+
+You pass named arguments via `param: value` syntax.
+
+```csharp
+void MyMethod(string child1, string child2, string child3) 
+{
+  Console.WriteLine("The youngest child is: " + child3);
+}
+
+MyMethod(child3: "John", child1: "Liam", child2: "Liam");
+```
+
+
+#### Method overloading
+
+
+```csharp
+static int PlusMethodInt(int x, int y)
+{
+  return x + y;
+}
+
+static double PlusMethodDouble(double x, double y)
+{
+  return x + y;
+}
+```
 ### DateTime
 
 The DateTime class in C# is used for basic datetime operations.
@@ -781,5 +873,68 @@ int.TryParse("5", out int a); // Converts "5" to 5 and returns true
 
 #### Conversion methods
 
-The `Convert` class provides static methods to convert between types and thus return a new variable with the adjusted type and value, such as `Convert.ToInt32()`, which can convert a value like 4.2 to an integer (losing precision in the process)
+The `Convert` class provides static methods to convert between types and thus return a new variable with the adjusted type and value, such as `Convert.ToInt32()`, which can convert a value like 4.2 to an integer (losing precision in the process).
+
+Here are the useful conversion methods:
+
+- `Convert.ToString(value)`: converts to a string, returns a string
+- `Convert.ToInt32(value)`: converts to an int, returns an int
+- `Convert.ToDouble(value)`: converts to a double, returns a double
+
+
+```csharp
+int a = Convert.ToInt32("5"); // Converts "5" to 5
+```
+
+```csharp
+int i2 = Convert.ToInt32(123.45); // converts 123.45 to 123
+```
+
+```csharp
+int myInt = 10;
+double myDouble = 5.25;
+bool myBool = true;
+
+Console.WriteLine(Convert.ToString(myInt));    // convert int to string
+Console.WriteLine(Convert.ToDouble(myInt));    // convert int to double
+Console.WriteLine(Convert.ToInt32(myDouble));  // convert double to int
+Console.WriteLine(Convert.ToString(myBool));   // convert bool to strin
+```
+
+
+
+```csharp
+// Type your username and press enter
+Console.WriteLine("Enter username:");
+
+// Create a string variable and get user input from the keyboard and store it in the variable
+string userName = Console.ReadLine();
+
+// Print the value of the variable (userName), which will display the input value
+Console.WriteLine("Username is: " + userName);
+```
+
+### Math methods
+
+- `Math.Max(a, b)`: returns the greater of the two numbers
+- `Math.Min(a, b)`: returns the smaller of the two numbers
+- `Math.Sqrt(a)`: returns the sqrt of the number
+- `Math.Abs(a)`: returns the absolute value of the number
+- `Math.Rounds(a)`: rounds the number to nearest integer and returns it
+## Building CLI applications
+
+### Dealing with user input
+
+Use the `Console.ReadLine()` method to read a line of user input.
+
+```csharp
+// Type your username and press enter
+Console.WriteLine("Enter username:");
+
+// Create a string variable and get user input from the keyboard and store it in the variable
+string userName = Console.ReadLine();
+
+// Print the value of the variable (userName), which will display the input value
+Console.WriteLine("Username is: " + userName);
+```
 
