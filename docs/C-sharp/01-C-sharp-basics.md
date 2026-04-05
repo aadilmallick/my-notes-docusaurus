@@ -624,6 +624,114 @@ if (str is string newstr && newstr.StartsWith("Hello"))
 }
 ```
 
+**Property patterns**
+
+Property patterns allow you to check if a value has a specific property.
+
+> [!NOTE] 
+> You can basically just think of this as a way of implementing structural object equality.
+
+```csharp
+class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+Person person = new Person { Name = "John", Age = 30 };
+if (person is { Name: "John", Age: 30 })
+{
+    Console.WriteLine("The person is John and 30 years old.");
+}
+else
+{
+    Console.WriteLine("The person is not John and 30 years old.");
+}
+```
+
+**positional pattern matching**
+
+Positional patterns allow you to check if a value matches a specific pattern based on its position in a tuple or array.
+
+```csharp
+(int, string, bool) tuple = (1, "Hello", true);
+if (tuple is (1, string str, true))
+{
+    Console.WriteLine("The tuple matches the pattern.");
+}
+else
+{
+    Console.WriteLine("The tuple does not match the pattern.");
+}
+```
+
 #### **short circuiting**
 
 The short circuiting operators here work the same as in in JS: `||` for **or** and `&&` for **and**.
+
+Here are the AND short circuit operators:
+
+- `&`: Returns true if both operands are true. Always evaluates both operands (unless an exception is thrown).
+- `&&`: Returns true if both operands are true. Does not evaluate the right operand if the left operand is false.
+
+here are the OR short circuit operators:
+
+- `|`: Returns true if at least one of the operands is true. Always evaluates both operands (unless an exception is thrown).
+- `||`: Returns true if at least one of the operands is true. Does not evaluate the right operand if the left operand is true.
+
+And here is the NOT short circuit operator:
+
+- `!`: negates the boolean version of the operand
+
+### Type Casting and Conversion
+
+#### Implicit Casting
+
+**Implicit conversion** is when you are allowed to implicitly type cast a variable with a stricter data type to a broader, less strict data type that includes the stricter one.
+
+For example, C# allows implicit conversion from int to double (e.g., converting 5 to 5.000), but does not allow implicit conversion from double to int, which would result in a compiler error
+
+#### Explicit Casting
+
+You do explicit casting when you want to convert from a broader type to a stricter type. 
+
+You do explicit casting the same way as in Java, by wrapping the data type in parentheses:
+
+For example, when casting from a double to an int, you lose precision, but explicit casting works while implicit casting will not.
+
+```csharp
+double d = 3.14;
+int i = (int) d; // Explicit cast, truncates to 3
+Console.WriteLine($"Explicit cast: {i}");
+```
+
+#### Parsing
+
+Some data types have the `.Parse` static method on their classes, which lets you try to parse a string to a certain other data type if possible.
+
+Here are the data types that have access to the `Parse()` and `TryParse()` static methods:
+
+- `int` and its numerical siblings
+- `bool`
+- `DateTime`
+
+There are two ways to achieve this:
+
+**unsafe parsing with `Parse()`**
+
+**safe parsing with `TryParse()`**
+
+`TryParse()` allows type conversion from a string to a specific type (like int, bool, DateTime) without throwing an exception. 
+
+It returns a boolean indicating success and uses an **out** parameter to store the converted value.
+
+Here's the basic syntax:
+
+```csharp
+bool result = int.TryParse(inputString, out var parsedValue)
+```
+
+#### Conversion methods
+
+The `Convert` class provides static methods to convert between types and thus return a new variable with the adjusted type and value, such as `Convert.ToInt32()`, which can convert a value like 4.2 to an integer (losing precision in the process)
+
