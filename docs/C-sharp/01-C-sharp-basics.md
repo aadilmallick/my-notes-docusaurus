@@ -319,7 +319,7 @@ And here are some static parsing methods on the `DateTime` class.
 - `DateTime.TryParseExact()`: Attempts to convert a string representation of a date and time into a `DateTime` object using a specified format and culture-specific format information, and returns a boolean indicating whether the conversion succeeded.
 - `DateTime.TryParseExact()`: Attempts to convert a string representation of a date and time into a `DateTime` object using a specified format and culture-specific format information, and returns a boolean indicating whether the conversion succeeded.
 
-### Built-in data structures
+### Base data structures
 
 #### Arrays
 
@@ -386,7 +386,13 @@ Array.Clear(copy, 0, copy.Length);
 
 #### Tuples
 
-Tuples in C# act exactly like objects in JavaScript. There are two ways to create tuples:
+Tuples in C# act exactly like objects in JavaScript as of .NET version 7.
+
+> [!NOTE]
+> Under the hood, tuples are just syntactic sugar for creating `struct` object instances.
+
+
+There are two ways to create tuples:
 
 **method 1: unnamed tuples**
 
@@ -1036,3 +1042,233 @@ public class Person
     public string FullName => $"{this.FirstName} {this.LastName}";
 }
 ```
+
+#### Constructors
+
+**basic constructors**
+
+You define a standard constructor signature like so:
+
+```csharp
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+
+    public Person(string name, int age)
+    {
+        Name = name;
+        Age = age;
+    }
+}
+
+Person person = new Person("John Doe", 30);
+```
+
+In the constructor, keep in mind these things:
+
+1. You can either set fields in the constructor or in the property initializer (more on that later), but you don't have to set nonullable fields in the constructor like as in JavaScript.
+2. It's best practice to throw argument exceptions for illegal parameters.
+
+```csharp
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+
+    public Person(string name, int age)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name cannot be null or empty", nameof(name));
+        }
+        Name = name;
+        Age = age;
+    }
+}
+
+Person person = new Person("John Doe", 30);
+Person person2 = new Person(string.Empty, 30); // This will throw an exception
+```
+
+**constructor overloading**
+
+In C#, you can overload constructors and provide multiple versions of them:
+
+```csharp
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+
+    public Person(string name, int age)
+    {
+        Name = name;
+        Age = age;
+    }
+
+    public Person(string name)
+    {
+        Name = name;
+        Age = 0;
+    }
+}
+
+Person person = new Person("John Doe", 30);
+Person person2 = new Person("John Doe");
+```
+
+**using the `this()` constructor**
+
+If you have another constructor already defined, you can prevent reusing code by just reusing that constructor again to make a new constructor.
+
+For example, the `this()` function refers to the constructor of the current class, and you can use that in different constructor overloads:
+
+```csharp
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+
+    public Person(string name, int age)
+    {
+        Name = name;
+        Age = age;
+    }
+
+	// first runs the constructor Person(string, int)
+    public Person(string name) : this(name, 0)
+    {
+	    // ... whatever is in here runs after Person(string, int) is called
+	    Console.WriteLine($"Baby {name} was born!")
+    }
+}
+```
+
+> [!IMPORTANT]
+> The `this()` function always runs before the rest of the constructor body when doing a constructor overload.
+
+#### Object initializers
+
+Object initializers provide a way to initialize objects with some default properties. The "really really old way" of adding values to properties after construction looked like this:
+
+```csharp
+Person person = new Person();
+person.Name = "John Doe";
+person.Age = 30;        //😕
+```
+
+The more common and modern syntax looks like this:
+
+```csharp
+Person person = new Person { 
+    Name = "John Doe",
+    Age = 30            //❤️
+};
+```
+
+Properties can be made immutable but settable using the object initializer syntax by using the `init` keyword:
+
+```csharp
+public class Person
+{
+    public string Name { get; init; }
+    public int Age { get; init; }
+}
+
+Person person = new Person { 
+    Name = "John Doe", 
+    Age = 30
+};
+
+// person.Name is now read-only
+// person.Age is now read-only
+```
+
+You can also force the developer to set the property using object initializer syntax by using the `required` keyword:
+
+```csharp
+public class Person
+{
+    public required string Name { get; init; }
+    public required int Age { get; init; }
+}
+
+// to create a valid Person instance, you must instantiate it with name and age
+```
+
+#### Comparing object instances
+
+All classes you create automatically inherit from the `object` class, so they all have the `object.Equals(object2)` instance method to check equality between two objects.
+
+But lasses are reference types, which means that they are compared by reference, not value.
+
+This means that two classes are considered equal if they reference the same object in memory, but not if they have the same values.
+
+```csharp
+Person person1 = new Person { Name = "John Doe", Age = 30 };
+Person person2 = new Person { Name = "John Doe", Age = 30 };
+
+Console.WriteLine(person1 == person2); // False
+person1.Equals(person2); // False
+```
+
+To enable structural equality, we have to code that ourselves, and a nice semantic way of doing so is to override these methods in a class which are inherited from `object`:
+
+Overriding `Equals` and `GetHashCode` is a good way to customize how classes are compared:
+
+```csharp
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType()) return false;
+        Person other = (Person)obj;
+        return Name == other.Name && Age == other.Age;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name, Age);
+    }
+}
+```
+
+### Structs 
+
+Structs are like the C# equivalent of Python dataclasses. 
+
+They are just a simple way of writing classes such that equality and other important functionality are given out of the box, but you can also add class-specific stuff like methods and a constructor.
+
+> [!NOTE]
+> Structs are mostly used when you want a high-performance object instance without the overhead of a class.
+
+```csharp
+public struct Point
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
+Point point1 = new Point { X = 5, Y = 10 };
+Point point2 = new Point { X = 5, Y = 10 };
+
+Console.WriteLine(point1 == point2); // True
+point1.Equals(point2); // True
+```
+
+To get the most bang for your buck out of structs, keep them lean and readonly. Follow these tips:
+
+1. Keep structs readonly
+2. Only have primitive value type properties, no reference types (to keep them lean)
+
+
+### Records
+
+Records are just like JavaScript objects, so they are just containe
+
+
+
