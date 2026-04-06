@@ -1450,3 +1450,114 @@ public interface ICalculator<T>
     static abstract T Add(T a, T b);
 }
 ```
+
+### Generics
+
+#### Basics
+
+Generics in C# work the exact same as in TypeScript, but are slightly less powerful.
+
+```csharp
+public class Box<T>
+{
+    private T _item;
+
+    public void SetItem(T item)
+    {
+        _item = item;
+    }
+
+    public T GetItem()
+    {
+        return _item;
+    }
+}
+
+Box<int> intBox = new Box<int>();
+intBox.SetItem(10);
+Console.WriteLine(intBox.GetItem()); // 10
+
+Box<string> stringBox = new Box<string>();
+stringBox.SetItem("Hello");
+Console.WriteLine(stringBox.GetItem()); // Hello
+
+stringBox.SetItem(123); // Compile-time error, yay!
+```
+
+#### Type Constraints
+
+When creating generic classes, you can use type constraints to make sure that the type variable passed in must be either of a class, extend from a certain type, etc.
+
+In the example below, we assume `T` must be a class and implement the `ITrackedEntity` interface.
+
+```csharp
+public interface ITrackedEntity
+{
+    Guid Id { get; set; }
+}
+
+public class DataManager<T> where T : class, ITrackedEntity
+{
+    public void Manage(T item)
+    {
+        Console.WriteLine($"Managing entity with ID: {item.Id}");
+    }
+}
+```
+
+Here's a complete generic constraint system:
+
+```csharp
+public interface IRepository<T> where T : class
+{
+    IEnumerable<T> GetAll();
+    T GetById(int id);
+    void Add(T entity);
+    void Update(T entity);
+    void Delete(T entity);
+}
+
+public class Repository<T> : IRepository<T> where T : class
+{
+    private readonly List<T> _entities = new List<T>();
+
+    public IEnumerable<T> GetAll()
+    {
+        return _entities;
+    }
+
+    public T GetById(int id)
+    {
+        // Simulate fetching entity by ID
+        return _entities[id];
+    }
+
+    public void Add(T entity)
+    {
+        _entities.Add(entity);
+    }
+
+    public void Update(T entity)
+    {
+        // Logic for updating entity
+    }
+
+    public void Delete(T entity)
+    {
+        _entities.Remove(entity);
+    }
+}
+
+var customerRepository = new Repository<Customer>();
+var productRepository = new Repository<Product>();
+
+customerRepository.Add(new Customer { Id = Guid.NewGuid(), Name = "John Doe" });
+productRepository.Add(new Product { Id = Guid.NewGuid(), Name = "Product A" });
+```
+
+## Collections
+
+###  `IEnumerable<T>`
+
+The  `IEnumerable<T>` interface represents a generic collection of any type that can be iterated over.
+
