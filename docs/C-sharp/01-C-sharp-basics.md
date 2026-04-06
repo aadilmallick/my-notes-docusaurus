@@ -1702,5 +1702,148 @@ ImmutableArray<int> newImmutableArray = immutableArray.Add(6);
 
 Just like in JavaScript, In C#, functions are reference type objects and can be passed around like variables. This lets us do cool stuff like closures, lamdbas, function type-safety, binding, etc.
 
-### The `Func<...T>` type
+### `Func` vs `Action`
+
+When defining a type for functions, you can choose between `Func<...>` and `Action<...>`, both which take a variadic amount of type arguments, depending on how many parameters the function you're trying to type ahs.
+
+- A Func is a function that returns a value, while an Action is a function that does not return anything (returns void). 
+- Funcs specify the return type as the last generic type parameter, and Actions do not have a return type.
+
+Here is how to type a `Func`:
+
+```csharp
+static int Add(int x, int y)
+{
+    return x + y;
+}
+
+// 1st param types x, 2nd param types y, 3rd param types the return type
+Func<int, int, int> addFunc = Add;
+
+int result = addFunc(3, 4); // result = 7
+```
+
+Here is how to type an `Action`:
+
+```csharp
+static void PrintMessage(string message)
+{
+    Console.WriteLine(message);
+}
+
+Action<string> printAction = PrintMessage;
+printAction("Hello, World!"); // Output: Hello, World!
+```
+
+### Lambdas
+
+In C#, you have lambda functions which are similar to arrow functions in javascript. In fact, they use the exact same syntax, but the only difference is that you must type them with `Action` or `Func` explicitly.
+
+**one-line lambda function**
+
+```csharp
+Action<string> writeStringToConsole = x => Console.WriteLine(x);
+```
+
+**multi-line lambda function**
+
+```csharp
+Action<string> printAction = (str) =>
+{
+    Console.WriteLine(str);
+};
+
+printAction("Hello, World!"); // Output: Hello, World!
+```
+
+### Closures
+
+Closing over a variable means that a lambda expression can access and maintain the value of a variable from its outer scope, even when the lambda is executed outside of its original context. The lambda retains a reference to the original variable, not a copy.
+
+```csharp
+int counter = 0;
+Func<int, int> incrementCounter = num => {
+    counter = num + counter;
+    return counter;
+};
+Console.WriteLine(incrementCounter(5)); // Output: 5
+Console.WriteLine(incrementCounter(7)); // Output: 12
+Console.WriteLine(incrementCounter(8)); // Output: 20
+```
+
+A local function is a function declared inside another function, which can access variables from its containing scope and has similar closure properties to lambda expressions.
+
+## Dealing with files
+
+```embed
+title: "File Class (System.IO)"
+image: "https://learn.microsoft.com/en-us/media/open-graph-image.png"
+description: "Provides static methods for the creation, copying, deletion, moving, and opening of a single file, and aids in the creation of FileStream objects. "
+url: "https://learn.microsoft.com/en-us/dotnet/api/system.io.file?view=netframework-4.8"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+
+### File class
+
+You should import the `System.IO` class in order to start using file methods.
+
+```csharp
+using System;
+using System.IO;
+```
+
+**static File methods**
+
+- `File.Exists(string filepath)`: returns a **boolean**, true if the file exists at the path, false if not. Both relative and absolute paths are accepted.
+- `File.ReadAllText(string filepath)`: returns the text content of the file
+- `File.Create(string filepath)`: creates a file at the specified filepath
+- `File.Delete(string filepath)`: deletes the file at the specified filepath
+- `File.WriteAllText(string filepath, string text)`: writes content to the specified file
+- `File.Copy(string sourcePath, string destinationPath)`: copies the source file contents to a new file specified by the destination path
+- `File.Move(string sourcePath, string destinationPath)`: moves the source file contents to the destination path
+
+### Basic Reading and Writing
+
+**write all at once, read all at once**
+
+```csharp
+using System.IO;  // include the System.IO namespace
+
+string writeText = "Hello World!";  // Create a text string
+File.WriteAllText("filename.txt", writeText);  // Create a file and write the content of writeText to it
+
+string readText = File.ReadAllText("filename.txt");  // Read the contents of the file
+Console.WriteLine(readText);  // Output the content
+```
+
+**more control**
+
+```csharp
+using System;
+using System.IO;
+
+string path = @"files/blah.txt";
+if (!File.Exists(path))
+{
+    // Create a file to write to.
+    using (StreamWriter sw = File.CreateText(path))
+    {
+        sw.WriteLine("Hello");
+        sw.WriteLine("And");
+        sw.WriteLine("Welcome");
+    }
+}
+
+// Open the file to read from.
+using (StreamReader sr = File.OpenText(path))
+{
+    string? s;
+    while ((s = sr.ReadLine()) != null)
+    {
+        Console.WriteLine(s);
+    }
+}
+```
 
