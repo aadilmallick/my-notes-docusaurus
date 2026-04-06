@@ -197,7 +197,7 @@ await using (var stream = new FileStream("file.txt", FileMode.Open))
 
 > 🌶️🌶️🌶️ Rule of thumb: if your method is async and your resource is disposable, you should use `await using` - otherwise, using `using` is fine.
 
-#### Streams
+### Streams
 
 A stream is an abstraction of a sequence of bytes, similar to water moving through a pipeline where you can process data as it flows rather than waiting for the entire data to be available.
 
@@ -208,3 +208,280 @@ There are three useful types of streams:
 - `FileStream`: Used for reading and writing to files on disk.
 - `MemoryStream`: Provides a stream for storing data in memory.
 - `NetworkStream`: Allows reading and writing over network connections.
+
+Streams are often unmanaged resources, so they should be used with 'using' statements to ensure proper disposal and prevent resource leaks, such as keeping file handles locked.
+
+#### File Streams
+
+Streams are commonly used to read from files. You can perform both synchronous and asynchronous read operations.
+
+This is an example where you can read a file piecemeal
+
+```csharp
+using (var fileStream = new FileStream("file.txt", FileMode.Open))
+{
+    using (var reader = new StreamReader(fileStream))
+    {
+        string content = reader.ReadToEnd();
+        Console.WriteLine(content);
+    }
+}
+```
+
+This is an example where you can write to a file piecemeal
+
+```csharp
+using (var fileStream = new FileStream("file.txt", FileMode.Create))
+{
+    using (var writer = new StreamWriter(fileStream))
+    {
+        writer.Write("Hello, World!");
+    }
+} 
+```
+
+#### **memory stream**
+
+`MemoryStream` is useful for in-memory data storage. It's a type of stream that stores data in memory, which can be useful for scenarios where you need to work with data in memory without using a file.
+
+```csharp
+byte[] data = Encoding.UTF8.GetBytes("Hello, MemoryStream!");
+using (var memoryStream = new MemoryStream(data))
+{
+    using (var reader = new StreamReader(memoryStream))
+    {
+        string content = reader.ReadToEnd();
+        Console.WriteLine(content);
+    }
+}
+```
+
+> [!WARNING]
+> MemoryStreams are often overused by developers who put data into memory when it's not necessary. They are useful for small amounts of data or in-memory storage, but not always the most efficient solution.
+
+
+
+If you find yourself using `MemoryStream` frequently, consider whether you need to load the entire byte stream into memory. For large datasets, it may be more efficient to process the data in chunks or use other types of streams.
+
+To avoid cluttering up memory, you can use temporary file APIs to write data to disk temporarily.
+
+```csharp
+string tempFilePath = Path.GetTempFileName();
+
+try
+{
+    using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create))
+    {
+        using (var writer = new StreamWriter(tempFileStream))
+        {
+            writer.Write("Temporary data");
+        }
+    }
+
+    // Read from the temporary file
+    using (var tempFileStream = new FileStream(tempFilePath, FileMode.Open))
+    {
+        using (var reader = new StreamReader(tempFileStream))
+        {
+            string content = reader.ReadToEnd();
+            Console.WriteLine(content);
+        }
+    }
+}
+finally
+{
+    // Clean up temporary file
+    File.Delete(tempFilePath);
+}
+```
+
+## Dealing with files
+
+```embed
+title: "File Class (System.IO)"
+image: "https://learn.microsoft.com/en-us/media/open-graph-image.png"
+description: "Provides static methods for the creation, copying, deletion, moving, and opening of a single file, and aids in the creation of FileStream objects. "
+url: "https://learn.microsoft.com/en-us/dotnet/api/system.io.file?view=netframework-4.8"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+
+### File class
+
+You should import the `System.IO` class in order to start using file methods.
+
+```csharp
+using System;
+using System.IO;
+```
+
+**static File methods**
+
+The File class has both synchronous and async versions of the same operations/methods.
+
+- `File.Exists(string filepath)`: returns a **boolean**, true if the file exists at the path, false if not. Both relative and absolute paths are accepted.
+- `File.ReadAllText(string filepath)`: returns the text content of the file
+- `File.Create(string filepath)`: creates a file at the specified filepath
+- `File.Delete(string filepath)`: deletes the file at the specified filepath
+- `File.WriteAllText(string filepath, string text)`: writes content to the specified file
+- `File.Copy(string sourcePath, string destinationPath)`: copies the source file contents to a new file specified by the destination path
+- `File.Move(string sourcePath, string destinationPath)`: moves the source file contents to the destination path
+
+#### Copy, Move, Deleting
+
+```csharp
+File.Copy("source.txt", "destination.txt");
+File.Move("source.txt", "destination.txt");
+File.Delete("file.txt");
+```
+
+### Basic Reading and Writing
+
+#### Loading entire file into memory
+
+The basic pipeline is as follows:
+
+```csharp
+using System.IO;  // include the System.IO namespace
+
+string writeText = "Hello World!";  // Create a text string
+File.WriteAllText("filename.txt", writeText);  // Create a file and write the content of writeText to it
+
+string readText = File.ReadAllText("filename.txt");  // Read the contents of the file
+Console.WriteLine(readText);  // Output the content
+```
+
+Here are the methods to read a file all at once, loading the entire file's contents into memory
+
+- **`File.ReadAllText()`**: Reads the contents of a file as a single string.
+- **`File.ReadAllLines()`**: Reads the contents of a file and returns an array of strings, each representing a line in the file.
+- **`File.ReadAllBytes()`**: Reads the contents of a file as a byte array.
+
+```csharp
+string content = File.ReadAllText("file.txt");
+string[] lines = File.ReadAllLines("file.txt");
+byte[] bytes = File.ReadAllBytes("file.txt");
+```
+
+Here are the methods to write to a file all at once, loading the entire file's contents into memory
+
+- **`File.WriteAllText()`**: Writes text to a file, overwriting the file if it already exists.
+- **`File.AppendAllText()`**: Appends text to a file, creating the file if it doesn't exist.
+- **`File.WriteAllLines()`**: Writes an array of strings to a file, each string being a line in the file.
+
+```csharp
+File.WriteAllText("file.txt", "Hello, World!");
+File.AppendAllText("file.txt", "\nGoodbye, World!");
+File.WriteAllLines("file.txt", new[] { "Hello", "World" });
+```
+
+
+
+#### Using streams
+
+```csharp
+using System;
+using System.IO;
+
+string path = @"files/blah.txt";
+if (!File.Exists(path))
+{
+    // Create a file to write to.
+    using (StreamWriter sw = File.CreateText(path))
+    {
+        sw.WriteLine("Hello");
+        sw.WriteLine("And");
+        sw.WriteLine("Welcome");
+    }
+}
+
+// Open the file to read from.
+using (StreamReader sr = File.OpenText(path))
+{
+    string? s;
+    while ((s = sr.ReadLine()) != null)
+    {
+        Console.WriteLine(s);
+    }
+}
+```
+
+### FileInfo class
+
+The `FileInfo` class provides instance methods and properties for working with files.
+
+```csharp
+var fileInfo = new FileInfo("file.txt");
+```
+
+**common properties**
+
+- **`fileInfo.Length`**: Gets the size of the file in bytes.
+- **`fileInfo.CreationTime`**: Gets or sets the creation date and time of the file.
+- **`fileInfo.LastAccessTime`**: Gets or sets the date and time the file was last accessed.
+
+```csharp
+var fileInfo = new FileInfo("file.txt");
+Console.WriteLine(fileInfo.Length);
+Console.WriteLine(fileInfo.CreationTime);
+Console.WriteLine(fileInfo.LastAccessTime);
+```
+
+### Directory class
+
+Here are the static methods on the `Directory` class, which provides utilities for working with directories:
+
+- `Directory.CreateDirectory(folderpath)`: Creates a directory and any subdirectories specified in the path. If the directory already exists, no action is taken, so it's safe to call this method multiple times.
+
+```csharp
+Directory.CreateDirectory("newDirectory");
+```
+
+### Path Class
+
+The `Path` class offers a bunch of static methods that serve as utilities for working with paths.
+
+- `Path.Combine(params string[] paths)`: Combines two or more strings into a path, OS agnostic.
+- `Path.GetDirectoryName(string filepath)`: Gets the directory information for the specified path string.
+- `Path.GetExtension(string filepath)`: Gets the extension of the specified path string.
+- `Path.GetTempFileName()`: Gets the full path to a temporary file. This file is actually created inside of the user's temp directory. Useful for creating a temporary file and then deleting it after the program is done using it.
+
+
+```csharp
+string path = Path.Combine("directory", "file.txt"); // returns combined path
+string directory = Path.GetDirectoryName("file.txt"); // returns directory path
+string extension = Path.GetExtension("file.txt"); // returns .txt
+string randomFileName = Path.GetRandomFileName(); // returns random file name
+string tempFileName = Path.GetTempFileName(); // returns temp file path
+```
+
+
+## Network Requests
+
+### HTTPClient class
+
+The `HttpClient` class is a high-level abstraction for making HTTP requests and receiving/processing HTTP responses
+
+#### Basic Requesting
+
+The `HttpRequestMessage` instance is 
+
+```csharp
+var request = new HttpRequestMessage(HttpMethod.Get, "https://microsoft.com");
+var httpClient = new HttpClient();
+
+var response = await httpClient.SendAsync(request);
+```
+
+`HttpClient` includes a set of default headers for every request, which can be overridden or added to as needed.
+
+```csharp
+var httpClient = new HttpClient();
+httpClient.DefaultRequestHeaders.Add("X-Secret-Header", "some_secret_value");
+
+var request = new HttpRequestMessage(
+	HttpMethod.Get, 
+	"https://yourfavoriteservice.com/some_secret_api"
+);
+```
