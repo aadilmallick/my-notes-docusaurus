@@ -1237,14 +1237,18 @@ public class Person
 }
 ```
 
-### Structs 
+### Structs, Records, Classes
+
+#### Structs 
 
 Structs are like the C# equivalent of Python dataclasses. 
 
 They are just a simple way of writing classes such that equality and other important functionality are given out of the box, but you can also add class-specific stuff like methods and a constructor.
 
 > [!NOTE]
-> Structs are mostly used when you want a high-performance object instance without the overhead of a class.
+> Structs are mostly used when you want a high-performance object instance without the overhead of a class. This is because structs are allocated to the stack and are immediately garbage collected once out of scope.
+
+Structs are allocated to the stack and are thus much higher performance than reference objects like class or record instances.
 
 ```csharp
 public struct Point
@@ -1265,10 +1269,120 @@ To get the most bang for your buck out of structs, keep them lean and readonly. 
 1. Keep structs readonly
 2. Only have primitive value type properties, no reference types (to keep them lean)
 
-
-### Records
-
-Records are just like JavaScript objects, so they are just containe
+> [!TIP]
+> When declaring structs, it is recommended to make them immutable by closing setters and instantiating values via constructors, avoiding reference types within the struct's properties.
 
 
+#### Records
+
+Records are just like JavaScript objects, so they are just containers for data.
+
+They have structural equality by default, can be easily compared, and support a 'with' syntax for creating modified copies of existing records.
+
+However, they are meant to be used as a simple container for data, so you can't add methods or any other side effects to a record.
+
+
+```csharp
+// define the interface for what a person record should be like
+public record Person(string Name, int Age);
+
+// create a new record instance
+var person1 = new Person("John Doe", 30);
+// create a new record instance from another instance, using object copying and overriding the Age property.
+var person2 = person1 with { Age = 31 };
+```
+
+The `with` expression allows you to create a new record based on an existing record, with modifications to some properties by overriding them, avoiding side effects.
+
+Records have structural equality.
+
+```csharp
+var person1 = new Person("John Doe", 30);
+var person2 = new Person("John Doe", 30);
+
+Console.WriteLine(person1 == person2); // True
+person1.Equals(person2); // True
+```
+
+
+
+
+#### Structs vs Records vs Classes
+
+**Structs**
+
+- **Performance:** Best suited for small, immutable data types due to value semantics.
+- **Use Cases:** High-performance scenarios, geometric points, complex numbers.
+
+**Records**
+
+- **Data-Centric:** Best for immutable data models that do not require behavior.
+- **Use Cases:** DTOs (data transfer objects), configuration objects, immutable data transfers.
+
+**Classes**
+
+- **Flexibility:** Ideal for complex objects with behavior and mutable state.
+- **Use Cases:** Domain models, services, business logic.
+
+
+
+### Object Inheritance
+
+To inherit from another class, use the `:` operator
+
+```csharp
+public class HourlyEmployee : BaseEmployee
+```
+
+#### Access Modifiers
+
+Access modifiers also affect how child classes can use the parent class functionality.
+
+- `protected`: acts exactly like `private` but child classes can access protected methods and fields within the class definition, while consumers cannot.
+- `private`: only the class itself (no child classes) can access anything marked private
+
+#### Sealed classes
+
+A sealed class cannot be inherited. Use this to prevent further derivation.
+
+```csharp
+public sealed class FinalEmployee
+{
+    // Implementation
+}
+```
+
+You can also seal methods and properties to prevent them from being overriden using the `override` operator:
+
+```csharp
+public class BaseEmployee
+{
+    public sealed override string ToString()    //sealed prevents overriding in derived classes
+    {
+        return "Base employee details";
+    }
+}
+```
+
+#### Virtual Methods
+
+You can mark a virtual method in the parent class using the `virtual` keyword after the access modifier, which means that you want this method to to be used by children and possibly overriden using the `override` keyword:
+
+```csharp
+public class BaseEmployee
+{
+    public virtual string GetEmployeeDetails()
+    {
+        return "Base employee details";
+    }
+}
+
+public class DerivedEmployee : BaseEmployee
+{
+    public override string GetEmployeeDetails()
+    {
+        return "Derived employee details";
+    }
+}
+```
 
