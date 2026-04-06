@@ -1559,7 +1559,18 @@ productRepository.Add(new Product { Id = Guid.NewGuid(), Name = "Product A" });
 
 ###  `IEnumerable<T>`
 
-The  `IEnumerable<T>` interface represents a generic collection of any type that can be iterated over.
+The  `IEnumerable<T>` interface represents a generic collection of any type that can be iterated over. You can think of this as the same thing as a generic iterator/iterable in Python or JavaScript.
+
+But In C#, the `IEnumerable<T>` is **lazily evaluated**, which means it uses generators under the hood to return one element at a time rather than keeping the entire collection in memory.
+
+These six generic collections implement this interface:
+
+- Use `ImmutableArray<T>` when you need a collection that won't change. (My favorite collection type!)
+- Use `List<T>` when you need a resizable collection that allows fast access to elements by index.
+- Use `Dictionary<TKey, TValue>` when you need a collection that maps keys to values and allows fast lookups by key.
+- Use `HashSet<T>` when you need a collection that stores a set of values and allows fast lookups by value.
+- Use `Queue<T>` when you need a collection that stores a first-in, first-out (FIFO) collection of values.
+- Use `Stack<T>` when you need a collection that stores a last-in, first-out (LIFO) collection of values.
 
 ### `List<T>`
 
@@ -1697,6 +1708,88 @@ Adding to the array returns a new `ImmutableArray<T>` with the added value.
 ```csharp
 ImmutableArray<int> newImmutableArray = immutableArray.Add(6);
 ```
+
+### LINQ
+
+### Intro
+
+LINQ (Language Integrated Query) is a feature in .NET that allows powerful and intuitive collection manipulation using methods like Where(), OrderBy(), and Select() with Lambda expressions, enabling developers to filter, sort, and transform collections with concise and readable code.
+
+LINQ is a suite of collection iteration methods that allow you to iterate through a collection in a lazily evaluated way. 
+
+LINQ queries work on any collection that implements the `IEnumerable<T>` interface.
+
+> [!NOTE]
+> **Similarity to Python**
+> ***
+> This is the same thing as in Python, where a `filter()` or `map()` call returns a generator object, but you actually have to cast that generator object to a list in order to get back all the values in memory.
+
+> [!IMPORTANT]
+> **difference from JavaScript**
+> ***
+> LINQ uses lazy evaluation, meaning operations like Where() and OrderBy() are not executed immediately when declared. The operations are only processed when the collection is actually enumerated, unlike JavaScript's immediate map/filter/reduce methods.
+
+
+```csharp
+// actual collection is not created yet, only operations are queued up
+var highEarners = employees
+    .Where(e => e.Salary > 100000)
+    .OrderBy(e => e.Name)
+    .Select(e => e.Name);
+
+// lazily evaluate each property at a time through pipelin
+foreach (var name in highEarners)
+{
+    Console.WriteLine(name);
+}
+```
+
+> [!NOTE]
+> The best analogy I can give here is that LINQ works on collections like observables (RXJS) in JavaScript.
+>- LINQ methods only build the observable pipeline
+>- You consume the observable by looping through it or changing it to be eagerly evaluated.
+
+
+#### Lazy evaluation vs Eager evaluation
+
+There are two different types of evaluations:
+
+- **lazy evaluation**: What LINQ and the `IEnumerable<T>` uses, which only evaluates the current element in the iteration, yielding them like a generator.
+- **eager evaluation**: containing the entire collection in memory, like a list.
+
+**lazy evaluation**
+
+In the context of `IEnumerable<T>`, methods that operate on collections like `Select`, `Where`, and `Take` do not immediately execute when called. 
+
+Instead, they set up a query pipeline, and the actual iteration (evaluation) happens only when you access the elements—for example, by using a `foreach` loop or calling a terminal operation like `ToList()`.
+
+This "deferred execution" model allows for efficient processing of potentially large collections without consuming memory unnecessarily by generating all elements up front.
+
+**eager evaluation**
+
+To switch from lazy evaluation to eager evaluation, All you have to do is convert the LINQ result or enumerable to a list or array.
+
+`ToList` and `ToArray` are methods that make an `IEnumerable<T>` into a `List<T>` or array of that type. It forces an otherwise "lazy" sequence into materialization.
+
+```csharp
+
+var numbers = new[] { 1, 2, 3, 4, 5 };
+
+// Query is defined, but not executed yet.
+var query = numbers.Where(n => n % 2 == 0); 
+
+//now it's executed and those values are officially in memory!
+var asList = query.ToList();
+```
+
+#### LINQ methods
+
+- `collection.Where(el => boolean)`: filters the collection and returns only the elements where the predicate returns true.
+- `collection.Select(el => T)`: works exactly like `.map()` in javascript, where for each element you return a new value and that will be the new collection.
+- `collection.OrderBy(el => T)`: orders the collection by some value derived from the element.
+- `collection.Distinct()`: filters out and returns only the distinct elements (removes duplicates) in the collection.
+
+
 
 ## Functions as objects
 
