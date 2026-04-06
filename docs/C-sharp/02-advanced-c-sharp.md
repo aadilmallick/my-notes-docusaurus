@@ -56,3 +56,32 @@ Console.WriteLine(name.IsPalindrome()); // Output: False
 - **System.Threading.Tasks**: Provides classes and methods for managing threads and asynchronous operations.
 - **System.Reflection**: Provides classes and methods for inspecting and manipulating assemblies, modules, and types at runtime.
 
+### Async Programming
+
+#### Basic Tasks and `async/await`
+
+C# async/await was the inspiration for JS async/await and thus they share many similarities.
+
+In C#, a promise is a task, where each asynchronous method or operation returns a `Task<T>` instance, where `T` is the type that the tasks resolves to once awaited.
+
+Here are the two things you should know when trying to do async programming:
+
+1. you can only use async/await syntax inside of an `async` function.
+2. All async functions must return some `Task<T>` instanc
+
+```csharp
+async Task<string> FetchDataAsync()
+{
+    await Task.Delay(1000); // Simulate async work
+    return "Data fetched!";
+}
+
+async Task Main()
+{
+    string data = await FetchDataAsync();
+    Console.WriteLine(data); // Output: Data fetched!
+}
+
+Main().GetAwaiter().GetResult();
+```
+
