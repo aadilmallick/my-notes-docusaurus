@@ -966,9 +966,34 @@ Console.WriteLine("Username is: " + userName);
 
 First, some terminology:
 
-- **Fields** are simple object variables on a class
+- **Fields** are simple object variables on a class. They can be set inside the constructor, in methods, or in the class definition before the constructor.
 - **Properties** are an abstraction over fields that control access to data, allowing customization of getter and setter behaviors with optional accessibility modifiers.
-- **Computed properties** are read-only properties that dynamically calculate their value based on other properties, such as creating a FullName property that combines FirstName and LastName
+- **Computed properties** are *read-only* properties that dynamically calculate their value based on other properties, such as creating a FullName property that combines FirstName and LastName
+
+This is how we used to define geeters and setters back in C# in the old ways, which is kind of like Java:
+
+```csharp
+public class Person
+{
+    private string _name;
+    
+    public string Name
+    {
+        get { return _name; }
+        set { _name = value; }
+    }
+}
+```
+
+But now we have a new way which is syntactic sugar over the old way:
+
+```csharp
+public class Person
+{
+	//creates a private backing field under the hood
+    public string Name { get; set; }    
+}
+```
 
 Here are what the different access modifiers do:
 
@@ -986,4 +1011,28 @@ The absence of modifiers also has special meaning:
 
 You can create a read-only property over a field by defining a public getter but only a private setter or no setter at all.
 
+```csharp
+public class Person
+{
+    public string Name { get; } // Immutable property, typically set in constructor
+    public int Age { get; set; } // Mutable property
+}
 
+var person = new Person { Name = "John Doe", Age = 30 };
+person.Age = 31; // This is fine
+person.Name = "Jane Doe"; // This will cause a compile-time error
+```
+
+
+**Creating computed properties**
+
+You can create computed properties outside of the constructor via a lambda function, which returns a new readonly field computed from other class fields.
+
+```csharp
+public class Person
+{
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string FullName => $"{this.FirstName} {this.LastName}";
+}
+```
