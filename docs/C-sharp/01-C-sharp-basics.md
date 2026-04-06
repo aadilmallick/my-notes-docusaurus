@@ -1561,3 +1561,146 @@ productRepository.Add(new Product { Id = Guid.NewGuid(), Name = "Product A" });
 
 The  `IEnumerable<T>` interface represents a generic collection of any type that can be iterated over.
 
+### `List<T>`
+
+The `List<T>` class is a generic implementation of an array list.
+
+**instantiating a list**
+
+There are two ways to create a list. 
+
+The first is the constructor way:
+
+```csharp
+List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
+```
+
+You can even declare it with collection initializer syntax in newer versions of C#:
+
+```csharp
+List<int> numbers = [1, 2, 3, 4, 5];
+```
+
+**list methods**
+
+Here are all the list methods
+
+- `list.Add`/`AddRange`
+    - `Add`: Adds a single element to the list. `numbers.Add(6);`
+    - `AddRange`: Adds multiple elements to the list at once. `numbers.AddRange(new int[] { 7, 8, 9 });`
+- `list.Remove`/`RemoveAt`
+    - `Remove`: Removes the first occurrence of a specific element. `numbers.Remove(4);`
+    - `RemoveAt`: Removes an element at the specified index. `numbers.RemoveAt(2);`
+- `list.Insert`: Adds an element at the specified index. `numbers.Insert(1, 10);`
+- `list.IndexOf`: Returns the index of the first occurrence of an element. `int index = numbers.IndexOf(5);`
+- `list.Count`: Returns the number of elements in the list. `int count = numbers.Count;`
+- `list.Sort`: Sorts the elements in the list in ascending order. `numbers.Sort();`
+- `list.Reverse`: Reverses the order of elements in the list. `numbers.Reverse();`
+
+```csharp
+List<int> numbers = [1, 2, 3, 4, 5];
+numbers.Add(6);
+numbers.Remove(2);
+numbers.Sort();
+numbers.Reverse();
+Console.WriteLine(string.Join(", ", numbers)); // Output: 6, 5, 4, 3, 1
+Console.WriteLine(numbers.Exists(x => x > 4)); // Output: True
+Console.WriteLine(numbers.Find(x => x % 2 == 0)); // Output: 6
+numbers.Contains(3); // Output: True
+```
+
+**list iteration methods**
+
+here are the list iteration methods, all of which take in a lambda function with the first argument being the current element in the iteration.
+
+- `ForEach`: iterates through all elements of the list, where the lambda is a void side effect function.
+	- **Purpose**: to perform some side-effect for every element in the array.
+- `Exists`: lambda returning a boolean
+	- **Purpose**: to see if there exists an element that satisfies the condition defined in the lambda.
+- `Find`: lambda returning a boolean, returns the first element that makes the condition in the lambda return true.
+	- **Purpose**: to find a specific element that satisfies a condition.
+
+```csharp
+numbers.ForEach(number => Console.WriteLine(number));
+Console.WriteLine(numbers.Exists(x => x > 4)); // Output: True
+Console.WriteLine(numbers.Find(x => x % 2 == 0)); // Output: 6
+```
+
+### `Dictionary<T, V>`
+
+```csharp
+Dictionary<string, int> dictionary = new Dictionary<string, int>();
+
+//set the values
+dictionary["one"] = 1;
+dictionary[2] = "two";  //this doesn't compile!
+```
+
+```csharp
+Dictionary<string, int> dictionary = new Dictionary<string, int>();
+
+//set the values
+dictionary["one"] = 1;
+dictionary["two"] = 2;
+
+//get the values
+int thisValue = dictionary["one"];
+int thatValue = dictionary["two"];
+
+int doesNotExistValue = dictionary["three"]; //KeyNotFoundException
+```
+
+These are the methods you have on a dictionary object:
+
+- `dict.Add` - add a key-value pair to the dictionary. 
+	- Example: `dictionary.Add("three", 3);` 
+	- Will throw an exception if the key already exists in the dictioary.
+- `dict.Remove` - remove a key-value pair from the dictionary. 
+	- Example: `dictionary.Remove("one");`
+- `dict.ContainsKey` - check if the dictionary contains a key. 
+	- Example: `dictionary.ContainsKey("two");`
+- `dict.ContainsValue` - check if the dictionary contains a value. 
+	- Example: `dictionary.ContainsValue(3);`
+- `dict.TryGetValue` - get the value for a key. 
+	- Example: `dictionary.TryGetValue("three", out int value);` 
+	- Will return true if the key exists in the dictionary, and false otherwise.
+- `dict.Clear` - remove all key-value pairs from the dictionary. 
+	- Example: `dictionary.Clear();`
+- `dict.Count` - get the number of key-value pairs in the dictionary. 
+	- Example: `int count = dictionary.Count;`
+- `dict.Keys` - get a collection of the keys in the dictionary. 
+	- Example: `IEnumerable<string> keys = dictionary.Keys;`
+- `dict.Values` - get a collection of the values in the dictionary. 
+	- Example: `IEnumerable<int> values = dictionary.Values;`
+
+### `HashSet<T>`
+
+A hash set is just a key-value pair written in a way that hash collisions make the data structure a set, where duplicates are not allowed
+
+```csharp
+HashSet<int> hashSet = new HashSet<int>();
+hashSet.Add(1);
+hashSet.Add(2);
+hashSet.Add(2); // This will not be added because it is a duplicate
+```
+
+### `ImmutableArray<T>`
+
+An `ImmutableArray<T>` is a collection that stores a fixed-size array of values. It is immutable, meaning that once it is created, its size and contents cannot be changed.
+
+```csharp
+ImmutableArray<int> immutableArray = ImmutableArray.Create(1, 2, 3, 4, 5);
+```
+
+Adding to the array returns a new `ImmutableArray<T>` with the added value.
+
+```csharp
+ImmutableArray<int> newImmutableArray = immutableArray.Add(6);
+```
+
+## Functions as objects
+
+Just like in JavaScript, In C#, functions are reference type objects and can be passed around like variables. This lets us do cool stuff like closures, lamdbas, function type-safety, binding, etc.
+
+### The `Func<...T>` type
+
