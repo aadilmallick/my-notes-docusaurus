@@ -60,6 +60,8 @@ Console.WriteLine(name.IsPalindrome()); // Output: False
 
 #### Basic Tasks and `async/await`
 
+**intro**
+
 C# async/await was the inspiration for JS async/await and thus they share many similarities.
 
 In C#, a promise is a task, where each asynchronous method or operation returns a `Task<T>` instance, where `T` is the type that the tasks resolves to once awaited.
@@ -67,7 +69,7 @@ In C#, a promise is a task, where each asynchronous method or operation returns 
 Here are the two things you should know when trying to do async programming:
 
 1. you can only use async/await syntax inside of an `async` function.
-2. All async functions must return some `Task<T>` instanc
+2. All async functions must return some `Task<T>` instance, and just `Task` in the case of a void promise/task.
 
 ```csharp
 async Task<string> FetchDataAsync()
@@ -82,6 +84,127 @@ async Task Main()
     Console.WriteLine(data); // Output: Data fetched!
 }
 
+// how to block thread to wait for async work to be done.
 Main().GetAwaiter().GetResult();
 ```
 
+**synchronous blocking**
+
+You should never try to synchronously wait for the results of an asynchronous function because then that defeats the purpose of async methods.
+
+Using `Task.Result` or `Task.Wait()` on a task can lead to deadlocks, especially in older .NET applications with a synchronization context.
+
+```csharp
+// Problematic code
+var result = GetDataFromServerAsync().Result; // Can cause deadlocks
+```
+
+#### Awaiting multiple tasks in parallel
+
+Similar to `Promise.all()`, we have `Task.WhenAll(...tasks)` that takes in an arbitrary amount of tasks, awaits them all, and then returns a list of their awaited results in order.
+
+
+### Disposables
+
+#### Dispose pattern
+
+In Python, you have context managers to automatically manage the lifetime of a resource and dispose of it once done within a `with` block.
+
+In C#, you have the same thing, where you manage the lifetime of a resource within the scope of a `using` block.
+
+Here are the main use cases for using the dispose pattern:
+
+- **File Handles**: Resources used to read from or write to files.
+- **Network Connections**: Connections to network services or remote servers.
+- **Database Connections**: Connections to databases that need to be explicitly closed.
+- **Memory from Other Systems**: Memory allocated through native code or APIs that needs manual management.
+
+**creating a disposable**
+
+The `IDisposable` interface is designed for types that need to release unmanaged resources. It contains a single method, `Dispose`, which should be implemented to free these resources.
+
+The `Dispose` method is used to release unmanaged resources that an object holds. 
+
+Unmanaged resources include things like file handles, network connections, database connections, and memory from other systems (such as native OS calls). 
+
+Properly releasing these resources is crucial for avoiding resource leaks and ensuring that your application runs efficiently.
+
+The resource below uses a `SqlConnection` which uses unmanaged resources. It's EXTREMELY important to call `Dispose` on the connection when you're done with it. For this example, since the `MyResource` class creates and manages the `SqlConnection`, it should also be responsible for disposing of it.
+
+```csharp
+public class MyResource : IDisposable
+{
+    private bool _disposed = false; // To detect redundant calls
+    private SqlConnection _connection;
+
+    // Implement IDisposable
+    public void Dispose()
+    {
+        if (!disposed)
+        {
+            _connection.Dispose();
+
+            // Free your own state (unmanaged objects).
+            disposed = true;
+        }
+    }
+}
+```
+
+In a typical `Dispose()` method implementation, first check if the object has already been disposed using a boolean flag. If not yet disposed, release the unmanaged resources and then set the flag to true to prevent multiple disposal attempts.
+
+**using a disposable**
+
+The `using` statement provides a convenient syntax that ensures the `Dispose` method is called automatically at the end of the block, even if an exception occurs.
+
+For our example above, you would then use the `MyResource` class like this:
+
+```csharp
+using (var myResource = new MyResource())
+{
+    myResource.UseResource();
+}
+```
+
+You can also use the `using` statement at the beginning of a variable declaration to ensure it's disposed of when the scope ends:
+
+```csharp
+using var myResource = new MyResource();
+myResource.UseResource();
+
+//automatically disposed of when myResource goes out of scope
+```
+
+
+> [!NOTE] 
+> **Behind the scenes: how `using` works**
+> ***
+> The 'using' keyword provides a convenient way to manage resources that implement IDisposable, automatically calling the Dispose method at the end of the code block, even if an exception occurs. It essentially acts as syntactic sugar for a try-catch-finally block.
+
+
+**async dispose**
+
+With asynchronous programming, you can use await using to asynchronously dispose of objects that implement `IAsyncDisposable`. This is useful for I/O-bound resources that benefit from asynchronous disposal.
+
+`IAsyncDisposable` is a recent addition that provides an asynchronous Dispose method returning a task, which can be awaited. It should be used when possible to maintain asynchronous operations throughout the code, though using a standard using statement is still important for resource management.
+
+```csharp
+await using (var stream = new FileStream("file.txt", FileMode.Open))
+{
+    // Use the stream
+}
+```
+
+> 🌶️🌶️🌶️ Rule of thumb: if your method is async and your resource is disposable, you should use `await using` - otherwise, using `using` is fine.
+
+#### Streams
+
+A stream is an abstraction of a sequence of bytes, similar to water moving through a pipeline where you can process data as it flows rather than waiting for the entire data to be available.
+
+Streams are examples of built-in disposables that are useful.
+
+There are three useful types of streams:
+
+- `FileStream`: Used for reading and writing to files on disk.
+- `MemoryStream`: Provides a stream for storing data in memory.
+- `NetworkStream`: Allows reading and writing over network connections.
