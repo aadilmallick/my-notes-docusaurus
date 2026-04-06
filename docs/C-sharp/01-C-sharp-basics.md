@@ -1386,3 +1386,24 @@ public class DerivedEmployee : BaseEmployee
 }
 ```
 
+### Abstract classes
+
+An abstract class is a class that cannot be instantiated directly and is meant to be inherited from.
+
+You can think of an abstract class as a mix between an interface (design only) and a class (implementation only), taking properties from both.
+
+You define the properties and methods you want child classes to implement for you via the `abstract` modifier, but normal class inheritance of non-abstract methods and properties also works here.
+
+Abstract methods and properties do not have implementations; they are meant for the inherited child to implement them.
+
+```csharp
+public abstract class Employee
+{
+    protected Guid Id { get; set; }  //accessible to derived classes only!
+    public string FirstName { get; set; }  //accessible to anyone who has access to this object
+    public string LastName { get; set; }
+
+    public abstract decimal CalculatePay();
+    private void GenerateEmployeeId();  //not accessible to derived classes
+}
+```
