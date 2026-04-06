@@ -1407,3 +1407,46 @@ public abstract class Employee
     private void GenerateEmployeeId();  //not accessible to derived classes
 }
 ```
+
+### Interfaces
+
+THis is how you create an interface in C#
+
+```csharp
+public interface IDatabase
+{
+    void Connect();
+    void Disconnect();
+    bool IsConnected { get; }
+}
+```
+
+And this is how you implement an interface, by just inheriting from it.
+
+```csharp
+public class SqlDatabase : IDatabase
+{
+    public bool IsConnected { get; private set; }
+
+    public void Connect()
+    {
+        // Implementation code
+        IsConnected = true;
+    }
+
+    public void Disconnect()
+    {
+        // Implementation code
+        IsConnected = false;
+    }
+}
+```
+
+Interfaces are usually just contracts for the shape of an object instance instantiated from a class implementing that interface, but you can also define contracts for static properties and methods of the class using the `static abstract` modifier in an interface:
+
+```csharp
+public interface ICalculator<T>
+{
+    static abstract T Add(T a, T b);
+}
+```
