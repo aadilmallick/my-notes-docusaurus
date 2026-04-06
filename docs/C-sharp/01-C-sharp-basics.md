@@ -1951,7 +1951,7 @@ int exceptional = emptyList.Sum();
 
 #### LINQ aggregation methods
 
-**`collection.Aggregate**
+**`collection.Aggregate()`**
 
 The `collection.Aggregate<T>((acc, el) => T)` method works the exact same like `.reduce()` in JavaScript, where the first argument in the lambda is the **accumulator** and the 2nd argument is the element.
 
@@ -1959,6 +1959,77 @@ The `collection.Aggregate<T>((acc, el) => T)` method works the exact same like `
 int[] nums = { 1, 2, 3, 4, 5 };
 var sum = nums.Aggregate((acc, x) => acc + x);
 Console.WriteLine(sum); // Output: 15
+```
+
+**`collection.GroupBy()`**
+
+
+The `GroupBy` method is very valuable when you need to group similar objects together. It allows you to categorize elements into groups.
+
+
+```csharp
+var employees = new[]
+{
+    new { Name = "John", Department = "HR" },
+    new { Name = "Jane", Department = "Finance" },
+    new { Name = "Mike", Department = "IT" },
+    new { Name = "Sara", Department = "HR" }
+};
+
+var grouped = employees.GroupBy(e => e.Department);
+
+foreach (var group in grouped)
+{
+    Console.WriteLine($"Department: {group.Key}");
+    foreach (var employee in group)
+    {
+        Console.WriteLine($"- {employee.Name}");
+    }
+}
+
+//output: 
+//Department: HR
+//- John
+//- Sara
+//Department: Finance
+//- Jane
+//Department: IT
+//- Mike
+```
+
+Let's break down this example:
+
+1. Call `GroupBy()` and pass a **grouping key** for each element.
+
+```csharp
+// returns a collection of Group<T> objects
+var groups = employees.GroupBy(e => e.Department);
+```
+
+2. You now have a collection of group objects, where each group is an `IGrouping<T>` with is an `IEnumerable<T>` of the elements that got grouped together and also has a `group.Key`, which is the grouping key of the elements grouped together.
+
+
+
+```csharp
+var employees = new[]
+{
+    new { Name = "John", Department = "HR" },
+    new { Name = "Jane", Department = "Finance" },
+    new { Name = "Mike", Department = "IT" },
+    new { Name = "Sara", Department = "HR" }
+};
+
+var groups = employees.GroupBy(e => e.Department);
+groups.Select(g => new {
+    Department = g.Key,
+    Employees = g.Select(e => e.Name).ToList()
+})
+.ToList()
+.ForEach(group => {
+    Console.WriteLine($"Department: {group.Department}");
+    Console.WriteLine("Employees: " + string.Join(", ", group.Employees));
+    Console.WriteLine();
+});
 ```
 
 #### LINQ single value selection
@@ -2005,6 +2076,27 @@ int firstOrDefaultNumber = numbers.FirstOrDefault(); // returns 1
 int emptyFirstOrDefault = new List<int>().FirstOrDefault(); // returns 0 (default for int)
 ```
 
+#### LINQ `SelectMany()`
+
+The `SelectMany` method is used to flatten a collection of collections into a single sequence. This is particularly useful when you have objects that contain other collections, and you want to “unzip” them.
+
+
+```csharp
+var managers = new[]
+{
+    new { ManagerName = "John", Employees = new[] { "Mike", "Jane" } },
+    new { ManagerName = "Sara", Employees = new[] { "Peter", "Chris" } }
+};
+
+var allEmployees = managers.SelectMany(m => m.Employees);
+
+foreach (var employee in allEmployees)
+{
+    Console.WriteLine(employee);
+}
+```
+
+In this example, `SelectMany` flattens the employee arrays from each manager into a single sequence of employees.
 
 ## Functions as objects
 

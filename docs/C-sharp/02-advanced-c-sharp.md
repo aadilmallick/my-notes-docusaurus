@@ -45,4 +45,14 @@ Console.WriteLine(name.IsPalindrome()); // Output: False
 
 
 
-## Async Programming
+## Built-in Libraries
+
+- **System.Collections**: Provides classes and interfaces for working with collections, such as lists, dictionaries, and queues. We went through a lot of these already, yay!
+- **System.IO**: Contains types that allow reading and writing to files and streams.
+- **System.Net**: Provides a simple programming interface for many of the protocols used on the Internet.
+- **System.Text.Json**: Provides functionality to serialize and deserialize JSON data.
+- **System.Net.Http**: Provides a library for making HTTP requests and receiving HTTP responses.
+- **System.Linq**: Includes classes and methods for querying and manipulating data in collections.
+- **System.Threading.Tasks**: Provides classes and methods for managing threads and asynchronous operations.
+- **System.Reflection**: Provides classes and methods for inspecting and manipulating assemblies, modules, and types at runtime.
+
