@@ -1304,7 +1304,26 @@ Console.WriteLine(person1 == person2); // True
 person1.Equals(person2); // True
 ```
 
+#### Anonymous types
 
+Anonymous types are types that have no defined class and are just records under the hood.
+
+They are types that are created dynamically, allowing you to group multiple properties together without declaring an explicit type for the data.
+
+Anonymous types have a few unique features.
+
+- The properties of anonymous types are read-only.
+- Anonymous types automatically implement `Equals` and `GetHashCode` based on their structural properties, meaning two anonymous objects with the same values are considered equal. (Exactly like records in fact. You could say that anonymous types were the original record types in C#.)
+
+> [!NOTE]
+> Anonymous types are even heavier syntactic sugar over a record, and they look pretty much the exact same as JavaScript objects.
+
+```csharp
+var employee1 = new { Name = "John", Salary = 120000 };
+var employee2 = new { Name = "John", Salary = 120000 };
+
+Console.WriteLine(employee1.Equals(employee2));  // Output: True
+```
 
 
 #### Structs vs Records vs Classes
@@ -1711,7 +1730,7 @@ ImmutableArray<int> newImmutableArray = immutableArray.Add(6);
 
 ### LINQ
 
-### Intro
+#### Intro
 
 LINQ (Language Integrated Query) is a feature in .NET that allows powerful and intuitive collection manipulation using methods like Where(), OrderBy(), and Select() with Lambda expressions, enabling developers to filter, sort, and transform collections with concise and readable code.
 
@@ -1782,13 +1801,209 @@ var query = numbers.Where(n => n % 2 == 0);
 var asList = query.ToList();
 ```
 
-#### LINQ methods
+#### LINQ with anonymous objects
+
+```csharp
+var employeeData = employees.Select(e => new { 
+  ManagerName = e.Manager.Name,
+  e.Salary,
+  DepartmentName = e.Department.Name
+});
+```
+
+#### LINQ filtering and mapping methods
 
 - `collection.Where(el => boolean)`: filters the collection and returns only the elements where the predicate returns true.
-- `collection.Select(el => T)`: works exactly like `.map()` in javascript, where for each element you return a new value and that will be the new collection.
-- `collection.OrderBy(el => T)`: orders the collection by some value derived from the element.
+- `collection.OfType<T>()`: filters the collection and returns only the elements where the element is of type `T`.
+- `collection.Select(el => any)`: works exactly like `.map()` in javascript, where for each element you return a new value and that will be the new collection.
 - `collection.Distinct()`: filters out and returns only the distinct elements (removes duplicates) in the collection.
 
+**Basic filtering methods**
+
+Here's an example using `Where()`
+
+```csharp
+var seniorHighEarners = employees
+    .Where(e => e.Salary > 100000)
+    .Where(e => e.YearsOfExperience > 10);
+```
+
+Here's an example using `OfType<T>()`
+
+
+```csharp
+var mixedObjects = new[] {
+    new Employee(),
+    new Location(),
+    new Vendor()    
+}
+var employees = mixedObjects.OfType<Employee>();
+```
+
+**Using `Distinct()` and `DistinctBy()`**
+
+Since `Distinct()` filters based on equality between variables, you need to define structural equality for reference types, if you are performing the LINQ `Distinct()` query on a collection of reference types.
+
+When working with a custom class (like Employee), you need to define how two instances of that class should be compared. This is where `IEqualityComparer<T>` comes into play.
+
+1. Create a class that implements the `IEqualityComparer<T>` interface.
+2. Implement the `Equals(T, T)` and `GetHashCode(T)` functions on the class.
+3. Pass in an instance of this class into the `collection.Distinct(comparer)` overload.
+
+```csharp
+public class EmployeeEqualityComparer : IEqualityComparer<Employee>
+{
+    public bool Equals(Employee x, Employee y)
+    {
+        if (x == null || y == null)
+            return false;
+
+        // Compare based on Name and Department
+        return x.Name == y.Name && x.Department == y.Department;
+    }
+
+    public int GetHashCode(Employee obj)
+    {
+        if (obj == null)
+            return 0;
+
+        // Combine Name and Department into a unique hash code
+        return (obj.Name + obj.Department).GetHashCode();
+    }
+}
+
+var employees = new[]
+{
+    new Employee { Name = "John", Department = "HR" },
+    new Employee { Name = "Jane", Department = "Finance" },
+    new Employee { Name = "Mike", Department = "IT" },
+    new Employee { Name = "John", Department = "HR" }, // Duplicate
+    new Employee { Name = "Sara", Department = "HR" }
+};
+
+// Use Distinct with a custom comparer for Employee objects
+var distinctEmployees = employees.Distinct(new EmployeeEqualityComparer());
+```
+
+An often easier way is to just pass a "distinct key" to compare equality on, which you can do via the `DistinctBy()` method:
+
+```csharp
+var employees = new[]
+{
+    new Employee { Name = "John", Department = "HR" },
+    new Employee { Name = "Jane", Department = "Finance" },
+    new Employee { Name = "Mike", Department = "IT" },
+    new Employee { Name = "John", Department = "HR" }, // Duplicate
+    new Employee { Name = "Sara", Department = "HR" }
+};
+var distinctEmployees = employees.DistinctBy(e => e.Name);
+```
+
+
+
+#### LINQ sorting methods
+
+- `collection.OrderBy(el => any)`: orders the collection by some value derived from the element, goes in ascending order.
+- `collection.OrderByDescending(el => any)`: orders the collection by some value derived from the element, goes in descending order.
+- `collection.ThenBy(el => any)`: orders the collection by some secondary sort key value derived from the element, goes in ascending order. This must come after `OrderBy()` or `OrderByAscending()`
+- `collection.ThenByDescending(el => any)`: orders the collection by some secondary sort key value derived from the element, goes in descending order. This must come after `OrderBy()` or `OrderByAscending()`
+
+Here's an example using `OrderBy()`:
+
+```csharp
+var sortedEmployees = employees.OrderBy(e => e.Salary);
+```
+
+After applying `OrderBy` or `OrderByDescending`, you can use the `ThenBy` or `ThenByDescending()` method to specify a secondary sort key. This is useful when you need to sort by more than one property.
+
+```csharp
+var sortedEmployees = employees
+    .OrderBy(e => e.Salary)
+    .ThenBy(e => e.Name);
+```
+
+
+#### LINQ math methods
+
+- `collection.Max()` finds the maximum value in a collection.
+- `collection.Sum()` returns the sum of the collection.
+- `collection.Min()` finds the minimum value in a collection.
+
+```csharp
+var numbers = new List<int> { 1, 2, 3, 4, 5 };
+
+int totalSum = numbers.Sum(); // returns 15
+int maxNumber = numbers.Max(); // returns 5
+int minNumber = numbers.Min(); // returns 1
+double average = numbers.Average(); // returns 3
+```
+
+The `DefaultIfEmpty()` method allows you to handle empty sequences gracefully by providing a default value. This is particularly useful with aggregate methods to avoid exceptions when dealing with empty collections.
+
+```csharp
+var emptyList = new List<int>();
+int safeSum = emptyList.DefaultIfEmpty(0).Sum(); // returns 0
+int safeMax = emptyList.DefaultIfEmpty(0).Max(); // returns 0
+
+//these would throw an exception:
+int exceptional = emptyList.Sum();
+```
+
+#### LINQ aggregation methods
+
+**`collection.Aggregate**
+
+The `collection.Aggregate<T>((acc, el) => T)` method works the exact same like `.reduce()` in JavaScript, where the first argument in the lambda is the **accumulator** and the 2nd argument is the element.
+
+```csharp
+int[] nums = { 1, 2, 3, 4, 5 };
+var sum = nums.Aggregate((acc, x) => acc + x);
+Console.WriteLine(sum); // Output: 15
+```
+
+#### LINQ single value selection
+
+These methods are important to retrieve single values from a collection without breaking the lazy evaluation of LINQ.
+
+- **`ElementAt(int index)`** retrieves the element at the specified index in the sequence. It throws an exception if the index is out of bounds.
+- **`ElementAtOrDefault(int index)`** retrieves the element at the specified index, but if the index is out of bounds, it returns the default value (e.g., `null` for reference types).
+- **`First`** returns the first element of a sequence. It throws an exception if the sequence is empty.
+- **`FirstOrDefault`** returns the first element of a sequence, or the default value (e.g., null for reference types) if the sequence is empty.
+- **`Single`** returns the single element of a sequence. It throws an exception if the sequence is empty or if there is more than one matching element.
+- **`SingleOrDefault`** returns the single element of a sequence, or the default value (e.g., null for reference types) if the sequence is empty. It throws an exception if more than one element exists.
+
+
+> [!IMPORTANT]
+> **Bugs arise because of `First()` vs `Single()`**
+> ***
+> - `First()` returns the first element of a collection and throws an exception if the collection is empty. 
+> - `Single()` expects exactly one element in the collection and throws an exception if there are zero or multiple elements.
+
+
+
+
+
+```csharp
+var numbers = new List<int> { 1, 2, 3, 4, 5 };
+
+// Using ElementAt, throws if out of bounds
+int numberAtIndex2 = numbers.ElementAt(2); // returns 3
+
+// returns 0 (default for int)
+int numberOutOfRange = numbers.ElementAtOrDefault(10); 
+```
+
+```csharp
+var numbers = new List<int> { 1, 2, 3, 4, 5 };
+
+// Using First
+int firstNumber = numbers.First(); // returns 1
+int emptyFirst = new List<int>().First(); // throws an exception
+
+// Using FirstOrDefault
+int firstOrDefaultNumber = numbers.FirstOrDefault(); // returns 1
+int emptyFirstOrDefault = new List<int>().FirstOrDefault(); // returns 0 (default for int)
+```
 
 
 ## Functions as objects
