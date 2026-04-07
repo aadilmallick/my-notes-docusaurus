@@ -100,7 +100,13 @@ In a url, you can access dynamic route parameters by putting them in curly brace
 /someurlpath/{paramName}
 ```
 
-C# also offers a neat way to make the route par
+C# also offers a neat way to make the route params type safe by typing the URL in this syntax:
+
+```
+/someurlpath/{paramName:type}
+```
+
+Here's an example of how we can make a route param type safe and access it in the route handler:
 
 ```csharp
 app.MapGet("/employees/{id:int}", (int id) =>
@@ -116,8 +122,29 @@ app.MapGet("/employees/{id:int}", (int id) =>
 
 #### C: creating data with `MapPost()`
 
+We can make a POST request that accepts a JSON body and returns a JSON response using `app.MapPost(url, handler)`, where the handler accepts a serializable object structure that will be the structure of the json request body the POST request expects.
 
+Here's an example:
+
+```csharp
+public record CreateEmployeeRequest(string FirstName, string LastName);
+
+// require request body of {FirstName: string, LastName: string}
+app.MapPost("/employees", (CreateEmployeeRequest employee) =>
+{
+    var newEmployee = Employee.createEmployee(
+	    employee.FirstName, 
+	    employee.LastName
+    );
+    employees.Add(newEmployee);
+    
+    // return serialized employee
+    return Results.Created($"/employees/{newEmployee.Id}", newEmployee);
+});
+```
 #### R: reading data with `MapGet()`
+
+To read a single resource, search by some identifier.
 
 ```csharp
 app.MapGet("/employees/{id:int}", (int id) =>
@@ -131,3 +158,98 @@ app.MapGet("/employees/{id:int}", (int id) =>
 });
 ```
 
+#### U: updating data with `MapPut()`
+
+
+```csharp
+employeeRoute.MapPut("/{id:int}", (
+	int id, 
+	CreateEmployeeRequest updatedEmployee
+) =>
+{
+    var employee = employees.SingleOrDefault(e => e.Id == id);
+    if (employee == null)
+    {
+        return Results.NotFound();
+    }
+    employee.FirstName = updatedEmployee.FirstName;
+    employee.LastName = updatedEmployee.LastName;
+    return Results.Ok(employee);
+});
+```
+
+#### D: deleting data with `MapDelete()`
+
+
+```csharp
+employeeRoute.MapDelete("/{id:int}", (int id) =>
+{
+    var employee = employees.SingleOrDefault(e => e.Id == id);
+    if (employee == null)
+    {
+        return Results.NotFound();
+    }
+    employees.Remove(employee);
+    return Results.NoContent();
+});
+```
+
+#### Grouping with a router
+
+Much like how we can use routers in express to group routes together under a common prefix, we can do the same in C# using **groups**:
+
+This is how we can create a group with a prefix:
+
+```csharp
+var router = app.MapGroup("some_prefix_here");
+```
+
+Here is the refactored employee example:
+
+```csharp
+var employeeRoute = app.MapGroup("employees");
+
+employeeRoute.MapGet("/", () =>
+{
+    return employees;
+});
+
+employeeRoute.MapGet("/{id:int}", (int id) =>
+{
+    var employee = employees.SingleOrDefault(e => e.Id == id);
+    if (employee == null)
+    {
+        return Results.NotFound();
+    }
+    return Results.Ok(employee);
+});
+
+employeeRoute.MapPost("/", (CreateEmployeeRequest employee) =>
+{
+    var newEmployee = Employee.createEmployee(employee.FirstName, employee.LastName);
+    employees.Add(newEmployee);
+    return Results.Created($"/employees/{newEmployee.Id}", newEmployee);
+});
+```
+
+#### Attributes
+
+We can use **Bind/From** attributes in C# to make dependency injection work better and for cleaner code. These attributes gives us and C# hints as to which parameters should correspond to what, as in they should be query params, route params, or taken from the request body.
+
+```csharp
+app.MapPost("/employees/{id}", (
+	[FromRoute] int id, 
+	[FromBody] Employee employee, 
+	[FromServices] ILogger<Program> logger, 
+	[FromQuery] string search
+) => {
+    return Results.Ok(employee);
+});
+```
+
+Each of these attributes are used to bind parameters from different parts of the request:
+
+- `[FromRoute] int id`: Binds the `id` parameter from the route.
+- `[FromBody] Employee employee`: Binds the `employee` parameter from the body of the request.
+- `[FromServices] ILogger<Program> logger`: Binds the `logger` parameter from the DI container.
+- `[FromQuery] string search`: Binds the `search` parameter from the query string.
