@@ -260,3 +260,13 @@ This is how to do robotic text to speech: use the `say` command
 ```
 say 'process complete'
 ```
+
+## `ngrok`
+
+`ngrok` is a tool used to enable HTTPS in development by creating a temporary HTTPS url that forwards to your dev server. This is useful for stuff like registering webhooks.
+
+To get a HTTPS dev url that forwards to a dev process you have running on a port, use this command:
+
+```bash
+ngrok http <port_number>
+```
