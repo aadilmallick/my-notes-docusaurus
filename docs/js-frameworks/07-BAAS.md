@@ -324,20 +324,20 @@ Deno.serve(async (req) => {
 
     console.log("🔄 Creating task with AI suggestions...");
     
-    // 2. ensure supabase publishable key is provided
+    // 2. ensure supabase user is logged in
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("No authorization header");
     }
 
-    // Initialize Supabase client
+    // 3. Initialize Supabase client
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: {
         headers: { Authorization: authHeader },
       },
     });
 
-    // Get user session
+    // 4. Get user session
     const {
       data: { user },
     } = await supabaseClient.auth.getUser();
@@ -408,7 +408,22 @@ Deno.serve(async (req) => {
 });
 ```
 
-#### Edge function without authentication
+
+#### Authentication in edge functions
+
+By default, JWT auth is enabled for edge functions. 
+
+That means that when you invoke a function like so, a bearer auth header is automatically passed with the header value being the supabase anon key.
+
+```ts
+const { data, error } = await supabase.functions.invoke("create-checkout", {
+  body: {
+    customerName: "John"
+  }
+})
+```
+
+
 
 TO create an edge function without authentication, you must disable the JWT auth for the function in the function settings in the dashboard.
 
