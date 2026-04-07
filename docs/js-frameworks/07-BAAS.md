@@ -283,12 +283,16 @@ Edge functions are individual files that live in the `supabase/functions` direct
 
 ![](https://i.imgur.com/SpBdbao.jpeg)
 
+#### Create Edge Functions
+
 This is what an edge function completely looks like:
 
 1. Grab the Supabase client  and populate it with your environment variables
 2. Create a server using `Deno.serve`
 3. Check headers for authorization and use that to get authenticated supabase user
 4. Do work and then return a response.
+
+By default, all edge functions need an `Authorization` and `apikey` header, both of which should be set to the supabase publishable anon key if you have JWT auth for functions turned on.
 
 ```ts
 // Setup type definitions for built-in Supabase Runtime APIs
@@ -309,6 +313,8 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+	
+  // 1. handle cors
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -317,6 +323,8 @@ Deno.serve(async (req) => {
     const { title, description } = await req.json();
 
     console.log("🔄 Creating task with AI suggestions...");
+    
+    // 2. ensure supabase publishable key is provided
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("No authorization header");
@@ -399,6 +407,13 @@ Deno.serve(async (req) => {
   }
 });
 ```
+
+#### Edge function without authentication
+
+TO create an edge function without authentication, you must disable the JWT auth for the function in the function settings in the dashboard.
+
+![](https://i.imgur.com/Qfz4MF2.jpeg)
+
 
 ### DB
 
