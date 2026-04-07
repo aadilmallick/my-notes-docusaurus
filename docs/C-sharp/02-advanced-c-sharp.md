@@ -295,6 +295,27 @@ finally
 }
 ```
 
+### JSON
+
+To use jSON libraries, import the `System.Text.Json` library and use the `JsonSerializer` class.
+
+The ``
+
+- `JsonSerializer.SerializeObject(object obj)`: serializes the object to a JSON string and returns it.
+- `JsonSerializer.DeserializeObject<T>(string str)`: deserializes the json string into an object of type T.
+
+```csharp
+var employee = new Employee
+{
+    Id = 1,
+    FirstName = "John",
+    LastName = "Doe",
+    Age = 30
+};
+
+var json = JsonSerializer.Serialize(employee); var johnReborn = JsonSerializer.Deserialize<Employee>(json);
+```
+
 ## Dealing with files
 
 ```embed
@@ -461,11 +482,27 @@ string tempFileName = Path.GetTempFileName(); // returns temp file path
 
 ### HTTPClient class
 
-The `HttpClient` class is a high-level abstraction for making HTTP requests and receiving/processing HTTP responses
+The `HttpClient` class is a high-level abstraction for making HTTP requests and receiving/processing HTTP responses.
+
+Create an HTTP client like so:
+
+```csharp
+var httpClient = new HttpClient();
+```
 
 #### Basic Requesting
 
-The `HttpRequestMessage` instance is 
+The `HttpRequestMessage` instance is ab abstraction over crafting the headers, body content, etc. that goes into a crafting a request.
+
+The basic syntax for crafting a request object is like so:
+
+```csharp
+var request = new HttpRequestMessage(method_type, url);
+```
+
+- `method_type`: one of `HttpMethod.Get`, `HttpMethod.Post`, `HttpMethod.Delete`, `HttpMethod.Put`, `HttpMethod.Patch`.
+- `url`: the url to make a request to.
+
 
 ```csharp
 var request = new HttpRequestMessage(HttpMethod.Get, "https://microsoft.com");
@@ -485,3 +522,62 @@ var request = new HttpRequestMessage(
 	"https://yourfavoriteservice.com/some_secret_api"
 );
 ```
+
+You can set the authorization header to include tokens or credentials for secured endpoints.
+
+```csharp
+var httpClient = new HttpClient();
+
+// add auth request headers to be passed on every request
+httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+	"Bearer", 
+	"your_token_here"
+);
+
+var request = new HttpRequestMessage(
+	HttpMethod.Get, 
+	"https://yourfavoriteservice.com
+)
+```
+
+
+#### Dealing with the response
+
+Once you craft a request, then you actually fetch that request using the `httpClient.SendAsync(request)`, which returns a response.
+
+```csharp
+var httpClient = new HttpClient();
+
+var request = new HttpRequestMessage(HttpMethod.Get, "https://microsoft.com");
+var response = await httpClient.SendAsync(request);
+```
+
+Here is what you can do on the response:
+
+- `response.Content.ReadAsStringAsync()`: returns the response body as a string
+- `response.Content.ReadFromJsonAsync<T>()`: returns the response body as a string
+- `response.Content.ReadAsStreamAsync()`: returns the response body as a string
+- `response.IsSuccessStatusCode`:  Checks if the HTTP response status code indicates success (status codes 200-299).
+- `response.EnsureSuccessStatusCode()`: throws an exception if the response status code does not indicate success.
+
+```csharp
+var response = await httpClient.GetAsync(
+	"https://jsonplaceholder.typicode.com/posts/1"
+);
+if (response.IsSuccessStatusCode) {
+	var content = await response.Content.ReadFromJsonAsync<Post>();
+}
+```
+
+### HTTPClient Factory
+
+> [!NOTE]
+> **Don’t Create One `HttpClient` per Request**
+> ***
+> Creating a new `HttpClient` instance for each request can exhaust system resources. Instead, reuse a single instance.
+
+Creating a network connection via HTTPClient is expensive and cannot be reopened again and again via creating multiple instances of the class. We must use one of these two techniques to mitigate this problem:
+
+1. **Static Shared `HttpClient`**: In older applications or scenarios where resource management is a concern, using a single static instance of `HttpClient` is considered best practice.
+2. **Avoid Disposing `HttpClient`**: Typically, you should avoid disposing of `HttpClient` instances manually, even though it implements `IDisposable`. The disposal is managed automatically by the runtime in most cases.
+

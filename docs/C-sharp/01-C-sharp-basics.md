@@ -2173,3 +2173,111 @@ Console.WriteLine(incrementCounter(8)); // Output: 20
 
 A local function is a function declared inside another function, which can access variables from its containing scope and has similar closure properties to lambda expressions.
 
+
+
+## Reflection
+
+Reflection is the ability to inspect and manipulate the metadata of your code at runtime. For example, if you wanted to print the properties of an object to the console, you could use reflection to do so:
+
+```csharp
+public void PrintProperties(object obj)
+{
+    var type = obj.GetType();
+    var properties = type.GetProperties();
+
+    foreach (var property in properties)
+    {
+        var propertyValue = property.GetValue(obj);
+        Console.WriteLine($"{property.Name}: {propertyValue}");
+    }
+}
+```
+
+You can use it to invoke methods, set properties, and more, all at runtime.
+
+#### Basic reflection
+
+**Setting properties using reflection:**
+
+```csharp
+var person = new Person { Name = "Spencer" };
+var type = person.GetType();
+var nameProperty = type.GetProperty("Name");
+nameProperty.SetValue(person, "New Name");
+
+Console.WriteLine(person.Name);
+```
+
+**Invoking methods using reflection:**
+
+```csharp
+var person = new Person { Name = "Spencer" };
+var type = person.GetType();
+var method = type.GetMethod("ToString");
+var result = method.Invoke(person, null);
+
+Console.WriteLine(result);
+```
+
+**You can even instantiate types using reflection:**
+
+```csharp
+var person = new Person { Name = "Spencer" };
+var type = person.GetType();
+var constructor = type.GetConstructor(Type.EmptyTypes);
+var result = constructor.Invoke();
+
+Console.WriteLine(result.ToString());
+```
+
+### Attributes
+
+Attributes are a feature of the .NET runtime that can be used to annotate your code with additional metadata that frameworks can use to add additional behaviors to your code. (Reflection is the component that allows you to read the values from these attributes, which is why we talked reflection first!)
+
+You can think of them like Python docstrings but they give out free compiler warnings, etc.
+
+```csharp
+public class CreateEmployeeRequest
+{
+    [Required]
+    public string FirstName { get; set; }
+    [Required]
+    public string LastName { get; set; }
+    [Required]
+    public string Department { get; set; }
+}
+```
+
+#### Creating custom attributes
+
+Creating your own attribute is pretty simple. You just need to create a class that inherits from `Attribute`.
+
+```csharp
+public class NamedThingAttribute : Attribute
+{
+    public string Name { get; set; }
+}
+```
+
+You can then use the attribute like this:
+
+```csharp
+[NamedThing(Name = "Spencer")]
+public class MyClass
+{
+}
+```
+
+You can also use constructors to pass required arguments to the attribute:
+
+```csharp
+public class NamedThingAttribute : Attribute
+{
+    public string Name { get; }
+
+    public NamedThingAttribute(string name)
+    {
+        Name = name;
+    }
+}
+```
