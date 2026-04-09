@@ -352,6 +352,7 @@ To create an edge function without authentication, you must disable the JWT auth
 
 Here is what you can do to develop with functions locally:
 
+- `supabase serve`: serve all functions at once.
 - `supabase functions serve [function-name]`: serves the specified function by name locally.
 - `supabase functions serve [function-name] --no-verify-jwt`: serves the specified function by name locally without JWT auth
 - `supabase functions serve --env-file [env-file-path]`: injects the env vars in the specified env file path into the function execution context when developing locally.
@@ -377,6 +378,11 @@ Since supabase functions run using deno, you can retrieve any environment variab
 Deno.env.get("SOME_SECRET_KEY")
 ```
 
+In development, you can load environment variables in two ways:
+
+1. Through an `.env` file placed at `supabase/functions/.env`, which is automatically loaded on `supabase start`
+2. Through the `--env-file` option for `supabase functions serve`. This allows you to use custom file names like `.env.local` to distinguish between different environments.
+
 #### Using supabase client in edge functions
 
 A major use case of edge functions is using supabase storage, auth, and database in a way to bypass RLS restrictions.
@@ -399,10 +405,7 @@ const supabaseAdmin = createClient(
 )
 ```
 
-In development, you can load environment variables in two ways:
 
-1. Through an `.env` file placed at `supabase/functions/.env`, which is automatically loaded on `supabase start`
-2. Through the `--env-file` option for `supabase functions serve`. This allows you to use custom file names like `.env.local` to distinguish between different environments.
 
 #### Function examples
 
