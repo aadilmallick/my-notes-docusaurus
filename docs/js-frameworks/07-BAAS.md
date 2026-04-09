@@ -21,6 +21,12 @@ You can use the `supabase secrets` command to perform CRUD operations on secrets
 - `supabase secrets set <KEY>=<VALUE>`: sets a secret env pair in the cloud
 - `supabase secrets list`: shows all secrets you have associated with your supabase project
 
+Here is how to setup multiple secrets at once by pointing to an env file to upload:
+
+```sh
+supabase secrets set --env-file .env
+```
+
 ### SDK
 
 #### SDK setup
@@ -278,12 +284,129 @@ Edge functions are serverless cloud functions you create that supabase hosts tha
 
 ![](https://i.imgur.com/xCG7W3P.jpeg)
 
+#### Setup
+
 Edge functions are individual files that live in the `supabase/functions` directory, and are run in Deno with typescript.
 
 
 ![](https://i.imgur.com/SpBdbao.jpeg)
 
-#### Create Edge Functions
+
+Here is how to set up for supabase functions:
+
+1. Run `supabase init` and click "yes" when asked to generate deno settings.
+2. Run `deno init` to create a `deno.json` and allow for installing packages.
+3. Install the deno packages you want using `deno add` within the `supabase/functions` folder. 
+	- For example, once you do `deno add npm:zod`, you can use zod anywhere in your cloud functions.
+
+The best project structure for supabase functions is like so, where you have access to a complete deno environment, therefore you can do the following:
+
+- **shared code**: for best practice, keep all shared code in a `_shared` folder. You can share code across the functions by importing other files into those functions.
+- **tests**: you can test functions using the deno testing framework.
+ 
+![](https://i.imgur.com/HKAlx50.jpeg)
+
+#### Sharing code between functions
+
+The `deno.json` is necessary for shared code, as that's the new and improved way over import maps for telling functions where your code lives. You can create it with `deno init`.
+
+Each function should have its own `deno.json` file to manage dependencies and configure Deno-specific settings. This ensures proper isolation between functions and is the recommended approach for deployment. When you update the dependencies for one function, it won't accidentally break another function that needs different versions.
+
+![](https://i.imgur.com/7O9BuJ5.jpeg)
+
+Some npm packages may not ship out of the box types and you may need to import them from a separate package. You can specify their types with a `@deno-types` directive:
+
+```ts
+// @deno-types="npm:@types/express@^4.17"
+import express from 'npm:express@^4.17'
+```
+
+To include types for built-in Node APIs, add the following line to the top of your imports:
+
+```ts
+/// <reference types="npm:@types/node" />
+```
+#### Authentication in edge functions
+
+By default, JWT auth is enabled for edge functions, meaning a user has to be logged in via supabase auth before they can programmatically invoke a function.
+
+That means that when you invoke a function like so, a bearer auth header is automatically passed with the header value being the supabase anon key.
+
+```ts
+const { data, error } = await supabase.functions.invoke("create-checkout", {
+  body: {
+    customerName: "John"
+  }
+})
+```
+
+
+To create an edge function without authentication, you must disable the JWT auth for the function in the function settings in the dashboard.
+
+![](https://i.imgur.com/Qfz4MF2.jpeg)
+
+> [!WARNING]
+> Disabling JWT auth makes a supabase cloud function work like any old API route, therefore you must be extremely careful with who you let call your API. CORS is necessary to prevent malicious actors when disabling JWT.
+
+#### Function local development
+
+Here is what you can do to develop with functions locally:
+
+- `supabase functions serve [function-name]`: serves the specified function by name locally.
+- `supabase functions serve [function-name] --no-verify-jwt`: serves the specified function by name locally without JWT auth
+- `supabase functions serve --env-file [env-file-path]`: injects the env vars in the specified env file path into the function execution context when developing locally.
+
+And you deploy a function to supabase like so:
+
+```bash
+supabase functions deploy [function-name]
+```
+
+#### Accessing secrets
+
+In supabase function code you have access to the environment variables that are **supabase secrets**. Here are some examples of the secrets automatically set by supabase and thus available in the environment variables injected into a function execution context.
+
+- `SUPABASE_URL`: The API gateway for your Supabase project
+- `SUPABASE_ANON_KEY`: The `anon` key for your Supabase API. This is safe to use in a browser when you have Row Level Security enabled
+- `SUPABASE_SERVICE_ROLE_KEY`: The `service_role` key for your Supabase API. This is safe to use in Edge Functions, but it should NEVER be used in a browser. This key will bypass Row Level Security
+- `SUPABASE_DB_URL`: The URL for your Postgres database. You can use this to connect directly to your database
+
+Since supabase functions run using deno, you can retrieve any environment variable like so:
+
+```ts
+Deno.env.get("SOME_SECRET_KEY")
+```
+
+#### Using supabase client in edge functions
+
+A major use case of edge functions is using supabase storage, auth, and database in a way to bypass RLS restrictions.
+
+It's best practice to store the supabase clients in some sort of shared code like in a `_shared` folder:
+
+```ts
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
+// For user-facing operations (respects RLS)
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_ANON_KEY')!
+)
+
+// For admin operations (bypasses RLS)
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+)
+```
+
+In development, you can load environment variables in two ways:
+
+1. Through an `.env` file placed at `supabase/functions/.env`, which is automatically loaded on `supabase start`
+2. Through the `--env-file` option for `supabase functions serve`. This allows you to use custom file names like `.env.local` to distinguish between different environments.
+
+#### Function examples
+
+##### Stripe Edge function
 
 This is what an edge function completely looks like:
 
@@ -407,27 +530,6 @@ Deno.serve(async (req) => {
   }
 });
 ```
-
-
-#### Authentication in edge functions
-
-By default, JWT auth is enabled for edge functions. 
-
-That means that when you invoke a function like so, a bearer auth header is automatically passed with the header value being the supabase anon key.
-
-```ts
-const { data, error } = await supabase.functions.invoke("create-checkout", {
-  body: {
-    customerName: "John"
-  }
-})
-```
-
-
-
-TO create an edge function without authentication, you must disable the JWT auth for the function in the function settings in the dashboard.
-
-![](https://i.imgur.com/Qfz4MF2.jpeg)
 
 
 ### DB
