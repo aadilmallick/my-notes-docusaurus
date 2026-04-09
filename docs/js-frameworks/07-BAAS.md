@@ -348,7 +348,14 @@ To create an edge function without authentication, you must disable the JWT auth
 > [!WARNING]
 > Disabling JWT auth makes a supabase cloud function work like any old API route, therefore you must be extremely careful with who you let call your API. CORS is necessary to prevent malicious actors when disabling JWT.
 
-#### Function local development
+#### Function CLI + local development
+
+All supabase edge function CLI functionality is based off of two commands:
+
+```bash
+supabase functions serve # serves all functions locally
+supabase functions deploy # deploy all functions to cloud
+```
 
 Here is what you can do to develop with functions locally:
 
