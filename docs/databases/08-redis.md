@@ -70,6 +70,8 @@ This follows an intuitive pattern that avoids name collisions.
 
 ## Commands
 
+### Basic Commands
+
 - `INCR <key>` : increments specified key by 1
 - `DECR <key>` : decrements specified key by 1
 - `INCRBY <key> <num>` : increments specified key by specified amount
@@ -77,7 +79,18 @@ This follows an intuitive pattern that avoids name collisions.
 - `MSET <key1> <val1> <key2> <val2> ...` : the commands to set multiple keys at the same time
 - `MGET <key1> <key2> ...` : the commands to get back the values of multiple keys at the same time
 - `EXISTS <key>` : returns 1 if the key exists, 0 if it does not
-- `DELETE <key>` : deletes the specified key
+- `DEL <key>` : deletes the specified key
+
+### Finding keys
+
+Use the `KEYS` command to find keys in the redis db:
+
+- `KEYS *` → Returns all keys (array).
+- `KEYS user:*` → Pattern matching (regex glob-style: `*`, `?`, `[abc]` etc.).
+
+### Db Commands
+
+- `DBSIZE`: returns the number of kes in the database.
 
 ## Options
 
