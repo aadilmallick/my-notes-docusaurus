@@ -253,3 +253,24 @@ Each of these attributes are used to bind parameters from different parts of the
 - `[FromBody] Employee employee`: Binds the `employee` parameter from the body of the request.
 - `[FromServices] ILogger<Program> logger`: Binds the `logger` parameter from the DI container.
 - `[FromQuery] string search`: Binds the `search` parameter from the query string.
+
+## Unit testing
+
+### Creating tests
+
+In .NET, unit tests live outside the API code directory and instead are created as their own .NET project.
+
+1. Press `ctrl + shift + p` and hit **.NET: create new project**
+2. Search for the **xUnit Test Project** template and select that and create it in the default directory
+
+
+![](https://i.imgur.com/oFMuDZf.jpeg)
+
+Now to get tests working, you need to make the following changes to your code:
+
+1. Install the package in your testing directory using `ctrl + shift + p` and then clicking **Nuget: focus on nuget view**
+2. Make your API code public to other .NET projects by writing this declaration in the `Program.cs` file:
+
+```csharp
+public partial class Program { }
+```
