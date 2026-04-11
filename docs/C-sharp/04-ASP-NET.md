@@ -280,3 +280,99 @@ public partial class Program { }
 ```bash
 dotnet add reference ../first-net-api.csproj
 ```
+
+### Basic unit tests
+
+You define a class function to be a test by using the `[Fact]` attribute to decorate that function:
+
+```cs
+using Microsoft.AspNetCore.Mvc.Testing;
+namespace TestProject1;
+
+
+
+public class BasicTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly WebApplicationFactory<Program> _factory;
+
+    public BasicTests(WebApplicationFactory<Program> factory)
+    {
+        _factory = factory;
+    }
+
+	// testing if the /employees route returns 200 status
+    [Fact]
+    public async Task GetEmployees_ReturnsOk()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync("/employees");
+        Assert.True(response.IsSuccessStatusCode);
+    }
+}
+```
+
+Here are some more unit tests covering the entire CRUD spectrum:
+
+```cs
+using Microsoft.AspNetCore.Mvc.Testing;
+namespace TestProject1;
+
+using System.Net;
+using System.Net.Http.Json;
+
+
+public class BasicTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly WebApplicationFactory<Program> _factory;
+
+    public BasicTests(WebApplicationFactory<Program> factory)
+    {
+        _factory = factory;
+    }
+
+    [Fact]
+    public async Task GetEmployees_ReturnsOk()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync("/employees");
+        Assert.True(response.IsSuccessStatusCode);
+    }
+
+	// testing if employee/{id} for existing employee works
+    [Fact]
+    public async Task GetEmployeeById_ReturnsOkResult()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync("/employees/1");
+
+        response.EnsureSuccessStatusCode();
+    }
+
+	// testing if POST /employees with correct request body returns 204
+    [Fact]
+    public async Task CreateEmployee_ReturnsCreatedResult()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync(
+            "/employees",
+            Employee.createEmployee("John", "Doe")
+        );
+
+        response.EnsureSuccessStatusCode();
+    }
+
+	// testing if incorrect request body correctly returns a bad request
+    [Fact]
+    public async Task CreateEmployee_ReturnsBadRequestResult()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync(
+            "/employees",
+            new { }
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+}
+
+```

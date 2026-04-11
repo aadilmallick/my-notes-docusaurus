@@ -1,6 +1,15 @@
 ## Basic VIM
 
-To open vim, run the `vim <textfile.txt>` command to open up a specific command in vim.
+### Intro
+
+Here is all the important terminology:
+
+- **Buffer**: A buffer is a representation of a file in memory. When you edit a buffer, you are not directly editing the file. To save changes, you must write the buffer to the file.
+- **Window**: A window is something that displays a buffer. A buffer can remain in memory even after a window is closed, meaning the underlying content is still available.
+
+### Opening VIM
+
+To open vim, run the `vi <textfile.txt>` command to open up a specific command in vim.
 
 ### Modes
 
