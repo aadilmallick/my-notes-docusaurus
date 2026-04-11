@@ -410,6 +410,13 @@ public interface IRepository<T>
 }
 ```
 
+here is what a concrete instantiation of this repository should do:
+
+- `repo.GetAll()`: return all entities in the repository as an enumerable collection.
+- `repo.Create(T entity)`: add the specified entity to the repository.
+- `repo.Update(T entity)`: update the specified entity within the repository
+- `repo.Delete(T entity)`: delete the specified entity from the repository
+
 So you can rethink of a repository as such:
 
 - **repository**: a collection of entities
@@ -475,5 +482,112 @@ public class EmployeeRepository : IRepository<Employee>
 
 ### Using repositories
 
-The benefit of repositories in C# is not just about
+The benefit of repositories in C# is not just about a nice clean code design pattern that follows SOLID principles. 
 
+In C-Sharp, the main advantage is that it automatically performs dependency ejection for you, meaning that in each route handler if you add the repository as a service at the beginning, then you can access the repository as an argument within each and every one of your route handlers via dependency injection.
+
+1. Add the repository as a service before defining any routes, where the first type argument is the generic repository interface passing the entity class into it, and the 2nd type argument is the concrete repository implementation.
+
+```cs
+builder.Services.AddSingleton<IRepository<Employee>, EmployeeRepository>();
+```
+
+And now this is the refactored way with using DI to inject our repository into each route handler:
+
+```cs
+// 1. create builder
+var builder = WebApplication.CreateBuilder(args);
+
+// 2. add repository as service
+builder.Services.AddSingleton<IRepository<Employee>, EmployeeRepository>();
+
+// 3. create app
+var app = builder.Build();
+
+
+var employeeRoute = app.MapGroup("employees");
+
+employeeRoute.MapGet(
+	"/",
+	(EmployeeRepository repository) =>
+	{
+		return repository.getAll()
+	}
+);
+
+// csharpier-ignore
+employeeRoute.MapGet( "/{id:int}", (int id, EmployeeRepository repository) =>
+	{
+		var employee = repository.GetById(id);
+		if (employee == null)
+		{
+			return Results.NotFound();
+		}
+		return Results.Ok(employee);
+	}
+);
+
+// csharpier-ignore
+employeeRoute.MapPost(
+	"/", 
+	(CreateEmployeeRequest employee, EmployeeRepository repository) =>
+	{
+		if ( 
+			string.IsNullOrWhiteSpace(employee.FirstName) || string.IsNullOrWhiteSpace(employee.LastName)
+		)
+		{
+			return Results.BadRequest("First name and last name are required.");
+		}
+		var newEmployee = Employee.createEmployee(
+			employee.FirstName, 
+			employee.LastName
+		);
+		repository.Create(newEmployee);
+		return Results.Created($"/employees/{newEmployee.Id}", newEmployee);
+	}
+);
+
+employeeRoute.MapPut(
+	"/{id:int}",
+	(int id, UpdateEmployeeRequest updatedEmployee, EmployeeRepository repository) =>
+	{
+		var employee = repository.GetById(id);
+		if (employee == null)
+		{
+			return Results.NotFound();
+		}
+
+		employee.SocialSecurityNumber = updatedEmployee.SocialSecurityNumber ?? employee.SocialSecurityNumber;
+		employee.Address = updatedEmployee.Address ?? employee.Address;
+		return Results.Ok(employee);
+	}
+);
+
+employeeRoute.MapDelete(
+	"/{id:int}",
+	(int id, EmployeeRepository repository) =>
+	{
+		var employee = repository.GetById(id);
+		if (employee == null)
+		{
+			return Results.NotFound();
+		}
+		repository.Delete(employee);
+		return Results.NoContent();
+	}
+);
+```
+
+### Unit testing with repositories
+
+For testing, we can add repositories like so by registering the repository as a service.
+
+```csharp
+public BasicTests(WebApplicationFactory<Program> factory)
+{
+    _factory = factory;
+
+    var repo = _factory.Services.GetRequiredService<IRepository<Employee>>();
+    repo.Create(new Employee { FirstName = "John", LastName = "Doe" });
+}
+```
