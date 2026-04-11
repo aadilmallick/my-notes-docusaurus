@@ -99,7 +99,16 @@ These characters copy words or lines
 
 - `y`: copy the current line
 - `w`: copy the current word
-- `y`: copy all content in the current line starting from current cursor position
+- `Y`: copy all content in the current line starting from current cursor position
+
+Also any navigation you do henceforth while yank mode is activated just adds or subtracts from the yanking range:
+
+- `y<n>j`: enter yanking mode and copy `n` lines down.
+- `y<n>k`: enter yanking mode and copy `n` lines up.
+- `y<n>h`: enter yanking mode and copy `n` characters left.
+- `y<n>l`: enter yanking mode and copy `n` characters right.
+- `y<n>b`: enter yanking mode and copy `n` words left.
+- `y<n>w`: enter yanking mode and copy `n` words right.
 
 These characters are used for pasting things
 
@@ -177,6 +186,7 @@ set incsearch
 set smartcase
 set hlsearch
 set backspace=indent,eol,start
+colorscheme habamax
 ```
 
 ### Basic built-in customizations
@@ -209,3 +219,11 @@ set backspace=indent,eol,start
 - **`set nocompatible`**: Ensures Vim uses its own features rather than trying to act exactly like the ancient "Vi" editor.
 - **`set hidden`**: Allows you to switch buffers (open files) without being forced to save the current one first.
 - **`set backspace=indent,eol,start`**: Fixes the common frustration where the backspace key won't delete characters in certain modes or across lines.
+
+### Changing color scheme
+
+Use the `:colorscheme <theme>` command to change the color scheme of vim by selecting one of the built-in themes vim offers.
+
+You can find all theme options by typing first `:colorscheme` and then a space and then hitting `ctrl + d` to pull up all the options.
+
+Then you can put your choice of colorscheme inside your vimrc.
