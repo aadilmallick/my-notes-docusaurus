@@ -6,6 +6,7 @@ Here is all the important terminology:
 
 - **Buffer**: A buffer is a representation of a file in memory. When you edit a buffer, you are not directly editing the file. To save changes, you must write the buffer to the file.
 - **Window**: A window is something that displays a buffer. A buffer can remain in memory even after a window is closed, meaning the underlying content is still available.
+- **motion**: A motion is anything that moves your cursor in the Vim editor
 
 ### Opening VIM
 
@@ -13,10 +14,17 @@ To open vim, run the `vi <textfile.txt>` command to open up a specific command i
 
 ### Modes
 
-Vim has two modes: insert (typing text) and edit (for commands) mode. Here is how to get to them:
+Vim has two main modes: insert (typing text) and edit (for commands) mode. Here is how to get to them:
 
 - **insert mode:** press `i` to enter insert mode
 - **edit mode:** press `esc` to enter edit mode
+
+However, there are four modes in total: Normal mode, Insert mode, Visual mode, and Command mode. 
+
+1. Normal mode is for editing text
+2. Insert mode is for typing new text
+3. Visual mode is for highlighting text
+4. Command mode is accessed by pressing colon (:) in normal mode to execute commands.
 
 ### Quitting and writing files
 
@@ -40,9 +48,9 @@ Here are the different ways to navigate a file in vim while in edit mode
 - `^` - move cursor to beginning of current line
 - `$` - move cursor to end of the current line
 - `gg`: move the first line in the file
-- **G** - move to the last line in the file
-- **w** - move forward one word
-- **b** - move backward one word
+- `G` - move to the last line in the file
+- `w` - move forward one word
+- `b` - move backward one word
 - `{` - move backward one paragraph
 - `}` - move forward one paragraph
 
@@ -65,9 +73,12 @@ In edit mode, type this command to turn on line numbers for a file:
 Here is how you can delete content while in edit mode
 
 - `x` - delete a single character
-- `<n>x` - delete `n` characters (eg `5x` deletes five characters)
 - `dd` - delete the current line
 - `D` - delete the rest of the line (starting from current cursor position)
+
+And you have these that take in a numerical argument:
+
+-  `<n>x` - delete `n` characters (eg `5x` deletes five characters)
 - `<n>dw` - Deletes the next `n` words (eg `5dw` means delete 5 words)
 - `<n>dd` - Deletes the next `n` lines (eg `5dd` means delete 5 lines)
 
@@ -78,10 +89,13 @@ Here is how you can undo any changes while in edit mode:
 - `u` - Undo the last action (you may keep pressing u to keep undoing)
 - `U` - Undo all changes to the current line
 
-### Copying and pasting
+### Copying and pasting (yanking)
 
-- `p`: paste the clipboard contents
-- `yy`: delete and copy the current line
+To enter yanking mode, type `yy` to copy the current line. Once in yanking mode, you can type these additional characters for different behavior:
+
+- `p`: paste the copied line to the line below
+- `P`: paste the copied line to the line above
+
 - `yw`: delete and copy the current word
 - `y$`: delete and copy all content in the current line starting from current cursor position
 
