@@ -91,13 +91,55 @@ Here is how you can undo any changes while in edit mode:
 
 ### Copying and pasting (yanking)
 
-To enter yanking mode, type `yy` to copy the current line. Once in yanking mode, you can type these additional characters for different behavior:
+To enter yanking mode, type `y`: Once in yanking mode, you can type these additional characters for different behavior.
 
-- `p`: paste the copied line to the line below
-- `P`: paste the copied line to the line above
+These characters copy words or lines
 
-- `yw`: delete and copy the current word
-- `y$`: delete and copy all content in the current line starting from current cursor position
+- `y`: copy the current line
+- `w`: copy the current word
+- `y`: copy all content in the current line starting from current cursor position
+
+These characters are used for pasting things
+
+ - `p`: paste whatever you have copied to the line below
+- `P`: paste whatever you have copied to the line above
+
+### Highlighting text
+
+#### Visual mode
+
+Visual mode is where you can highlight text to copy or delete it.
+
+Press `v` to enter into visual mode, highlighting the current character. Now any navigation you do will highlight where you navigate to. Press `esc` to escape from visual mode.
+
+Once in visual mode, you can access other modes like yanking mode, taking advantage of what you have highlighted:
+
+- `y`: copies whatever you have highlighted (enters yanking mode)
+- `d`: deletes whatever you have highlighted and also copies it to the clipboard (enters yanking mode)
+
+#### Visual line mode
+
+Press `V` (shift + v) to enter into visual line mode, which is just visual mode but it also highlightsa the entire current line. 
+
+here's an example of how to use it:
+
+```bash
+Vyp # highlight current line, copies it, and pastes it below
+```
+
+So here's a basic summary:
+
+- `v`: enters visual mode
+- `V`: enters visual mode and highlights current line
+- `esc`: escapes from visual mode
+
+### How to enter insert mode
+
+- `i`: Pressing 'i' enters insert mode with the cursor positioned to the left of the current cursor position
+- `a`: Pressing 'a' enters insert mode with the cursor positioned to the right of the current cursor position
+- `I`: Pressing `Shift+i` enters insert mode at the first non-whitespace character at the beginning of the line
+- `A`: Pressing `Shift+A` enters insert mode at the end of the line, including any trailing whitespace
+- `o`: Pressing 'o' creates a new line below the current line, respects the current indentation, and enters insert mode
 
 ## Find and replace
 
@@ -106,3 +148,12 @@ To enter yanking mode, type `yy` to copy the current line. Once in yanking mode,
 - `/<pattern>`: search for matches matching the specified regex pattern, enters **search mode**.
 - `n`: goes to next match while in search mode
 - `:%s/<pattern>/<replace>/g`: performs find and replace globally
+
+
+## Vim customization
+
+### Basic built-in customizations
+
+- `:set scrolloff=8`: sets the tolerance as the cursor being 8 lines above or below the center of the screen before the document scrolls with you.
+- `:set number`: turns on line numbers for the file
+
