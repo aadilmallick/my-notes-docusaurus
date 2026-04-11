@@ -60,17 +60,9 @@ You also have these commands that take in numerical arguments:
 - `<n>w` - move forward `n` word (eg `2w` moves two words forwards)
 - `<n>b` - move back `n` words
 
-### Turn on line numbers
-
-In edit mode, type this command to turn on line numbers for a file:
-
-```vi
-:set nu
-```
-
 ### Deleting content
 
-Here is how you can delete content while in edit mode
+Here is how you can delete content while in edit mode:
 
 - `x` - delete a single character
 - `dd` - delete the current line
@@ -79,8 +71,18 @@ Here is how you can delete content while in edit mode
 And you have these that take in a numerical argument:
 
 -  `<n>x` - delete `n` characters (eg `5x` deletes five characters)
-- `<n>dw` - Deletes the next `n` words (eg `5dw` means delete 5 words)
 - `<n>dd` - Deletes the next `n` lines (eg `5dd` means delete 5 lines)
+
+#### Deletion mode
+
+Simply typing `d` enters you into deletion mode, where any navigation command you type after that deletes up to that navigation:
+
+- `<n>j`: navigates downward `n` lines and deletes them all
+- `<n>k`: navigates upward `n` lines and deletes them all
+- `<n>h`: navigates left `n` characters and deletes them all
+- `<n>l`: navigates right `n` characters and deletes them all
+- `<n>w`: navigates right `n` words and deletes them all
+- `<n>b`: navigates left `n` words and deletes them all
 
 ### Undoing Changes
 
@@ -152,8 +154,58 @@ So here's a basic summary:
 
 ## Vim customization
 
+#### `~/.vimrc`
+
+You can execute special commands in each vim session to customize vim behavior. 
+
+To avoid having to re-execute these commands again and again for each new session, you can put those commands into a `~/.vimrc` in your home directory that Vim will automatically read.
+
+So a `~/.vimrc` file is just a file read in command mode, where each line corresponds to a vim command to be executed, and this file is loaded on every single vim bootup.
+
+Here is my vimrc:
+
+```vim
+set scrolloff=8
+set number
+set tabstop=4 softtabstop=4
+set expandtab
+set smartindent
+syntax on
+set cursorline
+set shiftwidth=4
+set incsearch
+set smartcase
+set hlsearch
+set backspace=indent,eol,start
+```
+
 ### Basic built-in customizations
 
-- `:set scrolloff=8`: sets the tolerance as the cursor being 8 lines above or below the center of the screen before the document scrolls with you.
-- `:set number`: turns on line numbers for the file
+#### UI
 
+- `set scrolloff=8`: sets the tolerance as the cursor being 8 lines above or below the center of the screen before the document scrolls with you.
+- `set number`: turns on line numbers for the file
+- `set relativenumber` (or `:set rnu` for short): turns on relative line numbers from the current cursor position, which is useful for yanking and deleting.
+- **`syntax on`**: Enables color coding for different programming languages.
+- **`set cursorline`**: Highlights the horizontal line where your cursor is sitting, making it easier to find.
+- **`set mouse=a`**: Enables the mouse for scrolling and clicking, which is helpful while you're still learning keyboard motions.
+
+#### Indentation and spacing
+
+- **`set tabstop=4`**: Makes a tab character look 4 columns wide.
+- **`set shiftwidth=4`**: Sets the number of spaces used for each level of (auto)indent.
+- **`set expandtab`**: Converts tabs into spaces.
+- **`set autoindent`**: Automatically matches the indentation level of the previous line when you hit enter.
+
+#### Find and replace
+
+- **`set incsearch`**: Starts searching and highlighting matches as you type your query.
+- **`set hlsearch`**: Keeps search results highlighted after you finish typing.
+- **`set ignorecase`**: Makes searches case-insensitive by default.
+- **`set smartcase`**: Automatically switches to case-sensitive if you include a capital letter in your search.
+
+#### Quality of life
+
+- **`set nocompatible`**: Ensures Vim uses its own features rather than trying to act exactly like the ancient "Vi" editor.
+- **`set hidden`**: Allows you to switch buffers (open files) without being forced to save the current one first.
+- **`set backspace=indent,eol,start`**: Fixes the common frustration where the backspace key won't delete characters in certain modes or across lines.
