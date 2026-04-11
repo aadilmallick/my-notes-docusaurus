@@ -376,3 +376,104 @@ public class BasicTests : IClassFixture<WebApplicationFactory<Program>>
 }
 
 ```
+
+## Repository Pattern
+
+Here is the basic terminology:
+
+| Pattern      | Description                                                                                                                                                                             |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repository   | A pattern that allows you to separate the concerns of data storage from the concerns of data access.                                                                                    |
+| Factory      | A pattern that allows you to separate the concerns of object creation from the concerns of object usage. **A fancy name for an object that is responsible for creating other objects.** |
+| Unit of Work | A pattern that allows you to group multiple operations into a single unit of work.                                                                                                      |
+|              |                                                                                                                                                                                         |
+
+
+The Repository pattern is a design pattern that allows you to separate the concerns of data storage (e.g. a database) from the concerns of data access.
+
+You can think of it as an abstraction over different concrete data access implementations, whether it be a database, file operations, caching, or in memory array. 
+
+Basically, it follows the D in SOLID for making sure data access follows the pattern of an abstract interface rather than having to refactor code for each type of data access vector.
+
+### Repository Interface
+
+This is how the repository interface should be, as it represents the basic functionality of any data access vector:
+
+```cs
+public interface IRepository<T>
+{
+    T? GetById(int id); // return element with id
+    IEnumerable<T> GetAll(); // return entire repository as collection
+    void Create(T entity); // add to repository
+    void Update(T entity); // update element
+    void Delete(T entity); // delete element from repository
+}
+```
+
+So you can rethink of a repository as such:
+
+- **repository**: a collection of entities
+- **entity**: an element in a repository
+
+Here is an implementation of a repository using an in-memory list as the data access and storage vector:
+
+```cs
+public class EmployeeRepository : IRepository<Employee>
+{
+	private readonly List<Employee> _employees = new();
+
+	public Employee? GetById(int id)
+	{
+		return _employees.FirstOrDefault(e => e.Id == id);
+	}
+
+	public IEnumerable<Employee> GetAll()
+	{
+		return _employees;
+	}
+
+	public void Create(Employee entity)
+	{
+		if (entity == null)
+		{
+			throw new ArgumentNullException(nameof(entity));
+		}
+		var entityWithId = Employee.createEmployee(
+			entity.FirstName,
+			entity.LastName,
+			entity.SocialSecurityNumber,
+			entity.Address
+		);
+		_employees.Add(entityWithId);
+	}
+
+	public void Update(Employee entity)
+	{
+		if (entity == null)
+		{
+			throw new ArgumentNullException(nameof(entity));
+		}
+		var existingEmployee = GetById(entity.Id);
+		if (existingEmployee != null)
+		{
+			existingEmployee.FirstName = entity.FirstName;
+			existingEmployee.LastName = entity.LastName;
+		}
+	}
+
+	public void Delete(Employee entity)
+	{
+		if (entity == null)
+		{
+			throw new ArgumentNullException(nameof(entity));
+		}
+		_employees.Remove(entity);
+	}
+}
+
+```
+
+### Using repositories
+
+The benefit of repositories in C# is not just about
+
