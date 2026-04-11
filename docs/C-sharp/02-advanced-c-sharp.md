@@ -526,20 +526,24 @@ var request = new HttpRequestMessage(
 You can set the authorization header to include tokens or credentials for secured endpoints.
 
 ```csharp
+// 1. create http client
 var httpClient = new HttpClient();
 
-// add auth request headers to be passed on every request
+// 2. add auth request headers to be passed on every request
 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
 	"Bearer", 
 	"your_token_here"
 );
 
+// 3. craft request
 var request = new HttpRequestMessage(
 	HttpMethod.Get, 
 	"https://yourfavoriteservice.com
 )
-```
 
+// 4. send request and retrieve response
+var response = await httpClient.SendAsync(request);
+```
 
 #### Dealing with the response
 
@@ -569,6 +573,15 @@ if (response.IsSuccessStatusCode) {
 }
 ```
 
+#### Convenvience fetching methods:
+
+All of these methods are just abstractions over the `httpClient.SendAsync(req)` method and require fewer arguments and configuration:
+
+- `httpClient.GetAsync(string url)`: performs a GET request to specified url
+- `httpClient.PostAsJsonAsync(string url, object obj)`: performs a POST request to specified url, passing the object in the 2nd argument as JSON in the request body.
+
+
+
 ### HTTPClient Factory
 
 > [!NOTE]
@@ -580,4 +593,6 @@ Creating a network connection via HTTPClient is expensive and cannot be reopened
 
 1. **Static Shared `HttpClient`**: In older applications or scenarios where resource management is a concern, using a single static instance of `HttpClient` is considered best practice.
 2. **Avoid Disposing `HttpClient`**: Typically, you should avoid disposing of `HttpClient` instances manually, even though it implements `IDisposable`. The disposal is managed automatically by the runtime in most cases.
+
+## Nuget and dotnet cli
 

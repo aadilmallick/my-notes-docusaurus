@@ -274,3 +274,9 @@ Now to get tests working, you need to make the following changes to your code:
 ```csharp
 public partial class Program { }
 ```
+
+3. Add your API .NET project as a reference to the testing .NET project, which you can do by using `ctrl + shift + p` and searching ".NET: add reference", or you can do via cli:
+
+```bash
+dotnet add reference ../first-net-api.csproj
+```
