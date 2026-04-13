@@ -227,3 +227,7 @@ Use the `:colorscheme <theme>` command to change the color scheme of vim by sele
 You can find all theme options by typing first `:colorscheme` and then a space and then hitting `ctrl + d` to pull up all the options.
 
 Then you can put your choice of colorscheme inside your vimrc.
+
+## Navigating the filesystem with vim
+
+Vim
