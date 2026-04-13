@@ -468,6 +468,54 @@ const parent = z.lazy(() => {
 });
 ```
 
+
+### TypeScript types to zod schemas
+
+If you want to use a typescript type or interface as a general shape for a zod schema to adhere to, then you can use these approaches:
+
+**approach 1 : use `satisfies`**
+***
+
+If you are using TypeScript 4.9+, the `satisfies` keyword allows you to check that your schema matches your interface
+
+```ts
+import { z } from "zod";
+
+interface User {
+  id: number;
+  name: string;
+  email?: string;
+}
+
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().optional(),
+}) satisfies z.ZodType<User>; // Ensures UserSchema produces a valid User type
+
+```
+
+**approach 2: use `z.ZodType<T>`**:
+***
+
+You can explicitly type your schema variable as `z.ZodType<InterfaceName>`. This will trigger a TypeScript error if the schema and the interface ever go out of sync.
+
+```ts
+import { z } from "zod";
+
+interface Product {
+  price: number;
+  title: string;
+}
+
+// Any missing or mismatched fields here will cause a compilation error
+const ProductSchema: z.ZodType<Product> = z.object({
+  price: z.number(),
+  title: z.string(),
+});
+
+```
+
 ### Zod 3rd-party integrations
 
 #### Zod with React Hook Form
