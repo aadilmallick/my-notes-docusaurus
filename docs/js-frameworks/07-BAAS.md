@@ -421,6 +421,30 @@ CORS is extremely important when creating an API and especially when you have JW
 
 The best way to do CORS is to only allow origins you trust and methods you trust.
 
+Here's an example of a utility function I use to always return the correct CORS headers:
+
+```ts
+// region CORS
+const allowedOrigins = [
+    "http://localhost:8080",
+    Deno.env.get("PROD_DOMAIN") || "https://production-bettermeals.vercel.app",
+];
+
+export const getCorsHeaders = (origin: string | null) => {
+    // Check if the request origin is in your allowed list
+    const allowedOrigin = origin && allowedOrigins.includes(origin)
+        ? origin
+        : allowedOrigins[1]; // Default to your main prod domain
+
+    return {
+        "Access-Control-Allow-Origin": allowedOrigin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers":
+            "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    };
+};
+```
+
 > [!IMPORTANT]
 > The most important thing people forget is that CORS headers must be returned on every single response, no matter the status code (server error or request success). This is because a frontend will not be able to read the server or cloud function response if there is no CORS policy allowing the frontend to read the server response.
 
