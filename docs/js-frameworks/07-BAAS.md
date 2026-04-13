@@ -412,6 +412,30 @@ const supabaseAdmin = createClient(
 )
 ```
 
+#### CORS
+
+CORS is extremely important when creating an API and especially when you have JWT verification disabled. Here are the two major types of mistakes people make with CORS:
+
+- **mistake 1 (no cors permissions)**: Without cors, nobody can invoke your function at all, meaning no frontend can call a supabase function.
+- **mistake 2 (lax cors permissions)**: If you enable every origin to invoke your function from their frontend, then you're vulnerable to attacks on your server.
+
+The best way to do CORS is to only allow origins you trust and methods you trust.
+
+> [!IMPORTANT]
+> The most important thing people forget is that CORS headers must be returned on every single response, no matter the status code (server error or request success). This is because a frontend will not be able to read the server or cloud function response if there is no CORS policy allowing the frontend to read the server response.
+
+From the Fetch / CORS spec:
+
+> **Every response to a cross-origin request must include appropriate CORS headers** — not just successful ones.
+
+That includes:
+
+- ✅ 200 / 201 success
+- ✅ 400 / 401 / 403 client errors
+- ✅ 500 server errors
+- ✅ ANY early return
+
+👉 The browser doesn’t care _why_ you returned — it only checks headers.
 
 
 #### Function examples
