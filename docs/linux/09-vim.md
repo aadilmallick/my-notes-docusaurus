@@ -228,6 +228,74 @@ You can find all theme options by typing first `:colorscheme` and then a space a
 
 Then you can put your choice of colorscheme inside your vimrc.
 
+
+## Split windows in vim
+
+In Vim you'll often have to deal with multiple windows in the same vim session and it's useful to know how to switch between them and manage them.
+
+To manage windows in vim, use the `ctrl + w` keyboard shortcut to enter **window management mode**.
+
+### Switching windows
+
+Once in window management mode by pressing `ctrl + w`, do the following to switch the currently focused window, which comes from the navigation commands:
+
+- `j`: selects window one down
+- `k`: selects window one up
+- `h`: selects window to the immediate left
+- `l`: selects window to the immediate right
+
+You also have access to an easy way for cycling through the windows:
+
+- `ctrl + w`: hitting this again switches to the next window in the cycle.
+
+### Closing windows
+
+To close a window, you can simply quit it or do `ctrl + w, c`, where you first enter window management mode and then press `c` to close the window.
+
+- `ctrl + w, c`: close the currently focused window
+- `ctrl + w, ctrl + o`: close all windows except the currently focused one.
+
+### Splitting windows
+
+Once in window management mode by pressing `ctrl + w`, do the following to create multiple windows of the current buffer, sort of like multiple tabs of the same file in VsCode:
+
+- `s`: horizontal split
+- `v`: vertical split
+
+
+
+### Summary
+
+- **Move Down:** Press `Ctrl + w`, then `j` (or the down arrow).
+- **Move Up:** Press `Ctrl + w`, then `k` (or the up arrow).
+- **Cycle Through:** Press `Ctrl + w` twice (`Ctrl + w`, `w`) to jump to the next window.
+- **Make Equal Size:** `Ctrl + w` followed by `=`
+- **Maximize Current Window:** `Ctrl + w` followed by `_` (underscore)
+- **Close Current Window:** `:q` or `Ctrl + w`, then `c`
+
 ## Navigating the filesystem with vim
 
-Vim
+Vim can also be used as a quick way to view files in a directory and navigate between files and directories. Think of it like `ls` on steroids.
+
+To open up a file tree in the current directory (able to navigate to all files and subdirectories within the current directory), type `vim <foldername>`:
+
+```bash
+vim <folderpath> # opens up the specified directory path in the vim file explorer
+vim . # opens up cwd in the vim file explorer
+```
+
+You have these basic navigations:
+
+- `j`: go down the file tree
+- `k`: go up the file tree
+- `enter`: press the **enter** key to enter a directory or open a file
+
+To exit from a file and go back to the directory containing the file, you can use these commands:
+
+- `:Ex`: stands for *explore*, which opens up the file tree of the directory containing the file.
+- `:Vex`: stands for *vertical explore*, creating a vertical split which opens up the file tree of the directory containing the file to the left of it, giving you two tiles, where the left panel is the file tree and the right panel is the file. 
+	- **left**: file tree
+	- **right**: opened file contents
+- `:Sex`: stands for *split explore*, creating a horizontal split which opens up the file tree of the directory containing the file to the bottom of it, giving you two tiles, where the bottom panel is the file tree and the top panel is the file. 
+	- **top**: file tree
+	- **bottom**: opened file contents
