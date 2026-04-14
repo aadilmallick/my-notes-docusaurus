@@ -594,17 +594,34 @@ Creating a network connection via HTTPClient is expensive and cannot be reopened
 1. **Static Shared `HttpClient`**: In older applications or scenarios where resource management is a concern, using a single static instance of `HttpClient` is considered best practice.
 2. **Avoid Disposing `HttpClient`**: Typically, you should avoid disposing of `HttpClient` instances manually, even though it implements `IDisposable`. The disposal is managed automatically by the runtime in most cases.
 
-## Nuget and dotnet cli
+## Nuget 
+
+## Env vars
+
+### Reading env vars
+
+To access an env var, use this simple way:
+
+```cs
+string myKey = Environment.GetEnvironmentVariable("API_KEY");
+```
 
 ### reading env vars from `.env`
 
 To load environment variables from a `.env`, you need to use a third party package from nuget. You can install it here:
 
+```bash
+dotnet add package DotNetEnv
+```
 
+Now use the package namespace and load all env vars with `Env.Load()`:
 
 ```cs
 using DotNetEnv;
 
-
+// 1. Load the .env file into the environment
+// This makes variables available via Environment.GetEnvironmentVariable
+Env.Load();
 ```
+
 
