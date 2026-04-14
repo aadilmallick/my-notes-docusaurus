@@ -402,8 +402,16 @@ To edit a file, use the `:e <filepath>` command, which will open up a normal vim
 You can do fuzzy searching with regex and then try looking at the options with `ctrl + d` and autocomplete options with `tab`
 
 
-### Filesystem Remaps
+### Alternate file jumping
 
+To instantly jump back and forth between your two most recently opened files in the vim editing filetree, you can use the `ctrl + shift + 6` command.
+
+### Jump List
+
+The jump list is a history of all the places you navigated to in your vim session. You have two keyboard shortcuts to navigate it:
+
+- `ctrl + o`: move backward in the jump list
+- `ctrl + i`: move forward in the jump list.
 ### Marks
 
 Marks are a way to save a position in a file when navigating a file tree and opening up files, and then you can navigate to those marks, navigating to that saved position in the file. There are two types of marks:
@@ -426,6 +434,80 @@ To navigate to a mark, press a single quote `'` to enter **mark navigation mode*
 
 
 
+## Plugins
+
+### Vim Plugged
+
+We will use vim plugged as our vim plugin manager of choice.
+
+Install it here:
+
+```embed
+title: "GitHub - junegunn/vim-plug: :hibiscus: Minimalist Vim Plugin Manager"
+image: "https://opengraph.githubassets.com/3075a516214f74461434319e4b9d20030cf013a1fc2832bdad012285523134d8/junegunn/vim-plug"
+description: ":hibiscus: Minimalist Vim Plugin Manager. Contribute to junegunn/vim-plug development by creating an account on GitHub."
+url: "https://github.com/junegunn/vim-plug"
+favicon: ""
+aspectRatio: "50"
+```
+
+Then to register vim plug as our package manager, we need to add it our `~/.vimrc`:
+
+Add a vim-plug section to your `~/.vimrc` (or `~/.config/nvim/init.vim` for Neovim)
+
+1. Begin the section with `call plug#begin()`
+2. List the plugins with `Plug` commands
+3. End the section with `call plug#end()`
+
+For example,
+
+```viml
+call plug#begin()
+
+" List your plugins here
+Plug 'tpope/vim-sensible'
+
+call plug#end()
+```
+
+Reload the file or restart Vim, then you can,
+
+- `:PlugInstall` to install the plugins
+- `:PlugUpdate` to install or update the plugins
+- `:PlugDiff` to review the changes from the last update
+- `:PlugClean` to remove plugins no longer in the list
+
+### `fzf` fuzzy finder plugin
+
+1. First register the plugin you want to install by typing this code in the plugin section:
+
+```viml
+call plug#begin('~/.vim/plugged')
+
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
+call plug#end()
+```
+
+2. Install plugins you registered with the `:PlugInstall` command.
+
+The fuzzy finder plugin has two essential commands that does pretty much the same thing as VsCode's `ctrl + p`:
+
+- `:GFiles`: performs a fuzzy search on all files registered in git
+- `:Files`: performs a fuzzy search on all files registered in git
+
+Here is a remap you can do to map `ctrl + p` to the `:GFiles` command:
+
+```bash
+nnoremap <C-p> :GFiles<CR>
+```
+
+And here is a remap where if you're not in a git repo, you can do fuzzy search over all files in the directory recursively, mapping the **Space** + `pf` (project files) shortcut to execute the `:Files` command:
+
+```
+
+```
 
 
 ## NeoVim
