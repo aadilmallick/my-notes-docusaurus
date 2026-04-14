@@ -657,3 +657,69 @@ employeeRoute.MapPost(
 ```
 
 ### Better error messages with validation and `ProblemDetails`
+
+if you want even better error messages from validation errors being set back, you can build upon the problem details service you registered earlier:
+
+```cs
+builder.Services.AddProblemDetails();
+```
+
+Create an extension method that takes `ValidationError[]` variable and converts it into a `ProblemDetails` instance:
+
+```cs
+public static class Extensions
+{
+    public static ValidationProblemDetails ToValidationProblemDetails(this List<ValidationResult> validationResults)
+    {
+        var problemDetails = new ValidationProblemDetails();
+
+        foreach (var validationResult in validationResults)
+        {
+            foreach (var memberName in validationResult.MemberNames)
+            {
+                if (problemDetails.Errors.ContainsKey(memberName))
+                {
+                    problemDetails.Errors[memberName] = problemDetails.Errors[memberName].Concat([validationResult.ErrorMessage]).ToArray()!;
+                }
+                else
+                {
+                    problemDetails.Errors[memberName] = new List<string> { validationResult.ErrorMessage! }.ToArray();
+                }
+            }
+        }
+
+        return problemDetails;
+    }
+}
+```
+
+You can now use that extension method to return a better structured output for validation error messages:
+
+```cs
+static bool validateObject<T>(T obj, out List<ValidationResult> validationProblems)
+	where T : class
+{
+	validationProblems = new List<ValidationResult>();
+	var validationContext = new ValidationContext(obj);
+	return Validator.TryValidateObject(obj, validationContext, validationProblems, true);
+}
+
+// csharpier-ignore
+employeeRoute.MapPost("/", (CreateEmployeeRequest employee, EmployeeRepository repository) =>
+	{
+		var isValid = validateObject(employee, out var validationProblems);
+		if (!isValid)
+		{
+			return Results.BadRequest(validationProblems.ToValidationProblemDetails());
+		}
+		var newEmployee = Employee.createEmployee(
+			firstName: employee.FirstName!,
+			lastName: employee.LastName!,
+			socialSecurityNumber: employee.SocialSecurityNumber,
+			address: employee.Address
+		);
+		repository.Create(newEmployee);
+		return Results.Created($"/employees/{newEmployee.Id}", newEmployee);
+	}
+);
+```
