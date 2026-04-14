@@ -596,3 +596,15 @@ Creating a network connection via HTTPClient is expensive and cannot be reopened
 
 ## Nuget and dotnet cli
 
+### reading env vars from `.env`
+
+To load environment variables from a `.env`, you need to use a third party package from nuget. You can install it here:
+
+
+
+```cs
+using DotNetEnv;
+
+
+```
+
