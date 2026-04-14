@@ -17,14 +17,39 @@ To open vim, run the `vi <textfile.txt>` command to open up a specific command i
 Vim has two main modes: insert (typing text) and edit (for commands) mode. Here is how to get to them:
 
 - **insert mode:** press `i` to enter insert mode
-- **edit mode:** press `esc` to enter edit mode
+- **normal mode:** press `esc` to enter normal mode
 
 However, there are four modes in total: Normal mode, Insert mode, Visual mode, and Command mode. 
 
-1. Normal mode is for editing text
-2. Insert mode is for typing new text
+1. Normal mode is for moving around and able to edit text with shortcuts
+2. Insert mode is for typing new text and editing text
 3. Visual mode is for highlighting text
 4. Command mode is accessed by pressing colon (:) in normal mode to execute commands.
+
+There are also several more secondary modes that can be accessed:
+
+1. **window management mode**: accessed via `ctrl + w`, which lets you manage windows.
+2. **yanking mode**: accessed by first typing `y`, which lets you copy lines of text and gives secondary commands to paste or delete lines.
+3. **deletion mode**: accessed by first typing `d`, which lets you delete characters, words, or even entire lines at a time.
+
+#### Normal mode
+
+In normal mode, you can use `j`, `k`, `h`, and `l` to navigate (and more like `w`, `b`, and `g`) and access all of the secondary modes to do stuff like yanking, deletion, and window management.
+
+#### Insert mode
+
+You have several different ways of entering insert mode but once you're in insert mode, by default no keybindings except `esc` work to go back into normal mode. It's just like editing a text document once you're in insert mode.
+
+#### Visual mode
+
+You enter visual mode by typing `v` to highlight the current character or `V` to initially highlight the entire current line.
+
+While in visual mode, all navigation keystrokes work, but where you navigate to either expands or shrinks the highlighted area.
+
+You can exit visual mode and used the highlighted text for the secondary modes like yanking and deletion:
+
+- `y`: yanks the highlighted text
+- `d`: deletes the highlighted text
 
 ### Quitting and writing files
 
@@ -238,7 +263,7 @@ Here is how to create a remap in your `~/.vimrc`:
 
 ```bash
 let mapleader = " "  # create the <leader> = " " variable
-nnoremap <leader>pv :Vex<CR> # maps " pv" + enter keystroke to the :Vex command
+nnoremap <leader>pv :Vex<CR> # maps " pv" to the :Vex command execution
 ```
 
 The `nnoremap` keyword is actually made of three components that you can change:
@@ -251,9 +276,50 @@ The `nnoremap` keyword is actually made of three components that you can change:
 - `nore`: stands for **no recursive execution**, which means this remap will not recursively trigger other remaps
 - `map`: performs a mapping between the left hand side and right hand side, separated by a space.
 
-What these two lines of code do is to non-recursively map the `<leader>pv` (a space before the pv) to the `:Vex<CR>`
+What these two lines of code do is to non-recursively map the `<leader>pv` (a space before the pv) to the `:Vex<CR>` command, where `<CR>` is a carriage return, automatically hitting the `Enter` keystroke and executing the `:Vex` command.
+
+For special characters like a space, we have to create a variable, here we call it `<leader>` by mapping the `leader` variable to a space character, and then we can refer to those variables  via `<leader>` because otherwise spaces have special behaviors in commands.
+
+```bash
+# map <leader> to the space character
+let mapleader = " "
+```
+
+#### The danger of remaps
+
+Bad remaps can make vim laggy and bad remaps are also ones that are hard to remember (anything more than three keystrokes).
+
+Here's an example of remaps taken too far, where we create recursive remaps in insert mode:
+
+
+![](https://i.imgur.com/5wB9MK7.jpeg)
+
+Here's an example of a bad remap that makes vim laggy, because if the first keystroke of our remap is a popular keystroke like `p` for pasting, vim will always wait ~500ms for the next pair of keystrokes before realizing you aren't going to type the command, so it ends the keystroke listening and just executes what you typed.
+
+```bash
+# bad because just typing `p` will be laggy because vim is waiting to see if `pv` will be typed out.
+nnoremap pv :Vex
+```
 
 ### Sourcing `~/.vimrc`
+
+The `:so <filepath>` command takes in a filepath to source into the current vim environment.
+
+This means `:so ~/.vimrc` sources the vimrc without you having to quit your current vim session.
+
+- `:so ~/.vimrc`: sources the vimrc
+- `:so %`: sources the current file buffer that is being focused on.
+
+Here is a remap that sources `~/.vimrc` by just hitting the keystroke combination **Space + Enter**:
+
+```bash
+# declare <leader> = space character
+let mapleader = " "
+# map space + enter to sourcing the vimrc and executing that command.
+nnoremap <leader><CR> :so ~/.vimrc<CR>
+```
+
+
 
 
 ## Split windows in vim
