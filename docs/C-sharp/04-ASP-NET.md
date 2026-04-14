@@ -591,3 +591,69 @@ public BasicTests(WebApplicationFactory<Program> factory)
     repo.Create(new Employee { FirstName = "John", LastName = "Doe" });
 }
 ```
+
+## Data Validation
+
+### Ensuring good error messages
+
+Sometimes when the server crashes with a 500+ error, it doesn't return a nicely formatter response. The solution is a one-liner service registration which returns all error responses as parseable JSON:
+
+```cs
+builder.Services.AddProblemDetails();
+```
+
+### Basic validation with attributes
+
+You have access to these attributes you can put on class or record fields in order to provide runtime validation.
+
+```cs
+public record CreateEmployeeRequest(
+	[Required(AllowEmptyStrings = false)] string? FirstName,
+	[Required(AllowEmptyStrings = false)] string? LastName,
+	string? SocialSecurityNumber,
+	AddressInfo? Address
+);
+```
+
+> [!NOTE]
+> Wait, what? Why did we change `FirstName` and `LastName` to nullable? Well, we did that because we want to allow the caller to pass in an empty string and let the validation logic handle the invalid case, as opposed to letting the runtime throw an error. 
+> - This better reflects the "looser" nature of JSON. 
+> - So for using attributes on fields, make those fields nullable so the validation works.
+
+And here is how you validate the request body:
+
+```cs
+// takes in obj to valid structure, outputs list of validation errors
+static bool validateObject<T>(T obj, out List<ValidationResult> validationProblems)
+	where T : class
+{
+	validationProblems = new List<ValidationResult>();
+	var validationContext = new ValidationContext(obj);
+	return Validator.TryValidateObject(obj, validationContext, validationProblems, true);
+}
+
+// csharpier-ignore
+employeeRoute.MapPost(
+"/", 
+(CreateEmployeeRequest employee, EmployeeRepository repository) =>
+	{
+		var isValid = validateObject(employee, out var validationProblems);
+		
+		// return error response of validation errors
+		if (!isValid)
+		{
+			return Results.BadRequest(validationProblems);
+		}
+		var newEmployee = Employee.createEmployee(
+			firstName: employee.FirstName!,
+			lastName: employee.LastName!,
+			socialSecurityNumber: employee.SocialSecurityNumber,
+			address: employee.Address
+		);
+		repository.Create(newEmployee);
+		return Results.Created($"/employees/{newEmployee.Id}", newEmployee);
+	}
+);
+```
+
+### Better error messages with validation and `ProblemDetails`
