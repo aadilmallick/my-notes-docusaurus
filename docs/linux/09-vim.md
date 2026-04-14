@@ -232,6 +232,27 @@ Then you can put your choice of colorscheme inside your vimrc.
 
 ### Remaps
 
+Rempas are a way to add custom key bindings in VsCode, where you can map a sequence of keystrokes to a specific command in vim.
+
+Here is how to create a remap in your `~/.vimrc`:
+
+```bash
+let mapleader = " "  # create the <leader> = " " variable
+nnoremap <leader>pv :Vex<CR> # maps " pv" + enter keystroke to the :Vex command
+```
+
+The `nnoremap` keyword is actually made of three components that you can change:
+
+```bash
+<mode> <lhs> <rhs> # mode, then left hand side, then right hand side
+```
+
+- `n`: stands for **normal mode**, which means this remap will only be active when the user is in normal mode in vim.
+- `nore`: stands for **no recursive execution**, which means this remap will not recursively trigger other remaps
+- `map`: performs a mapping between the left hand side and right hand side, separated by a space.
+
+What these two lines of code do is to non-recursively map the `<leader>pv` (a space before the pv) to the `:Vex<CR>`
+
 ### Sourcing `~/.vimrc`
 
 
