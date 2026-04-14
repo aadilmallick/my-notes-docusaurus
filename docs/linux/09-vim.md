@@ -229,6 +229,12 @@ You can find all theme options by typing first `:colorscheme` and then a space a
 Then you can put your choice of colorscheme inside your vimrc.
 
 
+
+### Remaps
+
+### Sourcing `~/.vimrc`
+
+
 ## Split windows in vim
 
 In Vim you'll often have to deal with multiple windows in the same vim session and it's useful to know how to switch between them and manage them.
@@ -273,6 +279,7 @@ Once in window management mode by pressing `ctrl + w`, do the following to creat
 - **Maximize Current Window:** `Ctrl + w` followed by `_` (underscore)
 - **Close Current Window:** `:q` or `Ctrl + w`, then `c`
 
+
 ## Navigating the filesystem with vim
 
 Vim can also be used as a quick way to view files in a directory and navigate between files and directories. Think of it like `ls` on steroids.
@@ -299,3 +306,39 @@ To exit from a file and go back to the directory containing the file, you can us
 - `:Sex`: stands for *split explore*, creating a horizontal split which opens up the file tree of the directory containing the file to the bottom of it, giving you two tiles, where the bottom panel is the file tree and the top panel is the file. 
 	- **top**: file tree
 	- **bottom**: opened file contents
+
+To edit a file, use the `:e <filepath>` command, which will open up a normal vim session for that file, loading that file as a bugger. To search for the specific file, you have these options:
+
+- `Ctrl + d` shows all possible auto-complete options
+- **Tab** can be used to walk around and auto-complete file names
+
+You can do fuzzy searching with regex and then try looking at the options with `ctrl + d` and autocomplete options with `tab`
+
+
+### Filesystem Remaps
+
+### Marks
+
+Marks are a way to save a position in a file when navigating a file tree and opening up files, and then you can navigate to those marks, navigating to that saved position in the file. There are two types of marks:
+
+- **global marks**: marks that are registered globally for the current vim navigation session.
+- **file marks**: marks that are registered locally only to the file you set those marks in.
+
+To create a mark, you go into **marking mode** with `m`. Then you can type one of two things:
+
+- **capital letter**: A capital letter creates a global mark.
+- **lowercase letter**: A lowercase letter creates a file mark.
+
+If you use the same letter (case-sensitive) twice during a session, the most recent mark you set overrides the previous one. 
+
+To navigate to a mark, press a single quote `'` to enter **mark navigation mode**, and then type the letter of the global or file mark you want to navigate to in order to navigate to that specific saved point.
+
+
+> [!WARNING] 
+> Marks have a lot of cognitive overhead because you have to keep a lot of things in your mind and you have to remember which letters you've used and which marks you've already used and which marks are global or file marks. So in order to get the best use out of marks, it's important to create a consistent pattern for how you define them and use them.
+
+
+
+
+
+## NeoVim
