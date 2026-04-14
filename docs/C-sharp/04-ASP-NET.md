@@ -857,3 +857,9 @@ builder.Services.AddValidation()
 ```
 
 No need to manually validate the object and send a bad request if invalid. Simply add the attributes, register the service, and all those errors will be thrown automatically for invalid request bodies.
+
+## Controllers
+
+Controllers are classes that handle HTTP requests
+
+## Entity Framework Core
