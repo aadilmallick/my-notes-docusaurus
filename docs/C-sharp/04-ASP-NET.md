@@ -254,6 +254,127 @@ Each of these attributes are used to bind parameters from different parts of the
 - `[FromServices] ILogger<Program> logger`: Binds the `logger` parameter from the DI container.
 - `[FromQuery] string search`: Binds the `search` parameter from the query string.
 
+### Refactoring to extension methods
+
+Another cool thing we can do is refactor routes to extension methods:
+
+```cs
+using System;
+using first_net_api.src.extensions;
+using first_net_api.src.validation;
+
+namespace first_net_api.src.enpoints;
+
+public static class EmployeeEndpoints
+{
+	public static void GetAll(this RouteGroupBuilder group)
+	{
+		group.MapGet(
+			"/",
+			(EmployeeRepository repository) =>
+			{
+				return repository.GetAll();
+			}
+		);
+	}
+
+	public static void Create(this RouteGroupBuilder group)
+	{
+		group.MapPost(
+			"/",
+			(CreateEmployeeRequest employee, EmployeeRepository repository) =>
+			{
+				var isValid = Validation.validateObject(employee, out var validationProblems);
+				if (!isValid)
+				{
+					return Results.BadRequest(validationProblems.ToValidationProblemDetails());
+				}
+				var newEmployee = Employee.createEmployee(
+					firstName: employee.FirstName!,
+					lastName: employee.LastName!,
+					socialSecurityNumber: employee.SocialSecurityNumber,
+					address: employee.Address
+				);
+				repository.Create(newEmployee);
+				return Results.Created($"/employees/{newEmployee.Id}", newEmployee);
+			}
+		);
+	}
+
+	public static void GetById(this RouteGroupBuilder group)
+	{
+		group.MapGet(
+			"/{id:int}",
+			(int id, EmployeeRepository repository) =>
+			{
+				var employee = repository.GetById(id);
+				if (employee == null)
+				{
+					return Results.NotFound();
+				}
+				return Results.Ok(employee);
+			}
+		);
+	}
+
+	public static void Update(this RouteGroupBuilder group)
+	{
+		group.MapPut(
+			"/{id:int}",
+			(int id, UpdateEmployeeRequest updatedEmployee, EmployeeRepository repository) =>
+			{
+				var employee = repository.GetById(id);
+				if (employee == null)
+				{
+					return Results.NotFound();
+				}
+
+				employee.SocialSecurityNumber =
+					updatedEmployee.SocialSecurityNumber ?? employee.SocialSecurityNumber;
+				employee.Address = updatedEmployee.Address ?? employee.Address;
+				return Results.Ok(employee);
+			}
+		);
+	}
+
+	public static void Delete(this RouteGroupBuilder group)
+	{
+		group.MapDelete(
+			"/{id:int}",
+			(int id, EmployeeRepository repository) =>
+			{
+				var employee = repository.GetById(id);
+				if (employee == null)
+				{
+					return Results.NotFound();
+				}
+				repository.Delete(employee);
+				return Results.NoContent();
+			}
+		);
+	}
+}
+```
+
+Then we can use them like this:
+
+```cs
+var employeeRoute = app.MapGroup("employees");
+
+// populate the repository with initial data
+var repository = app.Services.GetRequiredService<EmployeeRepository>();
+foreach (var employee in employees)
+{
+	repository.Create(employee);
+}
+
+employeeRoute.GetAll(); // sets up handler for GET /employees
+employeeRoute.GetById(); // sets up handler for GET /employees/{id}
+employeeRoute.Create(); // sets up handler for POST /employees
+employeeRoute.Update();	// sets up handler for PUT /employees/{id}
+employeeRoute.Delete(); // sets up handler for DELETE /employees/{id}
+```
+
 ## Unit testing
 
 ### Creating tests
@@ -723,3 +844,16 @@ employeeRoute.MapPost("/", (CreateEmployeeRequest employee, EmployeeRepository r
 	}
 );
 ```
+
+#### Extremely easy validation
+
+There is a built-in service that makes it extremely easy to add validation:
+
+1. Add your validation attributes to the request body types
+2. Register this service:
+
+```cs
+builder.Services.AddValidation()
+```
+
+No need to manually validate the object and send a bad request if invalid. Simply add the attributes, register the service, and all those errors will be thrown automatically for invalid request bodies.
