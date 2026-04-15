@@ -181,10 +181,44 @@ So here's a basic summary:
 
 ### basics
 
-- `/<pattern>`: search for matches matching the specified regex pattern, enters **search mode**.
-- `n`: goes to next match while in search mode
+- `/<pattern>`: search for matches matching the specified regex pattern, and after you hit the **Enter** key, enters **search mode**.
+
+#### Navigating between occurrences and highlighting
+
+You can navigate between occurrences like so:
+
+-  `n`: goes to next match while in search mode
+-  `N`: goes to previous match while in search mode
+
+You can also highlight occurrences and stop highlighting them with this command:
+
+- `:set hls ic`: highlights all matching searches
+- `:nohls`: stops highlighting.
+
+
+
+### Find and replace 
+
 - `:%s/<pattern>/<replace>/g`: performs find and replace globally
 
+### Quickfix list
+
+A quickfix list is a list of all matching results of fuzzy search, which you get by using `:grep` or the `fzf` vim plugin.
+
+Here is an example of how to search stuff within a directory with the `:grep` command:
+
+``` bash
+# 1st argument is the pattern, 2nd argument is the glob pattern
+:grep aadil **/*.html
+```
+
+This creates a quickfix list that is saved and you can navigate, where the list length is the number of occurrences of that regex pattern within all matching files to the glob pattern.
+
+- `:copen`: opens the quick fix list, creating a horizontal split panel view where the matched regex pattern occurrence in the file is on the top panel and the quick fix list is on the bottom panel.
+- `:cnext`: goes to the next result in the quick fix list, opening the the next occurrence up in the top panel.
+- `:cprev`: goes to the previous result in the quick fix list, opening the the previous occurrence up in the top panel.
+
+Typing `:cnext` and `:cprev` is a lot of work to go to the next occurrence, so we can remap those:
 
 ## Vim customization
 
