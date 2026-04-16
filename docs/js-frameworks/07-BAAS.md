@@ -626,3 +626,4 @@ Add triggers to automatically create customer ID for a user once they're created
 ## Firebase
 
 ## Appwrite
+
