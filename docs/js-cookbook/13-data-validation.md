@@ -1,4 +1,5 @@
-## Zod
+ 
+ ## Zod
 
 Zod is a schema-based way of doing type-inference and checking at runtime while also getting TS compiler hints that make for a good dev experience. 
 
@@ -60,7 +61,7 @@ The basic flow of using zod is to first create a **schema**, and then use that s
 
 But after validation, you will get back the object with typescript type inference both at runtime and compile time, offering great dx.
 
-- `z.infer<typeof someSchema>`: a custom generic typing that zod provides to extract the base type that a schema describes.
+- `z.infer<typeof someSchema>`: a custom generic typing that zod provides to extract the base type that a schema describes, reducing code duplication.
 - `schema.parse(value)`: parses the value and returns it if it passes, throws an error if it does not fit the schema.
 - `schema.safeParse(value)`: returns a `success` property you can access that tells you whether or not the obejct you passed in fit the schema.
 
@@ -122,11 +123,31 @@ console.log(
 );
 ```
 
+### `z.infer<T>`
+
+The `z.infer<T>` generic type takes in a zod object type and returns the inferred type structure that the schema specifies, which gives you a handy way to create a typescript interface derived from the schema structure. This has two main benefits:
+
+1. Keeps types and schemas in sync
+2. Reduces code duplication (no need for separate typescript types, just derive them from zod.)
+
+```ts
+import { z } from 'zod';
+
+export const UserSchema = z.object({
+  name: z.string().min(1, "Name can't be empty"),
+  email: z.email('Invalid email format'),
+  age: z.number().int().min(1).max(120),
+});
+
+// Automatically infer the TypeScript type
+export type UserType = z.infer<typeof UserSchema>;
+```
+
 ### zod types
 
 **Zod types** include objects, arrays, and primitives. For all purposes, zod types mean using any `z.object()`, `z.array()`, or any other zod primitive type.
 
-**primitive zod types**
+#### **primitive zod types**
 ****
 It's important to understand a few primitive zod types:
 
@@ -137,7 +158,16 @@ It's important to understand a few primitive zod types:
 - `z.undefined()`: a undefined type
 - `z.null()`: a null type
 
-**object zod types**
+#### Special string zod types
+---
+Here are some special stirng zod types because they represent common types of validation:
+
+- `z.email()`: email validation
+- `z.uuid()`: uuid validation
+- `z.url()`: url validation
+- `z.literal(str)`: specifies a string type that can only be the literal string value you pass in.
+
+#### **object zod types**
 ****
 
 You can build any schema based off the `z.object()` type which represents a javascript object where the keys should have values that are primitive zod types. 
@@ -150,7 +180,7 @@ const userSchema = z.object({
 });
 ```
 
-**array zod types**
+#### **array zod types**
 ****
 
 You can create array types in zod with the `z.array()` method and then passing in  any zod type. You can basically pass in anything:
@@ -178,7 +208,7 @@ const userSchema = z.object({
 });
 ```
 
-**universal modifiers**
+#### **universal modifiers**
 ****
 these modifiers are universal and can be used on any primitive type:
 
@@ -188,9 +218,14 @@ these modifiers are universal and can be used on any primitive type:
 - `z.default(value)`: provides a default value if a value is not provided. This only makes sense when combined with `z.optional()`
 - `z.literal(value)`: forces the value to be typed literally, as if using `as const`
 
-**string modifiers**
+#### **string modifiers**
 ****
+These modifiers chain onto a `z.string()` instance:
+
 - `z.brand<T>()`: used for **type branding**, when you want typescript to infer your string type as a literal.
+
+Zod has a concept of “branded” types, letting you layer on custom brand markers to differentiate otherwise identical primitives. This is great if you want to give a type special meaning without creating a new runtime type. For instance, you can have a UserId that’s just a string under the hood but is recognized as a distinct brand in your code:
+
 
 ```ts
 const hexColorSchema = z
@@ -201,14 +236,23 @@ const hexColorSchema = z
 const hexColor = hexColorSchema.parse("#123456");
 ```
 
+```ts
+const userIdSchema = z.string().uuid().brand<'UserId'>();
 
-**number modifiers**
-****
+type UserId = z.infer<typeof userIdSchema>; // string & { __brand: "UserId" }
+
+const userId = userIdSchema.parse('7c45ae8a-cf6e-4f72-b12f-6fbb21ce3ab9'); // works
+userIdSchema.parse('not-a-uuid'); // throws ZodError
+```
+
+#### Array modifiers
+----
+These modifiers chain onto a `z.array()` instance:
+
+- `z.nonempty()`: ensures that the array has at least one element.
 
 #### Object modifiers
 
-**basic modifiers**
-****
 There are some modifiers that apply to `z.object()` types:
 
 - `z.partial()`: makes all properties in the object optional (useful for updating)
@@ -288,7 +332,7 @@ baseObj.parse({ name: 'Zod', age: 99 });
 
 
 
-#### Transforms and coerce
+#### Transforms, coerce, and preprocessing
 
 Transforms work to ensure that a variable fits a zod schema first, and after it does so, it runs additional transformations on that value using `z.transform()`. This is useful for reusable pipelines:
 
@@ -325,6 +369,25 @@ console.log(date);
 
 If you pass in a value into `z.coerce()` that cannot be coerced at all (zod tries its hardest), then it would throw an error.
 
+**preprocessing**
+
+`.preprocess(fn: (input: unknown) => unknown, schema: ZodSchema)` applies a preprocessing function _before_ validation. Useful for cleaning up or transforming input data before it’s validated against the core schema.
+
+```
+const preprocessNumberSchema = z.preprocess((val) => {
+  if (typeof val === 'string') {
+    return parseInt(val, 10); // Try to parse string to number
+  }
+  return val; // Otherwise, return original value
+}, z.number().positive());
+
+preprocessNumberSchema.parse('42'); // Valid, returns 42 (number)
+preprocessNumberSchema.parse(42); // Valid, returns 42 (number)
+// preprocessNumberSchema.parse("abc"); // Throws ZodError (after preprocessing): Expected number, received nan
+```
+
+Keeping these validations separate from the raw schema logic keeps your code cleaner and more manageable.
+
 ### Miscellaneous Zod types
 #### Enums, unions, tuples, intersections
 
@@ -356,6 +419,36 @@ const numberSchema = z.object({ b: z.number() });
 const intersectionSchema = z.intersection(stringSchema, numberSchema);
 ```
 
+#### Discriminated unions
+
+When your data has a known “discriminator” field, `z.discriminatedUnion()` is more efficient (and more explicit) than normal unions.
+
+here are the benefits:
+
+- **Performance**: Zod can skip checking every union branch once it sees the discriminator.
+- **Clarity**: If your input object’s `type` or `kind` is incorrect, you’ll get an immediate error.
+
+```ts
+import { z } from 'zod';
+
+const customerSchema = z.object({
+  type: z.literal('customer'),
+  orders: z.array(z.string()),
+});
+
+const adminSchema = z.object({
+  type: z.literal('admin'),
+  permissions: z.array(z.string()),
+});
+
+const userSchema = z.discriminatedUnion('type', [customerSchema, adminSchema]);
+
+// Succeeds if type === 'customer' or 'admin'
+userSchema.parse({
+  type: 'customer',
+  orders: ['order1', 'order2'],
+});
+```
 #### records, maps
 
 Records in zod have a string up on their TS counterparts because of the power of runtime validation and stringent requirements. You can use the `z.record()` method and then pass in any single zod type.
@@ -379,7 +472,7 @@ const userSchema2 = z.object({
   email: z.string(),
 });
 // create map of type Map<string, {name: string, email: string}>
-const userIdToInfoMap = z.map(z.string().uuid(), userSchema2);
+const userIdToInfoMap = z.map(z.uuid(), userSchema2);
 
 const map = new Map([
     ["thing", {
@@ -448,7 +541,13 @@ const userSchema2 = z.object({
 
 You can add custom messages for when validation fails at certain stages, which is possible at each modifier as an optional argument.
 
-### Creating recursive schemas
+```ts
+const fancySchema = z.number().int().min(1, {
+  message: 'Number must be a positive integer. This includes you, 0.',
+});
+```
+
+### Creating recursive schemas with `z.lazy()`
 
 You can create recursive schemas that reference themselves by using `z.lazy()` and returning a self-referential schema in the callback:
 
