@@ -218,7 +218,7 @@ these modifiers are universal and can be used on any primitive type:
 - `z.default(value)`: provides a default value if a value is not provided. This only makes sense when combined with `z.optional()`
 - `z.literal(value)`: forces the value to be typed literally, as if using `as const`
 
-#### **string modifiers**
+#### Type branding: string modifiers
 ****
 These modifiers chain onto a `z.string()` instance:
 
@@ -243,6 +243,28 @@ type UserId = z.infer<typeof userIdSchema>; // string & { __brand: "UserId" }
 
 const userId = userIdSchema.parse('7c45ae8a-cf6e-4f72-b12f-6fbb21ce3ab9'); // works
 userIdSchema.parse('not-a-uuid'); // throws ZodError
+```
+
+```ts
+import { z } from 'zod';
+
+const emailSchema = z.string().email().brand<'EmailAddress'>();
+
+type EmailAddress = z.infer<typeof emailSchema>;
+// => string & { __brand: "EmailAddress" }
+
+const email = emailSchema.parse('test@example.com');
+// Type is EmailAddress
+
+function sendEmail(to: EmailAddress) {
+  console.log('Sending email to', to);
+}
+
+sendEmail(email);
+// Works
+
+sendEmail('unbranded string');
+// Type error: not EmailAddress
 ```
 
 #### Array modifiers
@@ -358,7 +380,13 @@ In the example above, we approached the difficult problem of determining whether
 
 **coercing**
 ****
-If you don't want to go through the hassle of writing a custom transform and instead just want to force an input to be a certain type, you can use the `z.coerce()` modifier. This is how we can rewrite the above example in less code:
+If you don't want to go through the hassle of writing a custom transform and instead just want to force an input to be a certain type, you can use the `z.coerce.<type>` modifier, of which there are three types:
+
+- `z.coerce.boolean(val)`: schema that casts the passed in value to a boolean.
+- `z.coerce.date(val)`: schema that casts the passed in value to a date.
+- `z.coerce.number(val)`: schema that casts the passed in value to a number.
+
+This is how we can rewrite the above example in less code to check if a string represents a date, and if so, convert it to a date else throw an error.
 
 ```ts
 const stringToDateSchema = z.string().pipe(z.coerce.date());
@@ -367,13 +395,14 @@ const date = stringToDateSchema.parse("2025-05-25"); // "dog" would fail
 console.log(date);
 ```
 
-If you pass in a value into `z.coerce()` that cannot be coerced at all (zod tries its hardest), then it would throw an error.
+> [!NOTE]
+> If you pass in a value into `z.coerce()` that cannot be coerced at all (zod tries its hardest), then it would throw an error.
 
 **preprocessing**
 
-`.preprocess(fn: (input: unknown) => unknown, schema: ZodSchema)` applies a preprocessing function _before_ validation. Useful for cleaning up or transforming input data before it’s validated against the core schema.
+`z.preprocess(fn: (input: unknown) => unknown, schema: ZodSchema)` applies a preprocessing function _before_ validation. Useful for cleaning up or transforming input data before it’s validated against the core schema.
 
-```
+```ts
 const preprocessNumberSchema = z.preprocess((val) => {
   if (typeof val === 'string') {
     return parseInt(val, 10); // Try to parse string to number
@@ -615,7 +644,76 @@ const ProductSchema: z.ZodType<Product> = z.object({
 
 ```
 
-### Zod 3rd-party integrations
+### Zod use cases
+
+#### Zod with basic form validation
+
+here is an exampel of using zod and zod errors to validate the `FormData` object when a form is submitted and aggregate and display errors:
+
+```tsx
+import React, { useState } from 'react';
+import { z } from 'zod';
+
+const contactFormSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  message: z.string().min(10),
+});
+type ContactFormData = z.infer<typeof contactFormSchema>;
+
+function ContactForm() {
+  const [formData, setFormData] = useState<ContactFormData>({
+    name: '',
+    email: '',
+    message: '',
+  });
+  const [errors, setErrors] = useState<z.ZodError<ContactFormData> | null>(
+    null,
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationResult = contactFormSchema.safeParse(formData); // Validate form data
+
+    if (validationResult.success) {
+      console.log('Form data is valid:', validationResult.data);
+      setErrors(null); // Clear errors
+      // ... (Submit form data) ...
+    } else {
+      console.error('Form validation errors:', validationResult.error.errors);
+      setErrors(validationResult.error); // Set errors to display to user
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="name">Name:</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+        />
+        {errors?.formErrors
+          .filter((err) => err.path[0] === 'name')
+          .map((err) => (
+            <p className="error">{err.message}</p>
+          ))}
+      </div>
+      {/* ... (Email and Message fields and error display similar to Name) ... */}
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
 
 #### Zod with React Hook Form
 
