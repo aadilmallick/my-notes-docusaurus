@@ -567,8 +567,8 @@ Here are the three characteristics of an actual good class we want, all of which
 
 ## Design Patterns
 
+There are three t
 
-### Polymorphism
 
 ### Strategy Pattern
 
