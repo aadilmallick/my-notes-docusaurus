@@ -567,12 +567,58 @@ Here are the three characteristics of an actual good class we want, all of which
 
 ## Design Patterns
 
-There are three t
+There are three main types of design patterns, of which all patterns fall into one of these three categories:
+
+- **creational patterns**: patterns around instantiating objects
+- **structural patterns**: patterns around structuring objects and providing them with functionality.
+- **behavioral patterns**: patterns around adding behavior to an object.
+
+### Structural patterns
+
+#### Singleton pattern
+
+Singletons are classes which can be instantiated once, and can be accessed globally. This _single instance_ can be shared throughout our application, which makes Singletons great for managing global state in an application.
+
+```ts
+let instance;
+let counter = 0;
+
+class Counter {
+  constructor() {
+    if (instance) {
+      throw new Error("You can only create one instance!");
+    }
+    instance = this;
+  }
+
+  getInstance() {
+    return this;
+  }
+
+  getCount() {
+    return counter;
+  }
+
+  increment() {
+    return ++counter;
+  }
+
+  decrement() {
+    return --counter;
+  }
+}
+
+// use Object.freeze() to make sure we don't modify the singleton
+const singletonCounter = Object.freeze(new Counter());
+export default singletonCounter;
+```
+
+### Behavioral patterns
 
 
-### Strategy Pattern
+#### Strategy Pattern
 
-The strategy apttern is an extremely easy way to use classes in a way that promotes loose coupling, dependency-inversion principle, and an easy swapping of features. 
+The strategy pattern is an extremely easy way to use classes in a way that promotes loose coupling, dependency-inversion principle, and an easy swapping of features. 
 
 Here are the components of the strategy pattern:
 
