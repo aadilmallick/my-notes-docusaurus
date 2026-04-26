@@ -64,66 +64,148 @@ Prefer pure functions - functions without side effects
 
 **cohesion** is the concept of how much classes use their class properties in their methods. 
 
-We want to reach high cohesion, where every method uses all of its class properties. We don’t want methods where we only use one or two class properties.
+> [!NOTE]
+> The main goal is to reach **high cohesion** for good class design.
 
 
-> [!NOTE] 
-> Low cohesion is a clear sign for a class that should maybe just be a data container / data structure instead of an object with a public API (since that public API, the methods, doesn't interact with the internal properties).
+- **high cohesion**: We want to reach high cohesion, where every method uses all of its class properties. We don’t want methods where we only use one or two class properties.
+- **Low cohesion** is a clear sign for a class that should maybe just be a data container / data structure instead of an object with a public API (since that public API, the methods, doesn't interact with the internal properties).
 
 
 Say that `Shop` has three class properties, and in a `getCustomer()` method, we only make use of one property. 1 out of 3. That is not very cohesive.
 
+### Coupling
+
+Coupling refers to the concept of how closely related classes are to each other, like how much code they share or how much their APIs are used in other classes.
+
+> [!NOTE]
+> The main goal is to reach **loose coupling** for good class design.
+
+- **loose coupling**: when components are independent, relying on knowledge of other components as little as possible.
+- **tight coupling**: when components are too dependent on each other.
+
+
+![](https://i.imgur.com/F94JIcj.jpeg)
+
+> [!TIP]
+> To achieve loose coupling, use the dependency-inversion principle, where you use methods on an interface rather than the concrete subclasses.
+
+![](https://i.imgur.com/tzC0LQq.jpeg)
 
 ### S: single responsibility principle
 
-Each class should have a single general responsibility.
+>Each class should have a single general responsibility. Each class should only have one reason to change.
 
-- Rather than having a single large class, you should split up your class into multiple larger classes.
+- Rather than having a single large class, you should split up your class into multiple smaller classes.
 - This is based on the **single responsibility principle**, which states that each class should be responsible for one purpose.
     - A `Shop` class should only take care of shop duties, and should leave customers to a `Customer` class and products to a `Products` class.
 - Each class should have one responsibility
 
 ### O: open-closed principle
 
-- A class should be open for extension but closed for modification
-- Build subclasses to avoid modifying code and repeating yourself, to maintain DRY code.
 
+A class should be open for extension but closed for modification. This means that you should be able to add new functionality to a class without changing the existing code.
+
+For example, let's think of an example where we want to calculate the area of a shape. Instead of doing a bunch of if checks to check which shape it is before calculating the area, we just create a `Shape` interface, have different shapes implement it, and call the same area method on all of them.
+
+```typescript
+class AreaCalculator {
+  constructor(private shape: Shape) {
+    console.log(this.shape.area());
+  }
+}
+
+interface Shape {
+  area(): number;
+}
+
+class Circle implements Shape {
+  constructor(private radius: number) {}
+  area() {
+    return Math.PI * this.radius ** 2;
+  }
+}
+
+class Square implements Shape {
+  constructor(private side: number) {}
+  area() {
+    return this.side ** 2;
+  }
+}
+```
+
+> [!NOTE]
+> Basically everything goes back to dealing with interfaces rather than concrete classes.
 
 ### L: liskov-substitution principle
 
-The Liskov-substitution principle states that a child class should be able to perfectly substitute for its parent class, that is, be capable of doing everything its parent class can.
+This principle states that objects of a superclass should be replaceable with objects of a subclass without affecting the functionality of the program.
 
-```ts
+This is a fancy way of saying that if you have a class `A` and a class `B` that extends `A`, you should be able to replace `A` with `B` in any part of the code and the code should still work.
+
+Here is an example:
+
+```typescript
 class Bird {
- fly() {
-	 console.log('Fyling...');
- }
+  fly() {
+    console.log("I am flying");
+  }
 }
-class Eagle extends Bird {
- dive() {
-	 console.log('Diving...');
- }
+
+class Duck extends Bird {
+  quack() {
+    console.log("Quack quack");
+  }
 }
-const bird = new Bird();
-bird.fly();
-// We can also replace Bird() with Eagle()
-const eagle = new Eagle();
-eagle.fly();
+
+function makeBirdFly(bird: Bird) {
+  bird.fly();
+}
+
+makeBirdFly(new Duck());
 ```
+
+The Liskov-substitution principle states that a child class should be able to perfectly substitute for its parent class, that is, be capable of doing everything its parent class can.
 
 - Don’t remove any functionality in a child class when extending from a parent class
 - Make sure all subclasses have access to all methods and properties of its parent class.
 
 ### I: interface segregation principle
 
-Many client-specific interfaces are better than one general-purpose interface.
+> Many client-specific interfaces are better than one general-purpose interface. 
 
+- A class should not implement interfaces that it doesn't use. This is to prevent classes from having to implement methods that they don't need.
+- Essentially, never include unnecessary information and force a class to implement it.
 - When a class implements an interface, it should use and implement EVERYTHING from the interface, not leaving out any properties or methods. 
+
+> [!NOTE]
+> Violating the interface segregation principle leads to low cohesion, which is bad.
 
 
 ### D: Dependency inversion principle
 
-One should depend on abstractions rather than details.
+>"Program to interfaces, not implementations."
+
+>High-level modules should not depend on low-level modules. Both should depend on abstractions. Abstractions should not depend on details. Details should depend on abstractions.
+
+> [!NOTE]
+> Basically in your classes, type variables as interfaces instead of concrete classes. This prevents tight coupling and promotes loose coupling. 
+
+Examples of this pattern are any patterns that use polymorphism so that we can use all subclasses of a parent class in the exact same way.
+
+- **strategy pattern**
+- **observer pattern**
+
+
+![](https://i.imgur.com/FBU7Cbo.jpeg)
+
+
+
+### Law of Demeter
+
+The Law of Demeter states that a module should not know about the internal workings of the objects it interacts with. It should only know about its immediate friends.
+
+Prevent deeply nested object property access when dealing with class instances.
 
 ## Enterprise Code
 
