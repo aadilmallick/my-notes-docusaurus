@@ -1957,7 +1957,8 @@ The `yield` statement in a generator essentially returns a value and **pauses th
 Before we learn about generators, we need to learn about iterators and iterables.
 
 - **iterator**: an object with a `next()` method, which when invoked, returns an object in the shape of `{value: any, done: boolean}`.
-- **iterable**: an object with a `[Symbol.iterator]()` method implemented that returns an iterator object. This lets an object be iterated over.
+- **iterable**: an object with a `[Symbol.iterator]()` method implemented that returns an iterator object. 
+	- This lets an object be iterated over using a for loop or other array iteration methods.
 
 **basic example of an iterator**
 
@@ -2007,6 +2008,33 @@ const gospelIteratable = {
     };
   },
 };
+```
+
+Here is a better example that showcases all the components:
+
+```ts
+const gospelIterator = {
+    index: -1,
+    data: ["Matthew", "Mark", "Luke", "John"],
+    next() {
+        this.index++;
+
+        return {
+            value: gospelIterator.data.at(this.index),
+            done: this.index + 1 > gospelIterator.data.length,
+        };
+    },
+};
+
+const gospelIteratable = {
+  [Symbol.iterator]() {
+    return gospelIterator
+  },
+};
+
+for (const gospel of gospelIteratable) {
+    console.log(gospel)
+}
 ```
 
 The concepts of iterables returning iterators is useful because it allows us to have good practices for memory:

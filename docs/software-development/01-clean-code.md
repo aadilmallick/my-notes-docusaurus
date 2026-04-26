@@ -869,7 +869,7 @@ console.log(htmlDocument.execute());
 
 #### Request, handler, and next pattern
 
-This pattern is what makes the express request, middleware, and resp
+This pattern is what makes the express request, middleware, and response cycle work. In this pattern, you are supposed to designate the next handler in a chain using the `next` property, and if the handler is set, then you execute it.
 
 ```ts
 abstract class Chain<T> {
@@ -918,8 +918,61 @@ company.setNext(techSector)
 techSector.setNext(hrSector)
 
 console.log(company.findEmployee("that one super hot french chick")) // finds employee
+```
 
+Here's another way to do it, where we add a generic `handle()` to the chain interface, which either executes and returns a value or delegates to the next handler in the chain:
 
+```ts
+abstract class Chain<T> {
+    protected next: Chain<T> | null = null
+    setNext(chain: Chain<T>) {
+        this.next = chain
+    }
+
+    handle(executor : (chainInstance: Chain<T>) => T | null) : T | null {
+        const value = executor(this)
+        if (value) return value
+        else if (this.next) return this.next.handle(executor)
+        else return null
+    }
+}
+
+class Employee {
+    constructor(public name: string) {}
+}
+
+class EmployeeChain extends Chain<Employee> {
+
+    protected next: EmployeeChain | null = null
+
+    constructor(private employees: Employee[]) {
+        super()
+    }
+
+    findEmployee(name: string): Employee | null {
+        return this.handle((chainInstance) => {
+            return (chainInstance as EmployeeChain).employees.find(em => em.name === name) ?? null
+        })
+    }
+}
+
+const techSector = new EmployeeChain([
+    new Employee("Harsh"),
+    new Employee("Aadil"),
+    new Employee("Peter"),
+    new Employee("Kai"),
+])
+
+const hrSector = new EmployeeChain([
+    new Employee("hr girl"),
+    new Employee("that one super hot french chick")
+])
+
+const company = new EmployeeChain([])
+company.setNext(techSector)
+techSector.setNext(hrSector)
+
+console.log(company.findEmployee("that one super hot french chick")) // finds employee
 ```
 #### Strategy Pattern
 
@@ -972,3 +1025,96 @@ public class ReportGenerator {
     }
 }
 ```
+
+#### Command pattern
+
+The pattern has two main components:
+
+- **command**: a single command represents an encapsulation of some function logic
+- **command executor (conductor)**: what actually runs the command. It takes in a command and some data and executes the command with that data.
+
+Here is the most basic version of the pattern:
+
+```ts
+// conductor interface must have an execute() method that takes in command and executes it.
+interface Conductor<T> {
+	execute<T>(command: Command<T>, data: T) => void;
+}
+
+  export class Command<T> {
+    constructor(
+      public name: string,
+      public cb: (data: T) => void
+    ) {}
+  
+    equals(command: Command<T>) {
+      return this.name === command.name;
+    }
+  }
+  
+export class CommandExecutor implements Conductor {
+	// for keeping track of commands
+	history: {command: Command<T>, data: T}[]
+	
+	execute<T>(command: Command<T>, data: T) {
+	  command.cb(data);
+	  history.push({
+		  command,
+		  data
+	  })
+	}
+}
+```
+
+Here is a more concrete example of the command pattern:
+
+
+```ts
+// conductor
+class OrderManager {
+  constructor() {
+    this.orders = [];
+  }
+
+  execute(command, ...args) {
+    return command.execute(this.orders, ...args);
+  }
+}
+
+// base command
+class Command {
+  constructor(execute) {
+    this.execute = execute;
+  }
+}
+
+// concrete implementations of the command
+function PlaceOrderCommand(order, id) {
+  return new Command(orders => {
+    orders.push(id);
+    console.log(`You have successfully ordered ${order} (${id})`);
+  });
+}
+
+function CancelOrderCommand(id) {
+  return new Command(orders => {
+    orders = orders.filter(order => order.id !== id);
+    console.log(`You have canceled your order ${id}`);
+  });
+}
+
+function TrackOrderCommand(id) {
+  return new Command(() =>
+    console.log(`Your order ${id} will arrive in 20 minutes.`)
+  );
+}
+
+const manager = new OrderManager();
+
+manager.execute(new PlaceOrderCommand("Pad Thai", "1234"));
+manager.execute(new TrackOrderCommand("1234"));
+manager.execute(new CancelOrderCommand("1234"));
+```
+
+#### Iterator pattern
+
