@@ -209,7 +209,7 @@ child.greetOld(); // "Hello, I am old"
 
 There are some useful static methods on the `Object` class that use prototypes:
 
-- `Object.create(proto)` : returns an object with a prototype set to the object that is passed in
+- `Object.create(obj)` : returns an object with a prototype set to the object that is passed in
 - `Object.getPrototypeOf(obj)` : returns the prototype of the object passed in as a javascript object
 - `Object.setPrototypeOf(obj, proto)` : sets the prototype of the object passed in to the object passed in as the second argument
 
@@ -2915,7 +2915,8 @@ We use an object instead of an array to store the chickens because it is much fa
 
 ### Prototype pattern
 
-It's more memory efficient to store shared properties and methods on classes rather than on objects, because they will be stored in the prototype instead of in memory on the object.
+> [!TIP]
+> It's more memory efficient to store shared properties and methods on classes rather than on objects, because they will be stored in the prototype instead of in memory on the object.
 
 ```typescript
 class Dog {
@@ -2929,6 +2930,32 @@ class Dog {
 ```
 
 Now you don't have to worry about allocating memory for the bark method on an object.
+
+#### prototype-clone pattern
+
+The prototype pattern is a javascript-specific pattern that lets you clone object isntances of classes in a memory efficient way by creating an object with the same prototype as a class instance:
+
+```ts
+interface PrototypeCloner<T> {
+    clone: () => T
+}
+
+class Employee implements PrototypeCloner<Employee> {
+    clone() {
+        // 1. get prototype of object instance
+        const prototype = Object.getPrototypeOf(this)
+
+        // 2. create clone that has same prototype (methods)
+        const cloned = Object.create(prototype) as Employee
+
+        // 3. copy over values from existing object to shell object
+        // ....
+
+        return cloned
+
+    }
+}
+```
 
 ### Mixin Pattern
 

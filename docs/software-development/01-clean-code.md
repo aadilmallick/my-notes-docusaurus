@@ -573,7 +573,7 @@ There are three main types of design patterns, of which all patterns fall into o
 - **structural patterns**: patterns around structuring objects and providing them with functionality.
 - **behavioral patterns**: patterns around adding behavior to an object.
 
-### Structural patterns
+### Creational  patterns
 
 #### Singleton pattern
 
@@ -612,6 +612,63 @@ class Counter {
 const singletonCounter = Object.freeze(new Counter());
 export default singletonCounter;
 ```
+
+#### Factory pattern
+
+The factory pattern is a way of abstracting the instantiation of multiple classes by delegating it to an external function. This gives you more control over the way things are instantiated and a simpler way to know which classes exist:
+
+```ts
+class Person {
+    toString() {
+        return "Person"
+    }
+}
+
+class Employee extends Person {
+    toString() {
+        return "Employee"
+    }
+}
+
+class Employer extends Person {
+    toString() {
+        return "Employer"
+    }
+}
+
+const factoryMap = {
+    "employee": Employee,
+    "employer": Employer,
+} satisfies Record<string, new (...args: any[]) => Person>;
+
+
+function createFactory<TMap extends Record<string, new (...args: any[]) => any>>(map: TMap) {
+    // 3. The returned function takes a specific Key from the map
+    return <Key extends keyof TMap>(
+        key: Key, 
+        ...constructorArgs: ConstructorParameters<TMap[Key]>
+    ): InstanceType<TMap[Key]> => {
+        
+        const Constructor = map[key];
+        
+        // We use a type assertion here because TypeScript struggles to 
+        // safely correlate a dynamic generic constructor with dynamic arguments
+        return new Constructor(...constructorArgs) as InstanceType<TMap[Key]>;
+    }
+}
+
+const factory = createFactory(factoryMap)
+const employee = factory("employee") // of type Employee
+```
+
+#### Builder pattern
+
+The purpose of the builder pattern is to separate the construction of a complex object from its representation so that the same construction process can represent different representations.
+
+basically the idea is that instead of having a ton of constructor arguments, just have chaining methods that return `this` and allow you to iteratively build the object instance with the desired properties you want.
+
+> [!NOTE]
+> This is overkill. You can also just accept an object of arguments, with default or optional arguments and that would be a lot easier.
 
 ### Behavioral patterns
 
