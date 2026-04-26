@@ -573,7 +573,7 @@ There are three main types of design patterns, of which all patterns fall into o
 - **structural patterns**: patterns around structuring objects and providing them with functionality.
 - **behavioral patterns**: patterns around adding behavior to an object.
 
-### Creational  patterns
+### Creational patterns
 
 #### Singleton pattern
 
@@ -670,9 +670,257 @@ basically the idea is that instead of having a ton of constructor arguments, jus
 > [!NOTE]
 > This is overkill. You can also just accept an object of arguments, with default or optional arguments and that would be a lot easier.
 
+### Structural patterns
+
+
+#### Proxy pattern
+
+The proxy pattern is a way to hook into getters and setters of an object and provide additional functionality on top of that, running side effects on every get or set.
+
+In JavaScript, we have a native implementation to hook into the proxy pattern using the `Proxy` object like so:
+
+```ts
+const personProxy = new Proxy(person, {
+  get: (obj, prop) => {
+    if (!obj[prop]) {
+      console.log(
+        `Hmm.. this property doesn't seem to exist on the target object`
+      );
+    } else {
+      console.log(`The value of ${prop} is ${obj[prop]}`);
+    }
+  },
+  set: (obj, prop, value) => {
+    if (prop === "age" && typeof value !== "number") {
+      console.log(`Sorry, you can only pass numeric values for age.`);
+    } else if (prop === "name" && value.length < 2) {
+      console.log(`You need to provide a valid name.`);
+    } else {
+      console.log(`Changed ${prop} from ${obj[prop]} to ${value}.`);
+      obj[prop] = value;
+    }
+  },
+});
+```
+
+#### Composite pattern
+
+The Composite pattern lets you compose objects into tree structures to represent part-whole hierarchies. It allows clients to treat individual objects (Leaves) and compositions of objects (Branches/Composites) uniformly.
+
+There are three components to this pattern:
+
+1. **shared interface**: The shared interface both the composite and leaf classes implement so that you can treat composites and leaves the exact same.
+2. **leaf class**: A concrete class implementation of a single object, implementing the shared interface.
+3. **composite class**: A concrete class implementation of handling an array of leaf objects, called **composites**, implementing the shared interface.
+
+```ts
+// 1. The shared interface
+interface FileSystemNode {
+    getSize(): number;
+    getName(): string;
+}
+
+// 2. The "Leaf" (Individual object)
+class FileNode implements FileSystemNode {
+    constructor(private name: string, private size: number) {}
+    getName() { return this.name; }
+    getSize() { return this.size; }
+}
+
+// 3. The "Composite" (Contains leaves or other composites)
+class DirectoryNode implements FileSystemNode {
+    private children: FileSystemNode[] = [];
+
+    constructor(private name: string) {}
+
+    add(node: FileSystemNode) { this.children.push(node); }
+
+    getName() { return this.name; }
+    
+    // The magic: Directory calculates size by recursively summing its children
+    getSize() {
+        return this.children.reduce((total, child) => total + child.getSize(), 0);
+    }
+}
+```
+
+#### Decorator pattern
+
+The Decorator pattern allows you to dynamically attach new behaviors or responsibilities to an object by placing it inside special wrapper objects.
+
+Instead of creating massive inheritance chains (e.g., `DarkRoastWithMilkAndSugar`), you create a base object (`DarkRoast`) and wrap it in decorators (`Milk`, `Sugar`). The decorator implements the exact same interface as the object it wraps, intercepting calls to modify the input or output.
+
+```ts
+// 1. The shared interface
+interface Coffee {
+    cost(): number;
+    description(): string;
+}
+
+// 2. The "Base Component"
+class SimpleCoffee implements Coffee {
+    cost() { return 2.00; }
+    description() { return "Simple Coffee"; }
+}
+
+// 3. The "Decorator" base class
+abstract class CoffeeDecorator implements Coffee {
+    constructor(protected coffee: Coffee) {} // Wraps the interface!
+    
+    cost() { return this.coffee.cost(); }
+    description() { return this.coffee.description(); }
+}
+
+// 4. Concrete Decorators
+class MilkDecorator extends CoffeeDecorator {
+    cost() { return super.cost() + 0.50; }
+    description() { return super.description() + ", Milk"; }
+}
+
+class SugarDecorator extends CoffeeDecorator {
+    cost() { return super.cost() + 0.25; }
+    description() { return super.description() + ", Sugar"; }
+}
+
+const myCoffee = new SugarDecorator(new MilkDecorator(new SimpleCoffee()))
+console.log(myCoffee.cost()) // 2.00 + 0.50 + .25
+```
+
+#### Composites and Decorators abstraction
+
+```ts
+// The universal interface
+export interface Executable<T> {
+    execute(): T;
+}
+
+// 1. Generic Leaf: The raw data or base execution
+export class Leaf<T> implements Executable<T> {
+    constructor(private payload: T | (() => T)) {}
+
+    execute(): T {
+        // Allows both static values and lazy evaluation
+        return typeof this.payload === 'function' 
+            ? (this.payload as () => T)() 
+            : this.payload;
+    }
+}
+
+// 2. Generic Composite: Combines multiple Executables
+export class Composite<T> implements Executable<T> {
+    private children: Executable<T>[] = [];
+    
+    // Accepts a strategy to reduce an array of T into a single T
+    constructor(private aggregatorStrategy: (results: T[]) => T) {}
+
+    add(child: Executable<T>): this { 
+        this.children.push(child); 
+        return this; // Return 'this' for chainability
+    }
+
+    execute(): T {
+        // Execute all children, then aggregate the results
+        const results = this.children.map(child => child.execute());
+        return this.aggregatorStrategy(results);
+    }
+}
+
+// 3. Generic Decorator: Intercepts and mutates a single Executable
+export class Decorator<T> implements Executable<T> {
+    constructor(
+        protected component: Executable<T>, 
+        private mutationStrategy: (result: T) => T
+    ) {}
+
+    execute(): T {
+        // Intercept the execution and apply the mutation
+        const result = this.component.execute();
+        return this.mutationStrategy(result);
+    }
+}
+```
+
+We can use this as a string builder scenario:
+
+```ts
+// Leaves
+const title = new Leaf("Hello World");
+const body = new Leaf("This is built with patterns.");
+
+// Composite: Join strings with line breaks
+const document = new Composite<string>((results) => results.join("\n"));
+document.add(title).add(body);
+
+// Decorators: Wrap elements in HTML tags
+const h1Title = new Decorator<string>(title, (text) => `<h1>${text}</h1>`);
+const pBody = new Decorator<string>(body, (text) => `<p>${text}</p>`);
+
+// Re-compose with the decorated HTML elements
+const htmlDocument = new Composite<string>((results) => results.join("\n"));
+htmlDocument.add(h1Title).add(pBody);
+
+console.log(htmlDocument.execute());
+// Output:
+// <h1>Hello World</h1>
+// <p>This is built with patterns.</p>
+```
+
 ### Behavioral patterns
 
+#### Request, handler, and next pattern
 
+This pattern is what makes the express request, middleware, and resp
+
+```ts
+abstract class Chain<T> {
+    protected next: Chain<T> | null = null
+    setNext(chain: Chain<T>) {
+        this.next = chain
+    }
+}
+
+class Employee {
+    constructor(public name: string) {}
+}
+
+class EmployeeChain extends Chain<Employee> {
+
+    protected next: EmployeeChain | null = null
+
+    constructor(private employees: Employee[]) {
+        super()
+    }
+
+    findEmployee(name: string): Employee | null {
+        const foundEmployee = this.employees.find(em => em.name === name)
+        if (foundEmployee) return foundEmployee
+        if (this.next) return this.next.findEmployee(name)
+        else {
+            return null
+        }
+    }
+}
+
+const techSector = new EmployeeChain([
+    new Employee("Harsh"),
+    new Employee("Aadil"),
+    new Employee("Peter"),
+    new Employee("Kai"),
+])
+
+const hrSector = new EmployeeChain([
+    new Employee("hr girl"),
+    new Employee("that one super hot french chick")
+])
+
+const company = new EmployeeChain([])
+company.setNext(techSector)
+techSector.setNext(hrSector)
+
+console.log(company.findEmployee("that one super hot french chick")) // finds employee
+
+
+```
 #### Strategy Pattern
 
 The strategy pattern is an extremely easy way to use classes in a way that promotes loose coupling, dependency-inversion principle, and an easy swapping of features. 
