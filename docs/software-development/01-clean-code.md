@@ -59,12 +59,6 @@ Prefer pure functions - functions without side effects
 
 ## Classes
 
-### Single responsibility principle
-
-- Rather than having a single large class, you should split up your class into multiple larger classes.
-- This is based on the **single responsibility principle**, which states that each class should be responsible for one purpose.
-    - A `Shop` class should only take care of shop duties, and should leave customers to a `Customer` class and products to a `Products` class.
-- Each class should have one responsibility
 
 ### Cohesion
 
@@ -79,11 +73,15 @@ We want to reach high cohesion, where every method uses all of its class propert
 
 Say that `Shop` has three class properties, and in a `getCustomer()` method, we only make use of one property. 1 out of 3. That is not very cohesive.
 
-### SOLID
 
 ### S: single responsibility principle
 
-Each class should have a single general responsibility
+Each class should have a single general responsibility.
+
+- Rather than having a single large class, you should split up your class into multiple larger classes.
+- This is based on the **single responsibility principle**, which states that each class should be responsible for one purpose.
+    - A `Shop` class should only take care of shop duties, and should leave customers to a `Customer` class and products to a `Products` class.
+- Each class should have one responsibility
 
 ### O: open-closed principle
 
@@ -978,6 +976,11 @@ console.log(company.findEmployee("that one super hot french chick")) // finds em
 
 The strategy pattern is an extremely easy way to use classes in a way that promotes loose coupling, dependency-inversion principle, and an easy swapping of features. 
 
+> [!NOTE]
+> The strategy pattern defines a family of algorithms and encapsulates each one and makes them interchangeable and works exact same by providing and implementing the same interface. The strategy pattern lets the algorithm vary independently from the clients that use it.
+
+
+
 Here are the components of the strategy pattern:
 
 - **base strategy**: A base `Strategy` interface or abstract class that all concrete strategies should extend from, following the dependency-inversion principle
@@ -1022,6 +1025,31 @@ public class ReportGenerator {
 
     public void generateReport(Data data) {
         reportStrategy.generateReport(data);
+    }
+}
+```
+
+And here's a more abstract implementation:
+
+```ts
+interface Strategy<T> {
+    execute(data: T) : void
+}
+
+abstract class StrategyUser<T> {
+    
+    constructor(protected strategy: Strategy<T>) {}
+
+    setStrategy(strategy: Strategy<T>) {
+        this.strategy = strategy
+    }
+
+    getStrategy() {
+        return this.strategy
+    }
+
+    executeStrategy(data: T) {
+        this.strategy.execute(data)
     }
 }
 ```
@@ -1118,3 +1146,90 @@ manager.execute(new CancelOrderCommand("1234"));
 
 #### Iterator pattern
 
+- **iterator**: an object with a `next()` method, which when invoked, returns an object in the shape of `{value: any, done: boolean}`.
+- **iterable**: an object with a `[Symbol.iterator]()` method implemented that returns an iterator object. 
+	- This lets an object be iterated over using a for loop or other array iteration methods.
+
+```ts
+interface CustomIterator<T> {
+    index: number;
+    data: T[];
+    next: () => {value: T | undefined | null, done: boolean}
+}
+
+interface CustomIterable<T> {
+    [Symbol.iterator]: () => CustomIterator<T>
+}
+
+const gospelIterator : CustomIterator<string> = {
+    index: -1,
+    data: ["Matthew", "Mark", "Luke", "John"],
+    next() {
+        this.index++;
+
+        return {
+            value: gospelIterator.data.at(this.index),
+            done: this.index + 1 > gospelIterator.data.length,
+        };
+    },
+};
+
+const gospelIteratable : CustomIterable<string> = {
+  [Symbol.iterator]() {
+    return gospelIterator
+  },
+};
+
+for (const gospel of gospelIteratable) {
+    console.log(gospel)
+}
+```
+
+#### Observer pattern
+
+The purpose of the observer pattern is to define a one-to-many dependency between objects so that when one object changes state, all of its dependents are notified and updated automatically.
+
+This can be achieved by having two components, namely an observer and a subscriber, where the observer can notify all the subscribers and the subscribers are just callback functions that are executed when the observer chooses to notify.
+
+```ts
+class Observable {
+  constructor() {
+    this.observers = [];
+  }
+
+  subscribe(func) {
+    this.observers.push(func);
+  }
+
+  unsubscribe(func) {
+    this.observers = this.observers.filter((observer) => observer !== func);
+  }
+
+  notify(data) {
+    this.observers.forEach((observer) => observer(data));
+  }
+}
+```
+
+```ts
+import { ToastContainer, toast } from "react-toastify";
+
+function logger(data) {
+  console.log(`${Date.now()} ${data}`);
+}
+
+function toastify(data) {
+  toast(data);
+}
+
+observable.subscribe(logger);
+observable.subscribe(toastify);
+
+function handleClick() {
+	observable.notify("User clicked button!");
+}
+
+function handleToggle() {
+	observable.notify("User toggled switch!");
+}
+```

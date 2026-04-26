@@ -2013,7 +2013,17 @@ const gospelIteratable = {
 Here is a better example that showcases all the components:
 
 ```ts
-const gospelIterator = {
+interface CustomIterator<T> {
+    index: number;
+    data: T[];
+    next: () => {value: T | undefined | null, done: boolean}
+}
+
+interface CustomIterable<T> {
+    [Symbol.iterator]: () => CustomIterator<T>
+}
+
+const gospelIterator : CustomIterator<string> = {
     index: -1,
     data: ["Matthew", "Mark", "Luke", "John"],
     next() {
@@ -2026,7 +2036,7 @@ const gospelIterator = {
     },
 };
 
-const gospelIteratable = {
+const gospelIteratable : CustomIterable<string> = {
   [Symbol.iterator]() {
     return gospelIterator
   },
@@ -2076,7 +2086,10 @@ for (const leapYear of leapYears) {
 
 Create a generator function in JS using the `function*` syntax, which is syntactic sugar over a regular generator function. It essentially is a function with `return` and `yield` statements which returns an iterable under the hood. 
 
-- Using `function*` syntax makes the function a function that returns 
+> [!NOTE]
+> A generator is a function that returns an object that is both an iterable and an iterator. This means you can loop over a generator and also call `.next()` on it.
+
+- Using `function*` syntax makes the function a function that returns an iterable.
 - Using the `yield <value>` keyword in a generator function basically creates the `{value, done}` object and is what will be returned 
 
 Invoking a `function*` function is syntactic sugar for converting that function into a normal generator function that returns an object with these methods:
@@ -2088,6 +2101,12 @@ Invoking a `function*` function is syntactic sugar for converting that function 
 	- `value`: the return value you passed in
 	- `done`: true, since you stopped execution
 - `generator.throw(err)`: allows you to throw a custom error which you can handle in the generator function. 
+
+Basically this is what maps to what when building a generator function:
+
+- **using the `yield` keyword**: maps to manually calling `generator.next()` or iterating through the generator.
+- **using the `return` statement**: maps to calling `generator.return(value)` to end the generator with a final value.
+- **throwing an error**: maps to manually calling `generator.throw(err)`
 
 ```ts
 // 1. create generator function
@@ -2406,8 +2425,6 @@ The best of both worlds is to just use typescript private methods, which aren't 
 A class should only have one reason to change. It should only have one responsibility or function.
 
 In large codebases, this prevents God classes that do everything and are hard to maintain. This ensures proper maintainability.
-
-![SRS](https://www.webpagescreenshot.info/image-url/ppzJv3svr)
 
 ### Open/closed principle
 
