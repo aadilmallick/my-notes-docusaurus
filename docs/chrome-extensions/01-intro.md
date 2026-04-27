@@ -105,9 +105,12 @@ To declare a popup file, set the `action` key in the manifest:
 
 A popup can access all chrome APIs and is just another extension process. However, as opposed to service workers, a popup can also access all standard browser APIs like LocalStorage as `window` is defined on it.
 
-:::warning
-Events in the popup are not long lived and are only listening for as long as the popup page is active. It is best register events in the background script.
-:::
+#### Popup lifecycle
+
+Browsers will ensure that only one popup page is ever opened per window and thus they are torn down frequently. This makes them ill-suited for running any long-running event listeners or messaging channels.
+
+> [!WARNING]
+> Events in the popup are not long lived and are only listening for as long as the popup page is active. It is best to register events in the background script.
 
 ### Options Page
 
@@ -249,19 +252,28 @@ export default class Offscreen {
 }
 ```
 
+## Architecture
+
+The background service worker is the nerve center of the extension. It is frequently used to handle events, dispatch messages, and perform authentication duties. 
+
+- The background service worker has the useful property of being a singleton; for any number of tabs or windows, only one service worker will ever be running.
+- The background service worker is the only element of a browser extension that can reliably handle browser events. Elements of extensions like options pages, popup pages, content scripts, and devtools pages are transient and therefore may miss events when they are not running.
+
+> [!NOTE]
+> Make sure important message listeners you want to be lasting are set in the background script, as the background script is the only context that lasts for the entire lifetime of the extension.
 
 ## Match Patterns
 
 Match patterns and globs are way of matching URLs. Globs are more flexible than match patterns.
 
-**globs**
+### Globs
 
 Globs have these rules to them:
 
-1. `*` stands for any number of characters, like `.*` in regex. Essentially a wildcard representing an infinite number of characters.
-2. `?` stands for a any single character, like `.` in regex.
+- `*` stands for any number of characters, like `.*` in regex. Essentially a wildcard representing an infinite number of characters.
+- `?` stands for a any single character, like `.` in regex.
 
-**Match patterns**
+### URL **Match patterns**
 
 There are three parts to a match pattern:
 
