@@ -56,12 +56,16 @@ Here is an example of a basic manifest:
 - `background`
   - `service_worker` : the file that will be the background service file, which deals with chrome api events.
 - `content_scripts` : a list of scripts that you can use for the chrome extension.
+- `"minimum_chrome_version"` : the minimum chrome version users should have in order for your extension  to work
+
+### Popup and action
+
+
 - `action`
   - `default_icon` : an object of filepaths that decide the icon for the chrome extension
   - `icon` : an object of filepaths that decide the icon for the chrome extension
   - `default_title` : default title of the chrome extension
   - `default_popup` : file to render for the popup.
-- `"minimum_chrome_version"` : the minimum chrome version users should have in order for your extension  to work
 
 ### Code completion
 
