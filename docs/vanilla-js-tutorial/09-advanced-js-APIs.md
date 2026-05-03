@@ -2240,6 +2240,270 @@ document.getElementById("navigate")?.addEventListener("click", async () => {
 });
 ```
 
+### URL and URLPattern
+
+#### URL
+
+```ts
+let url = new URL("https://example.com:8000/path/name?q=term#fragment");
+
+console.log(url.href); // => "https://example.com:8000/path/name?q=term#fragment"
+console.log(url.origin); // => "https://example.com:8000"
+url.protocol; // => "https:"
+url.host; // => "example.com:8000"
+url.hostname; // => "example.com"
+url.port; // => "8000"
+url.pathname; // => "/path/name"
+url.search; // => "?q=term"
+url.hash; // => "#fragment"
+```
+
+#### URLPattern
+
+The `URLPattern` class is used as a way to programmatically test if URLs match a certain schema. It's like a wrapper around regex for URLs.
+
+```ts
+// A pattern matching some fixed text
+const pattern = new URLPattern({ pathname: "/books" });
+console.log(pattern.test("https://example.com/books")); // true
+console.log(pattern.exec("https://example.com/books").pathname.groups); // {}
+```
+
+```ts
+// A pattern matching with a named group
+const pattern = new URLPattern({ pathname: "/books/:id" });
+console.log(pattern.test("https://example.com/books/123")); // true
+console.log(pattern.exec("https://example.com/books/123").pathname.groups); // { id: '123' }
+```
+
+You pass an object of options into the constructor:
+
+```ts
+const pattern = new URLPattern(options)
+```
+
+Here are the options:
+
+- `pathname`: the string matcher for the pathname (everything after the origin, with root being `/`). You can either hardcode the path, use regex, or use route params for matching.
+- `protocol`: the string matcher for the protocol you want the URL to be on.
+- `hash`: the string matcher for the hash (everything after the `#`)
+- `hostname`: the string matcher for the domain name
+
+### WakeLock
+
+The wakelock API is accessed through the `navigator.wakeLock` object which contains several methods and properties for controlling a "keep screen awake" functionality.
+
+**Usage**
+
+The first step is to wrap requesting a wakelock in a **try-catch** block, because requesting a wakelock could fail if the document is not focused or if the device's battery is low.
+
+```ts
+const requestWakeLock = async () => {
+  try {
+    const wakeLock = await navigator.wakeLock.request("screen");
+  } catch (err) {
+    // The wake lock request fails - usually system-related, such as low battery.
+
+    console.log(`${err.name}, ${err.message}`);
+  }
+};
+
+requestWakeLock();
+```
+
+You can manually release the acquired `WakeLockSentinel` instance like so, but always remember to manually dereference the wakelock to prevent memory issues:
+
+```ts
+wakeLock.release().then(() => {
+  wakeLock = null;
+});
+```
+
+You also have event listeners you can listen to for the wakelock:
+
+```ts
+wakeLock.addEventListener("release", () => {
+  // the wake lock has been released
+  statusElem.textContent = "Wake Lock has been released";
+});
+```
+
+**Methods**
+
+- `navigator.wakeLock.request()`: an async method that requests a `WakeLockSentinel` object instance to be returned. 
+	- Can fail by throwing an error, which is thrown if the document is not focused or if the device's battery is low.
+
+**`WakeLockSentinel` methods and event listeners**:
+
+You have these methods on a `WakeLockSentinel` object instance:
+
+- `wakelock.release()`: async method to manually release the wakelock.
+
+And you can add an event listener to the `WakeLockSentinel` instance for these events:
+
+- `"release"`: triggered when the wake lock gets released
+
+
+
+**Example class**
+
+```ts
+export class KeepAwake {
+  public wakeLock?: WakeLockSentinel;
+  private onVisibilityChange?: () => void;
+  private onRelease?: () => void;
+  constructor() {}
+  async request(onRelease?: () => void) {
+    try {
+      if (this.onRelease && this.wakeLock) {
+        this.wakeLock.removeEventListener("release", this.onRelease);
+        this.wakeLock = undefined;
+      }
+      this.wakeLock = await navigator.wakeLock.request();
+      const cb = () => {
+        console.log("Screen Wake Lock released:", this.wakeLock?.released);
+        onRelease?.();
+      };
+      this.onRelease = cb.bind(this);
+      this.wakeLock.addEventListener("release", this.onRelease);
+      console.log("Screen Wake Lock released:", this.wakeLock?.released);
+    } catch (err) {
+      const error = err as unknown as any;
+      console.error(`${error.name}, ${error.message}`);
+    }
+  }
+
+  release() {
+    this.wakeLock?.release();
+    setTimeout(() => {
+      this.wakeLock = undefined;
+    }, 250);
+  }
+
+  // when dcoument is visible, request wakelock
+  // when document is hidden, we have no choice but to release wakelock.
+  private async handleVisibilityChange({
+    onVisible,
+    onHidden,
+  }: {
+    onVisible?: () => void;
+    onHidden?: () => void;
+  }) {
+    if (document.visibilityState === "visible" && !this.wakeLock) {
+      console.log("Document is visible again. Re-acquiring wake lock...");
+      await this.request();
+      onVisible?.();
+    } else if (document.visibilityState === "hidden" && this.wakeLock) {
+      console.log("Document is hidden. Releasing wake lock...");
+      this.release();
+      onHidden?.();
+    } else {
+      this.release();
+      //   onHidden?.();
+    }
+  }
+
+  keepAwake(options?: { onVisible?: () => void; onHidden?: () => void }) {
+    const cb = () => {
+      this.handleVisibilityChange(options || {});
+    };
+    this.onVisibilityChange = cb;
+    document.addEventListener("visibilitychange", cb);
+  }
+
+  destroy() {
+    this.release();
+    if (this.onVisibilityChange) {
+      document.removeEventListener("visibilitychange", this.onVisibilityChange);
+    }
+  }
+}
+
+export class KeepAwakePIP {
+  public wakeLock?: WakeLockSentinel;
+  private onVisibilityChange?: () => void;
+  private onRelease?: () => void;
+  constructor(private pipWindow: Window) {}
+  async request(onRelease?: () => void) {
+    try {
+      if (this.onRelease && this.wakeLock) {
+        this.wakeLock.removeEventListener("release", this.onRelease);
+        this.wakeLock = undefined;
+      }
+      this.wakeLock = await this.pipWindow.navigator.wakeLock.request();
+      const cb = () => {
+        console.log("PIP Wake Lock released:", this.wakeLock?.released);
+        onRelease?.();
+      };
+      this.onRelease = cb.bind(this);
+      this.wakeLock.addEventListener("release", this.onRelease);
+      console.log("PIP Wake Lock requested:", !this.wakeLock?.released);
+    } catch (err) {
+      const error = err as unknown as any;
+      console.error(`PIP Wake Lock Error: ${error.name}, ${error.message}`);
+    }
+  }
+
+  release() {
+    this.wakeLock?.release();
+    setTimeout(() => {
+      this.wakeLock = undefined;
+    }, 250);
+  }
+
+  // when PIP document is visible, request wakelock
+  // when PIP document is hidden, we have no choice but to release wakelock.
+  private async handleVisibilityChange({
+    onVisible,
+    onHidden,
+  }: {
+    onVisible?: () => void;
+    onHidden?: () => void;
+  }) {
+    if (
+      this.pipWindow.document.visibilityState === "visible" &&
+      !this.wakeLock
+    ) {
+      console.log("PIP window is visible again. Re-acquiring wake lock...");
+      await this.request();
+      onVisible?.();
+    } else if (
+      this.pipWindow.document.visibilityState === "hidden" &&
+      this.wakeLock
+    ) {
+      console.log("PIP window is hidden. Releasing wake lock...");
+      this.release();
+      onHidden?.();
+    } else {
+      this.release();
+      onHidden?.();
+    }
+  }
+
+  keepAwake(options?: { onVisible?: () => void; onHidden?: () => void }) {
+    // Start with an initial wake lock request
+    this.request();
+
+    const cb = () => {
+      this.handleVisibilityChange(options || {});
+    };
+    this.onVisibilityChange = cb;
+    // Use PIP window's document for visibility changes
+    this.pipWindow.document.addEventListener("visibilitychange", cb);
+  }
+
+  destroy() {
+    this.release();
+    if (this.onVisibilityChange) {
+      // Remove listener from PIP window's document
+      this.pipWindow.document.removeEventListener(
+        "visibilitychange",
+        this.onVisibilityChange
+      );
+    }
+  }
+}
+```
 ### Local Fonts
 
 You can query for a user's local fonts like so, where you can get the fonts with the `window.queryLocalFonts()` async method. 

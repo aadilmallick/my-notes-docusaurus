@@ -1557,54 +1557,7 @@ Here are the methods you have on the `observer` object:
 
 To observe changes to element text content with the `"characterData"` attribute, you have to observe the child node of the text element, since text is a node in HTML.
 
-### URL and URLPattern
 
-#### URL
-
-```ts
-let url = new URL("https://example.com:8000/path/name?q=term#fragment");
-
-console.log(url.href); // => "https://example.com:8000/path/name?q=term#fragment"
-console.log(url.origin); // => "https://example.com:8000"
-url.protocol; // => "https:"
-url.host; // => "example.com:8000"
-url.hostname; // => "example.com"
-url.port; // => "8000"
-url.pathname; // => "/path/name"
-url.search; // => "?q=term"
-url.hash; // => "#fragment"
-```
-
-#### URLPattern
-
-The `URLPattern` class is used as a way to programmatically test if URLs match a certain schema. It's like a wrapper around regex for URLs.
-
-```ts
-// A pattern matching some fixed text
-const pattern = new URLPattern({ pathname: "/books" });
-console.log(pattern.test("https://example.com/books")); // true
-console.log(pattern.exec("https://example.com/books").pathname.groups); // {}
-```
-
-```ts
-// A pattern matching with a named group
-const pattern = new URLPattern({ pathname: "/books/:id" });
-console.log(pattern.test("https://example.com/books/123")); // true
-console.log(pattern.exec("https://example.com/books/123").pathname.groups); // { id: '123' }
-```
-
-You pass an object of options into the constructor:
-
-```ts
-const pattern = new URLPattern(options)
-```
-
-Here are the options:
-
-- `pathname`: the string matcher for the pathname (everything after the origin, with root being `/`). You can either hardcode the path, use regex, or use route params for matching.
-- `protocol`: the string matcher for the protocol you want the URL to be on.
-- `hash`: the string matcher for the hash (everything after the `#`)
-- `hostname`: the string matcher for the domain name
 ### View Transitions
 
 You can do a view transitions between changing pages (frontend version) by using the `document.startViewTransition(cb)` method.
