@@ -62,6 +62,21 @@ ffmpeg -i "$INPUT" \
   "$OUTPUT"
 ```
 
+### Audio Compression
+
+#### Compress to mp3
+
+The below script does the following:
+
+- `-ac 1` → mono (cuts size ~50%)
+- `-ar 16000` → 16 kHz sample rate (fine for speech)
+- `-b:a 16k` → extremely low bitrate
+
+```bash
+ffmpeg -i input.mp3 -ac 1 -ar 16000 -b:a 16k output.mp3
+```
+
+#### Compress to opus
 ### Video manipulation
 
 #### **cropping**
