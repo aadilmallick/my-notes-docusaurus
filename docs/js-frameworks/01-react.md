@@ -1,5 +1,16 @@
 import BoopExample from "@site/src/components/examples/Boop";
 
+## React Basics
+
+### When React re-renders
+
+React will only re-render when the state of a component changes. This unintiuitively, however, leads to multiple causes of React rerendering:
+
+When some event handler or effect changes state, React does the re-render pipeline as so:
+
+1. React takes a snapshot of the current values of the props and state inside the component and freezes those for the evaluation of what happens during the event handler.
+2. If the new state values being set are not equal (comparing value) to the snapshot states
+
 
 ## 101 Tips
 

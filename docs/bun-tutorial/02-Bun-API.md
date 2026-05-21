@@ -881,3 +881,38 @@ bun run build
 # Run the server in production
 bun start
 ```
+
+### Bun SSR with React
+
+1. Install react and react-dom:
+
+```bash
+# Any package manager can be used
+bun add react react-dom
+```
+
+2. Whenever you want to render a react component server side, use the `renderToReadableStream()` function:
+
+```tsx
+import { renderToReadableStream } from "react-dom/server";
+
+function Component(props: { message: string }) {
+  return (
+    <body>
+      <h1>{props.message}</h1>
+    </body>
+  );
+}
+
+
+Bun.serve({
+  async fetch() {
+    const stream = await renderToReadableStream(
+	    <Component message="Hello from server!" />
+	);
+    return new Response(stream, {
+      headers: { "Content-Type": "text/html" },
+    });
+  },
+});
+```
