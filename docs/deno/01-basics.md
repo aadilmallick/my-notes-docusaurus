@@ -27,7 +27,7 @@ To deny reading and writing to specific files or directories, you can use these 
 - `--deny-read=<filepath>`: denies reading the specified filepath or folderpath
 - `--deny-write=<filepath>`: denies writing to the specified filepath or folderpath
 
-### Running scripts
+### Deno scripts
 
 To run a specific script from your `deno.json`, you would use the `deno run` command and then provide the script name: 
 
@@ -65,7 +65,7 @@ deno run --env main.ts
 You can get environment variables programmatically with `Deno.env.get(var_name)`.
 
 
-### Format and linting
+### Format, linting, type checking
 
 - `deno fmt`: formats your code
 - `deno lint`: lints your code
@@ -86,6 +86,28 @@ You can also tell the deno linter to ignore specific files by adding the `// den
 // ... rest of your code
 ```
 
+### Watch mode
+
+You can supply the `--watch` flag to `deno run`, `deno test`, and `deno fmt` to enable the built-in file watcher. The watcher enables automatic reloading of your application whenever changes are detected in the source files.
+
+```bash
+deno run --watch main.ts
+deno test --watch
+deno fmt --watch
+```
+
+Here are all the options associated with watch mode:
+
+- `--watch`: enables watch mode
+- `--watch-exclude=<files>`: accepts a comma-separated list of filepaths or glob paths to avoid watching.
+
+When in watch mode, you can also exclude certain files from being watched using the `--watch-exclude` option:
+
+```bash
+deno run --watch --watch-exclude=file1.ts,file2.ts main.ts
+deno run --watch --watch-exclude='*.js' main.ts
+```
+
 ### Compile into executable
 
 - `deno compile <file>`: compiles a js file into an executable
@@ -93,6 +115,48 @@ You can also tell the deno linter to ignore specific files by adding the `// den
 	- `-o <filename>`: rename executable to this filename
 
 ## Deno Config
+
+The `deno.json` has a bunch of important things that determine the behavior of the deno environment and type checking:
+
+### Compiler options
+
+The compiler options change the typescript environment using and other things. It is basically the same thing as the `tsconfig.json` options:
+
+#### TypeScript environment
+
+- `"compilerOptions"."lib"`: this key specifies the typescript library types to use, and accepts an array of strings that represent the environment types to add:
+	- `"dom"`: adds frontend and DOM types
+	- `"deno.ns"`: adds types based on the `Deno` namespace, allowing you to have correct types for when using the `Deno` class and any of its methods.
+	- `"deno.worker"`: adds types for web workers for the `Worker()` MDN spec
+	- `"esnext"`: gives you the types for the latest javascript features.
+
+```json
+{
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns"] // for SSR apps (frontend + backend)
+  }
+}
+```
+
+To specify the library files to use in a TypeScript file, you can use `/// <reference lib="..." />` comments:
+
+```ts
+/// <reference no-default-lib="true" />
+/// <reference lib="dom" />
+```
+
+#### Standard typescript settings
+
+```json
+{
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true
+  }
+}
+
+```
 
 ## Importing modules
 
@@ -143,6 +207,85 @@ import * as fs from "node:fs";
 import * as http from "node:http";
 ```
 
+### Importing online modules
+
+When importing packages from an online URL, you can directly import modules inline from the URL or use the `"imports"` key in the `deno.json` to refer to that url via a different name:
+
+Deno also supports import statements that reference HTTP/HTTPS URLs, either directly:
+
+```js
+import { Application } from "https://deno.land/x/oak/mod.ts";
+```
+
+or part of your `deno.json` import map:
+
+```json
+{
+  "imports": {
+    "oak": "https://deno.land/x/oak/mod.ts"
+  }
+}
+```
+
+> [!NOTE]
+> HTTP imports are not supported by `deno add`/`deno install` commands.
+
+## Importing files
+
+### Importing typescript files
+
+When importing TypeScript files, you must add on the `.ts` extension.
+
+```ts
+// WRONG: missing file extension
+import { add } from "./calc";
+
+// CORRECT: includes file extension
+import { add } from "./calc.ts";
+```
+### Importing asset files
+
+**Json files**
+
+You can import JSON files as javascript objects like so:
+
+```ts
+import data from "./data.json" with { type: "json" };
+
+console.log(data.property); // Access JSON data as an object
+
+```
+
+**Text files**
+
+All text files (csv, txt, log, etc.) are imported as strings:
+
+```ts
+import text from "./log.txt" with { type: "text" };
+
+console.log(typeof text === "string");
+// true
+console.log(text);
+// Hello from a text file
+```
+
+**media**
+
+You can statically import any media asset as a `UInt8Array` instance:
+
+```ts
+import bytes from "./image.png" with { type: "bytes" };
+
+console.log(bytes instanceof Uint8Array);
+// true
+console.log(bytes);
+Uint8Array(12) [
+//    72, 101, 108, 108, 111,
+//    44,  32,  68, 101, 110,
+//   111,  33
+// ]
+```
+
 
 ## Jupyter notebooks in deno
 
@@ -151,3 +294,33 @@ You can add deno kernels to jupyter notebook with the `deno jupyter --install` c
 ### Importing files
 
 The important thing to know about importing TS files into deno is that you can only import them via absolute path (NOT FILE URL).
+
+## Development workflow
+
+### Deno skills
+
+```embed
+title: "GitHub - denoland/skills: Modern Deno skills for AI coding assistants. Covers Deno, JSR imports, Fresh, Deno Deploy, and best practices."
+image: "https://avatars.githubusercontent.com/u/3490640?s=64&v=4"
+description: "Modern Deno skills for AI coding assistants. Covers Deno, JSR imports, Fresh, Deno Deploy, and best practices. - denoland/skills"
+url: "https://github.com/denoland/skills"
+favicon: ""
+aspectRatio: "100"
+```
+
+
+There are a list of skills the official Deno team supplies so that agents always have an up to date way of working with Deno:
+
+| Skill                      | Description                                          |
+| -------------------------- | ---------------------------------------------------- |
+| **deno-guidance**          | Core Deno best practices, JSR packages, CLI commands |
+| **deno-deploy**            | Deployment workflows for Deno Deploy                 |
+| **deno-frontend**          | Fresh framework, Preact components, Tailwind CSS     |
+| **deno-sandbox**           | Safe code execution with @deno/sandbox               |
+| **deno-project-templates** | Project scaffolding templates                        |
+| **deno-expert**            | Code review and debugging principles                 |
+Using the `npx skills` library, you can install the skill like so:
+
+```bash
+npx skills add https://github.com/denoland/skills --skill deno-expert
+```
