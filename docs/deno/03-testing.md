@@ -1,6 +1,30 @@
 
 ## Basics
 
+### Multi step test
+
+Here is the basic way to create a multi-test step
+
+- `Deno.test(testSuiteName, testContext)`: creates a test with a t
+
+```ts
+import { assertEquals, assertNotEquals, assertRejects } from "@std/assert";
+
+Deno.test("my test suite", async (testSuite) => {
+	// create 1st test
+	await testSuite.step("2 + 2 = 4", async () => {
+		assertEquals(2 + 2, 4)
+	})
+	
+	// create 2nd test
+	await testSuite.step("1 + 2 = 3", async () => {
+		assertEquals(1 + 2, 3)
+	})
+})
+```
+
+Here is a good example:
+
 ```ts
 import { assertEquals, assertNotEquals, assertRejects } from "@std/assert";
 import { delay } from "jsr:@std/async/delay";
@@ -33,3 +57,6 @@ Deno.test("URL Shortener ", async (t) => {
   });
 });
 ```
+
+### Standard testing functions
+

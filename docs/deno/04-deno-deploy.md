@@ -1,4 +1,44 @@
 
+## Preparing for deployment
+
+### Including gitignored files
+
+The `.gitignore` is taken into account for the `deno publish` command. In Deno 1.41.2+, you can opt-out of excluded files ignored in the _.gitignore_ by using a negated exclude glob:
+
+
+```bash title=".gitignore"
+dist/
+.env
+```
+
+And in the `deno.json`:
+
+
+```json title="deno.json"
+{
+  "publish": {
+    "exclude": [
+      // include the .gitignored dist folder
+      "!dist/"
+    ]
+  }
+}
+```
+
+Alternatively, explicitly specifying the gitignored paths in an `"include"` works as well:
+
+```json
+{
+  "publish": {
+    "include": [
+      "dist/",
+      "README.md",
+      "deno.json"
+    ]
+  }
+}
+```
+
 ## `deployctl`
 
 To use deno deploy, you can install the deployctl tool first off:

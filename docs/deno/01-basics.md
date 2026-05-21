@@ -158,6 +158,58 @@ To specify the library files to use in a TypeScript file, you can use `/// <ref
 
 ```
 
+### Linting settings
+
+The `"lint"` key has settings that affect the behavior of `deno lint`:
+
+```json title="deno.json"
+{
+  "lint": {
+    "include": ["src/"],
+    "exclude": ["src/testdata/", "src/fixtures/**/*.ts"],
+    "rules": {
+      "tags": ["recommended"],
+      "include": ["ban-untagged-todo"],
+      "exclude": ["no-unused-vars"]
+    }
+  }
+}
+```
+
+- `"lint"."include"`: lists the files to include for linting
+- `"lint"."exclude"`: lists the files to exclude for linting
+
+### Formatting settings
+
+```json title="deno.json"
+{
+  "fmt": {
+    "useTabs": true,
+    "lineWidth": 80,
+    "indentWidth": 4,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve",
+    "include": ["src/"],
+    "exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
+  }
+}
+```
+- `"fmt"."include"`: lists the files to include for formatting
+- `"fmt"."exclude"`: lists the files to exclude for formatting
+
+### Excluding paths from type checking, linting, formatting
+
+To exclude files and folders from being type checked, linted, or formatted by Deno at all, use the top level `"excludes"` key:
+
+```json
+{
+  "exclude": [
+    // exclude the dist folder from all sub-commands and the LSP
+    "dist/"
+  ]
+}
+```
 ## Importing modules
 
 ### From NPM
@@ -230,6 +282,76 @@ or part of your `deno.json` import map:
 > [!NOTE]
 > HTTP imports are not supported by `deno add`/`deno install` commands.
 
+### Import remappings
+
+When using `deno add <package-name>` you can use the `"imports"` key in the `deno.json` as a key-value map between library identifier shorthands and their package resolution url:
+
+```json
+{
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.0",
+    "chalk": "npm:chalk@5"
+  }
+}
+```
+
+Then your script can use the bare specifier `std/assert`:
+
+
+```js
+import { assertEquals } from "@std/assert";
+import chalk from "chalk";
+
+assertEquals(1, 2);
+console.log(chalk.yellow("Hello world"));
+```
+
+#### **custom remappings** for files
+
+You can have custom remappings just like in `tsconfig.json`:
+
+The import map in `deno.json` can be used for more general path mapping of specifiers. You can map an exact specifiers to a third party module or a file directly, or you can map a part of an import specifier to a directory.
+
+
+```json title="deno.json"
+{
+  "imports": {
+    // Map to an exact file
+    "foo": "./some/long/path/foo.ts",
+    // Map to a directory, usage: "bar/file.ts"
+    "bar/": "./some/folder/bar/"
+  }
+}
+```
+
+Usage:
+
+```ts
+import * as foo from "foo";
+import * as bar from "bar/file.ts";
+```
+
+#### Custom remapping of folders
+
+Just like in typescript, you can remap entire folderpaths to a different folderpath:
+
+For example:
+
+
+```json title="deno.json"
+{
+  "imports": {
+    "@/": "./"
+  }
+}
+```
+
+And then you can refer to files under that folder like so:
+```ts
+import { MyUtil } from "@/util.ts";
+```
+
+This causes import specifiers starting with `@/` to be resolved relative to the import map's URL or file path.
 ## Importing files
 
 ### Importing typescript files
