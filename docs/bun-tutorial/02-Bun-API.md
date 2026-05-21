@@ -862,3 +862,22 @@ Bun.serve({
   },
 });
 ```
+
+
+### Fullstack Bun + React
+
+The `bun --init react` command will create a fullstack React app boilerplate serving the static React code with `Bun.serve`, giving you both a frontend way to deploy the app and also a fullstack way to run the app.
+
+```sh
+# Create a new React app
+bun init --react
+
+# Run the app in development mode
+bun dev
+
+# Build as a static site for production
+bun run build
+
+# Run the server in production
+bun start
+```

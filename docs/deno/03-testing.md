@@ -1,29 +1,51 @@
 
 ## Basics
 
-### Multi step test
+### Intro
 
-Here is the basic way to create a multi-test step
-
-- `Deno.test(testSuiteName, testContext)`: creates a test with a t
+Here is the most basic test:
 
 ```ts
 import { assertEquals, assertNotEquals, assertRejects } from "@std/assert";
 
-Deno.test("my test suite", async (testSuite) => {
-	// create 1st test
-	await testSuite.step("2 + 2 = 4", async () => {
-		assertEquals(2 + 2, 4)
-	})
-	
-	// create 2nd test
-	await testSuite.step("1 + 2 = 3", async () => {
-		assertEquals(1 + 2, 3)
-	})
+Deno.test("2 + 2 = 4", () => {
+	assertEquals(2 + 2, 4)
 })
 ```
 
-Here is a good example:
+### Multi step test
+
+Here is the basic way to create a multi-test step
+
+- `Deno.test(testSuiteName, testContext)`: creates a test with a test context
+
+Here is a good example that takes into a account the test context so you can have setup and tear down:
+
+```ts
+// Multi-step Test
+Deno.test("database lib", async (t) => {
+    // Setup Logic
+    let db: Map<string | string> | null = new Map()
+
+    await t.step("db exists", () => {
+        assertExists(db)
+    });
+
+    await t.step("insert user", () => {
+        db.set('user', 'jeff');
+
+        assertGreater(db.size, 0)
+        assertMatch(db.get('user'), /jeff/)
+        assertNotMatch(db.get('user'), /Bob/)
+
+    });
+    
+    // teardown logic
+    
+    db = null
+
+});
+```
 
 ```ts
 import { assertEquals, assertNotEquals, assertRejects } from "@std/assert";

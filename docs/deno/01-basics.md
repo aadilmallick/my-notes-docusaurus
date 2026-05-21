@@ -417,6 +417,26 @@ You can add deno kernels to jupyter notebook with the `deno jupyter --install` c
 
 The important thing to know about importing TS files into deno is that you can only import them via absolute path (NOT FILE URL).
 
+
+## Deno Frontend Development
+
+### Deno with React
+
+To setup JSX with Deno, specifically React JSX, set these options in the `deno.json`:
+
+```json title="deno.json"
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "imports": {
+    "react": "npm:react",
+    "@types/react": "npm:@types/react"
+  }
+}
+```
+
 ## Development workflow
 
 ### Deno skills
