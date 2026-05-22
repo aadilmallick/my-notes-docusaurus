@@ -230,6 +230,25 @@ However, if you have a dependency array, then this changes and the `useEffect` b
 **`useEffect` antipattern**
 
 `useEffect` blocks should NOT be used for reacting to changes in values. That's what event handlers are for. Rather, you should only use `useEffect` blocks for synchronizing UI and state to external systems.
+
+**Reactive values** are any values that change between re-renders, for example, like state.
+
+> [!WARNING]
+> Having reactive values in your dependency array is a red flag that you might be in the anti-pattern of reacting to state changes, but it's fine to have reactive values in the dependency array if you are using that value to sync to an external system, like the network or local storage.
+
+
+#### `useEffect` cleanup function
+
+The cleanup function in a `useEffect` block runs in two scenarios:
+
+- **Scenario 1 (component unmounts)**: When the component unmounts, the cleanup function will run 
+- **Scenario 2 (effect is scheduled to rerun)**: If any of the values in the dependency array changes, then the effect is scheduled to rerun, and thus the cleanup function is called before the rerun of that effect.
+
+Here is the general lifecycle of rerendering and running effects:
+
+1. React renders for first time
+2. If scheduled to run, `useEffect` block runs
+3. On all subsequent re-renders: if `useEffect` is scheduled to run again, then cleanup function executes first with previous snapshot, then the effect runs.
 ## 101 Tips
 
 ### 1. HOC
