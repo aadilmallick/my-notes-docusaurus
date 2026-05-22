@@ -89,7 +89,7 @@ export default function Counter () {
 The new snapshot is taken AFTER all state update functions in the invoked event handlers or effects have run. This prevents unnecessary re-renders after each state change, where React lazily takes the snapshot after all state-update functions have run, and uses only the last snapshot to update the UI.
 
 This leads into an algorithm called batching:
-### **batching**
+#### **batching**
 
 > [!NOTE]
 > Basically, after a bunch of `setState()` calls, there is only one re-render with all new updated state values after all effects and event handler executions have completed.
@@ -132,7 +132,7 @@ const handleClick = () => {
 }
 ```
 
-### Memoization
+#### Memoization
 
 If a component has state changes requiring a re-render, then the entire subtree of that component (all subcomponents and JSX) will also re-render, regardless if those sub-components have state changes or not.
 
@@ -149,6 +149,21 @@ React **strict mode** is used for development use cases where by wrapping your e
 
 In production, strict mode is disabled.
 
+### Effects in React
+
+#### Rules of side effects in components
+
+1. **components must be pure**: To keep the component function pure, no side effects can be executed within the main body of the component.
+2. **side effects triggered by an event should be put in that event handler**
+3. **If a side effect is synchronizing your component with some external system, put that side effect in a `useEffect()` hook**.
+
+**No, this state hack doesn't work**
+
+#### `useEffect`
+
+The `useEffect()` hook can contain side-effects and state update invocations, all of which run after every render or re-render.
+
+However, to prevent unnecessary re-renders, we make use of the **dependency array** to let React know which variables the side effect code in our `useEffect()` invocation is dependent on, and to only run the side effect when those variables change (value equality or reference equality).
 
 
 ## 101 Tips
