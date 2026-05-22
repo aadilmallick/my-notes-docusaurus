@@ -153,19 +153,83 @@ In production, strict mode is disabled.
 
 #### Rules of side effects in components
 
-1. **components must be pure**: To keep the component function pure, no side effects can be executed within the main body of the component.
+1. **components must be pure**: To keep the component function pure, no side effects can be executed within the main body of the component. When a component renders, it should do so without running into any side effects
 2. **side effects triggered by an event should be put in that event handler**
 3. **If a side effect is synchronizing your component with some external system, put that side effect in a `useEffect()` hook**.
 
+> [!NOTE]
+> Basically, the main rule of having side effects in components is that they should be encapsulated into code that doesn't deal with render cycle, like in `useEffect` blocks and event handlers.
+
 **No, this state hack doesn't work**
+
+Take a look at this example below. You might think that it's fine to use a side-effect like fetching from local storage if it's for initializing state, but it's still a side effect and thus will rerun on every re-render of the component, not behaving as planned.
+
+- **what you think should happen**: the `index` state gets initialized with the locally stored value
+- **what actually happens**: on every re-render, the side effect runs again, thus the state gets reinitialized every time with the locally stored value, even if that's not what you want.
+
+```ts
+import * as React from "react"
+
+function Greeting ({ name }) {
+  const [index, setIndex] = React.useState(
+    Number(localStorage.getItem("index"))
+  )
+
+  const greetings = ['Hello', "Hola", "Bonjour"]
+
+  const handleClick = () => {
+    const nextIndex = index === greetings.length - 1
+      ? 0
+      : index + 1
+    setIndex(nextIndex)
+
+    localStorage.setItem("index", nextIndex)
+  }
+
+  return (
+    <main>
+      <h1>{greetings[index]}, {name}</h1>
+      <button onClick={handleClick}>Next Greeting</button>
+    </main>
+  )
+}
+```
+
+What's the solution for initializing state with local storage? Put that side effect in a `useEffect()` with an empty dependency array so it only runs once.
 
 #### `useEffect`
 
 The `useEffect()` hook can contain side-effects and state update invocations, all of which run after every render or re-render.
 
+> [!NOTE]
+> **when to use `useEffect()`**
+> ***
+> If a side effect is synchronizing your component with some external system, put that side effect inside useEffect. Here are some use cases:
+> - Syncing with local storage
+> - Using `fetch()` API or fetching external data
+> - Querying DOM data
+
 However, to prevent unnecessary re-renders, we make use of the **dependency array** to let React know which variables the side effect code in our `useEffect()` invocation is dependent on, and to only run the side effect when those variables change (value equality or reference equality).
 
+**`useEffect` lifecycle**
 
+`useEffect` works by removing the side effect from React's rendering flow and delaying its execution until **after** the component has rendered.
+
+Here is the simplified lifecycle.
+
+1. React re-renders
+2. All `useEffect` blocks will run, executing any side-effects
+
+However, if you have a dependency array, then this changes and the `useEffect` block will only run after a re-render if one of its dependencies have changed.
+
+> [!NOTE]
+> **Another way to think about it**
+> ***
+> The whole goal of `useEffect` is to synchronize your component with some external system. Whenever **any** of the dependencies that the effect needs in order to synchronize change, React, should resynchronize.
+
+**`useEffect` antipattern**
+
+`useEffect` blocks should NOT be used for reacting to changes in values. That's what event handlers are for. Rather, you should only use `useEffect` blocks for synchronizing UI and state to external systems.
 ## 101 Tips
 
 ### 1. HOC
