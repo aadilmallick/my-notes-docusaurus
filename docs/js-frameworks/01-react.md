@@ -235,7 +235,7 @@ However, if you have a dependency array, then this changes and the `useEffect` b
 > ***
 > The whole goal of `useEffect` is to synchronize your component with some external system. Whenever **any** of the dependencies that the effect needs in order to synchronize change, React, should resynchronize.
 
-**`useEffect` antipattern**
+#### **`useEffect` antipattern** and reactive values
 
 `useEffect` blocks should NOT be used for reacting to changes in values. That's what event handlers are for. Rather, you should only use `useEffect` blocks for synchronizing UI and state to external systems.
 
@@ -244,6 +244,8 @@ However, if you have a dependency array, then this changes and the `useEffect` b
 > [!WARNING]
 > Having reactive values in your dependency array is a red flag that you might be in the anti-pattern of reacting to state changes, but it's fine to have reactive values in the dependency array if you are using that value to sync to an external system, like the network or local storage.
 
+> [!NOTE]
+> A reactive value is any value that can change between re-renders. Props, state, or any variables defined inside of a component are all reactive values.
 
 #### `useEffect` cleanup function
 
@@ -358,6 +360,105 @@ To solve this, we will use a cleanup function in the effect which will cleanup t
 Notice that the cleanup function is only called for `id`s that are no longer relevant. This makes sense because the cleanup function for the most recent effect won't be called until either _another_ effect runs (making it stale) or the component has been removed from the DOM (irrelevant in this scenario).
 
 ```tsx
+import React, { useState } from 'react'
+import Carousel from "./Carousel"
+import PokemonCard from "./PokemonCard"
+
+function fetchPokemon(id) {
+  const abortController = new AbortController()
+    const res = fetch(
+      `https://pokeapi.co/api/v2/pokemon/${id}`,
+      {
+        signal: abortController.signal
+      }
+    )
+
+    return {
+      response: res,
+      abortController
+    }
+}
+
+
+// Main App
+export default function App() {
+  const [id, setId] = React.useState(1)
+  const [pokemon, setPokemon] = React.useState(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState(null)
+
+   const handlePrevious = () => {
+    if (id > 1) {
+      setId(Math.max(id - 1, 1)) 
+    }
+  }
+
+  const handleNext = () => setId(id + 1)
+
+  React.useEffect(() => {
+  // 1. Create the controller instance *inside* the effect
+  const controller = new AbortController();
+  
+  const handleFetchPokemon = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Pass the signal directly to the fetch request
+      const res = await fetch(
+        `https://pokeapi.co/api/v2/pokemon/${id}`,
+        { signal: controller.signal }
+      );
+
+      if (!res.ok) throw new Error(`Error fetching pokemon #${id}`);
+      
+      const data = await res.json();
+      setPokemon(data);
+    } catch (e) {
+      // 3. When a fetch is aborted, it throws an 'AbortError'. 
+      // We ignore it so we don't flash error states for stale requests.
+      if (e.name !== 'AbortError') {
+        console.error(e);
+        setError(e);
+        setPokemon(null);
+      }
+    } finally {
+      // Only turn off loading if this request wasn't aborted
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  handleFetchPokemon();
+
+  // 2. The Cleanup Function: Runs when 'id' changes or component unmounts
+  return () => {
+    controller.abort();
+  };
+}, [id]);
+
+  if (loading) {
+    return <p>loading...</p>
+  }
+
+  if (error) {
+    return <p>error</p>
+  }
+
+  if (!pokemon && !loading) {
+    return "no pokemon"
+  }
+
+  return (
+    <Carousel onPrevious={handlePrevious} onNext={handleNext}>
+      {JSON.stringify({
+        name: pokemon.name,
+        id
+      }, null, 2)}
+    </Carousel>
+  )
+}
 ```
 
 ### Refs in React
