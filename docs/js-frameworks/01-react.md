@@ -252,6 +252,9 @@ The cleanup function in a `useEffect` block runs in two scenarios:
 - **Scenario 1 (component unmounts)**: When the component unmounts, the cleanup function will run 
 - **Scenario 2 (effect is scheduled to rerun)**: If any of the values in the dependency array changes, then the effect is scheduled to rerun, and thus the cleanup function is called before the rerun of that effect.
 
+> [!NOTE]
+> If you return a function from your effect, React will call that function each time before it ever calls your effect again, and then one final time when the component is removed from the DOM.
+
 Here is the general lifecycle of rerendering and running effects:
 
 1. React renders for first time
@@ -259,6 +262,103 @@ Here is the general lifecycle of rerendering and running effects:
 3. On all subsequent re-renders: if `useEffect` is scheduled to run again, then cleanup function executes first with previous snapshot, then the effect runs.
 
 #### Complete Data Fetching Example
+
+First, notice that our dependency array only includes one element, `id`. Again, this **isn't** telling React to re-run the effect when `id` changes (though, that's what happens). Instead, we're giving React an array of all of the dependencies our effect needs to re-synchronize with the outside system. As a _byproduct_ of that, whenever React sees that `id` has changed between renders, it will re-run the effect.
+
+```tsx
+import React, { useState } from 'react'
+
+async function fetchPokemon(id) {
+  const abortController = new AbortController()
+  try {
+    const res = await fetch(
+      `https://pokeapi.co/api/v2/pokemon/${id}`,
+      {
+        signal: abortController.signal
+      }
+    )
+
+    if (res.ok === true) {
+      return {
+        error: null,
+        response: await res.json(),
+        abortController
+      }
+    }
+
+    throw new Error(`Error fetching pokemon #${id}`)
+  } catch (e) {
+    return {
+      error: e,
+      response: null,
+      abortController
+    }
+  }
+}
+
+// export default function MyApp() {
+//   return <div>Hello World</div>;
+// }
+
+
+// Main App
+export default function App() {
+  const [id, setId] = React.useState(1)
+  const [pokemon, setPokemon] = React.useState(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState(null)
+
+  React.useEffect(() => {
+    const handleFetchPokemon = async () => {
+      setLoading(true)
+      setError(null)
+
+      const { error, response } = await fetchPokemon(id)
+
+      if (error) {
+        setError(error.message)
+      } else {
+        setPokemon(response)
+      }
+
+      setLoading(false)
+    }
+
+    handleFetchPokemon()
+  }, [id])
+
+  if (loading) {
+    return <p>loading...</p>
+  }
+
+  if (error) {
+    return <p>error {error}</p>
+  }
+
+  if (!pokemon && !loading) {
+    return "no pokemon"
+  }
+
+  return (
+    <main>
+      {JSON.stringify({ id, pokemon }, null, 2)}
+    </main>
+  )
+}
+```
+
+However, there is still a main problem we have to deal with.
+
+Whenever we call `fetchPokemon`, because it's an asynchronous request, we have no idea how long that request will take to resolve. It's completely possible that, while we're in the process of waiting for a response, our Carousel updates `id`, which causes a re-render, which causes our effect to run again with a different `id`.
+
+In this scenario, we now have two requests in flight, both with different `id`s. Worse, we have no way of knowing which one will resolve first. In both scenarios, we're calling `setPokemon` when the request resolves. That means, because we don't know in which order they'll resolve, `pokemon`, and therefor our UI, will eventually be _whatever request was resolved last_. To make it worse, you'll also get a flash of the Pokémon that resolves first, before the second one does.
+
+To solve this, we will use a cleanup function in the effect which will cleanup the stale fetch requests in the previous snapshot by aborting them.
+
+Notice that the cleanup function is only called for `id`s that are no longer relevant. This makes sense because the cleanup function for the most recent effect won't be called until either _another_ effect runs (making it stale) or the component has been removed from the DOM (irrelevant in this scenario).
+
+```tsx
+```
 
 ### Refs in React
 
