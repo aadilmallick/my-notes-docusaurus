@@ -271,6 +271,8 @@ The `useRef` hook creates a value that is preserved across renders but won't tri
 - **debouncing and throttling**: stores debouncing timers in a ref to avoid unnecessary rerenders
 
 
+
+
 **ref vs state example**
 
 Here is an example where we incorrectly use state when we should be using a ref:
@@ -350,6 +352,13 @@ export default function Stopwatch () {
 ```
 
 
+> [!TIP] 
+> Basically use `useState` for a persistent variable whenever you reference it anywhere in the JSX (even if you don't directly render it). Else use `useRef`, if it's nowhere in the JSX return rendering portion.
+
+
+
+
+
 **ref vs effects summary**
 
 - **When to use `useEffect`**: If you have a side effect that is triggered by an event, put it in an event handler. If you have a side effect that is synchronizing your component with some outside system, put it inside of `useEffect`. 
@@ -391,6 +400,79 @@ export default function App() {
   )
 }
 
+```
+
+Here is a ref example with multiple moving parts, where the main goal is to provide a dynamic debounce timing where the user cannot switch the toggle while the element is animating.
+
+- **`active` state**: updates the toggle switch, thus should be state since it renders to the view.
+- **`node` ref**: attaches to the animating element so we can hook into its animations and wait for them to finish.
+- **`animating` ref**: persistent boolean flag used to mark whether the element is currently animating or not. If the element is not currently animating (`animating.current === false`) then we are allowed to change the toggle.
+
+```tsx
+import * as React from "react"
+import Diagram from "./Diagram"
+import ReactLogo from "./ReactLogo"
+
+export default function App() {
+  const [active, setActive] = React.useState(false)
+  const node = React.useRef(null)
+  const animating = React.useRef(false)
+
+  React.useEffect(() => {
+    const checkAnimations = async () => {
+	  // mark animating as true
+      animating.current = true;
+      
+      // await all animations of node.current to finish
+      const animations = node.current.getAnimations({ subtree: true })
+      const promises = animations.map((animation) => animation.finished)
+      await Promise.all(promises)
+      
+      // mark animating as false
+      animating.current = false;
+    }
+
+    checkAnimations()
+  })
+
+  const handleToggle = () => {
+	// if element is not animating, then user can change toggle state.
+    if (animating.current === false) {
+      setActive(!active)
+    }
+  }
+
+  return (
+    <div
+      ref={node}
+      className={`diagram ${active ? "react-approach" : "trad-approach"}`}
+    >
+      <Diagram />
+      <div className="toggle-diagram">
+        <input
+          id="toggle"
+          className="toggle-input"
+          type="checkbox"
+          checked={active}
+          onChange={handleToggle}
+        />
+        <label htmlFor="toggle" className="toggle-label">
+          <div
+            className="toggle-options"
+            data-checked="React"
+            data-unchecked="Traditional"
+          >
+            <div className="toggle-switch">
+              <span className="toggle-marker">
+                <ReactLogo />
+              </span>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+  )
+}
 ```
 
 ## 101 Tips

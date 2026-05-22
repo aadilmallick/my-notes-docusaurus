@@ -682,6 +682,15 @@ calculateSize("/path/to/image.png").then((data) => {
 });
 ```
 
+### Hooking into CSS animations
+
+```ts
+async function checkAllAnimationsFinished(element: HTMLElement) {
+	const animations = element.getAnimations({ subtree: true })
+    const promises = animations.map((animation) => animation.finished)
+    return Boolean(await Promise.all(promises))
+}
+```
 ## DOM APIs
 
 ### Cookies
