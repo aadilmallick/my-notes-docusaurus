@@ -7,8 +7,8 @@ import BoopExample from "@site/src/components/examples/Boop";
 The react rendering pipeline consists of three components:
 
 1. **component code**: The code that defines the state and JSX that a component has
-2. **snapshot**: Before any state update takes place that would trigger a re-render, React takes a snapshot of the component, which is all the information React needs to know how to change the uI for a re-render. This includes all component state, props, and event handlers and the current time before a state update.
-3. **view**: Based on the snapshot, the JSX writes UI to the browser using the state, props, and event handlers.
+2. **snapshot**: Before any state update takes place that would trigger a re-render,  React creates a snapshot of your component which captures everything React needs to update the view at that particular moment in time. props, state, event handlers, and a description of the UI (based on those props and state) are all captured in this snapshot.
+3. **view**: Based on the snapshot, React takes that description of the UI and uses it to update the View eventually, doing it after **batching** state calls.
 
 ### React rerendering
 
@@ -19,8 +19,7 @@ React will only re-render when the state of a component changes. This unintiuiti
 When some event handler or effect changes state, React does the re-render pipeline as so:
 
 1. React takes a snapshot of the current values of the props and state inside the component and freezes those for the evaluation of what happens during the event handler.
-2. If the new state values being set are equal (comparing value for primitives, reference for objects) to the snapshot states, then React does not re-render
-3. After all state updates in the triggered event-handlers or effects are run, then React sees if any state updates have different values than the previous snapshot, and if so, then React re-renders.
+2. After all state updates in the triggered event-handlers or effects are run, then React takes a new snapshot of all current prop values and state values and compares it to the previous snapshot, and if anything is different (using value equality), then React re-renders. Else it doesn't.
 
 **event handlers and effects**
 
@@ -31,9 +30,66 @@ State changes can only occur in the context of event handlers or effects, so Rea
 > 
 > Another way you can think about this is whenever an event occurs, regardless of when or how it was triggered, that event will have the same props and state as the snapshot that was created with the render that event is associated with. 
 
+if an event handler or effect contains an invocation of `useState`'s updater function **and** React sees that the new state is different than the state in the snapshot, React will trigger a re-render of the component – creating a new snapshot and updating the view.
 
+Take a look at this example:
 
-#### Batching
+```tsx
+import * as React from "react"
+
+export default function VibeCheck () {
+  const [status, setStatus] = React.useState("clean")
+
+  const handleClick = () => {
+    setStatus("dirty")
+    alert(status)
+  }
+
+  return (
+    <button onClick={handleClick}>
+      {status}
+    </button>
+  )
+}
+```
+
+What gets alerted is the string `"clean"` due to this line of reasoning:
+
+1. Event handlers that contain state updates use variables in the snapshot captured by react right before the invocation of the event handler.
+2. In the snapshot, the `status` state has a value of `"clean"`, thus even though we do the state update with `setStatus("dirty")`, the state update doesn't happen until all event handler and effects scheduled to run have finished. Thus what gets alerted is `"clean"`
+
+Even if an event handler has a state update, the component will only re-render if the state update changes the state to a value that is unequal (value checking) to the snapshot state value.
+
+In the below example, even though the `handleClick()` event handler has a state update, because the updated state doesn't differ between snapshots, the component does not re-render.
+
+```tsx
+import * as React from "react"
+
+export default function Counter () {
+  console.count("Rendering Counter")
+  const [count, setCount] = React.useState(0)
+
+  const handleClick = () => {
+    console.count("click")
+    setCount(count)
+  }
+
+  return (
+    <button onClick={handleClick}>
+      🤨
+    </button>
+  )
+}
+
+```
+
+> [!IMPORTANT]
+> Again, React will only re-render if the event handler contains an invocation of `useState`'s updater function (✅) **and** React sees that the new state is different than the state in the snapshot (❌).
+
+The new snapshot is taken AFTER all state update functions in the invoked event handlers or effects have run. This prevents unnecessary re-renders after each state change, where React lazily takes the snapshot after all state-update functions have run, and uses only the last snapshot to update the UI.
+
+This leads into an algorithm called batching:
+### **batching**
 
 > [!NOTE]
 > Basically, after a bunch of `setState()` calls, there is only one re-render with all new updated state values after all effects and event handler executions have completed.
@@ -41,6 +97,40 @@ State changes can only occur in the context of event handlers or effects, so Rea
 So in an event handler or effect, if multiple `setState()` calls for a specific state are invoked, then only the **last** set state call will be set as the updated state. This is called **batching**.
 
 React will only re-render once per event handler invocation or effect change, after all state updates are completed.
+
+Whenever React encounters multiple invocations of the same updater function (e.g. `setCount` in our example), it will keep track of each of them, but only the result of the last invocation will be used as the new state.
+
+```ts
+const handleClick = () => {
+  // queued snapshot: count = 1
+  setCount(1)
+  // queued snapshot: count = 2
+  setCount(2)
+  // queued snapshot: count = 3
+  setCount(3)
+  
+  // final snapshot: count = 3
+}
+```
+
+So in this example, the new state will of course be `3`.
+
+**overriding batching**
+
+there is a way to tell React to use the value of the previous invocation of the updater function instead of replacing it. To do that, you pass the updater function a function itself that will take in the value from the most recent invocation as its argument.
+
+```ts
+const handleClick = () => {
+  // queued snapshot: count = 1
+  setCount(1)
+  // queued snapshot: count = 2
+  setCount(2)
+  // queued snapshot: count = count + 3 -> count = 5
+  setCount((c) => c + 3)
+  
+  // final snapshot: count = 5
+}
+```
 
 ### Memoization
 
