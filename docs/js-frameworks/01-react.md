@@ -2,14 +2,24 @@ import BoopExample from "@site/src/components/examples/Boop";
 
 ## React Basics
 
-### When React re-renders
+### React rerendering
 
 React will only re-render when the state of a component changes. This unintiuitively, however, leads to multiple causes of React rerendering:
 
 When some event handler or effect changes state, React does the re-render pipeline as so:
 
 1. React takes a snapshot of the current values of the props and state inside the component and freezes those for the evaluation of what happens during the event handler.
-2. If the new state values being set are not equal (comparing value) to the snapshot states
+2. If the new state values being set are equal (comparing value for primitives, reference for objects) to the snapshot states, then React does not re-render
+3. After all state updates in the triggered event-handlers or effects are run, then React sees if any state updates have different values than the previous snapshot, and if so, then React re-renders.
+
+#### Batching
+
+> [!NOTE]
+> Basically, after a bunch of `setState()` calls, there is only one re-render with all new updated state values after all effects and event handler executions have completed.
+
+So in an event handler or effect, if multiple `setState()` calls for a specific state are invoked, then only the **last** set state call will be set as the updated state. This is called **batching**.
+
+React will only re-render once per event handler invocation or effect change, after all state updates are completed
 
 
 ## 101 Tips
