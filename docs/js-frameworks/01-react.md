@@ -1,16 +1,37 @@
 import BoopExample from "@site/src/components/examples/Boop";
 
-## React Basics
+## React 
+
+### React rendering pipeline
+
+The react rendering pipeline consists of three components:
+
+1. **component code**: The code that defines the state and JSX that a component has
+2. **snapshot**: Before any state update takes place that would trigger a re-render, React takes a snapshot of the component, which is all the information React needs to know how to change the uI for a re-render. This includes all component state, props, and event handlers and the current time before a state update.
+3. **view**: Based on the snapshot, the JSX writes UI to the browser using the state, props, and event handlers.
 
 ### React rerendering
 
-React will only re-render when the state of a component changes. This unintiuitively, however, leads to multiple causes of React rerendering:
+React will only re-render when the state of a component changes. This unintiuitively, however, leads to multiple caveat of React rerendering:
+
+- **entire component tree re-renders**: If a component has state changes requiring a re-render, then the entire subtree of that component (all subcomponents and JSX) will also re-render, regardless if those sub-components have state changes or not.
 
 When some event handler or effect changes state, React does the re-render pipeline as so:
 
 1. React takes a snapshot of the current values of the props and state inside the component and freezes those for the evaluation of what happens during the event handler.
 2. If the new state values being set are equal (comparing value for primitives, reference for objects) to the snapshot states, then React does not re-render
 3. After all state updates in the triggered event-handlers or effects are run, then React sees if any state updates have different values than the previous snapshot, and if so, then React re-renders.
+
+**event handlers and effects**
+
+State changes can only occur in the context of event handlers or effects, so React treats them specially by taking a **snapshot** before an event handler or effect that has a state change gets invoked:
+
+> [!NOTE]
+> When an event handler is invoked, that event handler has access to the props and state as they were in the moment in time when the snapshot was created. 
+> 
+> Another way you can think about this is whenever an event occurs, regardless of when or how it was triggered, that event will have the same props and state as the snapshot that was created with the render that event is associated with. 
+
+
 
 #### Batching
 
@@ -19,7 +40,25 @@ When some event handler or effect changes state, React does the re-render pipeli
 
 So in an event handler or effect, if multiple `setState()` calls for a specific state are invoked, then only the **last** set state call will be set as the updated state. This is called **batching**.
 
-React will only re-render once per event handler invocation or effect change, after all state updates are completed
+React will only re-render once per event handler invocation or effect change, after all state updates are completed.
+
+### Memoization
+
+If a component has state changes requiring a re-render, then the entire subtree of that component (all subcomponents and JSX) will also re-render, regardless if those sub-components have state changes or not.
+
+A React performance enhancement to mitigate this excessive re-rendering of child components  is called **memoization**, where we memoize components by wrapping them in the `memo()` function from React.
+
+Any memoized child component will only re-render during a parent's re-render cycle if the props passed to that child component change (or state in the child component changes), where props are compared via primitive value equality.
+
+#### Strict Mode
+
+React **strict mode** is used for development use cases where by wrapping your entire app in the `<React.StrictMode>` component, you enable strict mode, where every component will re-render at least twice regardless of what memoization tactics you use.
+
+> [!TIP]
+> This is helpful in unveiling common bugs.
+
+In production, strict mode is disabled.
+
 
 
 ## 101 Tips
