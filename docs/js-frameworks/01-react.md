@@ -258,6 +258,8 @@ Here is the general lifecycle of rerendering and running effects:
 2. If scheduled to run, `useEffect` block runs
 3. On all subsequent re-renders: if `useEffect` is scheduled to run again, then cleanup function executes first with previous snapshot, then the effect runs.
 
+#### Complete Data Fetching Example
+
 ### Refs in React
 
 Sometimes you need to preserve a variable value across renders but you don't use that variable to render the UI. Making this value a state would be an antipattern, as React re-renders when state gets updated.
@@ -266,7 +268,10 @@ The `useRef` hook creates a value that is preserved across renders but won't tri
 
 - **`setInterval()` or `setTimeout()` Id**: It's important to keep track of the id so you can cancel intervals or timeouts, but you never actually directly render the id in the UI, so it should NOT be state. This is the perfect use case for a Ref.
 - **DOM element**: If you want to keep track of some DOM element across re-renders, you should use refs rather than state because you never directly render this DOM element, so it should not be state, otherwise it would cause unnecessary re-renders.
-- **debouncing**: stores debouncing timers in a ref to avoid unnecessary re
+- **debouncing and throttling**: stores debouncing timers in a ref to avoid unnecessary rerenders
+
+
+**ref vs state example**
 
 Here is an example where we incorrectly use state when we should be using a ref:
 
@@ -342,6 +347,50 @@ export default function Stopwatch () {
     </main>
   )
 }
+```
+
+
+**ref vs effects summary**
+
+- **When to use `useEffect`**: If you have a side effect that is triggered by an event, put it in an event handler. If you have a side effect that is synchronizing your component with some outside system, put it inside of `useEffect`. 
+- **When to use `useRef`**: If you need to preserve a value across renders, but that value has nothing to do with the view, and therefore, React doesn't need to re-render when it changes, put it in a `ref` using `useRef`.
+
+#### Refs with DOM elements
+
+By putting the `ref=` prop on a JSX element or React component and passing a ref variable, you can control that JSX element or component via DOM APIs through the ref variable.
+
+```tsx
+import * as React from "react"
+import Toolbar from "./Toolbar"
+
+export default function App() {
+  const white = React.useRef(null)
+  const black = React.useRef(null)
+  const yellow = React.useRef(null)
+
+  const handleClick = (type) => {
+    let ref = null
+
+    if (type === "white") ref = white
+    if (type === "yellow") ref = yellow
+    if (type === "black") ref = black
+
+    ref.current.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    })
+  }
+
+  return (
+    <div>
+      <Toolbar handleClick={handleClick} />
+      <div ref={white} className="white" />
+      <div ref={yellow} className="yellow" />
+      <div ref={black} className="black" />
+    </div>
+  )
+}
+
 ```
 
 ## 101 Tips
@@ -2955,6 +3004,13 @@ When doing client side routing, you MUST have a `vercel.json` in the root of you
       ]
     }
 ```
+
+## Custom Hooks
+
+### `useWaitForAnimationsToFinish`
+
+- **main idea**: given an HTML element ref, we want to wait for until all of its CSS animations have finished.
+- **execution**: Await all CSS animation status promises of the ref, store the finished state in a ref (not state because we don't use that to update the view)
 ## Custom components
 ### Boop
 
