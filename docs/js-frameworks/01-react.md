@@ -1,8 +1,16 @@
 import BoopExample from "@site/src/components/examples/Boop";
 
-## React 
+## React Basics
+
+### When to use state
+
+The most important mental model in React to keep in mind is that the view (UI) is a function of the state of a component:
+
+$$v = f(s)$$
+This means that you should declare variables as states using the `useState()` hook if the value of the variable is used to render the UI. Else, it should not be state.
 
 ### React rendering pipeline
+
 
 The react rendering pipeline consists of three components:
 
@@ -249,6 +257,93 @@ Here is the general lifecycle of rerendering and running effects:
 1. React renders for first time
 2. If scheduled to run, `useEffect` block runs
 3. On all subsequent re-renders: if `useEffect` is scheduled to run again, then cleanup function executes first with previous snapshot, then the effect runs.
+
+### Refs in React
+
+Sometimes you need to preserve a variable value across renders but you don't use that variable to render the UI. Making this value a state would be an antipattern, as React re-renders when state gets updated.
+
+The `useRef` hook creates a value that is preserved across renders but won't trigger a re-render when it changes. Here are some use cases:
+
+- **`setInterval()` or `setTimeout()` Id**: It's important to keep track of the id so you can cancel intervals or timeouts, but you never actually directly render the id in the UI, so it should NOT be state. This is the perfect use case for a Ref.
+- **DOM element**: If you want to keep track of some DOM element across re-renders, you should use refs rather than state because you never directly render this DOM element, so it should not be state, otherwise it would cause unnecessary re-renders.
+- **debouncing**: stores debouncing timers in a ref to avoid unnecessary re
+
+Here is an example where we incorrectly use state when we should be using a ref:
+
+- **main issue**: The `id` state is not rendered anywhere in the view, so invoking `setId` causes unnecessary re-renders and is thus an antipattern.
+
+```tsx
+import * as React from "react"
+import { formatTime } from "./utils"
+
+export default function Stopwatch () {
+  const [seconds, setSeconds] = React.useState(0)
+  const [running, setRunning] = React.useState(false)
+  const [id, setId] = React.useState(null)
+
+  const handleClick = () => {
+    if (running === false) {
+      const id = window.setInterval(() => {
+        setSeconds(s => s + 1) 
+      }, 1000)
+      setId(id)
+      setRunning(true)
+    } else {
+      window.clearInterval(id)
+      setId(null)
+      setRunning(false)
+    }
+  }
+
+  return (
+    <main>
+      <h1>{formatTime(seconds)}</h1>
+      <button
+        style={{background: running === true ? 'var(--red)' : 'var(--green)'}}
+        onClick={handleClick}>
+          {running === true ? 'Stop' : 'Start'}
+      </button>
+    </main>
+  )
+}
+```
+
+This is the improved version of this example, where we use a ref for the `id` state as to preserve the variable across re-renders but not use it for the view:
+
+```tsx
+import * as React from "react"
+import { formatTime } from "./utils"
+
+export default function Stopwatch () {
+  const [seconds, setSeconds] = React.useState(0)
+  const [running, setRunning] = React.useState(false)
+  const ref = React.useRef(null)
+
+  const handleClick = () => {
+    if (running === false) {
+      ref.current = window.setInterval(() => {
+        setSeconds(s => s + 1) 
+      }, 1000)
+      setRunning(true)
+    } else {
+      window.clearInterval(ref.current)
+      setRunning(false)
+    }
+  }
+
+  return (
+    <main>
+      <h1>{formatTime(seconds)}</h1>
+      <button
+        style={{background: running === true ? 'var(--red)' : 'var(--green)'}}
+        onClick={handleClick}>
+          {running === true ? 'Stop' : 'Start'}
+      </button>
+    </main>
+  )
+}
+```
+
 ## 101 Tips
 
 ### 1. HOC
