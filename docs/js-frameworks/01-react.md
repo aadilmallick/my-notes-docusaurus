@@ -1716,6 +1716,9 @@ The `useTransition` hook also is another way to hook into concurrent rendering i
 Whenever you wrap a state update inside of `React.startTransition`, that tells React that that update, which we'll call a **transition**, may trigger a computationally expensive render, and as such, **to not block any other higher-priority events that may occur during that render**.
 
 > [!NOTE]
+> A **transition** is a non-urgent, interruptible state update that allows React to defer updating the UI until all the work and the transition is complete.
+
+> [!NOTE]
 > `startTransition` allows developers to mark specific state updates as lower priority. Any state updates wrapped in `startTransition` will be treated as non-blocking updates that can be interrupted if a higher-priority update occurs.
 
 The way it works is while React is busy working on the transition, it will continue to show the user what they were already seeing, while at the same time, checking every 5ms to see if there are any other higher-priority events that it should prioritize.
@@ -1879,7 +1882,107 @@ export default function App() {
 
 #### `useOptimistic`
 
-The `useOptimistic` hook is built on top of React's transition architecture, and it gives you access to the intermediate state updates during a transition, whereas `useTransition` does not. It only gives you the final state after batching all transitions.
+The `useOptimistic` hook is built on top of React's transition architecture, and it gives you access to the intermediate state updates during a transition, whereas `useTransition` does not. It only gives you the final state after batching all transitions
+
+here is the basic structure of using it:
+
+```ts
+const [optimisticState, addOptimistic] = useOptimistic(
+  state,
+  (currentState, optimisticValue) => {
+    return getNextOptimisticState(currentState, optimisticValue);
+  }
+)
+```
+
+Let's break it down:
+
+- `optimisticState`: set to the initial `state` initially, but will be whatever is returned from the callback you passed in, when you execute that callback using `addOptimistic`.
+- `addOptimistic()`: executes the callback you passed in.
+
+Here is an example of using this hook:
+
+```tsx
+import * as React from "react";
+import useNotes from "./useNotes";
+
+export default function FieldNotes() {
+  const { notes, addNote } = useNotes();
+
+  const [optimisticNotes, addOptimisticNote] = React.useOptimistic(
+    notes,
+    (state, newNote) => [
+      ...state,
+      {
+        text: newNote,
+        status: "pending"
+      },
+    ]
+  );
+
+  const formAction = async (formData) => {
+    const newNote = formData.get("note");
+
+    if (newNote.trim()) {
+      addOptimisticNote(newNote);
+      await addNote(newNote);
+    }
+  }
+
+  return (
+    <article>
+      <h1>Field Notes</h1>
+      <div>
+        <ul>
+          {optimisticNotes.map((note, index) => (
+            <li key={index}>
+              <p>{note.text}</p>
+              {note.status === "pending" && <i>saving...</i>}
+            </li>
+          ))}
+        </ul>
+        <form action={formAction}>
+          <input
+            required
+            type="text"
+            name="note"
+            placeholder="Type your note..."
+          />
+          <button className="link" type="submit">
+            Submit
+          </button>
+        </form>
+      </div>
+    </article>
+  );
+}
+```
+
+Here's a more advanced way of using this hook, where we account for all CRUD ways to optimistically update a list of objects.
+
+```tsx
+function TodoList() {
+  const [todos, setTodos] = useState([]);
+
+  const [optimisticTodos, setOptimisticTodos] = React.useOptimistic(
+    todos,
+    (currentTodos, action) => {
+      switch (action.type) {
+        case "add":
+          return [...currentTodos, action.todo];
+        case "delete":
+          return currentTodos.filter((todo) => todo !== action.todo);
+        case "update":
+          return currentTodos.map((todo) =>
+            todo === action.oldTodo ? action.newTodo : todo
+          );
+        default:
+          return currentTodos;
+      }
+    }
+  );
+}
+```
 
 ### Form actions
 
