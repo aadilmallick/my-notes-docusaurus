@@ -2099,6 +2099,10 @@ Server components enable cool shit like this:
 
 ![](https://i.imgur.com/YeibUPK.jpeg)
 
+> [!NOTE]
+> Components with the `use client` directive can (and do with certain frameworks) render on a server. A better way to think about it is Server Components generate serializable templates and `use client` generates a JavaScript bundle.
+
+whenever you add the `use client` directive to a module, React will treat that module _and_ all of its transitive dependencies as Client modules (and include them in the bundle it generates).
 
 ## 101 Tips
 
