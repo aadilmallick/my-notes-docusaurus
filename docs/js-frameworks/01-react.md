@@ -1321,16 +1321,18 @@ This hook requires two arguments:
 - `getSnapshot()`: a function that returns the external state
 - `subscribe()`: a subscription function that returns a callback function that gets invoked when removing the subscription.
 
+This hook returns whatever `getSnapshot()` returns as a state variable, but the `subscribe()` function determines the subscription and unsubscription process and manages when to call `getSnapshot()` behind the scenes, updating the state automatically through the subscription.
+
 ```ts
 const getSnapshot = () => {
-
+	return snapshot
 }
 
 const subscribe = () => {
-
+	// subscription code here
 }
 
-React.useSyncExternalStore(subscribe, getSnapshot)
+const snapshot = React.useSyncExternalStore(subscribe, getSnapshot)
 ```
 
 This is the complete example:
@@ -1385,6 +1387,67 @@ There are two ways to mitigate this:
 
 - **return only primitive values from `getSnapshot()`**: this way value- equality checking works
 - **cache any object values from `getSnapshot()`**: this way value-equality works by returning the same object reference across renders.
+
+Here's an example where by returning object values and instantiating the `getSnapshot()` and `subscribe()` functions inside the component, we have to use `useMemo()` and `useCallback()` to avoid constantly recreating those functions and thus creating infinite loops:
+
+```tsx
+import * as React from "react"
+
+
+
+export default function NetworkIndicator () {
+	// 1. create "cache" of snapshot state so that reference stays consistent.
+	const cache = React.useRef({
+	    networkStatus: navigator.onLine ? "online" : "offline",
+	    language: navigator.language
+	})
+	
+	// 2. update "cache" to preserve object creation across re-renders
+	const getSnapshot = React.useCallback(() => {
+	  const prevState = cache.current
+	
+	  const nextState = {
+	    networkStatus: navigator.onLine ? "online" : "offline",
+	    language: navigator.language
+	  }
+	
+	  if (
+	    prevState.networkStatus === nextState.networkStatus &&
+	    prevState.language === nextState.language
+	  ) {
+	    return prevState
+	  }
+	  
+	  cache.current = nextState
+	  return nextState
+	}, [])
+
+  // avoid recreating function
+  const subscribe = React.useCallback((callback) => {
+    console.log("Subscribing to network status")
+    window.addEventListener("online", callback)
+    window.addEventListener("offline", callback)
+
+    return () => {
+      console.log("Unsubscribing to network status")
+      window.removeEventListener("online", callback)
+      window.removeEventListener("offline", callback)
+    }
+  }, [])
+
+  const networkStatus = React.useSyncExternalStore(
+    subscribe, 
+    getSnapshot
+  )
+
+  return (
+    <div className="network">
+      <span className={networkStatus} />
+      <label>{networkStatus}</label>
+    </div>
+  )
+}
+```
 
 
 ## 101 Tips
