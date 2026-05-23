@@ -1658,11 +1658,71 @@ However, we as developers have to manually tell React which rendering work is hi
 
 The `useDeferredValue` hook is a way to activate concurrent rendering in React by telling React to defer updating a value until all of its high priority work has finished.
 
-You can think of `useDeferredValue` as a smarter, more dynamic debouncing functionality for executing high-priority work, deferring updating state until all of the high priority rendering work has finished.
+> [!NOTE]
+> You can think of `useDeferredValue` as a smarter, more dynamic debouncing functionality for executing high-priority work, deferring updating state until all of the high priority rendering work has finished.
+
+You can think of `useDeferredValue` as a way to tell React to defer updating a value _until_ all its high-priority rendering work has finished.
+
+For example, a common problem this hook was made to fix is a search items in a list functionality, where the query changes the list state, often performing an API call and then rendering all search results in the list. Here are the two rendering things in this problem:
+
+- **high priority, low computation**: rendering the search term in the `<input>` tag
+- **low priority, expensive computation**: rendering the list of results from search
+
+Historically, React would treat updating the `input` field with the exact same priority as updating the expensive component. Often times, this meant the `value`, and therefore the text in the `input` field, would lag behind what the user had actually typed since React was too busy rendering the expensive list component to notice.
+
+Instead, what we want is for React to always prioritize updating the `input` field, and then, only when it's finished, re-render the `Employees` component with the _final_ value.
+
+This is exactly how `useDeferredValue` works.
+
+You pass it the value you want to defer, and React will automatically defer updating that value until all its high-priority rendering work has finished.
+
+```tsx
+import * as React from "react"
+import Employees from "./Employees"
+
+export default function App() {
+  // high priority user-facing search term
+  const [searchQuery, setSearchQuery] = React.useState("");
+  
+  // low priority search term used to render list (expensive API call)
+  const deferredSearchQuery = React.useDeferredValue(searchQuery)
+
+  return (
+    <div className="wrapper">
+      <div className="search-container">
+        <label>Filter Employees</label>
+        <input
+          type="text"
+          placeholder="Laurie Lowe"
+          className="search-input"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      <Employees query={deferredSearchQuery} />
+    </div>
+  );
+}
+
+```
+
+By passing the `deferredSearchQuery` to the `Employees` component, and wrapping `Employees` inside of `React.memo`, `Employees` will only re-render when `deferredSearchQuery` has changed, which is when React has already finished all of it's high-priority work.
 
 #### `useTransition`
 
 The `useTransition` hook also is another way to hook into concurrent rendering in React, by wrapping state updates that lead to computationally expensive operations (re-render may be expensive or state update may kick off expensive side effect) in a "transition".
+
+Whenever you wrap a state update inside of `React.startTransition`, that tells React that that update, which we'll call a **transition**, may trigger a computationally expensive render, and as such, **to not block any other higher-priority events that may occur during that render**.
+
+> [!NOTE]
+> `startTransition` allows developers to mark specific state updates as lower priority. Any state updates wrapped in `startTransition` will be treated as non-blocking updates that can be interrupted if a higher-priority update occurs.
+
+The way it works is while React is busy working on the transition, it will continue to show the user what they were already seeing, while at the same time, checking every 5ms to see if there are any other higher-priority events that it should prioritize.
+
+If there are, it will pause the work it's doing and shift its priority.
+
+If not, or once all the high-priority work has finished, it'll go back to working on the transition, committing the work all at once when it's finished – updating the UI.
 
 This is how it works:
 
@@ -1672,6 +1732,52 @@ This is how it works:
 
 ```ts
 const [isPending, startTransition] = React.useTransition()
+```
+
+And here is a complete example:
+
+```tsx
+import * as React from 'react';
+import useConversations from './useConversations';
+import Chat from './Chat';
+import { MessageSquareIcon } from './icons';
+
+export default function App() {
+  const conversations = useConversations();
+  const [activeChat, setActiveChat] = React.useState(0);
+
+  const handleSelectChat = (index) => {
+    React.startTransition(() => {
+      setActiveChat(index);
+    })
+  };
+
+  return (
+    <div>
+      <aside>
+        <div>
+          {conversations.map(({ id, messages, title }, i) => {
+            let className = activeChat === i ? 'selected' : '';
+
+            return (
+              <button
+                key={id}
+                className={className}
+                onClick={() => handleSelectChat(i)}
+              >
+                <MessageSquareIcon length={messages.length} />
+                <span>{title}</span>
+              </button>
+            )
+          })}
+        </div>
+      </aside>
+
+      <Chat conversation={conversations[activeChat]} />
+    </div>
+  );
+}
+
 ```
 
 ## 101 Tips
