@@ -1571,6 +1571,75 @@ React.useEffect(() => {
 }, [url])
 ```
 
+> [!NOTE]
+> The main use case for `useEffectEvent` is that is allows you to abstract reactive but non-synchronizing values out of `useEffect`, which eliminates unnecessary `useEffect` executions.
+
+The main use case for using this hook is when you run into a problem like this:
+
+```ts
+React.useEffect(() => {
+  const id = window.setInterval(() => {
+    setCount((c) => c + step)
+  }, delay)
+
+  return () => window.clearInterval(id)
+}, [delay, step])
+// setting the interval doesn't really count on step,
+// so we have unnecessary creation and teardown
+```
+
+We need to access the reactive `step` value from inside of `useEffect`, but we don't want to include it in the dependency array because it has nothing to do with setting and removing our interval.
+
+This is the perfect use case for `useEffectEvent`. All we have to do is abstract our reactive but non-synchronizing logic into `useEffectEvent`, then we can use that event handler inside of `useEffect` without needing to include it as a dependency.
+
+```tsx
+import * as React from "react"
+import Slider from "./Slider"
+
+React.useEffectEvent = React.experimental_useEffectEvent;
+
+export default function App() {
+  const [count, setCount] = React.useState(0)
+  const [delay, setDelay] = React.useState(100)
+  const [step, setStep] = React.useState(1)
+
+  const handleDelayChange = (d) => setDelay(d)
+  const handleStepChange = (s) => setStep(s)
+
+  // step and count are reactive, but not used for synchronization for interval
+  const onInterval = React.useEffectEvent(() => {
+    setCount(count + step)
+  })
+
+  // in effect, only synchronizing state is delay
+  React.useEffect(() => {
+    const id = window.setInterval(onInterval, delay)
+
+    return () => window.clearInterval(id)
+  }, [delay])
+
+  return (
+    <main>
+      <h1>{count}</h1>
+      <Slider
+        min={100}
+        max={2000}
+        step={100}
+        onChange={handleDelayChange}
+        label="ms delay"
+      />
+      <Slider
+        min={1}
+        max={10}
+        step={1}
+        onChange={handleStepChange}
+        label="increment by"
+      />
+    </main>
+  )
+}
+
+```
 
 
 ## 101 Tips
@@ -4259,6 +4328,55 @@ When doing client side routing, you MUST have a `vercel.json` in the root of you
 
 - **main idea**: given an HTML element ref, we want to wait for until all of its CSS animations have finished.
 - **execution**: Await all CSS animation status promises of the ref, store the finished state in a ref (not state because we don't use that to update the view)
+
+### `useNetworkStatus`
+
+```tsx
+import * as React from "react"
+
+const getSnapshot = () => {
+  return navigator.onLine ? "online" : "offline"
+}
+
+const subscribe = (callback) => {
+  window.addEventListener("online", callback)
+  window.addEventListener("offline", callback)
+
+  return () => {
+    window.removeEventListener("online", callback)
+    window.removeEventListener("offline", callback)
+  }
+}
+
+export default function useNetworkStatus () {
+  const networkStatus = return React.useSyncExternalStore(
+    subscribe, 
+    getSnapshot
+  )
+  return networkStatus
+}
+
+```
+
+### `useInterval`
+
+```tsx
+function useInterval(cb, ms) {
+  const id = React.useRef(null);
+  const onInterval = React.useEffectEvent(cb);
+
+  const handleClearInterval = () => {
+    window.clearInterval(id.current);
+  };
+
+  React.useEffect(() => {
+    id.current = window.setInterval(onInterval, ms);
+    return handleClearInterval;
+  }, [ms]);
+
+  return handleClearInterval;
+}
+```
 ## Custom components
 ### Boop
 
