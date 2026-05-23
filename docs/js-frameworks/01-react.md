@@ -1641,6 +1641,38 @@ export default function App() {
 
 ```
 
+### Concurrent React
+
+When React is busy doing computationally expensive renders, it blocks the main thread and prevents other renders from happening, no matter how lightweight they might be. A big performance problem in React is that it treats all renders and computations with the same priority.
+
+> [!NOTE]
+> **The problem with old react**
+> ***
+> if React was rendering, and a high-priority event like a user input occurred, because all of React's work happened on the main thread, React would have no choice but to finish rendering before it could process that event.
+
+Concurrent React is a way to schedule and prioritize different component renders as to prioritize high-priority renders and avoid blocking the main thread by offloading expensive yet low-priority rendering work to a separate background thread.
+
+However, we as developers have to manually tell React which rendering work is high priority and which is low priority and can be deferred, which is where these two hooks come into play:
+
+#### `useDeferredValue`
+
+The `useDeferredValue` hook is a way to activate concurrent rendering in React by telling React to defer updating a value until all of its high priority work has finished.
+
+You can think of `useDeferredValue` as a smarter, more dynamic debouncing functionality for executing high-priority work, deferring updating state until all of the high priority rendering work has finished.
+
+#### `useTransition`
+
+The `useTransition` hook also is another way to hook into concurrent rendering in React, by wrapping state updates that lead to computationally expensive operations (re-render may be expensive or state update may kick off expensive side effect) in a "transition".
+
+This is how it works:
+
+1. React queues state updates wrapped in a `startTransition()` call to take place, offloading its rendering work caused by that state update to another thread while showing the UI rendered by the previous snapshot (the snapshot before the transition executes)
+2. While the transition is executing in the background, React checks every 5ms for high priority rendering work to run in the main thread
+3. Once all high priority rendering work is finished, React finishes the transition and updates the UI with the state update snapshot the transition wrapped.
+
+```ts
+const [isPending, startTransition] = React.useTransition()
+```
 
 ## 101 Tips
 
