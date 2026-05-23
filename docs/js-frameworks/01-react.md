@@ -157,6 +157,68 @@ React **strict mode** is used for development use cases where by wrapping your e
 
 In production, strict mode is disabled.
 
+### Referential equality
+
+- **primitive values**: their in-memory values are the variable value themselves, liek a string, boolean, int, etc.
+- **reference values**: their in-memory values are their memory addresses, not the values.
+
+This means value equality checking is intuitive and works well for primitive values, but only works for reference values when two variables share the exact same reference.
+
+React uses primitive values to check if props change, state changes, and if dependencies have changed, so it's important to cache object references to avoid constant re-renders by constantly creating new objects (which have different memory addresses).
+
+- `useCallback(func, deps)`: returns a cached version of the function which is only recreated on re-renders where one of the dependencies in its dependency array changes.
+- `useMemo(func, deps)`: invokes the function and gets what it returns, and it value is only recreated on re-renders where one of the dependencies in its dependency array changes.
+
+This is the correct way to prevent re-renders of memoized components but have object props:
+
+```tsx
+import * as React from "react"
+import Wave from "./Wave"
+
+function Greeting ({ name }) {
+  const [index, setIndex] = React.useState(0)
+  const [waveIndex, setWaveIndex] = React.useState(0)
+
+  const greetings = ['Hello', "Hola", "Bonjour"]
+
+  const handleClick = () => {
+    const nextIndex = index === greetings.length - 1
+      ? 0
+      : index + 1
+    setIndex(nextIndex)
+  }
+
+  const handleWaveClick = React.useCallback(() => {
+    setWaveIndex((i) => {
+      return i === 5 ? 0 : i + 1
+    })
+  }, [])
+
+  const options = React.useMemo(() => {
+    return {
+      animate: true,
+      tone: waveIndex
+    }
+  }, [waveIndex])
+
+  return (
+    <main>
+      <h1>{greetings[index]}, {name}</h1>
+      <button onClick={handleClick}>
+        Next Greeting
+      </button>
+      <Wave onClick={handleWaveClick} options={options} />
+    </main>
+  )
+}
+
+export default function App () {
+  return <Greeting name="Tyler" />
+}
+
+```
+
+
 ### Effects in React
 
 #### Rules of side effects in components
@@ -1202,12 +1264,128 @@ export default function Counter() {
 
 ### `useLayoutEffect`
 
-The `useLayoutEffect` runs side effects the same way as `useEffect` except that the side effects (including state changes) run BEFORE the rendering stage.
+The `useLayoutEffect` runs side effects the same way as `useEffect` except that the side effects (including state changes) runs synchronously BEFORE the browser gets painted.
+
+Here is the different between `useLayoutEffect` and `useEffect`:
+
+- `useLayoutEffect`: runs synchronously after the rendering stage but before browser paint
+- `useEffect`: runs asynchronously after the rendering stage and after browser paint
+
+React guarantees that the code inside `useLayoutEffect` and any state updates scheduled inside it will be processed _before_ the browser repaints the screen. This lets your component use layout information for rendering – as we're doing in our example with the browser's dimensions.
 
 > [!NOTE]
 > Use `useLayoutEffect` if you need to synchronize state with the DOM or layout, basically for some use case where the side effect needs to run before the browser paints the screen.
 
-Don't use `useLayoutEffect` unless you're synchronizing externally with the layout.
+> [!WARNING]
+> Don't use `useLayoutEffect` unless you're synchronizing externally with the layout. The only thing to keep in mind with `useLayoutEffect` is you don't want to use it unnecessarily. If you're not synchronizing layout information with your component, you don't need it. Unless you absolutely have to, intentionally blocking React from updating the UI is not a great idea. 
+
+### `useSyncExternalStore`
+
+Use the `useSyncExternalStore` hook to subscribe to an external store or variable that can change values throughout the lifetime of the app, like `navigator.userAgent` or `navigator.onLine`.
+
+This is an example where `useState` + `useEffect` is subpar, and `useSyncExternalStore` would work much better
+
+```tsx
+import * as React from "react"
+
+export default function App () {
+  const [networkStatus, setNetworkStatus] = React.useState("online")
+
+  React.useEffect(() => {
+    const handleChange = () => {
+      setNetworkStatus(navigator.onLine ? "online" : "offline")
+    }
+
+    window.addEventListener("online", handleChange)
+    window.addEventListener("offline", handleChange)
+
+    return () => {
+      window.removeEventListener("online", handleChange)
+      window.removeEventListener("offline", handleChange)
+    }
+  }, [])
+
+  return (
+    <div>
+      <span className={networkStatus} />
+      <label>{networkStatus}</label>
+    </div>
+  )
+}
+```
+
+In scenarios where a piece of non-React state is already being managed by some outside system –  whether that's the browser, another library, or even your own custom data store – you can use React's built-in `useSyncExternalStore` hook to subscribe a component to that state without needing to redundantly duplicate it as React state in your component.
+
+This hook requires two arguments:
+
+- `getSnapshot()`: a function that returns the external state
+- `subscribe()`: a subscription function that returns a callback function that gets invoked when removing the subscription.
+
+```ts
+const getSnapshot = () => {
+
+}
+
+const subscribe = () => {
+
+}
+
+React.useSyncExternalStore(subscribe, getSnapshot)
+```
+
+This is the complete example:
+
+```tsx
+import * as React from "react"
+
+const getSnapshot = () => {
+  return navigator.onLine ? "online" : "offline"
+}
+
+const subscribe = (callback) => {
+  window.addEventListener("online", callback)
+  window.addEventListener("offline", callback)
+
+  return () => {
+    window.removeEventListener("online", callback)
+    window.removeEventListener("offline", callback)
+  }
+}
+
+export default function App () {
+  const networkStatus = React.useSyncExternalStore(
+    subscribe, 
+    getSnapshot
+  )
+
+  return (
+    <div>
+      <span className={networkStatus} />
+      <label>{networkStatus}</label>
+    </div>
+  )
+}
+```
+
+#### Performance
+
+The way `useSyncExternalStore` decides if it should resubscribe to the store or re-render the UI is through value equality:
+`
+
+- **resubscription logic**: If the `subscribe` function you pass in has a different reference value than the previous snapshot, it runs the subscription cleanup function and re-subscribes.
+- **re-render logic**: If the return value from the `getSnapshot` value changes, then that is equivalent to a state change and then a re-render gets triggered.
+
+> [!NOTE]
+> If the `subscribe` function changes between renders, then `useSyncExternalStore` will re-subscribe to the store. Similarly, if the value returned from `getSnapshot` change between renders, then React will trigger a re-render of the component because the state changed.
+
+> [!WARNING]
+> If the value you return from `getSnapshot` is a reference value, like the object literal we're returning, and that reference value isn't memoized, then you'll throw React into an infinite loop scenario since `useSyncExternalStore` will re-render every time the reference value changes, and every re-render will call `getSnapshot` again.
+
+There are two ways to mitigate this:
+
+- **return only primitive values from `getSnapshot()`**: this way value- equality checking works
+- **cache any object values from `getSnapshot()`**: this way value-equality works by returning the same object reference across renders.
+
 
 ## 101 Tips
 
