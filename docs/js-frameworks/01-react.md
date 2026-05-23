@@ -1449,6 +1449,129 @@ export default function NetworkIndicator () {
 }
 ```
 
+#### Example
+
+Here's an example where we naively use `useState` + `useEffect` for matching media:
+
+```tsx
+import * as React from "react";
+import { phone, desktop } from "./icons";
+
+const query = "only screen and (max-width : 768px)";
+
+export default function MatchMedia() {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleChange = () => {
+      setIsMobile(window.matchMedia(query).matches);
+    };
+
+    const matchMedia = window.matchMedia(query);
+
+    matchMedia.addEventListener("change", handleChange);
+
+    return () => {
+      matchMedia.removeEventListener("change", handleChange);
+    };
+  }, []);
+
+  return (
+    <section>
+      Resize your browser's window to see changes.
+      <article>
+        <figure className={isMobile ? "active" : ""}>
+          {phone}
+          <figcaption>Is mobile: {`${isMobile}`}</figcaption>
+        </figure>
+
+        <figure className={!isMobile ? "active" : ""}>
+          {desktop}
+          <figcaption>Is larger device: {`${!isMobile}`}</figcaption>
+        </figure>
+      </article>
+    </section>
+  );
+}
+
+```
+
+Here is the imporved version using `useSyncExternalStore`:
+
+```tsx
+import * as React from "react";
+import { phone, desktop } from "./icons";
+
+const query = "only screen and (max-width : 768px)";
+
+const getSnapshot = () => {
+  return window.matchMedia(query).matches
+}
+
+const subscribe = (callback) => {
+  const matchMedia = window.matchMedia(query);
+
+  matchMedia.addEventListener("change", callback);
+
+  return () => {
+    matchMedia.removeEventListener("change", callback);
+  };
+}
+
+export default function MatchMedia() {
+  const isMobile = React.useSyncExternalStore(subscribe, getSnapshot)
+
+
+  return (
+    <section>
+      Resize your browser's window to see changes.
+      <article>
+        <figure className={isMobile ? "active" : ""}>
+          {phone}
+          <figcaption>Is mobile: {`${isMobile}`}</figcaption>
+        </figure>
+
+        <figure className={!isMobile ? "active" : ""}>
+          {desktop}
+          <figcaption>Is larger device: {`${!isMobile}`}</figcaption>
+        </figure>
+      </article>
+    </section>
+  );
+}
+
+```
+
+### `useEffectEvent`
+
+#### `useEffect` recap
+
+`useEffect` encapsulates side effect code by removing it from the rendering flow and then asynchronously executing that side effect code after rendering, when it's safe to do so.
+
+Here is how the `useEffect` execution lifecycle works:
+
+- **after initial render**: executes side effects after the first render of the component has completed, and queues up the cleanup function to execute before the first re-render.
+- **subsequent re-renders**
+	- **without dependency array**: executes the side effect code again after every render.
+	- **with dependency array**: When one of the values in its dependency array has changed, `useEffect` will re-execute after the render, and then when one of its dependencies changes again, it queues up the cleanup function to execute before the next re-render.
+
+#### `useEffectEvent` usage
+
+Whenever you need to access a reactive but non-synchronizing value inside of `useEffect`, look into abstracting that logic into `useEffectEvent`.
+
+```tsx
+// url is the only synchronizing value, we just use state.
+const onPageView = React.useEffectEvent((url) => {
+  pageview(url, state)
+})
+
+// synchronize only to url, not state
+React.useEffect(() => {
+  onPageView(url)
+}, [url])
+```
+
+
 
 ## 101 Tips
 
