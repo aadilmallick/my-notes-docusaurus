@@ -747,6 +747,11 @@ export default function Counter() {
 
 #### `useReducer` vs `useState`
 
+Here is when to use `useReducer` vs `useState`:
+
+- **use `useState`** when If different pieces of state update independently from one another
+- **use `useReducer`** when if your state tends to be updated together or if updating one piece of state is based on another piece of state
+
 When using a reducer, we decouple how the state updates from the action that triggered the update. This makes using `useReducer` preferable to using `useState` in the following scenarios:
 
 - **minimizing event listeners and interval teardown and setup**: in a `useEffect` where we want to setup event listeners or intervals and we depend on a piece of state
@@ -861,6 +866,124 @@ const handleSubmit = async (e) => {
 ```
 
 Notice that we're describing **what** we want to do - `submit`. Then, based on that result, `success` or `error`. That's a lot cleaner and easier to reason about than our imperative solution.
+
+**use case 3: decoupling state updates from state values, leading to less setup and tear down**
+
+This is the way where if we use state, then we create an interval and tear it down each time `step` changes, which is not ideal:
+
+```tsx
+import * as React from "react"
+import Slider from "./Slider"
+
+export default function Counter() {
+  const [count, setCount] = React.useState(0)
+  const [step, setStep] = React.useState(1)
+
+  const handleIncrement = () => setCount(count + step)
+  const handleDecrement = () => setCount(count - step)
+  const handleReset = () => setCount(0)
+  const handleUpdateStep = (step) => setStep(step)
+
+  React.useEffect(() => {
+    console.log('useEffect called')
+    const id = window.setInterval(() => {
+      setCount((c) => c + step)
+    }, 1000)
+
+    return () => window.clearInterval(id)
+  }, [step])
+
+  return (
+    <main>
+      <h1>{count}</h1>
+      <div>
+        <button onClick={handleDecrement}>-</button>
+        <button onClick={handleIncrement}>+</button>
+        <button onClick={handleReset}>0</button>
+      </div>
+      <Slider 
+        min={1}
+        max={10}
+        onChange={handleUpdateStep} 
+      />
+    </main>
+  )
+}
+```
+
+But if we use `useReducer`, we solve this issue since we decouple state updates from their current values, thus meaning we can have an empty dependency array:
+
+```tsx
+import * as React from "react"
+import Slider from "./Slider"
+
+function reducer(state, action) {
+  if (action.type === "increment") {
+    return {
+      count: state.count + state.step,
+      step: state.step,
+    }
+  } else if (action.type === "decrement") {
+    return {
+      count: state.count - state.step,
+      step: state.step,
+    }
+  } else if (action.type === "reset") {
+    return {
+      count: 0,
+      step: state.step,
+    }
+  } else if (action.type === "updateStep") {
+    return {
+      count: state.count,
+      step: action.step,
+    }
+  } else {
+    throw new Error("This action type isn't supported.")
+  }
+}
+
+export default function Counter() {
+  const [state, dispatch] = React.useReducer(reducer, {
+    count: 0,
+    step: 1
+  })
+
+  const handleIncrement = () => dispatch({ type: "increment" })
+  const handleDecrement = () => dispatch({ type: "decrement" })
+  const handleReset = () => dispatch({ type: "reset" })
+  const handleUpdateStep = (step) => dispatch({ type: "updateStep", step })
+
+  React.useEffect(() => {
+    console.log("useEffect called")
+    const id = window.setInterval(() => {
+      dispatch({ type: "increment" })
+    }, 1000)
+
+    return () => window.clearInterval(id)
+  }, [])
+
+  return (
+    <main>
+      <h1>{state.count}</h1>
+      <div>
+        <button onClick={handleDecrement}>-</button>
+        <button onClick={handleIncrement}>+</button>
+        <button onClick={handleReset}>0</button>
+      </div>
+      <Slider 
+        min={1}
+        max={10}
+        onChange={handleUpdateStep} 
+      />
+    </main>
+  )
+}
+
+```
+
+> [!NOTE]
+> `useReducer` also offers a bit more flexibility than `useState` since it allows you to decouple how the state is updated from the action that triggered the update - typically leading to more declarative state updates.
 
 
 ## 101 Tips
