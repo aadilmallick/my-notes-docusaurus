@@ -1984,6 +1984,90 @@ function TodoList() {
 }
 ```
 
+#### `use`
+
+The `use()` function in React is not a hook but rather it is a way to await promises but with two important behaviors:
+
+1. **transitions with `use(promise)` will be considered pending**: if you call `use(promise)` in a transition of any kind, that transition will be considered pending until the promise resolves.
+2. **React rerenders when `use(promise)` resolves**: If you resolve a promise with `use()`, React re-renders even though it's not a state update.
+
+To avoid infinite re-rendering when using `use(promise)` (since a promise is an object, each re-render leads to a different in-memory address for that promise), it's important to cache promises somehow:
+
+> [!WARNING]
+> `use` lets you unwrap the value of a promise, but you need to make sure that promise is referentially consistent across renders. This is usually done by caching the promise yourself.
+
+```tsx
+import * as React from "react"
+import { fetchPokemon } from "./api"
+
+let cache = new Map()
+
+// use cache for stable references instead of constantly recreating promises
+const getPokemon = (id) => {
+  if (!cache.has(id)) {
+    cache.set(id, fetchPokemon(id))
+  }
+
+  return cache.get(id)
+}
+
+export default function PokemonCard({ id }) {
+  // blocks component from rendering until promise resolves
+  const pokemon = React.use(getPokemon(id))
+
+  return (
+    <div className="card">
+      <figure>
+        <img
+          width="475px"
+          height="475px"
+          src={pokemon?.sprites?.front_default}
+          alt={pokemon.name}
+        />
+        <figcaption>
+          <h4>{pokemon.name}</h4>
+          <h6>No. {pokemon.id}</h6>
+        </figcaption>
+      </figure>
+    </div>
+  )
+}
+```
+
+Whenever we use `use(promise)` in a component, the component itself is considered "pending" and thus we can wrap it in a `<Suspense>` to show some loading state until the promise resolves and thus the component is ready to be rendered.
+
+```tsx
+import * as React from "react"
+import PokemonCard from "./PokemonCard"
+import Carousel from "./Carousel"
+import LoadingCard from "./LoadingCard"
+
+export default function App () {
+  const [id, setId] = React.useState(1)
+  const [isPending, startTransition] = React.useTransition()
+
+  const handlePrevious = () => {
+    if (id > 1) {
+      startTransition(() => {
+        setId((currentId) => currentId - 1)
+      })
+    }
+  }
+
+  const handleNext = () => startTransition(() => {
+    setId((currentId) => currentId + 1)
+  })
+
+  return (
+    <Carousel onPrevious={handlePrevious} onNext={handleNext}>
+      <React.Suspense fallback={<LoadingCard />}>
+        {isPending ? <LoadingCard /> : <PokemonCard id={id} />}
+      </React.Suspense>
+    </Carousel>
+  )
+}
+```
+
 ### Form actions
 
 As of react 19, instead of passing an `onSubmit=` handler to a `<form>` element, we can pass an action instead, which has several benefits:
@@ -2007,6 +2091,14 @@ export default function Search() {
   );
 }
 ```
+
+### Server components
+
+Server components enable cool shit like this:
+
+
+![](https://i.imgur.com/YeibUPK.jpeg)
+
 
 ## 101 Tips
 
