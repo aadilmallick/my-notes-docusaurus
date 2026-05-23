@@ -1780,6 +1780,131 @@ export default function App() {
 
 ```
 
+#### async `startTransition`
+
+In concurrent react, we can also mark any type of computational work as low-priority, not just rendering work. For example, since going to the network is the main bottleneck in most web apps, we can mark that as low priority work to free up other high priority async work.
+
+So in React v19, that's exactly what they did by giving transitions the ability to support `async` functions – and they even gave them a fun name, "actions".
+
+We can use `startTransition` and pass in an async callback - also called **action** - to mark any code inside that callback as low-transition code.
+
+```ts
+const action = async () => {}
+
+startTransition(action)
+```
+
+> [!NOTE]
+> The main benefit of using async transitions and actions over managing loading state manually is that all currently queued async transition calls are batched together and only update the UI when every transition has finished. Think of it as a really good debounce.
+
+
+However, there's one major caveat: any state update code inside an async `startTransition` callback will NOT be treated as a low-priority state update and thus will not be considered a "transition". To fix this, just wrap that state update in a nested `startTransition()` call.
+
+> [!WARNING]
+> When you use `await` inside a `startTransition` function, the state updates that happen after the `await` are not marked as Transitions.
+
+
+```tsx
+import * as React from "react"
+import { fetchPrice } from "./api"
+
+export default function App() {
+  const [quantity, setQuantity] = React.useState(1);
+  const [price, setPrice] = React.useState(null)
+  const [isPending, startTransition] = React.useTransition()
+
+  React.useEffect(() => {
+    const handleFetchPrice = async () => {
+      const data = await fetchPrice(quantity)
+      setPrice(data)
+    }
+
+    handleFetchPrice()
+  }, [])
+
+  const handleChange = async (e) => {
+    const nextQty = Number(e.target.value)
+    setQuantity(nextQty);
+    
+    startTransition(async () => {
+      const data = await fetchPrice(nextQty)
+      startTransition(() => {
+        setPrice(data)
+      })
+    })
+  }
+
+  if (!price) {
+    return null
+  }
+
+  const baseUrl = `https://ui.dev/api/checkout?product_id=subscription`
+
+  return (
+    <main>
+      <img
+        src="https://ui.dev/images/subscribe/tier-annual.svg"
+        alt="ui.dev courses banner"
+      />
+      <div>
+        <em>
+          {price.discountedPrice || price.basePrice} <span>/yr</span>
+        </em>
+        {price.discountedPrice && <s>{price.basePrice}</s>}
+      </div>
+
+      <div>
+        Team Size
+        <input type="number" value={quantity} onChange={handleChange} />
+      </div>
+
+      <p>
+        {price.discount?.percentOff > 0 
+          ? <>Enjoy your <strong>{price.discount.percentOff}% off</strong> bulk discount <br /></> 
+          : null}
+        {price.message}
+      </p>
+
+      <a
+        href={`${baseUrl}&quantity=${quantity}&code=${price.discount?.code || ""}`}
+        className={isPending ? "pending" : ""}
+      >
+        Subscribe to ui.dev
+      </a>
+    </main>
+  );
+}
+
+```
+
+#### `useOptimistic`
+
+The `useOptimistic` hook is built on top of React's transition architecture, and it gives you access to the intermediate state updates during a transition, whereas `useTransition` does not. It only gives you the final state after batching all transitions.
+
+### Form actions
+
+As of react 19, instead of passing an `onSubmit=` handler to a `<form>` element, we can pass an action instead, which has several benefits:
+
+1. **cleaner code**
+2. **no need for controlled form inputs**: we automatically get the `FormData` instance that contains the values of all the fields in the form at the time of submission.
+
+```tsx
+export default function Search() {
+  const searchAction = async (formData) => {
+    const query = formData.get("query");
+    const results = await submitSearch(query);
+    redirectTo("/results", { results });
+  }
+
+  return (
+    <form action={searchAction}>
+      <input name="query" />
+      <button type="submit">Search</button>
+    </form>
+  );
+}
+```
+
 ## 101 Tips
 
 ### 1. HOC
