@@ -867,6 +867,221 @@ const handleSubmit = async (e) => {
 
 Notice that we're describing **what** we want to do - `submit`. Then, based on that result, `success` or `error`. That's a lot cleaner and easier to reason about than our imperative solution.
 
+```tsx
+import * as React from "react";
+
+const initialFormData = {
+  name: "",
+  email: "",
+  address: "",
+  city: "",
+  zipcode: ""
+};
+
+const initialState = {
+  currentStep: 1,
+  formData: initialFormData
+}
+
+function reducer(state, action) {
+  
+  if (action.type === "next") {
+    return {
+      ...state,
+      currentStep: state.currentStep + 1
+    }
+  }
+  else if (action.type === "previous") {
+    return {
+      ...state,
+      currentStep: state.currentStep - 1
+    }
+  }
+
+  else if (action.type === "change") {
+    if (!action.payload) throw new Error("empty payload for 'change' action")
+    const {name, value} = action.payload
+    return {
+      formData: {
+        ...state.formData,
+        [name]: value
+      },
+      currentStep: state.currentStep
+    }
+  }
+
+  else if (action.type === "submit") {
+    return initialState
+  }
+
+  else {
+    throw new Error("unhandled action type " + action.type)
+  }
+  
+}
+
+
+export default function MultistepFormReducer() {
+  // const [currentStep, setCurrentStep] = React.useState(1);
+  // const [formData, setFormData] = React.useState(initialFormData);
+  const [state, dispatch] = React.useReducer(reducer, initialState)
+  const {currentStep, formData} = state
+
+  const handleNextStep = () => {
+    // setCurrentStep(currentStep + 1);
+    dispatch({type: "next"})
+  };
+
+  const handlePrevStep = () => {
+    dispatch({type: "previous"})
+    
+  };
+
+  const handleChange = (e) => {
+    dispatch({
+      type: "change",
+      payload: {
+        name: e.target.name,
+        value: e.target.value
+      }
+    })
+    // setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert("Thank you for your submission");
+    dispatch({type: "submit"})
+    // setCurrentStep(1);
+    // setFormData(initialFormData);
+  };
+
+  if (currentStep === 1) {
+    return (
+      <form onSubmit={handleSubmit}>
+        <h2>Personal Information</h2>
+        <div>
+          <label>Step {currentStep} of 3</label>
+          <progress value={currentStep} max={3} />
+        </div>
+        <div>
+          <label htmlFor="name">Name</label>
+          <input
+            required
+            name="name"
+            id="name"
+            placeholder="Enter your name"
+            value={formData.name}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="email">Email</label>
+          <input
+            required
+            name="email"
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            value={formData.email}
+            onChange={handleChange}
+          />
+        </div>
+        <button type="button" className="secondary" onClick={handleNextStep}>
+          Next
+        </button>
+      </form>
+    );
+  } else if (currentStep === 2) {
+    return (
+      <form onSubmit={handleSubmit}>
+        <h2>Address</h2>
+        <div>
+          <label>Step {currentStep} of 3</label>
+          <progress value={currentStep} max={3} />
+        </div>
+        <div>
+          <label htmlFor="address">Address</label>
+          <input
+            required
+            name="address"
+            id="address"
+            type="address"
+            placeholder="What is your address?"
+            value={formData.address}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="city">City</label>
+          <input
+            required
+            name="city"
+            id="city"
+            placeholder="What city do you live in?"
+            value={formData.city}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="zipcode">Zipcode</label>
+          <input
+            required
+            name="zipcode"
+            id="zipcode"
+            type="number"
+            placeholder="What is your zipcode?"
+            value={formData.zipcode}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <button className="secondary" type="button" onClick={handleNextStep}>
+            Next
+          </button>
+          <button type="button" className="link" onClick={handlePrevStep}>
+            Previous
+          </button>
+        </div>
+      </form>
+    );
+  } else if (currentStep === 3) {
+    return (
+      <form onSubmit={handleSubmit}>
+        <h2>Confirm your information:</h2>
+        <div>
+          <label>Step {currentStep} of 3</label>
+          <progress value={currentStep} max={3} />
+        </div>
+        <table>
+          <tbody>
+            {Object.keys(formData).map((key) => {
+              return (
+                <tr key={key}>
+                  <td>{key}</td>
+                  <td>{formData[key]}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div>
+          <button className="primary" type="submit">
+            Submit
+          </button>
+          <button type="button" className="link" onClick={handlePrevStep}>
+            Previous
+          </button>
+        </div>
+      </form>
+    );
+  } else {
+    return null;
+  }
+}
+
+```
+
 **use case 3: decoupling state updates from state values, leading to less setup and tear down**
 
 This is the way where if we use state, then we create an interval and tear it down each time `step` changes, which is not ideal:
@@ -985,6 +1200,14 @@ export default function Counter() {
 > [!NOTE]
 > `useReducer` also offers a bit more flexibility than `useState` since it allows you to decouple how the state is updated from the action that triggered the update - typically leading to more declarative state updates.
 
+### `useLayoutEffect`
+
+The `useLayoutEffect` runs side effects the same way as `useEffect` except that the side effects (including state changes) run BEFORE the rendering stage.
+
+> [!NOTE]
+> Use `useLayoutEffect` if you need to synchronize state with the DOM or layout, basically for some use case where the side effect needs to run before the browser paints the screen.
+
+Don't use `useLayoutEffect` unless you're synchronizing externally with the layout.
 
 ## 101 Tips
 
