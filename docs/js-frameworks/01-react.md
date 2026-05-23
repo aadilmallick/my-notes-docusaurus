@@ -1512,16 +1512,36 @@ export function useFormObjectState<T extends Record<string, any>>(
 
 ### 3. Master `useRef`
 
-You can use `useRef` hook to keep a reference to pretty much anything, and then pass that around. 
+Did you know you can pass a function to the `ref` attribute instead of a ref object?
 
-Here is how we can use refs with a function call, where we pass in a function to the `ref` prop. The function will take in the DOM element.
+Here's how it works:
+
+- When the DOM node is added to the screen, React calls the function with the DOM node as the argument.
+- When the DOM node is removed, React calls the function with `null`.
+
+Here is how we can use refs with a function call, where we pass in a callback to the `ref=` prop on a JSX element, where this callback has one argument, which is the DOM element we're attaching the ref to.
 
 This pattern is useful to prevent us from doing a `useEffect` to access and do stuff on the ref - instead the function is called whenever the ref is available or null. 
 
-```ts
+**❌ Before:** Using `useEffect` to focus the input  
+
+```tsx
 function App() {
-  // executes the function with HTMLInputElement as soon as mounted or unmounted
-  // inputNode can be defined or null.
+  const ref = useRef();
+
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+
+  return <input ref={ref} type="text" />;
+}
+```
+
+**✅ After:** We focus on the input as soon as it is available.  
+
+```tsx
+function App() {
+  // this function will get executed as soon as the <input> gets mounted
   const ref = useCallback((inputNode) => {
     inputNode?.focus();
   }, []);
@@ -1529,6 +1549,8 @@ function App() {
   return <input ref={ref} type="text" />;
 }
 ```
+
+#### `useRef` for persistent values without triggering re-renders
 
 You can also use `useRef` as a way to keep the value of a variable persisting across re-renders. 
 
@@ -1558,6 +1580,9 @@ function Timer() {
   );
 }
 ```
+
+#### forward refs
+
 
 You can also use **forward refs** to allow passing a ref to a custom component you made. 
 
@@ -1609,6 +1634,49 @@ export default MyComponent;
 ### 4. Don't create state unnecessarily
 
 If you can derive a value from state already set up in your component, then just do that. Don't create another state - just use `useMemo`.
+
+### 11. When storing the selected item from a list, store the item ID rather than the entire item
+
+**❌ Bad:** If an item is selected but then it changes (i.e., we receive a completely new object reference for the same ID), or if the item is no longer present in the list, `selectedItem` will either retain an outdated value or become incorrect.  
+
+```tsx
+function ListWrapper({ items }) {
+  // We are referencing the entire item
+  const [selectedItem, setSelectedItem] = useState<Item | undefined>();
+
+  return (
+    <>
+      {selectedItem != null && <div>{selectedItem.name}</div>}
+      <List
+        items={items}
+        selectedItem={selectedItem}
+        onSelectItem={setSelectedItem}
+      />
+    </>
+  );
+}
+```
+
+**✅ Good:** We store the selected item by its ID (which should be stable). This ensures that even if the item is removed from the list or one of its properties changed, the UI should be correct.  
+
+```tsx
+function ListWrapper({ items }) {
+  const [selectedItemId, setSelectedItemId] = useState<number | undefined>();
+  // We derive the selected item from the list
+  const selectedItem = items.find((item) => item.id === selectedItemId);
+
+  return (
+    <>
+      {selectedItem != null && <div>{selectedItem.name}</div>}
+      <List
+        items={items}
+        selectedItemId={selectedItemId}
+        onSelectItem={setSelectedItemId}
+      />
+    </>
+  );
+}
+```
 
 ## React + Typescript
 
