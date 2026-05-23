@@ -695,7 +695,55 @@ To avoid a shit ton of re-renders when using context, here are some tips to keep
 
 ### `useReducer`
 
+#### Intro
+
+The reducer pattern is a functional programming pattern that takes a collection as input and returns a single value as output. The way you get to that single value is by invoking a reducer function for every element in the collection.
+
+What if instead of our collection being an array, it was a collection of user actions that happened over time? Then, whenever a new user action occurred, we could invoke our reducer to get the new state of our application.
+
+![](https://i.imgur.com/FItB79z.jpeg)
+
+
 #### How to use `useReducer`
+
+Because it's such a helpful pattern, React comes with a built-in Hook called `useReducer` that functionally behaves like `useState`, but allows you to manage your state using the reducer pattern.
+
+The API for `useReducer` is similar to what we saw earlier with `Array.reduce`, but with one big difference. Instead of just returning the state, similar to `useState`, `useReducer` also returns a way to _update_ that state.
+
+What's different is instead of returning an updater function, it returns a function called `dispatch` that when called, will invoke the `reducer` function.
+
+```tsx
+import * as React from "react"
+
+function reducer(state, value) {
+  const nextState = state + value
+
+  console.log(
+    `Reducer invoked. state: ${state}, value: ${value}, nextState: ${nextState}`
+  )
+
+  return nextState
+}
+
+const initialState = 0
+
+export default function Counter() {
+  const [count, dispatch] = React.useReducer(
+    reducer, initialState
+  )
+
+  const handleIncrement = () => {
+    dispatch(1) // invokes reducer with state, value=1
+  }
+
+  return (
+    <main>
+      <h1>{count}</h1>
+      <button onClick={handleIncrement}>+</button>
+    </main>
+  )
+}
+```
 
 #### `useReducer` vs `useState`
 
@@ -704,6 +752,116 @@ When using a reducer, we decouple how the state updates from the action that tri
 - **minimizing event listeners and interval teardown and setup**: in a `useEffect` where we want to setup event listeners or intervals and we depend on a piece of state
 	- if we use `useState`, then we're recreating and tearing down those event listeners and intervals on every state change.
 	- If we use `useReducer`, then we don't have dependecy on the state, instead we just dispatch actions, which means we can omit state from the dependency array and thus run the `useEffect` block less.
+- **updating state where state updates are tightly coupled**
+- **Form state**: in forms, you may need lots of state variables, and clearing and submitting forms require an imperative way of state updates, while `useReducer` updates state in a declarative way.
+
+**use case 1: tightly coupled state updates**
+ 
+Here is an example where state updates rely on other pieces of state, so it's better to use `useReducer` rather than `useState`:
+
+```tsx
+import * as React from "react"
+import Slider from "./Slider"
+
+function reducer(state, action) {
+  if (action.type === "increment") {
+    return {
+      count: state.count + state.step,
+      step: state.step,
+    }
+  } else if (action.type === "decrement") {
+    return {
+      count: state.count - state.step,
+      step: state.step,
+    }
+  } else if (action.type === "reset") {
+    return {
+      count: 0,
+      step: state.step,
+    }
+  } else if (action.type === "updateStep") {
+    return {
+      count: state.count,
+      step: action.step,
+    }
+  } else {
+    throw new Error("This action type isn't supported.")
+  }
+}
+
+export default function Counter() {
+  const [state, dispatch] = React.useReducer(reducer, {
+    count: 0,
+    step: 1
+  })
+
+  const handleIncrement = () => dispatch({type: "increment"})
+  const handleDecrement = () => dispatch({type: "decrement"})
+  const handleReset = () => dispatch({type: "reset"})
+  const handleUpdateStep = (step) => dispatch({type: "updateStep", step})
+
+  return (
+    <main>
+      <h1>{state.count}</h1>
+      <div>
+        <button onClick={handleDecrement}>-</button>
+        <button onClick={handleIncrement}>+</button>
+        <button onClick={handleReset}>0</button>
+      </div>
+      <Slider 
+        min={1}
+        max={10}
+        onChange={handleUpdateStep} 
+      />
+    </main>
+  )
+}
+
+```
+
+With that, we see another subtle but powerful benefit of `useReducer` you might have missed. Because the `reducer` function is passed the current `state` as the first argument, it's simple to update one piece of state based on another piece of state. In our example, we can see this in how we're updating `count` based on the value of `step`.
+
+> [!TIP]
+> In fact, I'd go as far as to say whenever updating one piece of state depends on the value of another piece of state, reach for `useReducer`.
+
+**use case 2: imperative vs declarative state updates**
+
+The reason `useReducer` can be more declarative is because it allows us to map actions to state transitions. This means, instead of having a collection of `setX` invocations, we can simply `dispatch` the action type that occurred. Then our `reducer` can encapsulate the imperative, instructional like code.
+
+```tsx
+const handleSubmit = async (e) => {
+  // e.preventDefault()
+  // setSubmitting(true)
+  // setError(null)
+  // setSuccess(false)
+
+  // try {
+  //   await subscribe({ name, email, marketing })
+  //   setSubmitting(false)
+  //   setName("")
+  //   setEmail("")
+  //   setMarketing(true)
+  //   setSuccess(true)
+  // } catch (e) {
+  //   setSubmitting(false)
+  //   setSuccess(false)
+  //   setError(e.message)
+  // }
+  
+  e.preventDefault()
+  dispatch({ type: "submit" })
+
+  try {
+    await subscribe({ name, email, marketing })
+    dispatch({ type: "success" })
+  } catch (e) {
+    dispatch({ type: "error", error: e.message })
+  }
+}
+```
+
+Notice that we're describing **what** we want to do - `submit`. Then, based on that result, `success` or `error`. That's a lot cleaner and easier to reason about than our imperative solution.
+
 
 ## 101 Tips
 
