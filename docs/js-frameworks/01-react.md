@@ -676,6 +676,22 @@ export default function App() {
 }
 ```
 
+### React context
+
+#### When to use context
+
+> [!IMPORTANT]
+> This is a huge misconception when it comes to Context. Whether what you're teleporting is a static object, function, state, or anything else – it doesn't change that fact that Context is a teleporter, not a manager of state.
+
+Re-rendering data in context follows the common react model of $v=f(s)$, where if state in a context changes, then the entire component tree of the context provider and what ever subcomponents are nested inside it gets re-rendered.
+
+This means it's extremely important to use context only when you don't have a lot of re-renders, otherwise you will have to constantly repaint your app. Because context providers often wrap your whole app, when the context provider must re-render due to a state change in the context, that re-renders the entire app. 
+
+To avoid a shit ton of re-renders when using context, here are some tips to keep in mind:
+
+1. **pick the right tool for the job**: only use react context when it makes sense to do so, like when any state in the context does not change often.
+2. **use `useRef` for persistent context values when it makes sense**: If you need a persistent variable to export in the context but it's not used anywhere in your app to update the view, make it a ref instead of state as to avoid unnecessary re-renders.
+
 ## 101 Tips
 
 ### 1. HOC
