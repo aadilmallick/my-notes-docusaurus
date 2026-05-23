@@ -692,6 +692,19 @@ To avoid a shit ton of re-renders when using context, here are some tips to keep
 1. **pick the right tool for the job**: only use react context when it makes sense to do so, like when any state in the context does not change often.
 2. **use `useRef` for persistent context values when it makes sense**: If you need a persistent variable to export in the context but it's not used anywhere in your app to update the view, make it a ref instead of state as to avoid unnecessary re-renders.
 
+
+### `useReducer`
+
+#### How to use `useReducer`
+
+#### `useReducer` vs `useState`
+
+When using a reducer, we decouple how the state updates from the action that triggered the update. This makes using `useReducer` preferable to using `useState` in the following scenarios:
+
+- **minimizing event listeners and interval teardown and setup**: in a `useEffect` where we want to setup event listeners or intervals and we depend on a piece of state
+	- if we use `useState`, then we're recreating and tearing down those event listeners and intervals on every state change.
+	- If we use `useReducer`, then we don't have dependecy on the state, instead we just dispatch actions, which means we can omit state from the dependency array and thus run the `useEffect` block less.
+
 ## 101 Tips
 
 ### 1. HOC
