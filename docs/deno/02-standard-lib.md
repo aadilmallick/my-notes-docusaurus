@@ -360,6 +360,29 @@ const config = await response.json();
 
 The `close()` function exits the main Deno process, stopping the file from running.
 
+
+## Deno Frontend Development
+
+### Deno with React
+
+To setup JSX with Deno, specifically React JSX, set these options in the `deno.json`:
+
+```json title="deno.json"
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "imports": {
+    "react": "npm:react",
+    "@types/react": "npm:@types/react"
+  }
+}
+```
+
+#### SSR
+
+
 ## Server-side
 
 ### Custom Deno Router
@@ -789,7 +812,7 @@ app.get("/websocket", (request) => {
 
 ### JSX Server Side (Preact)
 
-Here are the steps to setup JSX in Deno:
+Here are the steps to setup JSX in Deno using preact
 
 1. Add these settings to the `deno.json`:
 
@@ -873,6 +896,22 @@ const Layout = (props: { children: ComponentChildren }) => {
 };
 ```
 
+#### pre-compiled jSX
+
+When using preact, you can get a 7-20x speed up boost in SSR by just adding this to your `deno.json`:
+
+```json
+{
+    "compilerOptions": {
+     "jsx": "precompile",
+      "jsxImportSource": "preact"
+    },
+    "imports": {
+      "preact": "npm:preact"
+    }
+  }
+
+```
 
 ### Deno OAuth
 
