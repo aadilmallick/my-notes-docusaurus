@@ -385,6 +385,92 @@ To setup JSX with Deno, specifically React JSX, set these options in the `deno.j
 
 ## Server-side
 
+### Deno HTTP
+
+#### Creating a basic server
+
+Everything starts with the `Deno.serve(handler)` function, which starts the server.
+
+```ts
+Deno.serve((_req) => {
+  return new Response("Hello, World!");
+});
+```
+
+```ts
+// To listen on port 4242.
+Deno.serve({ port: 4242 }, handler);
+
+// To listen on port 4242 and bind to 0.0.0.0.
+Deno.serve({ port: 4242, hostname: "0.0.0.0" }, handler);
+```
+
+#### Handlers
+
+**handlers** are the basic request-response cycle execution, taking in a `Request` instance argument in the callback, and you must return a `Response` from the handler.
+
+This is how you access the request on the handler. Here are the properties on the `req` object:
+
+```ts
+Deno.serve(async (req) => {
+  console.log("Method:", req.method);
+
+  const url = new URL(req.url);
+  console.log("Path:", url.pathname);
+  console.log("Query parameters:", url.searchParams);
+
+  console.log("Headers:", req.headers);
+
+  if (req.body) {
+    const body = await req.text();
+    console.log("Body:", body);
+  }
+
+  return new Response("Hello, World!");
+});
+```
+
+Here is an example of returning a response:
+
+```ts
+Deno.serve((req) => {
+  const body = JSON.stringify({ message: "NOT FOUND" });
+  return new Response(body, {
+    status: 404,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+    },
+  });
+});
+```
+
+#### Returning streams
+
+```ts
+Deno.serve((req) => {
+  let timer: number;
+  const body = new ReadableStream({
+    async start(controller) {
+      timer = setInterval(() => {
+        controller.enqueue("Hello, World!\n");
+      }, 1000);
+    },
+    cancel() {
+      clearInterval(timer);
+    },
+  });
+  return new Response(body.pipeThrough(new TextEncoderStream()), {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+    },
+  });
+});
+
+```
+
+> [!WARNING]
+> Note the `cancel` function above. This is called when the client hangs up the connection. It is important to make sure that you handle this case, otherwise the server will keep queuing up messages forever, and eventually run out of memory.
+
 ### Custom Deno Router
 
 ```ts
