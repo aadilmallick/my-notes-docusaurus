@@ -467,6 +467,8 @@ export async function promptYesOrNo(
 
 ### Running commands
 
+#### `Deno.Command()`
+
 You can use the `Deno.Command(cmd, options)` method to run shell commands in a way that is consistent across every platform.
 
 ```ts
@@ -478,6 +480,23 @@ const cmd = new Deno.Command("mkdir", {
 await cmd.output();
 ```
 
+#### spawning child processes
+
+You can spawn child processes in deno like so:
+
+```ts
+// Spawn a child process (returns ChildProcess)
+const child = Deno.spawn("deno", ["fmt", "--check"], {
+  stdout: "inherit",
+});
+
+// Wait for completion (returns CommandOutput)
+const output = await Deno.spawnAndWait("git", ["status"]);
+console.log(output.stdout);
+
+// Synchronous variant
+const result = Deno.spawnAndWaitSync("echo", ["done"]);
+```
 ## From Web To Deno
 
 There are numerous built in functions in Deno that are adapted from the web and fit to the command line environment.
