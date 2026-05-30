@@ -1,5 +1,39 @@
 # Deno Standard Library
 
+## Deno `import.meta`
+
+- `import.meta.url`: the file URL of the current deno module, **string**
+- `import.meta.main`: returns a **boolean** where if the current module is the file that was being run, it is the main module and thus returns true.
+- `import.meta.filename`: Returns the fully resolved path to the current module. The value contains OS specific path separators.
+- `import.meta.dirname`: Returns the fully resolved path to the directory containing the current module. The value contains OS specific path separators.
+
+### `import.meta.resolve`
+
+Resolve specifiers relative to the current module.
+
+```ts
+const worker = new Worker(import.meta.resolve("./worker.ts"));
+```
+
+The `import.meta.resolve` API takes into account the currently applied import map, which gives you the ability to resolve "bare" specifiers as well.
+
+With such import map loaded...
+
+```json
+{
+  "imports": {
+    "fresh": "https://deno.land/x/fresh@1.0.1/dev.ts"
+  }
+}
+```
+
+...you can now resolve:
+
+
+```js title="main.ts"
+console.log(import.meta.resolve("fresh"));
+```
+
 ## Working with files
 
 ### Node
@@ -147,6 +181,22 @@ export class DenoFileManager {
       await cb(entry);
     }
   }
+}
+```
+
+#### getting a file lock
+
+A new non-blocking file lock method. Unlike `lock()` which blocks until the lock is acquired, `tryLock()` returns immediately with a boolean indicating whether the lock was obtained:
+
+```ts
+const file = await Deno.open("data.db", { read: true, write: true });
+
+if (await file.tryLock(true)) {
+  // Exclusive lock acquired, safe to write
+  await file.write(data);
+  await file.unlock();
+} else {
+  console.log("File is locked by another process");
 }
 ```
 
@@ -496,6 +546,58 @@ console.log(output.stdout);
 
 // Synchronous variant
 const result = Deno.spawnAndWaitSync("echo", ["done"]);
+```
+
+### Hooking into the program lifecycle
+
+Deno supports browser compatible lifecycle events:
+
+- [`load`](https://developer.mozilla.org/en-US/docs/Web/API/Window/load_event#:~:text=The%20load%20event%20is%20fired,for%20resources%20to%20finish%20loading.): fired when the whole page has loaded, including all dependent resources such as stylesheets and images.
+- [`beforeunload`](https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event#:~:text=The%20beforeunload%20event%20is%20fired,want%20to%20leave%20the%20page.): fired when the event loop has no more work to do and is about to exit. Scheduling more asynchronous work (like timers or network requests) will cause the program to continue.
+- [`unload`](https://developer.mozilla.org/en-US/docs/Web/API/Window/unload_event): fired when the program has no more work to do. Scheduling more asynchronous work (like timers or network requests) **does not** keep the program alive.
+- [`unhandledrejection`](https://developer.mozilla.org/en-US/docs/Web/API/Window/unhandledrejection_event): fired when a promise that has no rejection handler is rejected, ie. a promise that has no `.catch()` handler or a second argument to `.then()`.
+- [`rejectionhandled`](https://developer.mozilla.org/en-US/docs/Web/API/Window/rejectionhandled_event): fired when a `.catch()` handler is added to a promise that has already been rejected. This event is fired only if there's `unhandledrejection` listener installed that prevents propagation of the event (which would result in the program terminating with an error).
+- [`error`](https://developer.mozilla.org/en-US/docs/Web/API/Window/error_event): fired when an uncaught exception occurs. If a listener is registered, it prevents the default behavior of printing the error to the console and terminating the program.
+
+Deno also supports Node.js compatible lifecycle events:
+
+- [`process.on("beforeExit")`](https://nodejs.org/api/process.html#event-beforeexit): fired when the event loop has no more work to do and is about to exit. Scheduling more asynchronous work (like timers or network requests) will cause the program to continue. Counterpart to `beforeunload` Web event. Fires immediately after `beforeunload` event.
+- [`process.on("exit")`](https://nodejs.org/api/process.html#event-exit): fired when the program has no more work to do. Scheduling more asynchronous work (like timers or network requests) **does not** keep the program alive. Counterpart to `unload` Web event. Fired immediately after `unload` event.
+- [`process.on("rejectionHandled")`](https://nodejs.org/api/process.html#event-rejectionhandled): fired when a `.catch()` handler is added to a promise that has already been rejected. Counterpart to `rejectionhandled` Web event. Fired immediately after `rejectionhandled` event.
+- [`process.on("uncaughtException")`](https://nodejs.org/api/process.html#event-uncaughtexception): fired when an uncaught exception bubbles up. If a listener is registered, it prevents the default behavior of printing the stack trace and exiting. Counterpart to `error` Web event. Fired immediately after `error` event.
+- [`process.on("unhandledRejection")`](https://nodejs.org/api/process.html#event-unhandledrejection): fired when a promise is rejected and no rejection handler is attached. Counterpart to `unhandledrejection` Web event. Fired immediately after `unhandledrejection` event.
+
+#### web-compatible way
+
+Here is a web-compatible example of hooking into the program lifecycle by listening to events on the `globalThis` object, which would be the `window` in the browser environment.
+
+```ts
+import "./imported.ts";
+
+const handler = (e: Event): void => {
+  console.log(`got ${e.type} event in event handler (main)`);
+};
+
+globalThis.addEventListener("load", handler);
+
+globalThis.addEventListener("beforeunload", handler);
+
+globalThis.addEventListener("unload", handler);
+
+globalThis.onload = (e: Event): void => {
+  console.log(`got ${e.type} event in onload function (main)`);
+};
+
+globalThis.onbeforeunload = (e: Event): void => {
+  console.log(`got ${e.type} event in onbeforeunload function (main)`);
+};
+
+globalThis.onunload = (e: Event): void => {
+  console.log(`got ${e.type} event in onunload function (main)`);
+};
+
+console.log("log from main script");
+
 ```
 ## From Web To Deno
 
