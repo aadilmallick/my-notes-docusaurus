@@ -2738,6 +2738,162 @@ class MediaSessionManager {
 }
 ```
 
+### Temporal API
+
+The `Temporal` namespace is used as a helpful abstraction over dates in javascript.
+
+The **`Temporal`** object enables date and time management in various scenarios, including built-in time zone and calendar representation, wall-clock time conversions, arithmetics, formatting, and more. It is designed as a full replacement for the [`Date`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date) object.
+
+The **Temporal API** is a full, modern replacement for JavaScript’s notoriously flawed `Date` object. While `Date` only supports UTC and the user’s local time zone, relies on mutable objects, and features highly erratic string parsing, Temporal addresses these design mistakes from the ground up.
+
+All Temporal objects are **immutable**, offer **nanosecond precision**, strictly support various **time zones and calendars**, and provide distinct data structures for specific use cases.
+
+#### The Temporal Architecture: Choosing the Right Class
+
+The Temporal API consists of several core classes housed under a global `Temporal` namespace. Instead of trying to force every piece of time data into one object, you pick the precise data type required for your scenario.
+
+1. **`Temporal.Instant`**: A fixed, exact point in time independent of geography or calendar system (represented as nanoseconds since the Unix epoch).
+    
+2. **`Temporal.ZonedDateTime`**: An exact point in time viewed from the perspective of a specific time zone and calendar system (e.g., "December 25th at 10:00 AM in Tokyo").
+    
+3. **`Temporal.PlainDateTime`**: A "wall-clock" date and time with no time zone context (e.g., "The store opens on 2026-06-01 at 09:00").
+    
+4. **`Temporal.PlainDate`**: A calendar date with no time component (e.g., "My birthday is August 14th").
+    
+5. **`Temporal.PlainTime`**: A wall-clock time with no date or time zone component (e.g., "Lunch starts at 12:30:00").
+    
+6. **`Temporal.Duration`**: A measurement of elapsed time used for arithmetic (e.g., "3 hours, 15 minutes, and 20 seconds").
+    
+7. **`Temporal.Now`**: A static utility namespace to fetch the current time as any of the objects listed above.
+    
+
+#### 1. Fetching the Current Time (`Temporal.Now`)
+
+To get the exact current time in different contexts, use the static methods on `Temporal.Now`.
+
+
+```ts
+// Get the current UTC exact point in history
+const currentInstant = Temporal.Now.instant();
+console.log(currentInstant.toString()); // e.g., "2026-05-30T17:45:12.345678901Z"
+
+// Get the current local date and time with the system's time zone
+const zonedNow = Temporal.Now.zonedDateTimeISO();
+console.log(zonedNow.toString()); 
+// e.g., "2026-05-30T13:45:12.345-04:00[America/New_York]"
+
+// Get a plain date (ignoring exact time or time zone rules)
+const plainDate = Temporal.Now.plainDateISO();
+console.log(plainDate.toString()); // "2026-05-30"
+```
+
+#### 2. Creating and Parsing Temporal Objects
+
+You can create Temporal instances either by parsing strings conforming to ISO 8601 / RFC 9557, or by passing a structured property object to the `.from()` method.
+
+
+```ts
+// Parsing from strings
+const dateFromString = Temporal.PlainDate.from("2026-12-25");
+const timeFromString = Temporal.PlainTime.from("14:30:00");
+
+// Creating from property objects
+const dateFromObj = Temporal.PlainDate.from({ year: 2026, month: 12, day: 25 });
+const timeFromObj = Temporal.PlainTime.from({ hour: 14, minute: 30, second: 0 });
+
+// ZonedDateTime requires an explicit time zone string annotation
+const zoned = Temporal.ZonedDateTime.from("2026-05-30T10:00:00-07:00[America/Los_Angeles]");
+```
+
+#### 3. Date & Time Arithmetic (`add`, `subtract`)
+
+Unlike the old `Date` object where calculations required manual millisecond conversions, Temporal objects provide intuitive `.add()` and `.subtract()` methods. Because Temporal objects are **immutable**, these methods return a brand new instance.
+
+
+```ts
+const departure = Temporal.PlainDateTime.from("2026-06-15T08:00:00");
+
+// Moving forward in time using a string duration or a property object
+const arrival = departure.add({ days: 2, hours: 4, minutes: 30 });
+console.log(arrival.toString()); // "2026-06-17T12:30:00"
+
+// Moving backward in time
+const notificationTime = departure.subtract("PT24H"); // ISO 8601 duration format (24 hours)
+console.log(notificationTime.toString()); // "2026-06-14T08:00:00"
+```
+
+#### 4. Calculating Time Differences (`until`, `since`)
+
+To find out exactly how much time has passed between two points, use `.until()` or `.since()`. These methods return a `Temporal.Duration` object.
+
+
+```ts
+const projectStart = Temporal.PlainDate.from("2026-01-01");
+const projectEnd = Temporal.PlainDate.from("2026-05-30");
+
+// Calculate the precise duration until the end date
+const duration = projectStart.until(projectEnd);
+console.log(duration.days); // 149
+
+// You can control the units returned using the `largestUnit` option
+const complexDuration = projectStart.until(projectEnd, { largestUnit: "month" });
+console.log(`${complexDuration.months} months and ${complexDuration.days} days`); 
+// Output: "4 months and 29 days"
+```
+
+#### 5. Immutability and Modifying Objects Safely (`with`)
+
+When you want to change a specific property of a date (e.g., changing just the day, or shifting just the minute), use the `.with()` method. It merges your changes into a copy and returns a new object.
+
+
+```ts
+const originalDate = Temporal.PlainDate.from("2026-05-10");
+
+// Create a new date with the day updated to the 28th
+const payday = originalDate.with({ day: 28 });
+
+console.log(originalDate.toString()); // "2026-05-10" (Unchanged!)
+console.log(payday.toString());       // "2026-05-28"
+```
+
+#### 6. Comparing and Sorting Dates
+
+Temporal provides a static `.compare()` method on its classes, yielding `-1` if the first date comes before, `0` if they are equal, and `1` if the first comes after. This format fits directly into standard array `.sort()` chains.
+
+
+```ts
+const dates = [
+  Temporal.PlainDate.from("2026-12-25"),
+  Temporal.PlainDate.from("2026-01-01"),
+  Temporal.PlainDate.from("2026-06-30")
+];
+
+// Sort chronologically
+dates.sort(Temporal.PlainDate.compare);
+
+console.log(dates.map(d => d.toString()));
+// [ "2026-01-01", "2026-06-30", "2026-12-25" ]
+
+// Checking for equality
+const dateA = Temporal.PlainDate.from("2026-05-30");
+const dateB = Temporal.PlainDate.from("2026-05-30");
+console.log(dateA.equals(dateB)); // true
+```
+
+#### 7. Interoperating with Legacy Code (`Date`)
+
+During transition periods where external libraries still require a legacy JavaScript `Date` instance, or when migrating existing code, Temporal makes it easy to convert back and forth.
+
+
+```ts
+// 1. Converting a legacy Date to Temporal
+const oldJsDate = new Date();
+const instantFromOldDate = oldJsDate.toTemporalInstant();
+
+// 2. Converting a Temporal Instant back to a legacy Date
+const temporalInstant = Temporal.Now.instant();
+const legacyDate = new Date(temporalInstant.epochMilliseconds);
+```
 
 ## Proxies
 
