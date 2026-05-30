@@ -2,7 +2,7 @@
 
 This is the dockerfile for installing both node and bun:
 
-```Dockerfile
+```dockerfile
 FROM node:20-alpine
 
 # 1. essential downloads

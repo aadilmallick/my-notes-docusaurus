@@ -110,9 +110,123 @@ deno run --watch --watch-exclude='*.js' main.ts
 
 ### Compile into executable
 
+#### `deno compile`
+
 - `deno compile <file>`: compiles a js file into an executable
 	- `-A`: compile with all permissions
 	- `-o <filename>`: rename executable to this filename
+
+## `deno bundle`
+
+The `deno bundle` command is used to bundle frontend static assets into a single JS file for distribution or works like `deno compile` if not used for frontend:
+
+- Resolves and inlines all dependencies
+- Supports JSX/TSX, TypeScript, and modern JavaScript, including [import attributes](https://docs.deno.com/runtime/fundamentals/modules/#import-attributes) and CSS
+- HTML entrypoint support (Deno 2.5+)
+- Optional minification (`--minify`) and source maps (`--sourcemap`)
+- Code splitting
+- Platform targeting (`--platform`, supports Deno and browser)
+- JSX support when configured
+
+### CLI
+
+The below example bundles `main.ts` into an output `bundle.js`
+
+```bash
+deno bundle -o bundle.js main.ts
+```
+
+Here are the options:
+
+| Flag                    | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `-o`, `--output <file>` | Write bundled output to a file                       |
+| `--outdir <dir>`        | Write bundled output to a directory                  |
+| `--minify`              | Minify the output for production                     |
+| `--format <format>`     | Output format (`esm` by default)                     |
+| `--code-splitting`      | Enable code splitting                                |
+| `--platform <platform>` | Bundle for `browser` or `deno` (default: `deno`)     |
+| `--sourcemap`           | Include source maps (`linked`, `inline`, `external`) |
+| `--watch`               | Automatically rebuild on file changes                |
+| `--inline-imports`      | Inline imported modules (`true` or `false`)          |
+
+### HTML entrypoint support 
+
+Starting with Deno 2.5, `deno bundle` supports HTML files as entrypoints. 
+
+```bash
+deno bundle --outdir dist index.html
+```
+
+When you use an HTML file as an entrypoint, `deno bundle` will:
+
+1. Find all script references in the HTML file
+2. Bundle those scripts and their dependencies
+3. Update the paths in the HTML file to point to the bundled scripts
+4. Bundle and inject any imported CSS files into the HTML output
+
+Given an `index.tsx` file:
+
+
+```tsx title="index.tsx"
+import { render } from "npm:preact";
+import "./styles.css";
+
+const app = (
+  <div>
+    <p>Hello World!</p>
+  </div>
+);
+
+render(app, document.body);
+```
+
+And an HTML file that references it:
+
+```html title="index.html"
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Example</title>
+    <script src="./index.tsx" type="module"></script>
+  </head>
+</html>
+```
+
+Running `deno bundle --outdir dist index.html` produces:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Example</title>
+    <script src="./index-2TFDJWLF.js" type="module" crossorigin></script>
+    <link rel="stylesheet" crossorigin href="./index-EWSJYQGA.css">
+  </head>
+</html>
+```
+
+The bundled output includes content-based hashes for cache-busting and fingerprinting.
+
+> [!NOTE]
+> HTML entrypoints are fully supported in both the CLI and the runtime API.
+
+### runtime bundling
+
+The `Deno.bundle()` method lets you bundle files during runtime:
+
+```ts
+const result = await Deno.bundle({
+  entrypoints: ["./index.tsx"],
+  outputDir: "dist",
+  platform: "browser",
+  minify: true,
+});
+console.log(result);
+
+```
 
 ## Deno Config
 
@@ -446,4 +560,85 @@ Using the `npx skills` library, you can install the skill like so:
 
 ```bash
 npx skills add https://github.com/denoland/skills --skill deno-expert
+```
+
+### Deno with docker
+
+
+#### Dockerfile
+
+Here is a standard image setup for deno with docker
+
+```dockerfile
+FROM denoland/deno:latest
+
+WORKDIR /app
+
+# Copy manifests first so the dependency install layer caches across
+# source-only edits
+COPY deno.json deno.lock package.json* ./
+RUN deno ci --prod --skip-types
+
+# Then copy the rest of the source
+COPY . .
+
+CMD ["deno", "run", "--allow-net", "main.ts"]
+
+```
+
+To tighten security and run as non-root user, use the following commands:
+
+```dockerfile
+# Create deno user
+RUN addgroup --system deno && \
+    adduser --system --ingroup deno deno
+
+# Switch to deno user
+USER deno
+
+# Continue with rest of Dockerfile
+
+```
+
+#### Development with docker compose
+
+```yaml
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://deno:${POSTGRES_PASSWORD}@db:5432/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command:
+      [
+        "deno",
+        "run",
+        "--allow-net=db:5432",
+        "--allow-env=DATABASE_URL",
+        "main.ts",
+      ]
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: deno
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deno"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
 ```
