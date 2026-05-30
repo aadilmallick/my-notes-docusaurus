@@ -36,6 +36,35 @@ app.use(router.allowedMethods());
 app.listen();
 ```
 
+### `Application`
+
+#### application methods
+
+- `app.use(middleware)`: registers the middleware globally at the root level
+- `app.listen()`: starts the app
+
+#### event listeners
+
+You can listen to these events registered across the lifetime of the server:
+
+- `"listen"`: triggered when the app first starts listening
+- `"close"`: triggered when the server shuts down
+- `"error"`: triggered when the server runs into an unhandled error
+
+```ts
+app.addEventListener("listen", (e) => {
+  console.log(`Listening on port ${e.port}`);
+});
+
+app.addEventListener("close", () => {
+  console.log("Server closed");
+});
+
+app.addEventListener("error", (e) => {
+  console.error("Unhandled error:", e.error);
+});
+```
+
 ### Middleware
 
 A middleware handler is an async callback that takes a `ctx` object and a `next` function as parameters. Here is what they do:
@@ -118,6 +147,100 @@ app.use(async (ctx, next) => {
 });
 ```
 
+#### cors middleware
+
+```ts
+app.use(async (ctx, next) => {
+  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+  ctx.response.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE");
+  ctx.response.headers.set("Access-Control-Allow-Headers", "Content-Type,Authorization");
+
+  if (ctx.request.method === "OPTIONS") {
+    ctx.response.status = 204;
+    return;
+  }
+  await next();
+});
+```
+
+### Context
+
+The `Context` object is the single argument to every middleware. It bridges the request, response, cookies, and app state for one HTTP cycle.
+
+Here are all the built-in properties on the context:
+
+- `ctx.request`: The incoming request wrapper. Access headers, body, method, URL, IP, etc.
+- `ctx.response`: The outgoing response. Set `.body`, `.status`, and `.headers`.
+- `ctx.cookies`: A `SecureCookieMap` — reads cookies from the request and writes them to the response. Signed when app `keys` are set.
+- `ctx.state`: A typed object for passing data between middleware. Scoped to the current request.
+- `ctx.app`: Reference to the `Application` instance, including app-level state.
+- `ctx.params`: Route parameters (set by the Router). e.g. `ctx.params.id`
+
+#### type-safe custom context properties
+
+By passing a custom type argument into the `Application<ContextType>` class when instantiating the app, we can create a type-safe version of the context that allows for custom properties:
+
+```ts
+interface AppState {
+  userId: string;
+  role: "admin" | "user";
+}
+
+const app = new Application<AppState>();
+
+app.use((ctx) => {
+  // ctx.state is typed as AppState
+  ctx.state.userId = "abc123";
+});
+```
+
+#### context methods
+
+The `ctx` object provides utility methods over returning responses in the handler:
+
+- `ctx.throw(errorCode, message)`: throws an HTTP error with the specified error code and message
+- `ctx.assert(condition, errorCode, message)`: throws an HTTP error with the specified error code and message if the condition evaluates to `false`
+- `ctx.send(options)`: returns a file as a response, serving it statically under a URL you provide.
+
+```ts
+// Throw an HTTP error (caught by error middleware)
+ctx.throw(404, "User not found");
+
+// Assert with automatic HTTP error on failure
+ctx.assert(user !== undefined, 404, "Not found");
+ctx.assert(ctx.state.isAdmin, 403, "Forbidden");
+```
+
+Here is how to send a static file:
+
+```ts
+// Send a file from disk
+await ctx.send({
+  root: `${Deno.cwd()}/public`,
+  index: "index.html",
+  path: ctx.request.url.pathname,
+});
+```
+
+#### cookies
+
+```ts
+// Get a cookie
+const token = await ctx.cookies.get("session");
+
+// Set a cookie
+await ctx.cookies.set("session", "abc123", {
+  httpOnly: true,
+  secure: true,
+  maxAge: 3600,
+  sameSite: "strict",
+});
+
+// Delete a cookie
+await ctx.cookies.delete("session");
+```
+
+
 ### Router
 
 The `Router` object is the basic way to scope handlers to a certain route path.
@@ -131,7 +254,7 @@ const router = new Router();
 You can also create a router scoped to a path:
 
 ```ts
-const router = new Router({ prefix: });
+const router = new Router({ prefix: "/api" });
 ```
 
 #### Basics
@@ -164,6 +287,36 @@ app.use(router.allowedMethods()); // handles OPTIONS + 405
 await app.listen({ port: 8000 });
 ```
 
+Here's a more real-world example:
+
+```ts title="routes/users.ts"
+
+// 1. create the router scoped to /users
+export const usersRouter = new Router({ prefix: "/users" });
+
+// 2. define routes on router
+usersRouter
+  .get("/", async (ctx) => {
+    ctx.response.body = await db.users.findAll();
+  })
+  .get("/:id", async (ctx) => {
+    const user = await db.users.findById(ctx.params.id);
+    ctx.assert(user, 404, "User not found");
+    ctx.response.body = user;
+  })
+  .post("/", async (ctx) => {
+    const body = await ctx.request.body.json();
+    const user = await db.users.create(body);
+    ctx.response.status = 201;
+    ctx.response.body = user;
+  });
+```
+
+```ts title="main.ts"
+// 3. register router and allow for CORS
+app.use(usersRouter.routes());
+app.use(usersRouter.allowedMethods());
+```
 #### route parameters
 
 ```ts
@@ -197,4 +350,153 @@ apiRouter.get("/me", (ctx) => {
   ctx.response.body = ctx.state.user;
 });
 // Matches /api/v1/me
+```
+
+### `ctx.request`
+
+#### request properties
+
+here are the properties on the request object:
+
+|Property|Type|Description|
+|---|---|---|
+|`.method`|HTTPMethods|GET, POST, PUT, DELETE, etc.|
+|`.url`|URL|Parsed URL (standard `URL` object)|
+|`.headers`|Headers|Request headers (standard `Headers`)|
+|`.hasBody`|boolean|True if the request might have a body|
+|`.body`|Body|Body accessor — see below|
+|`.ip`|string|Remote IP (respects proxy headers when `app.proxy=true`)|
+|`.ips`|string[]|Array of IPs from X-Forwarded-For|
+|`.secure`|boolean|True if HTTPS|
+|`.source`|Request \| undefined|Original Fetch API Request (if available)|
+#### reading request body
+
+```ts
+// JSON body
+const data = await ctx.request.body.json();
+
+// Text body
+const text = await ctx.request.body.text();
+
+// Form data (application/x-www-form-urlencoded or multipart)
+const form = await ctx.request.body.formData();
+const name = form.get("name");
+
+// ArrayBuffer (raw binary)
+const buf = await ctx.request.body.arrayBuffer();
+
+// ReadableStream (streaming)
+const stream = ctx.request.body.stream();
+```
+
+#### reading content encoding headers
+
+```ts
+// Check what content types the client accepts
+const accepted = ctx.request.accepts("json", "html");
+// → "json" | "html" | undefined (best match)
+
+const encodings = ctx.request.acceptsEncodings("gzip", "identity");
+const langs = ctx.request.acceptsLanguages("en", "fr");
+```
+
+#### validating request body example
+
+```ts
+async function validateBody<T>(ctx: Context, schema: Schema): Promise<T> {
+  ctx.assert(ctx.request.hasBody, 422, "Body required");
+  const body = await ctx.request.body.json();
+  const result = schema.safeParse(body);
+  ctx.assert(result.success, 422, result.error?.message);
+  return result.data as T;
+}
+
+// Usage
+router.post("/users", async (ctx) => {
+  const data = await validateBody(ctx, UserSchema);
+  ctx.response.body = await createUser(data);
+});
+```
+
+### `ctx.response`
+
+The `ctx.response` object is a mutable object where by setting properties like `response.body` or `response.status`, that is what will be sent when the response gets sent:
+
+#### setting response body
+
+```ts
+// String → text/plain
+ctx.response.body = "Hello world";
+
+// Object → application/json (auto-serialized)
+ctx.response.body = { id: 1, name: "Alice" };
+
+// ReadableStream → streamed response
+ctx.response.body = new ReadableStream(...);
+
+// Uint8Array / ArrayBuffer → binary
+ctx.response.body = new Uint8Array([0x48, 0x69]);
+
+// null → empty body
+ctx.response.body = null;
+```
+
+#### setting response status code
+
+```ts
+// Numeric
+ctx.response.status = 201;
+ctx.response.status = 404;
+
+// Or use the Status enum
+import { Status } from "jsr:@oak/oak";
+ctx.response.status = Status.Created;   // 201
+ctx.response.status = Status.NotFound;  // 404
+```
+
+#### setting response headers
+
+```ts
+ctx.response.headers.set("Content-Type", "application/json");
+ctx.response.headers.set("Cache-Control", "no-cache");
+ctx.response.headers.set("X-Custom-Header", "value");
+
+// Redirects
+ctx.response.redirect("/new-location");
+ctx.response.redirect("https://example.com", 301);
+```
+
+### Realtime
+
+#### websockets
+
+```ts
+router.get("/ws", (ctx) => {
+  if (!ctx.isUpgradable) ctx.throw(501);
+  const ws = ctx.upgrade();  // sets ctx.respond = false
+
+  ws.onopen = () => ws.send("Connected!");
+  ws.onmessage = (e) => {
+    console.log("received:", e.data);
+    ws.send(`echo: ${e.data}`);
+  };
+  ws.onclose = () => console.log("disconnected");
+});
+```
+
+#### SSE
+
+```ts
+router.get("/events", async (ctx) => {
+  const target = await ctx.sendEvents();
+  // ctx.respond is now false
+
+  let count = 0;
+  const id = setInterval(() => {
+    target.dispatchEvent(
+      new ServerSentEvent("update", { data: { count: count++ } })
+    );
+    if (count > 10) { target.close(); clearInterval(id); }
+  }, 1000);
+});
 ```
