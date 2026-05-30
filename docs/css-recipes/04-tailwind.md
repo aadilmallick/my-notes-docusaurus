@@ -79,18 +79,45 @@ Here are some useful background utilities:
 - `animate-bounce`: bouncing animation, infinite. 
 - `animate-ping` : pinging animation, infinite. 
 - `animate-pulse`: pulsing animation, infinite. 
+
+### Section 5: variants
+
+You have variants for dealing with pseudoselectors and states of elements, which are prefixes that apply the styles if in the variant state. The general syntax for the style is as so:
+
+```
+<variant>:<utility-class>
+```
+
+- `dark`: applies class if in dark mode
+- `hover`: applies class if element is being hovered over
+- `focus`: applies class if element is currently focused
+- `starting`: applies class using `@starting-style` directive for the element
+
+For more info about variants, go here:
+
+```embed
+title: "State Variants | Tailwind | Steve Kinney"
+image: "https://stevekinney.com/courses/tailwind/state-variants/open-graph.jpg?v=14bd06a4"
+description: "Apply styles conditionally using Tailwind's state variants for pseudo-classes, media queries, and attribute selectors"
+url: "https://stevekinney.com/courses/tailwind/state-variants"
+favicon: ""
+aspectRatio: "52.5"
+```
+
 ## Configuring Tailwind
 
 ### TailwindV4 config
 
 In tailwind v4, all configuration will be in the whatever css file you have the `@import "tailwindcss"` pragma declared, and then you configure using CSS layers that tailwind provides:
 
-- `@layer theme`: for modifying CSS variables, adding new colors, modifying tailwind colors, spacing, etc.
-- `@layer base`: for modifying the base tailwind CSS styles of HTML elements and typography
+- `@theme`: for modifying CSS variables, adding new colors, modifying tailwind colors, spacing, etc.
+- `@base`: for modifying the base tailwind CSS styles of HTML elements and typography
 - `@layer components`: reusable patterns
 - `@utility`: one-off helpers
 
 #### Theme config
+
+The `@theme` directive is used for setting global CSS variables that are available in tailwind and throughout your CSS code. In this directive, you should create or modify CSS variables, and those variables will be automatically defined across your app, available in tailwind intellisense, and able to used 
 
 ```css
 /* ✅ Define consistent tokens */
@@ -117,22 +144,83 @@ Now you can youse utilities like `bg-color-brand` or `spacing-section` in your t
 }
 ```
 
+Below is an example of how customized theme values are available as CSS variables (e.g., `--perspective-custom`) for use in your own CSS.
+
+```css
+@import 'tailwindcss';
+
+@theme {
+  --perspective-custom: 2000px;
+  --transform-origin-fancy: top left;
+}
+
+.custom-element {
+  transform-origin: var(--transform-origin-fancy);
+}
+```
+
+#### Custom variants
+
+In tailwind, you can customize what selectors certain variants like `dark:`, `hover:`, etc. apply to by using the `@custom-variant` directive.
+
+Here is an example where dark mode classes prefixed with `dark:` will only apply to elements that have the class `.dark` applied or are children of such an element:
+
+```css
+/* Override dark variant to use class */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: white;
+  --color-text: black;
+}
+
+.dark {
+  --color-background: #1a1a1a;
+  --color-text: white;
+}
+```
+
 ### Dark mode
 
 You can specify styling specific for dark mode using the `dark:` prefix for your tailwind classes.
 
-You can set your entire application to dark mode by first applying the `dark` class onto the `<html>` element, and then changing something in the tailwind config. 
+To add a dark-mode toggle, follow these steps for what to add in your CSS:
 
-1. Set `dark` class on the `<html>` element 
-```html
-<html class="dark"> 
-```
-2. Add the `darkMode` into the tailwind config and set it to `class`. 
-```
-darkMode: "class"
+1. Add a custom variant that targets the `dark:` variant and specified on which selectors dark mode styles apply to. In this case, when setting `data-theme="dark"` on the root `<html>` element, that enables dark mode.
+
+```css
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 ```
 
-You can toggle dark mode in your application by adding and removing the `dark` class from the html element. 
+2. Create dark theme overrides for the `[data-theme="dark"]` selector, changing the values of CSS variables you set in the `@theme`.
+
+```css title="index.css"
+@import 'tailwindcss';
+
+/* Define color scheme trigger */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  /* Semantic colors that change with theme */
+  --color-surface: white;
+  --color-surface-alt: #f5f5f5;
+  --color-text: #1a1a1a;
+  --color-text-muted: #666;
+
+  /* Brand colors stay consistent */
+  --color-brand: #5b21b6;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+}
+
+/* Dark theme overrides */
+[data-theme='dark'] {
+  --color-surface: #1a1a1a;
+  --color-surface-alt: #2a2a2a;
+  --color-text: #f5f5f5;
+  --color-text-muted: #999;
+}
+```
 
 ### Overriding and adding styles
 
@@ -234,4 +322,31 @@ You can then use it like so:
         @apply font-bold py-2 px-4 rounded bg-blue-500;
     }
 }
+```
+
+## Tips and tricks
+
+### Starting style
+
+The `@starting-style` CSS rule defines initial styles for first render:
+
+```css
+.modal {
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+@starting-style {
+  .modal {
+    opacity: 0; /* Starting state */
+  }
+}
+```
+
+We have the equivalent of this in tailwind using the `starting:` variant, which applies a `@starting-style` directive for whatever styles we suffix after the variant.
+
+```html
+<div class="translate-x-0 transition-transform duration-300 starting:translate-x-full">
+  Slides in from right
+</div>
 ```
