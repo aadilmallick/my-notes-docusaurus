@@ -102,6 +102,21 @@ In tailwind v4, all configuration will be in the whatever css file you have the 
 
 Now you can youse utilities like `bg-color-brand` or `spacing-section` in your tailwind code.
 
+```css
+@import 'tailwindcss';
+
+@theme {
+  /* Single colors */
+  --color-primary: #007bff;
+  --color-accent: oklch(71.7% 0.25 360);
+
+  /* Color scales */
+  --color-brand-50: oklch(0.97 0.01 250);
+  --color-brand-500: oklch(0.56 0.18 250);
+  --color-brand-900: oklch(0.28 0.09 250);
+}
+```
+
 ### Dark mode
 
 You can specify styling specific for dark mode using the `dark:` prefix for your tailwind classes.
