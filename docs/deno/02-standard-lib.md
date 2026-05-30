@@ -360,6 +360,48 @@ const config = await response.json();
 
 The `close()` function exits the main Deno process, stopping the file from running.
 
+## Deno cron
+
+Deno cron is an unstable API, so you need to add `"cron"` to the `"unstable"` key array in your `deno.json` config.
+
+### Basic
+
+You can register cron jobs using the `Deno.cron()` method, which follows this syntax:
+
+```ts
+Deno.cron(jobName, cronSyntax, cb)
+```
+
+Here are some examples:
+
+```ts
+Deno.cron("log-a-message", "* * * * *", () => {
+  console.log("This runs once a minute.");
+});
+
+Deno.cron("hourly-task", { hour: { every: 1 } }, () => {
+  console.log("This runs once an hour.");
+});
+```
+
+> [!IMPORTANT]
+> Cron jobs must be registered at the top level of a module, before any server starts. Definitions nested inside request handlers, conditionals, or callbacks will not be picked up.
+
+### Retrying failed jobs
+
+```ts
+Deno.cron(
+  "retry-example",
+  "* * * * *",
+  { backoffSchedule: [1000, 5000, 10000] },
+  () => {
+    throw new Error("Will be retried up to three times.");
+  },
+);
+
+```
+
+
 
 ## Deno Frontend Development
 
@@ -894,6 +936,27 @@ app.get("/websocket", (request) => {
 });
 ```
 
+```ts
+Deno.serve((req) => {
+  if (req.headers.get("upgrade") != "websocket") {
+    return new Response(null, { status: 426 });
+  }
+
+  const { socket, response } = Deno.upgradeWebSocket(req);
+  socket.addEventListener("open", () => {
+    console.log("a client connected!");
+  });
+
+  socket.addEventListener("message", (event) => {
+    if (event.data === "ping") {
+      socket.send("pong");
+    }
+  });
+
+  return response;
+});
+```
+
 
 
 ### JSX Server Side (Preact)
@@ -1364,7 +1427,173 @@ export class DenoReadableStreamManager {
 }
 ```
 
+### Deno helpers
 
+#### Delaying
+
+```ts
+import { delay } from "@std/async/delay";
+
+await delay(100); // waits for 100 milliseconds
+```
+
+#### Debouncing
+
+```ts
+import { debounce } from "@std/async/debounce";
+
+const log = debounce(
+  (event: Deno.FsEvent) =>
+    console.log("[%s] %s", event.kind, event.paths[0]),
+  200,
+);
+
+for await (const event of Deno.watchFs("./")) {
+  log(event);
+}
+```
+
+#### Retrying
+
+```ts
+import { retry } from "@std/async/retry";
+const req = async () => {
+ // some function that throws sometimes
+};
+
+// Below resolves to the first non-error result of `req`
+const retryPromise = await retry(req, {
+ multiplier: 2,
+ maxTimeout: 60000,
+ maxAttempts: 5,
+ minTimeout: 100,
+ jitter: 1,
+});
+```
+
+#### `pooledMap()`
+
+pooledMap transforms values from an (async) iterable into another async iterable. The transforms are done concurrently, with a max concurrency defined by the poolLimit.
+
+```ts
+pooledMap<T, R>(
+	poolLimit: number,
+	array: Iterable<T> | AsyncIterable<T>,
+	iteratorFn: (data: T) => Promise<R>
+): AsyncIterableIterator<R>
+```
+
+```ts
+import { pooledMap } from "@std/async/pool";
+import { assertEquals } from "@std/assert";
+
+const results = pooledMap(
+  2,
+  [1, 2, 3],
+  (i) => new Promise((r) => setTimeout(() => r(i), 1000)),
+);
+
+assertEquals(await Array.fromAsync(results), [1, 2, 3]);
+
+```
+
+### Deno cache
+
+The `@std/cache` library offers useful utilities for in-memory caching
+
+```bash
+deno add jsr:@std/cache
+```
+
+- `LruCache`: a class implementing a LRU cache
+
+```ts
+import { memoize, LruCache, type MemoizationCacheResult } from "@std/cache";
+import { assertEquals } from "@std/assert";
+
+const cache = new LruCache<string, MemoizationCacheResult<bigint>>(1000);
+
+// fibonacci function, which is very slow for n > ~30 if not memoized
+const fib = memoize((n: bigint): bigint => {
+  return n <= 2n ? 1n : fib(n - 1n) + fib(n - 2n);
+}, { cache });
+
+assertEquals(fib(100n), 354224848179261915075n);
+```
+
+###  Deno encoding
+
+```bash
+deno add jsr:@std/encoding
+```
+
+```ts
+import {
+  encodeHex,
+  encodeBase32,
+  encodeBase58,
+  encodeBase64,
+  encodeAscii85,
+  decodeHex,
+  decodeBase32,
+  decodeBase58,
+  decodeBase64,
+  decodeAscii85,
+} from "@std/encoding";
+import { assertEquals } from "@std/assert";
+
+// Many different encodings for different character sets
+assertEquals(encodeHex("Hello world!"), "48656c6c6f20776f726c6421");
+assertEquals(encodeBase32("Hello world!"), "JBSWY3DPEB3W64TMMQQQ====");
+assertEquals(encodeBase58("Hello world!"), "2NEpo7TZRhna7vSvL");
+assertEquals(encodeBase64("Hello world!"), "SGVsbG8gd29ybGQh");
+assertEquals(encodeAscii85("Hello world!"), "87cURD]j7BEbo80");
+
+// Decoding
+assertEquals(new TextDecoder().decode(decodeHex("48656c6c6f20776f726c6421")), "Hello world!");
+assertEquals(new TextDecoder().decode(decodeBase32("JBSWY3DPEB3W64TMMQQQ====")), "Hello world!");
+assertEquals(new TextDecoder().decode(decodeBase58("2NEpo7TZRhna7vSvL")), "Hello world!");
+assertEquals(new TextDecoder().decode(decodeBase64("SGVsbG8gd29ybGQh")), "Hello world!");
+assertEquals(new TextDecoder().decode(decodeAscii85("87cURD]j7BEbo80")), "Hello world!");
+
+```
+
+```ts
+import { encodeBase64, encodeBase64Url } from "@std/encoding";
+import { assertEquals } from "@std/assert";
+
+assertEquals(encodeBase64("ice creams"), "aWNlIGNyZWFtcw=="); // Not url-safe because of `=`
+assertEquals(encodeBase64Url("ice creams"), "aWNlIGNyZWFtcw"); // URL-safe!
+
+// Base64Url replaces + with - and / with _
+assertEquals(encodeBase64("subjects?"), "c3ViamVjdHM/"); // slash is not URL-safe
+assertEquals(encodeBase64Url("subjects?"), "c3ViamVjdHM_"); // _ is URL-safe
+
+```
+
+```ts
+import { encodeHex, encodeBase64 } from "@std/encoding";
+import { assertEquals } from "@std/assert";
+
+// Working with binary data
+const binaryData = new Uint8Array([0xDE, 0xAD, 0xBE, 0xEF]);
+assertEquals(encodeHex(binaryData), "deadbeef");
+assertEquals(encodeBase64(binaryData), "3q2+7w==");
+
+```
+
+### `@std/fmt`
+
+#### human readable bytes
+
+Use the `format(n)` function from the `@std/fmt/bytes` package
+
+```ts
+import { format } from "@std/fmt/bytes";
+import { red } from "@std/fmt/colors";
+
+console.log(red(format(1337))); // Prints "1.34 kB"
+```
 ## Storage in Deno
 
 ### LocalStorage + SessionStorage
