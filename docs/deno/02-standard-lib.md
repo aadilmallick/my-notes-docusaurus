@@ -2,6 +2,8 @@
 
 ## Working with files
 
+### Node
+
 This is a standard file implementation using Node
 
 ```ts
@@ -57,6 +59,8 @@ export class FileManager {
   }
 }
 ```
+
+### Deno fs
 
 But we can make an even better and easier implementation using methods from the `@std/file` deno standard library.
 
@@ -146,6 +150,161 @@ export class DenoFileManager {
 }
 ```
 
+### Deno path
+
+```ts
+import * as path from "@std/path";
+import { assertEquals } from "@std/assert";
+
+// Get components of a path
+if (Deno.build.os === "windows") {
+  assertEquals(path.basename("C:\\Users\\user\\file.txt"), "file.txt");
+  assertEquals(path.dirname("C:\\Users\\user\\file.txt"), "C:\\Users\\user");
+  assertEquals(path.extname("C:\\Users\\user\\file.txt"), ".txt");
+} else {
+  assertEquals(path.basename("/home/user/file.txt"), "file.txt");
+  assertEquals(path.dirname("/home/user/file.txt"), "/home/user");
+  assertEquals(path.extname("/home/user/file.txt"), ".txt");
+}
+
+// Join path segments
+if (Deno.build.os === "windows") {
+  assertEquals(path.join("C:\\", "Users", "docs", "file.txt"), "C:\\Users\\docs\\file.txt");
+} else {
+  assertEquals(path.join("/home", "user", "docs", "file.txt"), "/home/user/docs/file.txt");
+}
+
+// Normalize a path
+if (Deno.build.os === "windows") {
+  assertEquals(path.normalize("C:\\Users\\user\\..\\temp\\.\\file.txt"), "C:\\Users\\temp\\file.txt");
+} else {
+  assertEquals(path.normalize("/home/user/../temp/./file.txt"), "/home/temp/file.txt");
+}
+
+// Resolve absolute path
+if (Deno.build.os === "windows") {
+  const resolved = path.resolve("C:\\foo", "docs", "file.txt");
+  assertEquals(resolved, "C:\\foo\\docs\\file.txt");
+  assertEquals(path.isAbsolute(resolved), true);
+} else {
+  const resolved = path.resolve("/foo", "docs", "file.txt");
+  assertEquals(resolved, "/foo/docs/file.txt");
+  assertEquals(path.isAbsolute(resolved), true);
+}
+
+// Get relative path
+if (Deno.build.os === "windows") {
+  assertEquals(path.relative("C:\\Users", "C:\\Users\\docs\\file.txt"), "docs\\file.txt");
+  assertEquals(path.relative("C:\\Users", "D:\\Programs"), "D:\\Programs");
+} else {
+  assertEquals(path.relative("/home/user", "/home/user/docs/file.txt"), "docs/file.txt");
+  assertEquals(path.relative("/home/user", "/var/data"), "../../var/data");
+}
+
+```
+
+```ts
+import * as path from "@std/path";
+import { assertEquals } from "@std/assert";
+
+if (Deno.build.os === "windows") {
+  const parsedWindows = path.parse("C:\\Users\\user\\file.txt");
+  assertEquals(parsedWindows.root, "C:\\");
+  assertEquals(parsedWindows.dir, "C:\\Users\\user");
+  assertEquals(parsedWindows.base, "file.txt");
+  assertEquals(parsedWindows.ext, ".txt");
+  assertEquals(parsedWindows.name, "file");
+
+  // Format path from components (Windows)
+  assertEquals(
+    path.format({ dir: "C:\\Users\\user", base: "file.txt" }),
+    "C:\\Users\\user\\file.txt"
+  );
+} else {
+  const parsedPosix = path.parse("/home/user/file.txt");
+  assertEquals(parsedPosix.root, "/");
+  assertEquals(parsedPosix.dir, "/home/user");
+  assertEquals(parsedPosix.base, "file.txt");
+  assertEquals(parsedPosix.ext, ".txt");
+  assertEquals(parsedPosix.name, "file");
+
+  // Format path from components (POSIX)
+  assertEquals(
+    path.format({ dir: "/home/user", base: "file.txt" }),
+    "/home/user/file.txt"
+  );
+}
+
+```
+
+```ts
+import * as path from "@std/path";
+import { assertEquals } from "@std/assert";
+
+// Convert between file URLs and paths
+if (Deno.build.os === "windows") {
+  assertEquals(path.fromFileUrl("file:///C:/Users/user/file.txt"), "C:\\Users\\user\\file.txt");
+  assertEquals(path.toFileUrl("C:\\Users\\user\\file.txt").href, "file:///C:/Users/user/file.txt");
+} else {
+  assertEquals(path.fromFileUrl("file:///home/user/file.txt"), "/home/user/file.txt");
+  assertEquals(path.toFileUrl("/home/user/file.txt").href, "file:///home/user/file.txt");
+}
+
+```
+
+```ts
+import * as path from "@std/path";
+import { assertEquals } from "@std/assert";
+
+// Check if path is absolute
+if (Deno.build.os === "windows") {
+  assertEquals(path.isAbsolute("C:\\Users"), true);
+  assertEquals(path.isAbsolute("\\\\Server\\share"), true);
+  assertEquals(path.isAbsolute("C:relative\\path"), false);
+  assertEquals(path.isAbsolute("..\\relative\\path"), false);
+} else {
+  assertEquals(path.isAbsolute("/home/user"), true);
+  assertEquals(path.isAbsolute("./relative/path"), false);
+  assertEquals(path.isAbsolute("../relative/path"), false);
+}
+
+// Convert to namespaced path (Windows-specific)
+if (Deno.build.os === "windows") {
+  assertEquals(path.toNamespacedPath("C:\\Users\\file.txt"), "\\\\?\\C:\\Users\\file.txt");
+  assertEquals(path.toNamespacedPath("\\\\server\\share\\file.txt"), "\\\\?\\UNC\\server\\share\\file.txt");
+} else {
+  // On POSIX, toNamespacedPath returns the path unchanged
+  assertEquals(path.toNamespacedPath("/home/user/file.txt"), "/home/user/file.txt");
+}
+
+```
+
+```ts
+import * as path from "@std/path";
+import { assertEquals } from "@std/assert";
+
+// Check if a string is a glob pattern
+assertEquals(path.isGlob("*.txt"), true);
+
+// Convert glob pattern to RegExp
+const pattern = path.globToRegExp("*.txt");
+assertEquals(pattern.test("file.txt"), true);
+
+// Join multiple glob patterns
+if (Deno.build.os === "windows") {
+  assertEquals(path.joinGlobs(["src", "**\\*.ts"]), "src\\**\\*.ts");
+} else {
+  assertEquals(path.joinGlobs(["src", "**\/*.ts"]), "src/**\/*.ts");
+}
+
+// Normalize a glob pattern
+if (Deno.build.os === "windows") {
+  assertEquals(path.normalizeGlob("src\\..\\**\\*.ts"), "**\\*.ts");
+} else {
+  assertEquals(path.normalizeGlob("src/../**\/*.ts"), "**\/*.ts");
+}
+
+```
 
 ## Command line stuff
 
@@ -423,6 +582,120 @@ To setup JSX with Deno, specifically React JSX, set these options in the `deno.j
 ```
 
 #### SSR
+
+
+If you're using React instead of Preact, you can use React's own server rendering capabilities:
+
+
+```json title="deno.json"
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "imports": {
+    "react": "npm:react@^18.2.0",
+    "react-dom": "npm:react-dom@^18.2.0",
+    "react-dom/server": "npm:react-dom@^18.2.0/server"
+  }
+}
+```
+
+And in your server code:
+
+
+```tsx
+import { renderToString } from "react-dom/server";
+
+const App = () => {
+  return <h1>Hello from React</h1>;
+};
+
+Deno.serve(() => {
+  const html = `<!DOCTYPE html>${renderToString(<App />)}`;
+  return new Response(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+});
+```
+
+
+### Deno with Preact
+
+#### Precompile transform
+
+Deno ships with a [new JSX transform](https://deno.com/blog/v1.38#fastest-jsx-transform) that is optimized for server-side rendering. It can be up to **7-20x faster** than the other JSX transform options. The difference is that the precompile transform analyses your JSX statically and stores precompiled HTML strings if possible. That way a lot of time creating JSX objects can be avoided.
+
+To use the precompile transform, set the `jsx` option to `"precompile"`.
+
+
+```diff title="deno.json"
+  {
+    "compilerOptions": {
++     "jsx": "precompile",
+      "jsxImportSource": "preact"
+    },
+    "imports": {
+      "preact": "npm:preact"
+    }
+  }
+```
+
+To prevent JSX nodes representing HTML elements from being precompiled, you can add them to the `jsxPrecompileSkipElements` setting.
+
+
+```diff title="done.json"
+  {
+    "compilerOptions": {
+      "jsx": "precompile",
+      "jsxImportSource": "preact",
++     "jsxPrecompileSkipElements": ["a", "link"]
+    },
+    "imports": {
+      "preact": "npm:preact"
+    }
+  }
+```
+
+> [!NOTE]
+> The `precompile` transform works best with [Preact](https://preactjs.com/) or [Hono](https://hono.dev/). It is not supported in React.
+
+#### SSR
+
+For Preact applications, you can use the `preact-render-to-string` package:
+
+
+```json title="deno.json"
+{
+  "compilerOptions": {
+    "jsx": "precompile",
+    "jsxImportSource": "preact"
+  },
+  "imports": {
+    "preact": "npm:preact@^10.26.6",
+    "preact-render-to-string": "npm:preact-render-to-string@^6.5.13"
+  }
+}
+```
+
+Then in your server code:
+
+```tsx title="server.tsx"
+import { renderToString } from "preact-render-to-string";
+
+const App = () => {
+  return <h1>Hello world</h1>;
+};
+
+Deno.serve(() => {
+  const html = `<!DOCTYPE html>${renderToString(<App />)}`;
+  return new Response(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+});
+```
+
+This approach works well with the precompile transform, providing optimal performance for server-side rendering.
 
 
 ## Server-side
@@ -1521,6 +1794,48 @@ const fib = memoize((n: bigint): bigint => {
 assertEquals(fib(100n), 354224848179261915075n);
 ```
 
+### Deno tar
+
+```ts
+import { UntarStream } from "@std/tar/untar-stream";
+import { dirname, normalize } from "@std/path";
+
+for await (
+  const entry of (await Deno.open("./out.tar.gz"))
+    .readable
+    .pipeThrough(new DecompressionStream("gzip"))
+    .pipeThrough(new UntarStream())
+) {
+  const path = normalize(entry.path);
+  await Deno.mkdir(dirname(path), { recursive: true });
+  await entry.readable?.pipeTo((await Deno.create(path)).writable);
+}
+
+```
+
+### Deno yaml
+
+```ts
+import { parse, stringify } from "@std/yaml";
+import { assertEquals } from "@std/assert";
+
+const data = parse(`
+foo: bar
+baz:
+  - qux
+  - quux
+`);
+assertEquals(data, { foo: "bar", baz: [ "qux", "quux" ] });
+
+const yaml = stringify({ foo: "bar", baz: ["qux", "quux"] });
+assertEquals(yaml, `foo: bar
+baz:
+  - qux
+  - quux
+`);
+
+```
+
 ###  Deno encoding
 
 ```bash
@@ -1582,11 +1897,153 @@ assertEquals(encodeBase64(binaryData), "3q2+7w==");
 
 ```
 
+### Deno media types
+
+The `@std/media-types` library is used to translate from content type HTTP headers to file format extensions and vice-versa
+
+```bash
+deno add jsr:@std/media-types
+```
+
+
+#### 1. `contentType(typeOrExtension)`
+
+Resolves a full `Content-Type` header value from a given extension or media type. If the type is text-based, it automatically appends the appropriate default charset (like `; charset=UTF-8`).
+
+
+```ts
+import { contentType } from "@std/media-types";
+
+// Lookup by file extension (with or without the leading dot)
+console.log(contentType(".json")); // "application/json; charset=UTF-8"
+console.log(contentType("html"));   // "text/html; charset=UTF-8"
+
+// Lookup by generic media type to get the full header value
+console.log(contentType("text/plain")); // "text/plain; charset=UTF-8"
+
+// Returns undefined if the type or extension isn't recognized
+console.log(contentType(".unknown-extension")); // undefined
+```
+
+#### 2. `allExtensions(mediaType)`
+
+Returns all known file extensions associated with a specific media type. This is incredibly helpful when a single MIME type could map to multiple valid extensions.
+
+
+```ts
+import { allExtensions } from "@std/media-types";
+
+// Get extensions for standard formats
+console.log(allExtensions("application/json")); 
+// Output: ["json", "map"]
+
+console.log(allExtensions("text/markdown")); 
+// Output: ["md", "markdown", "mkd", "mkdn", "mdwn"]
+
+console.log(allExtensions("image/jpeg")); 
+// Output: ["jpeg", "jpg", "jpe"]
+```
+
+#### 3. `getCharset(mediaType)`
+
+Extracts or determines the default character set (charset) for a given media type string.
+
+
+```ts
+import { getCharset } from "@std/media-types";
+
+console.log(getCharset("text/plain"));                 // "UTF-8"
+console.log(getCharset("application/json"));           // "UTF-8"
+console.log(getCharset("text/html; charset=iso-8859-1")); // "ISO-8859-1"
+```
+
+#### 4. `extension(mediaType)`
+
+If you only need the **most common or preferred** file extension for a given media type, use `extension()`.
+
+
+```ts
+import { extension } from "@std/media-types";
+
+console.log(extension("text/markdown")); // "md"
+console.log(extension("image/jpeg"));     // "jpeg"
+```
+
+#### 5. `parseMediaType(mediaTypeString)`
+
+Parses a full media type header string (like a `Content-Type` header) into its base type and its parameters.
+
+
+```ts
+import { parseMediaType } from "@std/media-types";
+
+const header = "text/html; charset=utf-8; boundary=something";
+const [type, params] = parseMediaType(header);
+
+console.log(type);   // "text/html"
+console.log(params); // { charset: "utf-8", boundary: "something" }
+```
+
+#### 6. `formatMediaType(type, params)`
+
+The inverse of `parseMediaType`. This function takes a base media type and an object of parameters, serializing them into a single valid format header string.
+
+
+```ts
+import { formatMediaType } from "@std/media-types";
+
+const mediaTypeString = formatMediaType("multipart/form-data", {
+  boundary: "----WebKitFormBoundary12345"
+});
+
+console.log(mediaTypeString); 
+// Output: "multipart/form-data; boundary=----WebKitFormBoundary12345"
+```
+
+#### Real-World Example: Building a Basic File Server
+
+Below is an operational example of how you can use `@std/media-types` alongside standard web APIs to safely serve local files with accurate `Content-Type` headers.
+
+
+```ts
+import { contentType } from "@std/media-types";
+import { extname } from "@std/path"; // Optional helper for extension extraction
+
+async function handleRequest(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  let filepath = "." + url.pathname;
+
+  // Default to index.html if pointing to a directory
+  if (filepath.endsWith("/")) {
+    filepath += "index.html";
+  }
+
+  try {
+    const fileBytes = await Deno.readFile(filepath);
+    
+    // 1. Get the extension (e.g., ".png", ".html")
+    const ext = extname(filepath); 
+    
+    // 2. Resolve the full content type header using @std/media-types
+    const mimeType = contentType(ext) || "application/octet-stream";
+
+    return new Response(fileBytes, {
+      status: 200,
+      headers: { "content-type": mimeType },
+    });
+  } catch {
+    return new Response("404 Not Found", { status: 404 });
+  }
+}
+
+// Start a Deno server
+Deno.serve(handleRequest);
+```
 ### `@std/fmt`
 
 #### human readable bytes
 
-Use the `format(n)` function from the `@std/fmt/bytes` package
+Use the `format(num)` function from the `@std/fmt/bytes` package to format a file size number into a human-readable file size
 
 ```ts
 import { format } from "@std/fmt/bytes";
@@ -1594,6 +2051,39 @@ import { red } from "@std/fmt/colors";
 
 console.log(red(format(1337))); // Prints "1.34 kB"
 ```
+
+#### colors
+
+You can print out colors to the console using the `@std/fmt/colors` package
+
+
+```ts
+import { format } from "@std/fmt/bytes";
+import { red } from "@std/fmt/colors";
+
+console.log(red(format(1337))); // Prints "1.34 kB"
+```
+
+#### human readable duration
+
+Use the `format(num)` function from the `@std/fmt/duration` package to format a number in milliseconds to a human-readable duration
+
+
+```ts
+import { format } from "@std/fmt/duration";
+import { assertEquals } from "@std/assert";
+
+assertEquals(format(99674, { style: "digital" }), "00:00:01:39:674:000:000");
+
+assertEquals(format(99674), "0d 0h 1m 39s 674ms 0µs 0ns");
+
+assertEquals(format(99674, { ignoreZero: true }), "1m 39s 674ms");
+
+assertEquals(format(99674, { style: "full", ignoreZero: true }), "1 minute, 39 seconds, 674 milliseconds");
+
+```
+
+
 ## Storage in Deno
 
 ### LocalStorage + SessionStorage
