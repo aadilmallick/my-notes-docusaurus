@@ -14,7 +14,7 @@ export function cn(...inputs: ClassValue[]) {
 
 ## Crash course: Essentials
 
-**Section 1: Responsiveness**
+### **Section 1: Responsiveness**
 
 When using breakpoints, the style applies to the specified breakpoint and all sizes above. Behind the scenes, breakpoints just execute media queries. 
 
@@ -31,7 +31,7 @@ Tailwind is **mobile-first**, meaning that whatever styles you apply are applied
 <button class="text-sm md:text-lg">
 ```
 
-**Section 2: gradients**
+### **Section 2: gradients**
 
 There are three classes concerned with gradients: 
 1. `bg-gradient-to-[direction]` handles the direction of the gradient 
@@ -42,7 +42,7 @@ There are three classes concerned with gradients:
 <div class="h-12 w-24 bg-gradient-to-tr from-cyan-600 to-cyan-100"></div>
 ```
 
-**Section 3: Adding background images**
+### **Section 3: Adding background images**
 
 Although there are no utility classes for background images, you can create a custom class in the tailwind config for a background image. 
 
@@ -72,7 +72,7 @@ Here are some useful background utilities:
 - `bg-center`: background-position of center 
 - `bg-no-repeat`: background-repeat of no-repeat. 
 
-**Section 4: animation utility classes** 
+### **Section 4: animation utility classes** 
 
 - `animate-none` : no animation 
 - `animate-spin` : rotation animation, in an infinite circle
@@ -80,6 +80,27 @@ Here are some useful background utilities:
 - `animate-ping` : pinging animation, infinite. 
 - `animate-pulse`: pulsing animation, infinite. 
 ## Configuring Tailwind
+
+### TailwindV4 config
+
+In tailwind v4, all configuration will be in the whatever css file you have the `@import "tailwindcss"` pragma declared, and then you configure using CSS layers that tailwind provides:
+
+- `@layer theme`: for modifying CSS variables, adding new colors, modifying tailwind colors, spacing, etc.
+- `@layer base`: for modifying the base tailwind CSS styles of HTML elements and typography
+- `@layer components`: reusable patterns
+- `@utility`: one-off helpers
+
+#### Theme config
+
+```css
+/* ✅ Define consistent tokens */
+@theme {
+  --color-brand: #ff6b35;
+  --spacing-section: 123px;
+}
+```
+
+Now you can youse utilities like `bg-color-brand` or `spacing-section` in your tailwind code.
 
 ### Dark mode
 
