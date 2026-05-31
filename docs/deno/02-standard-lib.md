@@ -34,6 +34,17 @@ With such import map loaded...
 console.log(import.meta.resolve("fresh"));
 ```
 
+### Fetching files by file URL
+
+Deno supports fetching `file:` URLs. This makes it easier to write code that uses the same code path on a server as local, as well as easier to author code that works both with the Deno CLI and Deno Deploy.
+
+To be able to fetch a resource, relative to the current module, which would work if the module is local or remote, you should to use `import.meta.url` as the base. For example:
+
+```js
+const response = await fetch(new URL("./config.json", import.meta.url));
+const config = await response.json();
+```
+
 ## Working with files
 
 ### Node
@@ -641,6 +652,10 @@ const config = await response.json();
 The `close()` function exits the main Deno process, stopping the file from running.
 
 ### Workers
+
+Workers can be used to run code on multiple threads. Each instance of `Worker` is run on a separate thread, dedicated only to that worker.
+
+Currently Deno supports only `module` type workers; thus it's essential to pass the `type: "module"` option when creating a new worker.
 
 Web workers can also be used with the same API in deno:
 
@@ -2360,6 +2375,12 @@ Deno adapted web APIs like local storage and session storage from the web to the
 
 - **local storage**: Persistent data storage that lasts across reruns of the application. Ideal for preferences or user data.
 - **session storage**: Data storage that only lasts as long as the application is active. Ideal for storage session-related items like user session Ids, carts, etc.
+
+In a browser, `localStorage` persists data uniquely per origin (effectively the protocol plus hostname plus port). As of Deno 1.16, Deno has a set of rules to determine what is a unique storage location:
+
+- When using the `--location` flag, the origin for the location is used to uniquely store the data. That means a location of `http://example.com/a.ts` and `http://example.com/b.ts` and `http://example.com:80/` would all share the same storage, but `https://example.com/` would be different.
+- If there is no location specifier, but there is a `--config` configuration file specified, the absolute path to that configuration file is used. That means `deno run --config deno.jsonc a.ts` and `deno run --config deno.jsonc b.ts` would share the same storage, but `deno run --config tsconfig.json a.ts` would be different.
+- If there is no configuration or location specifier, Deno uses the absolute path to the main module to determine what storage is shared. The Deno REPL generates a "synthetic" main module that is based off the current working directory where `deno` is started from. This means that multiple invocations of the REPL from the same path will share the persisted `localStorage` data.
 
 ### Deno KV
 

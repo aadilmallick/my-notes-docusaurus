@@ -83,6 +83,64 @@ Here is an example deno deploy command that works for fullstack deno projects
 }
 ```
 
+### `deno.json` deploy config
+
+All deno deploy config is stored under the `"deploy"` key in the `deno.json`
+
+- `deploy.framework` (required unless `deploy.runtime` is set): The framework preset to use, such as `nextjs` or `fresh`. Setting this option automatically configures defaults for the framework. Available presets are listed in the [framework integrations docs](https://docs.deno.com/deploy/reference/frameworks/).
+- `deploy.install` (optional): Shell command to install dependencies.
+- `deploy.build` (optional): Shell command to build the project.
+- `deploy.predeploy` (optional): Shell command to run after the build is complete but before deployment, typically for tasks like database migrations.
+- `deploy.runtime` (required unless `deploy.framework` is set): Configuration for how the app serves traffic. The app can either be static or dynamic, as defined below:
+    - For dynamic apps:
+        - `deploy.runtime.type`: Must be set to `"dynamic"`, or omitted (dynamic is the default).
+        - `deploy.runtime.entrypoint`: The JavaScript or TypeScript file to execute.
+        - `deploy.runtime.args` (optional): Command-line arguments to pass to the application.
+        - `deploy.runtime.cwd` (optional): The working directory for the application at runtime.
+        - `deploy.runtime.memory_limit` (optional): The maximum amount of memory the application can use at runtime. Defaults to 768 MB, can be increased to 4 GB on the Pro plan.
+    - For static apps:
+        - `deploy.runtime.type`: Must be set to `"static"`.
+        - `deploy.runtime.cwd`: Folder containing static assets (e.g., `dist`, `.output`).
+        - `deploy.runtime.spa` (optional): If `true`, serves `index.html` for paths that don't match static files instead of returning 404 errors.
+    - For apps using a framework preset:
+        - `deploy.runtime.memory_limit` (optional): The maximum amount of memory the application can use at runtime. Defaults to 768 MB, can be increased to 4 GB on the Pro plan.
+
+#### basic server config example
+
+```json
+{
+  "deploy": {
+    "install": "npm install",
+    "build": "npm run build",
+    "predeploy": "deno run --allow-net --allow-env migrate.ts",
+    "runtime": {
+      "type": "dynamic",
+      "entrypoint": "./app/server.js",
+      "args": ["--port", "8080"],
+      "cwd": "./app"
+    }
+  }
+}
+
+```
+
+#### basic static app config example
+
+```json
+{
+  "deploy": {
+    "install": "npm install",
+    "build": "npm run build",
+    "runtime": {
+      "type": "static",
+      "cwd": "./public",
+      "spa": true
+    }
+  }
+}
+
+```
+
 ### Seeing logs
 
 You can see the logs of your deployment in the command line by running this command:
@@ -159,3 +217,20 @@ Here are the steps to enable tunneling for your app:
 
 1. Deploy your app to deno deploy at least once
 2. Run `deno run --tunnel dev` to run tunneling while in dev mode
+
+### github actions
+
+```yaml
+on:
+  repository_dispatch:
+    types: [deno_deploy.build.routed] # Listen for successful builds
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test the preview_url
+        run: |
+          echo "The Deno Deploy app is available at ${{ github.event.client_payload.revision.preview_url }}"
+          curl -I ${{ github.event.client_payload.revision.preview_url }}
+```
