@@ -24,6 +24,208 @@ Here are additional options you can pass in:
 
 - `--ssh`: connects the sandbox immediately with ssh
 
+#### copying files into a sandbox
+
+For development work, you'll often want to copy your project files into the sandbox. The `--copy` option uploads files to the `/app` directory inside the sandbox:
+
+
+```bash
+deno sandbox create --copy ./my-project
+```
+
+You can copy multiple directories during creation:
+
+
+```bash
+deno sandbox create --copy ./src --copy ./config
+```
+
+
+#### Specifying sandbox timeout and memory limit
+
+If you need the sandbox to run longer than a single session, specify a timeout with `--timeout`:
+
+
+```bash
+deno sandbox create --timeout 2m
+```
+
+You can also create a sandbox with a custom memory limit:
+
+
+```bash
+deno sandbox create --memory 2gib
+```
+
+#### sandbox HTTP
+
+To expose HTTP ports for web applications:
+```bash
+deno sandbox create --expose-http 3000
+```
+
+#### sandbox volumes
+
+You can mount persistent volumes to your sandbox using the `--volume` flag:
+
+```bash
+deno sandbox create --volume my-volume:/data
+```
+
+#### running commands in a sandbox
+
+To create a sandbox and run a command immediately:
+
+
+```bash
+deno sandbox create ls /
+```
+
+This is especially useful for building and testing projects. You can copy files and run your build process in one command:
+
+
+```bash
+deno sandbox create --copy ./app --cwd /app "npm i && npm start"
+```
+
+For web applications, you can expose ports to access running services:
+
+
+```bash
+deno sandbox create --expose-http 3000 --copy ./web-app --cwd /app "npm i && npm run dev"
+```
+
+Complex workflows can be expressed as quoted command chains:
+
+```bash
+deno sandbox create --copy ./app --cwd /app "npm install && npm test && npm run build"
+```
+
+### Listing sandboxes
+
+Use `deno sandbox list` (or `deno sandbox ls`) to see all sandboxes in your organization
+
+### Running commands in a sandbox
+
+The `deno sandbox exec` command lets you run individual commands in any running sandbox without opening an interactive session. This is perfect for automation, CI/CD pipelines, or quick one-off tasks:
+
+
+```bash
+deno sandbox exec sbx_ord_abc123def456 ls -la
+```
+
+Most of the time, you'll want to work in the `/app` directory where your copied files live. Use `--cwd` to set the working directory:
+
+
+```bash
+deno sandbox exec sbx_ord_abc123def456 --cwd /app npm install
+```
+
+For scripting or automation, use `--quiet` to suppress command output:
+
+
+```bash
+deno sandbox exec sbx_ord_abc123def456 --quiet --cwd /app npm test
+```
+
+You can also run complex command chains by quoting the entire command:
+
+
+```bash
+deno sandbox exec sbx_ord_abc123def456 --cwd /app "npm install && npm test"
+```
+
+The exec command works naturally with Unix pipes and standard input/output. You can pipe the output of sandbox commands to local tools:
+
+
+```bash
+deno sandbox exec sbx_ord_abc123def456 'ls -lh /' | wc -l
+```
+
+Or pipe local data into sandbox processes for processing:
+
+```bash
+cat large-dataset.csv | deno sandbox exec sbx_ord_abc123def456 --cwd /app "deno run -A main.ts"
+```
+
+This makes it easy to integrate sandbox processing into larger Unix workflows and data pipelines.
+
+### File transfer
+
+While you can copy files during Deno Sandbox creation, you might need to update or retrieve files later. The `deno sandbox copy` command (also available as `deno sandbox cp`) transfers files in any direction: from your local machine to a Deno Sandbox, from a Deno Sandbox back to your machine, or even between different sandboxes.
+
+Copy files from your local machine to a sandbox:
+
+```bash
+deno sandbox copy ./app.js sbx_ord_abc123def456:/app/
+```
+
+Retrieve files from a sandbox to your local machine:
+
+```bash
+deno sandbox copy sbx_ord_abc123def456:/app/results.json ./output/
+```
+
+Copy files between different sandboxes:
+
+```bash
+deno sandbox copy sbx_ord_abc123def456:/app/data.csv sbx_ord_xyz789uvw012:/app/input/
+```
+
+You can use glob patterns to copy multiple files from Deno Sandbox:
+
+```bash
+deno sandbox copy sbx_ord_abc123def456:/app/*.json ./config/
+deno sandbox copy sbx_ord_abc123def456:/app/logs/*.log ./logs/
+```
+
+You can copy multiple files and directories at once:
+
+```bash
+deno sandbox copy ./src/ ./package.json sbx_ord_abc123def456:/app/
+```
+
+The target path can be customized to organize files within the sandbox:
+
+```bash
+deno sandbox copy ./frontend sbx_ord_abc123def456:/app/web/
+```
+
+
+## Deploying sandboxes [Jump to heading#](https://docs.deno.com/sandbox/cli/#deploying-sandboxes)
+
+You can deploy a running sandbox to a Deno Deploy app using the `deno sandbox deploy` command:
+
+>_
+
+```bash
+deno sandbox deploy sbx_ord_abc123def456 my-app
+```
+
+By default, this deploys to a preview deployment. To deploy directly to production:
+
+>_
+
+```bash
+deno sandbox deploy --prod sbx_ord_abc123def456 my-app
+```
+
+You can specify a custom working directory and entrypoint:
+
+>_
+
+```bash
+deno sandbox deploy --cwd /app --entrypoint main.ts sbx_ord_abc123def456 my-app
+```
+
+To pass arguments to the entrypoint script:
+
+>_
+
+```bash
+deno sandbox deploy --args --port 8080 sbx_ord_abc123def456 my-app
+```
+
 ## SDK
 
 
@@ -65,6 +267,7 @@ You create a sandbox using the async `Sandbox.create()` method, which optionally
 - `memoryMb`: Amount of memory allocated to the sandbox.
 - `timeout`: Timeout of the sandbox.
 - `labels`: Arbitrary key/value tags to help identify and manage sandboxes
+- `env`: key-value map of env vars to their values
 
 
 ```ts
@@ -76,7 +279,14 @@ await Sandbox.create({
       value: process.env.OPENAI_API_KEY,
     },
   },
+  env: {
+    NODE_ENV: "development",
+    FEATURE_FLAG: "agents",
+  },
 });
+```
+
+```ts
 ```
 
 #### connecting to existing sandboxes
@@ -92,6 +302,20 @@ await using sandbox = Sandbox.connect({
 ```
 
 You can then pass in the same security properties as you did to `Sandbox.create()`.
+
+
+#### reconnecting to a sandbox
+
+- `sandbox.close()`: async method that closes the sandbox but leaves the VM running.
+
+```ts
+const sandbox = await Sandbox.create({ timeout: "10m" });
+const id = sandbox.id;
+await sandbox.close(); // disconnect but leave VM running
+
+// ...later...
+const reconnected = await Sandbox.connect({ id });
+```
 
 ### sandbox properties
 
