@@ -500,3 +500,75 @@ router.get("/events", async (ctx) => {
   }, 1000);
 });
 ```
+
+## Fresh
+
+### Basics
+
+Initialize a new fresh app by running this command:
+
+```bash
+deno run -Ar jsr:@fresh/init
+```
+
+#### project structure
+
+![](https://i.imgur.com/bblUWko.jpeg)
+![](https://i.imgur.com/Nx3vPHr.jpeg)
+
+Here are the different important folders:
+
+- `components`: Server react components
+- `routes`: file-based routing
+- `static`: contains static assets that are publicly accessible
+- `islands`: island-architecture react-components that hydrate javascript after render
+
+### Islands
+
+#### Basic Island
+
+here is an example of a basic island component that uses preact hooks, so it needs to be a client component and thus an island:
+
+```tsx title="islands/Countdown.tsx"
+import { useSignal } from "@preact/signals";
+import { useEffect } from "preact/hooks";
+
+export function Countdown() {
+  const count = useSignal(10);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (count.value <= 0) {
+        clearInterval(timer);
+      }
+
+      count.value -= 1;
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  if (count.value <= 0) {
+    return <p>Countdown: 🎉</p>;
+  }
+
+  return <p>Countdown: {count}</p>;
+}
+```
+
+You can then render the island client component in a SSR route:
+
+```tsx title="routes/about.tsx"
+import { define } from "@/utils.ts";
+import { Countdown } from "@/islands/Countdown.tsx";
+
+export default define.page(() => {
+  return (
+    <main>
+      <h1>About</h1>
+      <p>This is the about page.</p>
+      <Countdown />
+    </main>
+  );
+});
+```
