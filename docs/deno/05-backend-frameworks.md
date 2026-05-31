@@ -523,7 +523,211 @@ Here are the different important folders:
 - `static`: contains static assets that are publicly accessible
 - `islands`: island-architecture react-components that hydrate javascript after render
 
+### File-based routing
+
+| File                           | URL                                        |
+| ------------------------------ | ------------------------------------------ |
+| `routes/index.tsx`             | `/`                                        |
+| `routes/about.tsx`             | `/about`                                   |
+| `routes/blog/index.tsx`        | `/blog`                                    |
+| `routes/blog/[slug].tsx`       | `/blog/:slug` (dynamic)                    |
+| `routes/blog/[...path].tsx`    | `/blog/*` (catch-all)                      |
+| `routes/(marketing)/about.tsx` | `/about` (route group; folder hidden)      |
+| `routes/api/joke.ts`           | `/api/joke` (API route, no default export) |
+Here are the rules for pages:
+
+1. **must export default component**: The component for a page must be exported default.
+#### Dynamic routes
+
+For a dynamic route page, the page component accepts a `props` parameter of type `PageProps`, and the dynamic route params are on the `props.params` record.
+
+```tsx title="routes/greet/[name].tsx"
+// routes/greet/[name].tsx
+import { PageProps } from "$fresh/server.ts";
+
+export default function Greet(props: PageProps) {
+  return <h1>Hello {props.params.name}!</h1>;
+}
+```
+
+#### Dynamic catch-all routes
+
+```tsx
+// routes/files/[...path].tsx
+import { PageProps } from "$fresh/server.ts";
+
+export default function Files({ params }: PageProps) {
+  // /files/a/b/c → params.path === "a/b/c"
+  return <pre>{params.path}</pre>;
+}
+```
+
+#### Layouts
+
+
+At the root level, you have the root layout at `routes/_app.tsx`, which wraps every single page
+
+```tsx title="routes/_app.tsx"
+// routes/_app.tsx
+import { PageProps } from "$fresh/server.ts";
+
+export default function App({ Component }: PageProps) {
+  return (
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>My Fresh App</title>
+        <link rel="stylesheet" href="/styles.css" />
+      </head>
+      <body>
+      {/* render <Component /> as children */}
+        <Component />
+      </body>
+    </html>
+  );
+}
+```
+
+You can have nested layouts for a route using the `_layout.tsx` file:
+
+A `_layout.tsx` file applies to every route in its directory (and below). For example, `routes/dashboard/_layout.tsx` wraps all `/dashboard/*` routes:
+
+
+```tsx title="routes/dashboard/_layout.tsx"
+// routes/dashboard/_layout.tsx
+import { PageProps } from "$fresh/server.ts";
+
+export default function DashboardLayout({ Component }: PageProps) {
+  return (
+    <div class="dashboard">
+      <nav><a href="/dashboard">Home</a> · <a href="/dashboard/settings">Settings</a></nav>
+      <Component />
+    </div>
+  );
+}
+```
+
+#### error pages
+
+- `routes/_404.tsx` — custom not-found page.
+- `routes/_500.tsx` — custom server-error page; receives `props.error`.
+
+```tsx
+// routes/_404.tsx
+import { UnknownPageProps } from "$fresh/server.ts";
+
+export default function NotFound({ url }: UnknownPageProps) {
+  return (
+    <main>
+      <h1>404 — {url.pathname} not found</h1>
+      <a href="/">Back home</a>
+    </main>
+  );
+}
+```
+
+### static content
+
+Anything in `static/` is served from the URL root:
+
+```
+static/logo.svg  →  https://yoursite.com/logo.svg
+```
+
+Use the `asset()` helper to get a content-hashed URL with long cache headers:
+
+```tsx
+import { asset } from "$fresh/runtime.ts";
+
+<img src={asset("/logo.svg")} alt="logo" />;
+```
+
+### metadata
+
+Use the `<Head>` component to inject into `<head>` from a deeply nested page:
+
+
+```tsx
+import { Head } from "$fresh/runtime.ts";
+
+export default function AboutPage() {
+  return (
+    <>
+      <Head>
+        <title>About — My Fresh App</title>
+        <meta name="description" content="About this site" />
+      </Head>
+      <h1>About</h1>
+    </>
+  );
+}
+```
+
 ### Islands
+
+What happens at request time:
+
+1. Fresh server-renders the page, including `<Counter />`, to HTML.
+2. It injects a small `<script>` that loads **only the JS for `Counter`** plus the Preact runtime.
+3. The browser hydrates the counter; the surrounding HTML is never touched.
+
+**Rules and gotchas**
+
+1. **Props must be JSON-serializable.** When rendering an island-component inside a server component, props cannot contain functions, class instances, or DOM nodes. Fresh extended the serializer to handle `Signal`, `Date`, `Map`, `Set`, `BigInt`, and `RegExp`.
+2. **`children` passed from a route is server-rendered HTML.** You can use this as a "slot":
+3. **Islands can nest.** A child island inside a parent island re-uses the parent's hydration tree.
+4. **`IS_BROWSER` guard.** Import `IS_BROWSER` from `$fresh/runtime.ts` if you need to skip server-side execution (e.g., touching `window`).
+
+#### Preact basics
+
+Fresh uses **Preact**, a small (~3 kB gzipped) React-compatible library. If you know React, you already know Preact. The only differences you're likely to hit:
+
+- Use `class` instead of `className` (though `className` also works).
+- Hooks come from `preact/hooks` (`useState`, `useEffect`, `useRef`, …).
+- The default state primitive in Fresh is **Preact Signals** (`@preact/signals`), not `useState`.
+
+**example 1: server-side preact component**
+
+```tsx
+// components/Button.tsx
+import { ComponentChildren } from "preact";
+
+interface Props {
+  children: ComponentChildren;
+  onClick?: () => void;
+  variant?: "primary" | "ghost";
+}
+
+export function Button({ children, onClick, variant = "primary" }: Props) {
+  const cls = variant === "primary" ? "btn-primary" : "btn-ghost";
+  return <button class={cls} onClick={onClick}>{children}</button>;
+}
+```
+
+> [!NOTE]
+> A component in `components/` cannot have `onClick` work in the browser unless it's used **inside an island**. From a route, the `onClick` handler is stripped — Fresh ships no JS for non-island components.
+
+**example 2: signals**
+
+```tsx
+import { useSignal, useComputed } from "@preact/signals";
+
+export default function Cart() {
+  const items = useSignal<number[]>([]);
+  const total = useComputed(() => items.value.reduce((a, b) => a + b, 0));
+
+  return (
+    <div>
+      <button onClick={() => items.value = [...items.value, 10]}>Add $10</button>
+      <p>Total: ${total}</p>
+    </div>
+  );
+}
+```
+
+> [!NOTE]
+> Why signals over `useState`? They survive serialization between server and client (Fresh hydrates a `Signal` on the client with the same value the server computed), and they avoid React's re-render-the-whole-component model.
 
 #### Basic Island
 
@@ -571,4 +775,142 @@ export default define.page(() => {
     </main>
   );
 });
+```
+
+#### Slot pattern
+
+### Fetching data server side
+
+#### Fetching data before rendering a route
+
+A route can export a `handler` to run server-side code before rendering. Handlers are objects keyed by HTTP method:
+
+```tsx
+// routes/projects/[id].tsx
+import { Handlers, PageProps } from "$fresh/server.ts";
+
+interface Project { id: string; name: string; stars: number }
+
+export const handler: Handlers<Project | null> = {
+  // on a GET request to the /projects/:id route, execute this function
+  async GET(_req, ctx) {
+    const resp = await fetch(`https://api.example.com/projects/${ctx.params.id}`);
+    if (resp.status === 404) return ctx.renderNotFound();
+    const project: Project = await resp.json();
+    
+    // render the route, passing along the data as props
+    return ctx.render(project);
+  },
+};
+
+export default function ProjectPage({ data }: PageProps<Project | null>) {
+  if (!data) return <h1>Project not found</h1>;
+  return (
+    <article>
+      <h1>{data.name}</h1>
+      <p>⭐ {data.stars}</p>
+    </article>
+  );
+}
+```
+
+
+- `ctx.render(data)` renders the route's default export, passing `data` via `PageProps.data`.
+- `ctx.renderNotFound()` short-circuits to the `_404.tsx` page.
+- All `fetch` happens on the server during the request — no client-side data fetching boilerplate, no loading spinners.
+- Data must be JSON-serializable if any island consumes it.
+
+The second argument to a handler is the context `ctx` of type `FreshContext`:
+
+```ts
+interface FreshContext<State = unknown, Data = unknown> {
+  params: Record<string, string>;
+  url: URL;
+  route: string;
+  state: State;
+  render: (data?: Data) => Response | Promise<Response>;
+  renderNotFound: () => Response | Promise<Response>;
+  remoteAddr: { hostname: string; port: number; transport: string };
+  next: () => Promise<Response>; // middleware only
+  destination: "route" | "static" | "internal" | "notFound";
+}
+```
+
+#### Typesafe route
+
+For tighter type inference, wrap your route page in a `defineRoute()` HOC, which gives you access to the request and context for SSR.
+
+```tsx
+import { defineRoute } from "$fresh/server.ts";
+
+export default defineRoute(async (_req, ctx) => {
+  const project = await loadProject(ctx.params.id);
+  return <h1>{project.name}</h1>;
+});
+```
+### API routes
+
+API routes are just pages in the `routes` folder except you don't export a react component. Just export handlers.
+
+Don't export a default component if you just want a JSON endpoint:
+
+```ts
+// routes/api/joke.ts
+import { Handlers } from "$fresh/server.ts";
+
+const JOKES = [
+  "Why did the chicken cross the road? Because of the road.",
+  "Why do programmers prefer dark mode? Because light attracts bugs.",
+];
+
+export const handler: Handlers = {
+  GET(_req) {
+    const joke = JOKES[Math.floor(Math.random() * JOKES.length)];
+    return new Response(joke, { headers: { "content-type": "text/plain" } });
+  },
+};
+```
+
+#### Basic API routes
+
+#### Middleware
+
+A `_middleware.ts` file applies to every route at its level and below. Use it for auth, logging, header manipulation, and populating `ctx.state`:
+
+
+```ts
+// routes/_middleware.ts
+import { FreshContext } from "$fresh/server.ts";
+
+interface State { user?: { id: string; name: string } }
+
+export async function handler(req: Request, ctx: FreshContext<State>) {
+  const token = req.headers.get("authorization");
+  if (token) ctx.state.user = await lookupUser(token);
+
+  const resp = await ctx.next();
+  resp.headers.set("x-served-by", "fresh");
+  return resp;
+}
+```
+
+Downstream routes can read `ctx.state.user`:
+
+
+```tsx
+import { Handlers } from "$fresh/server.ts";
+
+export const handler: Handlers<unknown, { user?: { name: string } }> = {
+  GET(_req, ctx) {
+    if (!ctx.state.user) return new Response("Unauthorized", { status: 401 });
+    return ctx.render();
+  },
+};
+```
+
+You can also export an array to chain multiple middleware:
+
+
+```ts
+export const handler = [authMiddleware, loggingMiddleware];
 ```
