@@ -640,6 +640,58 @@ const config = await response.json();
 
 The `close()` function exits the main Deno process, stopping the file from running.
 
+### Workers
+
+Web workers can also be used with the same API in deno:
+
+```ts title="main.ts"
+// Creating a basic worker (main.ts)
+const worker = new Worker(new URL("./worker.ts", import.meta.url).href, {
+  type: "module"
+});
+
+// Send data to the worker
+worker.postMessage({ command: "start", data: [1, 2, 3, 4] });
+
+// Receive messages from the worker
+worker.onmessage = (e) => {
+  console.log("Result from worker:", e.data);
+  worker.terminate(); // Stop the worker when done
+};
+
+// Handle worker errors
+worker.onerror = (e) => {
+  console.error("Worker error:", e.message);
+};
+
+```
+
+And in the worker file:
+
+```ts
+// Worker file (worker.ts)
+// Worker context: self refers to the worker's global scope
+self.onmessage = (e) => {
+  if (e.data.command === "start") {
+    // Perform calculation with the data
+    const result = e.data.data.reduce((sum, num) => sum + num, 0);
+    // Send result back to main thread
+    self.postMessage(result);
+  }
+  if (e.data.command === "close") {
+	  // close worker
+	  self.close()
+  }
+  if (e.data.command === "read_file") {
+	  const { filename } = e.data.filepath;
+	  const text = await Deno.readTextFile(filename);
+	  console.log(text);
+	  self.close();
+  }
+};
+
+```
+
 ## Deno cron
 
 Deno cron is an unstable API, so you need to add `"cron"` to the `"unstable"` key array in your `deno.json` config.
@@ -910,6 +962,59 @@ Deno.serve((req) => {
 > [!WARNING]
 > Note the `cancel` function above. This is called when the client hangs up the connection. It is important to make sure that you handle this case, otherwise the server will keep queuing up messages forever, and eventually run out of memory.
 
+
+#### Basic file server
+
+This is an example of a basic fileserver which is performant, where we return on-disk files as streams:
+
+```ts
+async function returnFileAsStream(filepath: string) {
+	const file = await Deno.open(filepath, { read: true });
+	return file.readable
+}
+```
+
+
+
+```ts
+Deno.serve({ port: 8080 }, async (request: Request) => {
+  const url = new URL(request.url);
+  const filepath = decodeURIComponent(url.pathname);
+  if (filepath === "/" || !filepath) {
+    return new Response("Hello, World!");
+  }
+  try {
+    const file = await Deno.open("." + filepath, { read: true });
+    return new Response(file.readable);
+  } catch {
+    return new Response("404 Not Found", { status: 404 });
+  }
+});
+```
+
+You can also create a partial-fileserver, where you statically mount a folder and all its files scoped to a route:
+
+To use the file-server, you can add it to your `deno.json` file with:
+
+```sh
+deno add jsr:@std/http
+```
+
+And then import it in your project:
+
+```ts
+import { serveDir } from "@std/http/file-server";
+
+Deno.serve((req) => {
+  const pathname = new URL(req.url).pathname;
+  if (pathname.startsWith("/static")) {
+    return serveDir(req, {
+      fsRoot: "path/to/static/files/dir",
+    });
+  }
+  return new Response();
+});
+```
 ### Custom Deno Router
 
 ```ts
@@ -1822,6 +1927,45 @@ export class DenoReadableStreamManager {
   toBlob = () => toBlob(this.stream);
   toJson = () => toJson(this.stream);
 }
+```
+
+#### Example
+
+```ts
+import { TextLineStream } from "@std/streams";
+import { toTransformStream } from "@std/streams/to-transform-stream";
+
+const response = await fetch("https://example.com/data.txt");
+
+// Ensure the response body exists
+if (response.body) {
+  // Create a stream reader that processes the response body line by line
+  const transformedStream = response.body
+    // Decode the byte stream into a text stream
+    .pipeThrough(new TextDecoderStream())
+    // Split the text stream into lines
+    .pipeThrough(new TextLineStream())
+    // Get a reader to read the lines
+    //.getReader();
+    .pipeThrough(toTransformStream(async function* (src) {
+      for await (const chunk of src) {
+        if (chunk.trim().length === 0) {
+          continue;
+        }
+        console.log(chunk);
+        yield chunk;
+      }
+    }));
+  // Create a reader to consume the transformed stream
+  const reader = transformedStream.getReader();
+  // Read and log each line of text from the stream
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    console.log(value); // Log each parsed JSON object
+  }
+}
+
 ```
 
 ### Deno helpers

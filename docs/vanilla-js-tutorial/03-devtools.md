@@ -70,6 +70,10 @@ The second argument to `console.log()` will then be the appropriate CSS styles i
 console.log("%c some text here", "font-size:2rem;color:blue");
 ```
 
+
+![](https://i.imgur.com/APxpoer.jpeg)
+
+
 For this reason, I also built this class for logging colors in the browser: 
 
 ```ts
