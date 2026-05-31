@@ -148,3 +148,14 @@ You can rename a project with the `deployctl projects rename` command, running i
 ```shell
 deployctl projects rename <new-name>
 ```
+
+## Development to deploy workflow
+
+### Tunneling
+
+**tunneling** is a way to preview your local development server on a production URL, and with deno tunneling, you can preview it as close as possible to a production environment with a temporary deno deploy URL and using environment variables from deno deploy.
+
+Here are the steps to enable tunneling for your app:
+
+1. Deploy your app to deno deploy at least once
+2. Run `deno run --tunnel dev` to run tunneling while in dev mode

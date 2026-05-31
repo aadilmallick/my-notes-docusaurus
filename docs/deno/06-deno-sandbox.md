@@ -192,11 +192,10 @@ deno sandbox copy ./frontend sbx_ord_abc123def456:/app/web/
 ```
 
 
-## Deploying sandboxes [Jump to heading#](https://docs.deno.com/sandbox/cli/#deploying-sandboxes)
+### Deploying sandboxes 
 
 You can deploy a running sandbox to a Deno Deploy app using the `deno sandbox deploy` command:
 
->_
 
 ```bash
 deno sandbox deploy sbx_ord_abc123def456 my-app
@@ -204,7 +203,6 @@ deno sandbox deploy sbx_ord_abc123def456 my-app
 
 By default, this deploys to a preview deployment. To deploy directly to production:
 
->_
 
 ```bash
 deno sandbox deploy --prod sbx_ord_abc123def456 my-app
@@ -212,7 +210,6 @@ deno sandbox deploy --prod sbx_ord_abc123def456 my-app
 
 You can specify a custom working directory and entrypoint:
 
->_
 
 ```bash
 deno sandbox deploy --cwd /app --entrypoint main.ts sbx_ord_abc123def456 my-app
@@ -220,12 +217,63 @@ deno sandbox deploy --cwd /app --entrypoint main.ts sbx_ord_abc123def456 my-app
 
 To pass arguments to the entrypoint script:
 
->_
 
 ```bash
 deno sandbox deploy --args --port 8080 sbx_ord_abc123def456 my-app
 ```
 
+### Managing volumes 
+
+The sandbox system supports persistent volumes for data that needs to survive across sandbox instances. Use the `deno sandbox volumes` command to manage them.
+
+#### Creating volumes
+
+Create a new volume with a specific name, capacity, and region:
+
+```bash
+deno sandbox volumes create my-volume --capacity 10gb --region ord
+```
+
+#### Listing volumes 
+
+List all volumes in your organization:
+
+
+```bash
+deno sandbox volumes list
+```
+
+You can also search for specific volumes:
+
+```bash
+deno sandbox volumes list my-volume
+```
+
+#### Deleting volumes
+
+Remove a volume when you no longer need it:
+
+```bash
+deno sandbox volumes delete my-volume
+```
+
+### connecting to a sandbox
+
+To connect to an existing sandbox and enter its shell, run the `deno sandbox ssh` command, which needs one argument: the id of the sandbox you want to connect to.
+
+```bash
+deno sandbox ssh <sandbox-id>
+```
+
+### Cleanup and termination 
+
+When you're finished with a sandbox, use `deno sandbox kill` (or `deno sandbox rm`) to terminate it and free up resources:
+
+```sh
+deno sandbox kill sbx_ord_abc123def456
+```
+
+This immediately stops all processes in the sandbox and releases its resources. Be sure to save any important work before terminating a sandbox, as all data inside will be lost.
 ## SDK
 
 
