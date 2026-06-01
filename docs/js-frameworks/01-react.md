@@ -4767,11 +4767,9 @@ fastify.get("/react-flight", function reactFlightHandler(request, reply) {
 });
 ```
 
-## Store management libraries
+## Zustand
 
-### Zustand
-
-#### Zustand vs Context
+### Zustand vs Context
 
 Zustand is basically the same thing as context, just an improvement on top of it.
 
@@ -4799,8 +4797,94 @@ function GrandChildComponent() {
 
 Zustand is a more performant solution here because it only forces a child component to re-render when the specific part of context it uses updates state. This leads to less unnecessary re-renders.
 
+
 ```ts
+import {create} from "zustand"
+
+interface CounterStore {
+	count: number;
+	increment: () => number;
+	decrement: () => number;
+	reset: () => void;
+}
+
+export const useCounterStore = create<CounterStore>(
+	(set) => ({
+		count: 0;
+		increment: () => {
+			// automatically merges objects
+			set(state => ({count: state.count + 1})) 
+		},
+		decrement: () => {
+			set(state => ({count: state.count - 1})) 
+		},
+		reset: () => {
+			set({ count: 0})
+		}
+	})
+)
 ```
+
+Zustand out of the box works the exact same as context, with no performance benefits, as shown in this example:
+
+```tsx
+function CounterExample() {
+	// we grab the whole object, so re-renders when a single property
+	// of the object changes.
+	const { increment } = useCounterStore()
+	
+	return (
+		<button onClick={increment}>increment</button>
+	)
+}
+```
+
+Here's why there's no performance benefit in the above example:
+
+- The zustand store hook returns an entire object. Even if we destructure only the properties we need, we're still grabbing the entire object first.
+- This means if a single property in the store changes do to a state update, like `count` even though we don't render or use count anywhere in the component, it changes the entire store object (since `store.count` changes), so a state udpate and thus re-render takes place.
+
+> [!NOTE]
+> A **store change** in zustand is registered when at least one property of the store object has had a state update or change.
+
+What we need to do instead is only grab the variables we need to avoid the unnecessary state-updates for a component, which we can do via this syntax, called **store slicing syntax**
+
+```tsx
+function CounterExample() {
+	// only grab the store.increment function
+	const increment = useCounterStore(store => store.increment)
+	
+	return (
+		<button onClick={increment}>increment</button>
+	)
+}
+```
+
+In store slicing, how does zustand know when `increment` has changed and re-render accordingly? In this example, we return `store.increment`, so `increment` changes when `store.increment` changes somehow.
+
+> [!NOTE]
+> Zustand uses value-equality for primitives and referential-equality for objects, checking if the single variable we are grabbing has changed in a store change. 
+
+
+This means if we use store slicing syntax and return a new object, using referential equality, that is a new object each and every time thus we get shoved into an infinite loop.
+
+```tsx
+function CounterExample() {
+	// ❌ common trap: this actually kicks you into an infinite loop
+	const {increment, decrement} = useCounterStore(store => ({
+			increment: store.increment,
+			decrement: store.decrement
+		})
+	)
+	
+	return (
+		<button onClick={increment}>increment</button>
+	)
+}
+```
+
+However, for convenience sake, if you want to destructure more than one property at once from the store without losing the performance benefits of store slicing.
+
 ## Custom Hooks
 
 ### `useWaitForAnimationsToFinish`
