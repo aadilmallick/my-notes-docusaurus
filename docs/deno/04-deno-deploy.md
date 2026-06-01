@@ -147,6 +147,35 @@ As an example, you could set up a migration script using [`node-pg-migrate`](ht
 
 Deno Deploy will automatically run this command before each deployment, ensuring all your environment-specific databases stay up to date.
 
+
+### Environment Variables
+
+#### Contexts
+
+Each environment variable applies to one or more contexts. Contexts represent the logical "environments" in which your code runs, each with its own set of variables and secrets.
+
+By default, there are two contexts:
+
+- **Production**: Used for the production timeline serving production traffic
+- **Development**: Used for development timelines serving non-production traffic (preview URLs and branch URLs)
+
+#### Env vars in all contexts
+
+Deno Deploy provides these predefined environment variables in all contexts:
+
+- `DENO_DEPLOY`: `true` - Indicates that the code is running in Deno Deploy.
+- `DENO_DEPLOY_ORG_ID`: The ID of the organization that owns the application.
+- This is a UUID.
+- `DENO_DEPLOY_ORG_SLUG`: The slug of the organization that owns the application. This is the human-readable identifier used in URLs that was set when creating the organization.
+- `DENO_DEPLOY_APP_ID`: The ID of the application. This is a UUID.
+- `DENO_DEPLOY_APP_SLUG`: The slug of the application. This is the human-readable identifier used in URLs that was set when creating the application, or changed later in the application settings.
+- `DENO_DEPLOY_BUILD_ID`: The ID of the currently running build.
+- `DENO_DEPLOYMENT_ID`: A unique identifier representing the entire configuration set (application ID, build ID, context, environment variables, cloud connections, database). Changes if any of these components change.
+- `DENO_DEPLOY_BUILD_ID`: The ID of the currently running revision.
+- `DENO_TIMELINE`: The timeline the application is currently running in. Possible values are `production`, `git-branch/<branch-name>`, and `preview/<revision-id>`. This is not set during builds, as builds are not specific to any timeline.
+
+During builds, the environment variable `CI=1` is additionally set.
+
 ## `deployctl`
 
 To use deno deploy, you can install the deployctl tool first off:
