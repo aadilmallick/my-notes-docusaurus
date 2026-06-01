@@ -666,6 +666,8 @@ export default function AboutPage() {
 
 ### Islands
 
+#### Island theory
+
 What happens at request time:
 
 1. Fresh server-renders the page, including `<Counter />`, to HTML.
@@ -679,6 +681,10 @@ What happens at request time:
 3. **Islands can nest.** A child island inside a parent island re-uses the parent's hydration tree.
 4. **`IS_BROWSER` guard.** Import `IS_BROWSER` from `$fresh/runtime.ts` if you need to skip server-side execution (e.g., touching `window`).
 
+#### Islands vs components
+
+- **islands** are meant to to be used on client components that use javascript interactions, hydrated at runtime.
+- **components** can be server-rendered completely or be client components (use javascript) as long as they are rendered inside islands.
 #### Preact basics
 
 Fresh uses **Preact**, a small (~3 kB gzipped) React-compatible library. If you know React, you already know Preact. The only differences you're likely to hit:
@@ -779,6 +785,16 @@ export default define.page(() => {
 
 #### Slot pattern
 
+```ts
+// islands/Modal.tsx
+import { useSignal } from "@preact/signals";
+
+export default function Modal({ children }) {
+	const open = useSignal(false);
+	return open.value ? <div class="modal">{children}</div> : null;
+}
+```
+
 ### Fetching data server side
 
 #### Fetching data before rendering a route
@@ -848,6 +864,48 @@ export default defineRoute(async (_req, ctx) => {
   return <h1>{project.name}</h1>;
 });
 ```
+
+#### Server actions
+
+You can mock server actions on form submissions by adding a route handler to a subscribe
+
+```tsx title="routes/subscribe.tsx"
+
+// routes/subscribe.tsx
+import { Handlers, PageProps } from "$fresh/server.ts";
+
+interface Data { email?: string; error?: string }
+
+export const handler: Handlers<Data> = {
+  GET(_req, ctx) { return ctx.render({}); },
+
+  async POST(req, ctx) {
+    const form = await req.formData();
+    const email = form.get("email")?.toString() ?? "";
+    if (!email.includes("@")) {
+      return ctx.render({ error: "Please enter a valid email." });
+    }
+    await saveSubscriber(email);
+    // Post/Redirect/Get
+    return new Response(null, {
+      status: 303,
+      headers: { Location: "/thanks" },
+    });
+  },
+};
+
+export default function Subscribe({ data }: PageProps<Data>) {
+  return (
+    <form method="POST">
+      <label>
+        Email <input name="email" type="email" required />
+      </label>
+      {data.error && <p style="color:red">{data.error}</p>}
+      <button type="submit">Subscribe</button>
+    </form>
+  );
+}
+```
 ### API routes
 
 API routes are just pages in the `routes` folder except you don't export a react component. Just export handlers.
@@ -913,4 +971,43 @@ You can also export an array to chain multiple middleware:
 
 ```ts
 export const handler = [authMiddleware, loggingMiddleware];
+```
+
+#### Form requesting an API route
+
+If you want a snappy client-side form, then make it an island with an `onSubmit` event handler that fetches an API route you establish on your server.
+
+```tsx
+// islands/SubscribeForm.tsx
+import { useSignal } from "@preact/signals";
+
+export default function SubscribeForm() {
+  const email = useSignal("");
+  const status = useSignal<"idle" | "loading" | "ok" | "error">("idle");
+
+  async function onSubmit(e: Event) {
+    e.preventDefault();
+    status.value = "loading";
+    const resp = await fetch("/api/subscribe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: email.value }),
+    });
+    status.value = resp.ok ? "ok" : "error";
+  }
+
+  return (
+    <form onSubmit={onSubmit}>
+      <input
+        type="email"
+        value={email.value}
+        onInput={(e) => email.value = (e.target as HTMLInputElement).value}
+      />
+      <button disabled={status.value === "loading"}>
+        {status.value === "loading" ? "..." : "Subscribe"}
+      </button>
+      {status.value === "ok" && <p>Thanks!</p>}
+    </form>
+  );
+}
 ```
