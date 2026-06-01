@@ -43,3 +43,20 @@ Link existing vercel projects to your local codebase with `vercel link`
 Your files must be all error-free for typescript linting, otherwise vercel will not deploy your app. To do this, put a `//@ts-nocheck` comment at the top of all typescript files with errors in them.
 
 Now you can deploy with `npm run deploy`
+
+### Deploying different frameworks
+
+### Deploying React apps to vercel
+
+When doing client side routing, you MUST have a `vercel.json` in the root of your project that specifies to redirect all requests to the index HTML:
+
+```json title="vercel.json"
+    {
+      "rewrites": [
+        {
+          "source": "/:path*",
+          "destination": "/index.html"
+        }
+      ]
+    }
+```
