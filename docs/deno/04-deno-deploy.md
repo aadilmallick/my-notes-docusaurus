@@ -39,6 +39,114 @@ Alternatively, explicitly specifying the gitignored paths in an `"include"` wo
 }
 ```
 
+### Databases
+
+
+Once you've assigned a database to your app, connecting to it from your code is simple. Deno Deploy automatically handles connection details, credentials, and environment variables for you, meaning deno handles the switch between production, git branch, and development databases all via injecting different database URLs for the db connection env var for different environments.
+
+There are two ways to add a database instance to your Deno Deploy organization:
+
+- **Link Database**: Connect an existing external database instance (for example, a PostgreSQL server you run or a managed instance from a cloud provider).
+- **Provision Database**: Create and attach a managed data store from Deno Deploy (Deno KV or Prisma Postgres).
+
+#### Deno KV
+
+For Deno KV, you can use the built-in `Deno.openKv()` API to connect to your assigned Deno KV instance. No additional configuration is needed - Deno Deploy automatically connects your app to the correct Deno KV instance based on the current environment.
+
+```typescript
+// No arguments needed - Deno Deploy handles this automatically
+const kv = await Deno.openKv();
+
+Deno.serve(async () => {
+  // Use the Deno KV instance
+  await kv.set(["user", "123"], { name: "Alice", age: 30 });
+  const user = await kv.get(["user", "123"]);
+
+  return new Response(JSON.stringify(user.value), {
+    headers: { "content-type": "application/json" },
+  });
+});
+```
+
+#### PostgreSQL
+
+For PostgreSQL databases (both external and provisioned), Deno Deploy automatically injects standard database environment variables into your app's runtime environment:
+
+- `DATABASE_URL`: A full connection string for the current environment, in the format `postgresql://username:password@hostname:port/database`.
+- `PGHOST`: The database server hostname.
+- `PGPORT`: The database server port.
+- `PGDATABASE`: The database name for the current environment.
+- `PGUSER`: The database username.
+- `PGPASSWORD`: The database password.
+
+If your database requires a custom SSL/TLS certificate, Deno Deploy also injects that certificate into the default certificate store, so that all SSL connections work automatically.
+
+You can use your favorite PostgreSQL client library (such as `pg` from npm) to connect to your database using these environment variables. Most libraries automatically detect and use these standard environment variables without any configuration.
+
+As an example, here's how to connect to PostgreSQL in your Deno Deploy app:
+
+```typescript
+import { Pool } from "npm:pg";
+
+// No arguments needed - the library reads connection details from environment variables automatically
+const pool = new Pool();
+
+Deno.serve(async () => {
+  // Use the database
+  const result = await pool.query("SELECT * FROM users WHERE id = $1", [123]);
+
+  return new Response(JSON.stringify(result.rows), {
+    headers: { "content-type": "application/json" },
+  });
+});
+```
+
+#### Running migrations
+
+Since each environment has its own isolated database, you will often have many separate databases to manage in every app. It is not practical to manually run migrations or insert seed data into each database individually every time you deploy a new revision.
+
+To streamline this process, Deno Deploy allows you to configure an automated pre-deploy command that runs every time a revision is rolled out to a timeline, before the deployment starts serving traffic.
+
+To set up an automated migration command, head to the Settings page of your app, and go to the App Config section. There you can edit the app configuration to set a pre-deploy command in the "Pre-Deploy Command" field (for example, `deno task migrate` or `npm run migrate`).
+
+You can see the detailed logs of the pre-deploy command execution in the revision build logs, in the "Deployment" section.
+
+As an example, you could set up a migration script using [`node-pg-migrate`](https://github.com/salsita/node-pg-migrate):
+
+1. Add a task to your `deno.json`:
+    
+    ```json
+    {
+      "tasks": {
+        "migrate": "deno run --allow-net --allow-env --allow-read --allow-write npm:node-pg-migrate up"
+      }
+    }
+    ```
+    
+2. Create a migrations directory and add migration files. For example, `migrations/1234567890_create-users-table.js`:
+    
+    ```javascript
+    exports.up = (pgm) => {
+      pgm.createTable("users", {
+        id: "id",
+        name: { type: "varchar(100)", notNull: true },
+        email: { type: "varchar(100)", notNull: true },
+        created_at: {
+          type: "timestamp",
+          notNull: true,
+          default: pgm.func("current_timestamp"),
+        },
+      });
+    };
+    exports.down = (pgm) => {
+      pgm.dropTable("users");
+    };
+    ```
+    
+3. Set your pre-deploy command to `deno task migrate` in the app settings.
+
+Deno Deploy will automatically run this command before each deployment, ensuring all your environment-specific databases stay up to date.
+
 ## `deployctl`
 
 To use deno deploy, you can install the deployctl tool first off:
