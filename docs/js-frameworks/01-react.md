@@ -4883,7 +4883,39 @@ function CounterExample() {
 }
 ```
 
-However, for convenience sake, if you want to destructure more than one property at once from the store without losing the performance benefits of store slicing.
+However, for convenience sake, if you want to destructure more than one property at once from the store without losing the performance benefits of store slicing, then use the `useShallow()` hook from zustand to wrap that object so that any object returned from store slicing is now checked with **value equality** rather than referential equality, stringifying the object to compare its values across re-renders:
+
+```tsx
+import {useShallow} from "zustand"
+
+function CounterExample() {
+	// ✅ now no infinite loop
+	const {increment, decrement} = useCounterStore(store => useShallow({
+			increment: store.increment,
+			decrement: store.decrement
+		})
+	)
+	
+	return (
+		<button onClick={increment}>increment</button>
+	)
+}
+```
+
+### Zustand is signal-based
+
+Zustand is signal-based. That means you can use it outside react components. 
+
+Every zustand store hook has these two methods
+
+- `useStore.getState()`: returns the current state of the store as an object
+- `useStore.setState(cb)`: sets the state of the store, accepting a callback that has one argument - the current state of the store.
+
+### Zustand best practices
+
+#### Refactor state-setters into actions
+
+State-setter functions in a store are called **actions**, and for readability and ease of use, actions should be markedly separate from state, which we can achieve by nesting all actions inside of an `actions` object.
 
 ## Custom Hooks
 
