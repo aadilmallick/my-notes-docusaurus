@@ -537,6 +537,24 @@ Here are the different important folders:
 Here are the rules for pages:
 
 1. **must export default component**: The component for a page must be exported default.
+
+#### Basic route page
+
+You can create a server-rendered react page compoinent by just export defaulting a component, or you can use the `defineRoute` HOC:
+
+
+```tsx
+import { defineRoute } from "$fresh/server.ts";
+
+export default defineRoute(function Home() {
+  return (
+    <main>
+      <h1>Hello Fresh!</h1>
+      <p>Rendered on the server.</p>
+    </main>
+  );
+});
+```
 #### Dynamic routes
 
 For a dynamic route page, the page component accepts a `props` parameter of type `PageProps`, and the dynamic route params are on the `props.params` record.
@@ -548,6 +566,27 @@ import { PageProps } from "$fresh/server.ts";
 export default function Greet(props: PageProps) {
   return <h1>Hello {props.params.name}!</h1>;
 }
+```
+
+or you can do this:
+
+```tsx
+import { defineRoute } from "$fresh/server.ts";
+import { getPost } from "../../lib/blog.ts";
+
+export default defineRoute(async (req, ctx) => {
+  const { slug } = ctx.params;  // from [slug].tsx
+  const post = await getPost(slug);
+
+  if (!post) return ctx.renderNotFound();
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <div dangerouslySetInnerHTML={{ __html: post.html }} />
+    </article>
+  );
+});
 ```
 
 #### Dynamic catch-all routes
@@ -643,6 +682,9 @@ import { asset } from "$fresh/runtime.ts";
 <img src={asset("/logo.svg")} alt="logo" />;
 ```
 
+> [!NOTE]
+> Use `asset()` for any URL pointing at a `static/` file — Fresh appends a content hash and serves with a long-lived `Cache-Control`.
+
 ### metadata
 
 Use the `<Head>` component to inject into `<head>` from a deeply nested page:
@@ -681,10 +723,18 @@ What happens at request time:
 3. **Islands can nest.** A child island inside a parent island re-uses the parent's hydration tree.
 4. **`IS_BROWSER` guard.** Import `IS_BROWSER` from `$fresh/runtime.ts` if you need to skip server-side execution (e.g., touching `window`).
 
+
+![](https://i.imgur.com/xDqSSCx.jpeg)
+
+
 #### Islands vs components
 
 - **islands** are meant to to be used on client components that use javascript interactions, hydrated at runtime.
-- **components** can be server-rendered completely or be client components (use javascript) as long as they are rendered inside islands.
+- **components** can be server-rendered completely or be client components (use javascript) as long as they are rendered inside islands
+
+![](https://i.imgur.com/FfLPd6B.jpeg)
+
+
 #### Preact basics
 
 Fresh uses **Preact**, a small (~3 kB gzipped) React-compatible library. If you know React, you already know Preact. The only differences you're likely to hit:
@@ -852,6 +902,40 @@ interface FreshContext<State = unknown, Data = unknown> {
 }
 ```
 
+Here's another example
+
+```tsx
+import { Handlers, PageProps } from "$fresh/server.ts";
+
+interface Data { message: string | null }
+
+export const handler: Handlers<Data> = {
+  // GET: render page with initial data
+  async GET(req, ctx) {
+    return ctx.render({ message: null });
+  },
+
+  // POST: handle form submission
+  async POST(req, ctx) {
+    const form = await req.formData();
+    const name = form.get("name")?.toString();
+    return ctx.render({ message: `Hello, ${name}!` });
+  },
+};
+
+export default function Contact({ data }: PageProps<Data>) {
+  return (
+    <div>
+      {data.message && <p>{data.message}</p>}
+      <form method="POST">
+        <input name="name" placeholder="Your name" />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
+```
+
 #### Typesafe route
 
 For tighter type inference, wrap your route page in a `defineRoute()` HOC, which gives you access to the request and context for SSR.
@@ -931,6 +1015,22 @@ export const handler: Handlers = {
 
 #### Basic API routes
 
+```ts
+import { Handlers } from "$fresh/server.ts";
+
+export const handler: Handlers = {
+  async GET() {
+    const users = [{ id: 1, name: "Ada" }];
+    return Response.json(users);
+  },
+  async POST(req) {
+    const body = await req.json();
+    // persist body.name...
+    return Response.json({ ok: true }, { status: 201 });
+  },
+};
+```
+
 #### Middleware
 
 A `_middleware.ts` file applies to every route at its level and below. Use it for auth, logging, header manipulation, and populating `ctx.state`:
@@ -971,6 +1071,28 @@ You can also export an array to chain multiple middleware:
 
 ```ts
 export const handler = [authMiddleware, loggingMiddleware];
+```
+
+Here's an example of an auth middleware:
+
+```ts
+import { FreshContext } from "$fresh/server.ts";
+import { getSession } from "../../lib/session.ts";
+
+export async function handler(req: Request, ctx: FreshContext) {
+  const session = await getSession(req);
+
+  if (!session?.user) {
+    return new Response(null, {
+      status: 302,
+      headers: { Location: "/login" },
+    });
+  }
+
+  // Attach user to state for downstream handlers
+  ctx.state.user = session.user;
+  return ctx.next();
+}
 ```
 
 #### Form requesting an API route
