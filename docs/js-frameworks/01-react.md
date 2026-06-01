@@ -4767,9 +4767,169 @@ fastify.get("/react-flight", function reactFlightHandler(request, reply) {
 });
 ```
 
-## Zustand
+## Store management libraries
+
+### Zustand
+
+#### Zustand vs Context
+
+Zustand is basically the same thing as context, just an improvement on top of it.
+
+When using react context, you wrap your entire app in the context provider. If even a single one of the exported state in the context changes, then the context provider re-renders, causing the entire app to re-render and any components that use the context to re-render (even if memoized).
+
+Let's walk through what happens if you use context:
+
+```tsx
+// this component will re-render if theme or setTheme change
+function GrandChildComponent() {
+  const { theme, setTheme } = useContext(ThemeContext)
+
+  return (
+    <>
+      <div>The theme is {theme}</div>
+      <button onClick={() => setTheme("light")}>Change To Light Theme</button>
+    </>
+  )
+
+```
+
+### Tanstack Store
+
+Tanstadck store is basically like zustand, but since it uses signals, it's framework agnostic and can be used anywhere.
+
+TanStack Store is, first and foremost, a framework-agnostic signals implementation.
+
+It can be used with any of our framework adapters, but can also be used in vanilla JavaScript or TypeScript. It's currently used to power many of our library's internals.
+
+**Create the store**
+
+```tsx
+import { createStore } from '@tanstack/store';
+
+const countStore = createStore(0);
+
+console.log(countStore.state); // 0
+countStore.setState(() => 1);
+console.log(countStore.state); // 1
+```
+
+**batch updates**
+
+```ts
+import { batch } from '@tanstack/store';
+
+// countStore.subscribers will only trigger once at the end with the final state
+batch(() => {
+  countStore.setState(() => 1);
+  countStore.setState(() => 2);
+});
+```
+
+#### **subscribe to changes**
+
+```ts
+const {unsubscribe} = countStore.subscribe(() => {
+  console.log('The count is now:', countStore.state);
+});
+
+// Later, to cleanup
+unsubscribe();
+```
+
+```tsx
+const count = createStore(0);
+
+const {unsubscribe} = count.subscribe((state) => {
+  console.log('The count is now:', state);
+});
+
+count.setState(() => 5); // Logs: "The count is now: 5"
+
+// Later, to cleanup
+unsubscribe();
+```
 
 
+
+#### Derived values 
+
+You can create derived stores that automatically update when their dependencies change:
+
+```tsx
+const count = createStore(0);
+
+const double = createStore(() => count.state * 2);
+
+console.log(double.state); // 0
+count.setState(() => 5);
+console.log(double.state); // 10
+```
+
+You can access the previous value of a derived computation by using the prev argument passed to the function:
+
+```tsx
+const count = createStore(1);
+
+const sum = createStore<number>((prev) => {
+  return count.state + (prev ?? 0);
+});
+
+console.log(sum.state); // 1
+count.setState(() => 2);
+console.log(sum.state); // 3
+```
+
+#### React example
+
+```tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { createStore, useSelector } from "@tanstack/react-store";
+
+// You can instantiate the store outside of React components too!
+export const store = createStore({
+  dogs: 0,
+  cats: 0,
+});
+
+// This will only re-render when `state[animal]` changes. If an unrelated store property changes, it won't re-render
+
+const Display = ({ animal }) => {
+  const count = useSelector(store, (state) => state[animal]);
+  return <div>{`${animal}: ${count}`}</div>;
+};
+
+const updateState = (animal) => {
+  store.setState((state) => {
+    return {
+      ...state,
+      [animal]: state[animal] + 1,
+    };
+  });
+};
+const Increment = ({ animal }) => (
+  <button onClick={() => updateState(animal)}>My Friend Likes {animal}</button>
+);
+
+function App() {
+  return (
+    <div>
+      <h1>How many of your friends like cats or dogs?</h1>
+      <p>
+        Press one of the buttons to add a counter of how many of your friends
+        like cats or dogs
+      </p>
+      <Increment animal="dogs" />
+      <Display animal="dogs" />
+      <Increment animal="cats" />
+      <Display animal="cats" />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+```
 
 ## Custom Hooks
 

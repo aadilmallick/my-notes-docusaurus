@@ -46,7 +46,7 @@ Now you can deploy with `npm run deploy`
 
 ### Deploying different frameworks
 
-### Deploying React apps to vercel
+#### Deploying React apps to vercel
 
 When doing client side routing, you MUST have a `vercel.json` in the root of your project that specifies to redirect all requests to the index HTML:
 
