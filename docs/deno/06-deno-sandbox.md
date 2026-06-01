@@ -12,6 +12,24 @@ There are three primary ways to manage sandboxes:
 - **CLI**: using the `deno sandbox` CLI, you can manage sandboxes
 - **SDK**: using the `Deno.sandbox` namespace, you can programatically spin up sandboxes and manage them.
 
+Sandboxes also come with two important features:
+
+- **Volumes**: read-write storage for caches, databases, user data
+- **Snapshots**: read-only images for pre-installed toolchains and volume base
+
+### Snapshots
+
+Snapshots in deno sandbox are a way to copy the state of a sandbox, configuration, installations, files, etc. and then duplicate that state to other sandboxes.
+
+Here are the main benefits:
+
+- **instant startup time**: you can skip reinstalling the same things, like python or ffmpeg, because snapshots just let you copy state over
+- **reproducibility**: You can reproduce the same versions without having something break on reinstallation.
+
+Run `apt-get install` once, snapshot it, and every future sandbox boots with everything already installed. Create read-write volumes from the snapshots to create a fresh development environment in seconds.
+
+
+
 ## CLI
 
 ### create a new sandbox
@@ -405,22 +423,54 @@ await proc.status;
 
 Sandboxes can be used to deploy apps on the fly, which is useful if you want to create an app like deno playground or make your own IDE.
 
-#### Basic deploying
+#### Deploying sandbox code
+
+This is an example where we use the sandbox to start a containerized server
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+
+await using sandbox = await Sandbox.create({ port: 8000 });
+
+console.log(sandbox.url); // https://5975b670a7ea467f86dac6b596d32628.sandbox.deno.net
+
+await sandbox.fs.writeTextFile(
+  "main.ts",
+  `
+  export default { fetch: () => new Response("Hello from the sandbox!") };
+`,
+);
+
+await sandbox.sh`deno serve --allow-net --watch main.ts`;
+```
+
+However, since sandboxes are ephemeral, we may want a way to permanently deploy a sandbox running process or code somewhere. We can do that through the `sandbox.deno.deploy()` method:
 
 ```ts
 import { Client, Sandbox } from "jsr:@deno/sandbox"
-const sandboxId = "sbx_ord_yzsd4n6ps2t362qjyga0"
 
-const client = new Client()
 
-export async function deployApp(slug: string) {
+export async function deployApp(slug: string, sandboxId: string) {
+
+  // 1. create new deno deploy app with unique slug
+  const client = new Client()
   const app = await client.apps.create({ slug })
+  
+  // 2. connect to a currently running sandbox
   await using sandbox = await Sandbox.connect({
     id: sandboxId,
   })
-  const build = await sandbox.deno.deploy(app.slug, {
-    production: true
-  })
+  
+  // 3. deploy sandbox process to production
+  const build = await sandbox.deploy(app.slug, {
+	  production: true,
+	  build: { mode: "non", entrypoint: "main.ts" },
+  });
+
+const revision = await build.done;
+console.log(revision.url);
+  
+  // 4. retrieve final build details
   const revision = await build.done
   return revision
 }
