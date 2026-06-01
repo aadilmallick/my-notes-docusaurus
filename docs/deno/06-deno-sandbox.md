@@ -323,7 +323,7 @@ The next step to being able to use deno sandbox is to create a **deno deploy tok
 
 #### Sandbox configuration
 
-You create a sandbox using the async `Sandbox.create()` method, which optionally takes in an object of options:
+When creating or reconnecting to a sandbox, you can configure the properties of that sandbox by passing in an object of options:
 
 - `allowNet`: a `string[]` list of hostnames that are allowed for making network requests to from the sandbox, all other hosts are blocked.
 - `secrets`: allows you to configure env vars accessible to the sandbox and which host connections the env vars are allowed to be sent to. 
@@ -336,6 +336,8 @@ You create a sandbox using the async `Sandbox.create()` method, which optionally
 - `env`: key-value map of env vars to their values
 
 #### Creating a sandbox
+
+You create a sandbox using the async `Sandbox.create()` method, which optionally takes in an object of sandbox configuration options as discussed in the previous section.
 
 
 ```ts
@@ -412,6 +414,84 @@ Setting environment variables through `sandbox.env.set()` keeps configuration 
 
 - `sandbox.exposeHTTP(options)`
 
+#### sandbox timeouts
+
+You can control how long your sandbox stays alive using the timeout option. Controlling timeout lets you decide whether sandboxes vanish immediately when your script finishes or keep running for a set duration:
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+
+// Default: "session" - sandbox shuts down when you close/dispose the client
+await using sandbox = await Sandbox.create({ timeout: "10m" });
+```
+
+Supported duration suffixes: `s` (seconds), `m` (minutes).
+
+Examples: `"30s"`, `"5m"`, `"90s"`. The default is `"session"`, which means the sandbox will automatically shut down when the client connection is closed or disposed.
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+
+// Duration-based: keep sandbox alive for a specific time period
+// Useful when you want the sandbox to persist after the script exits
+const sandbox = await Sandbox.create({ timeout: "5m" }); // 5 minutes
+const id = sandbox.id;
+// Close the *connection* to the sandbox; the sandbox keeps running
+await sandbox.close();
+
+// Later, reconnect to the same sandbox using its ID
+const reconnected = await Sandbox.connect({ id });
+await reconnected.sh`echo 'Still alive!'`;
+
+// You can still forcibly terminate it before its timeout elapses
+await reconnected.kill();
+// At this point, the sandbox is no longer reconnectable
+```
+
+The default "session" mode is fine for short-lived automation—resource cleanup happens as soon as the client disposes.
+
+Duration-based timeouts ("30s", "5m", etc.) let you close the client connection while the sandbox keeps state alive, so you can reconnect later (e.g., to inspect logs, rerun commands, or share the sandbox ID with another process) before the timeout expires.
+
+You are not locked into the original duration. As long as you still hold a `Sandbox` instance (either the original handle or one reconnected via `Sandbox.connect()`), call `sandbox.extendTimeout()` with another duration string to push the expiry further out. Each call can add up to 30 minutes and returns a `Date` indicating the new shutdown time.
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+
+const sandbox = await Sandbox.create({ timeout: "5m" });
+
+// Need more time later on? Extend in-place without disrupting running work.
+const newExpiry = await sandbox.extendTimeout("30m");
+console.log(`Sandbox now lives until ${newExpiry.toISOString()}`);
+```
+
+You still control lifecycle explicitly with a call to `kill()` to end the sandbox early if you no longer need it, useful if your job finishes sooner than expected.
+
+#### sandbox memory
+
+You can customize the amount of memory allocated to your sandbox using the memoryMb option. This allows you to allocate more resources for memory-intensive workloads or reduce memory for lighter tasks.
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+
+// Create a sandbox with 1GB of memory
+await using sandbox = await Sandbox.create({ memory: 1024 });
+```
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+
+// Create a sandbox with 4GB of memory for memory-intensive workloads
+await using sandbox = await Sandbox.create({ memory: 4096 });
+
+// Check available memory
+const memInfo = await sandbox.deno.eval<{ total: number }>(
+  "Deno.systemMemoryInfo()",
+);
+console.log("Total memory:", memInfo.total);
+```
+
+Configuring memory when creating the sandbox lets you tune resource usage per workload. Lightweight tasks can run in smaller sandboxes to conserve resources, while data-heavy scripts or compilations can request up to 4 GB to avoid out-of-memory failures.
+
 ### sandbox properties
 
 - `sandbox.url`: returns the deno deploy URL of the sandbox
@@ -427,6 +507,22 @@ Use the `sandbox.fs` to deal with the sandbox filesystem:
 ```ts
 await sandbox.fs.upload("./local-hello.ts", "./hello.ts");
 ```
+
+Copy files from your machine into the sandbox using `sandbox.fs.upload(localPath, sandboxPath)`.
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+
+await using sandbox = await Sandbox.create();
+
+// Upload a single file to a specific path in the sandbox
+await sandbox.fs.upload("./README.md", "./readme-copy.md");
+
+// Upload a local directory tree into the sandbox current directory
+await sandbox.fs.upload("./my-project", ".");
+```
+
+Uploading files or entire directories with `sandbox.fs.upload()` lets you bring your local artifacts into the sandbox environment before running commands there. This is useful when your workflow depends on existing source folders, configuration files, or test data—once uploaded, the sandbox can compile, test, or process them without remote Git access or manual copy/pasting.
 
 #### managing files
 
@@ -560,6 +656,8 @@ This is useful when sandbox commands produce files (images, archives, etc.) that
 
 ### spawning child processes
 
+#### basic spawning
+
 ```ts
 const proc = await sandbox.spawn("deno", {
   args: ["run", "hello.ts"],
@@ -570,6 +668,36 @@ for await (const chunk of proc.stdout) {
 }
 await proc.status;
 ```
+
+#### piping binary data using child processes
+
+You can stream output to a local file in a sandbox. This avoids buffering entire large artifacts in memory.
+
+If you generate something sizable inside the sandbox (like `big.txt` below), you can pipe it out chunk-by-chunk over a `ReadableStream`, converting Node’s `fs.WriteStream` to a Web `WritableStream` for efficient transfer.
+
+```ts
+import { Sandbox } from "@deno/sandbox";
+import fs from "node:fs";
+import { Writable } from "node:stream";
+
+await using sandbox = await Sandbox.create();
+
+// Create a large file in the sandbox
+await sandbox.fs.writeTextFile("big.txt", "#".repeat(5_000_000));
+
+// Stream it out to a local file
+const child = await sandbox.spawn("cat", {
+  args: ["big.txt"],
+  stdout: "piped",
+});
+const file = fs.createWriteStream("./big-local-copy.txt");
+await child.stdout.pipeTo(Writable.toWeb(file));
+
+const status = await child.status;
+console.log("done:", status);
+```
+
+
 
 ### sandbox running js code
 
@@ -656,6 +784,100 @@ console.log(`ssh ${username}@${hostname}`);
 // when the script exits.
 await new Promise((resolve) => setTimeout(resolve, 10 * 60 * 1000)); // 10 minutes
 ```
+
+
+### sandbox volumes
+
+#### creating and using volumes
+
+```ts
+import { Client, Sandbox } from "@deno/sandbox";
+
+const client = new Client();
+
+// 1. create a volume
+const volume = await client.volumes.create({
+  slug: "training-cache",
+  region: "ord",
+  capacity: "2GB",
+});
+
+console.log(`Created volume ${volume.slug} (${volume.capacity} bytes)`);
+
+// 2. create a sandbox, attach the volume
+await using sandbox = await Sandbox.create({
+  region: "ord",
+  volumes: {
+    "/data/cache": volume.slug,
+  },
+  labels: { job: "prepare" },
+});
+
+// write files into the mounted volume directory in order to persist files
+await sandbox.fs.mkdir("/data/cache/datasets", { recursive: true });
+await sandbox.fs.writeTextFile(
+  "/data/cache/datasets/embeddings.json",
+  JSON.stringify({ updatedAt: Date.now(), vectors: [1, 2, 3] }, null, 2),
+);
+
+await sandbox.fs.writeTextFile(
+  "/data/cache/README.txt",
+  "Cached once, reused forever.\n",
+);
+
+```
+
+- Volume slugs must be unique per org; the response returns both the slug and the stable UUID. The capacity string can be any decimal (`GB/MB/KB`) or binary (`GiB/MiB/KiB`) unit between 300 MB and 20 GB.
+
+Hours (or deployments) later we can spin up a fresh sandbox, mount the same volume by the slug, and read the files. This mimics a reproducible training run that skips the expensive download step.
+
+
+```tsx
+import { Sandbox } from "@deno/sandbox";
+
+await using sandbox = await Sandbox.create({
+  region: "ord",
+  volumes: {
+    "/data/cache": "training-cache",
+  },
+});
+
+const metadata = await sandbox.fs.readTextFile(
+  "/data/cache/datasets/embeddings.json",
+);
+
+console.log("Loaded cached dataset:", metadata);
+```
+
+#### managing volumes
+
+- `client.volumes.list(queryOptions)`: returns a list of volumes that match the query, returning statistics about the volume so you can inspect its size
+
+```ts
+const page = await client.volumes.list({ search: "training" });
+for (const vol of page.items) {
+  console.log(
+    `${vol.slug} uses ${vol.estimatedFlattenedSize}/${vol.capacity} bytes`,
+  );
+}
+
+const latest = await client.volumes.get(volume.slug);
+console.log(
+  `Most recent usage estimate: ${latest?.estimatedFlattenedSize} bytes`,
+);
+
+```
+
+Once you're done with the volume, you can delete it to free up resources:
+
+```tsx
+await client.volumes.delete(volume.slug);
+```
+
+Deletion is intentional but forgiving:
+
+1. The volume is marked deleted immediately and detached from future sandbox requests—its slug becomes available again.
+2. The underlying block storage is destroyed after a 24-hour grace period so you can contact support if the deletion was accidental.
 ### deploying sandbox servers
 
 Sandboxes can be used to deploy apps on the fly, which is useful if you want to create an app like deno playground or make your own IDE.
@@ -807,3 +1029,96 @@ for await (const log of build.logs()) {
   console.log(log.message);
 }
 ```
+
+### Snapshots
+
+Snapshots are useful for creating read-only images that can be used to instantiate multiple sandboxes with the same base environment. Useful if you are frequently creating sandboxes that need the same set of dependencies or tools installed, or have particularly long setup times.
+
+These are the steps to create a snapshot:
+
+1. Create a volume and attach it to a sandbox
+2. Install whatever you want into the volume
+3. Create a **snapshot** of the volume, which is in of itself a volume but frozen in time.
+
+```ts
+import { Client } from "@deno/sandbox";
+
+const client = new Client();
+
+// 1. create a volume
+const volume = await client.volumes.create({
+  region: "ord",
+  slug: "my-toolchain",
+  capacity: "10GB",
+});
+
+console.log(`Bootable volume ready: ${volume.slug}`);
+
+// 2. attach volume to a sandbox
+await using build = await client.sandboxes.create({
+  region: "ord",
+  root: volume.slug,
+  labels: { job: "toolchain-build" },
+});
+
+// 3. install software into volume through sandbox
+await build.sh`sudo apt-get update`;
+await build.sh`sudo apt-get install -y nodejs npm`;
+await build.sh`npm install -g typescript`;
+await build.fs.writeTextFile(
+  "/opt/banner.txt",
+  "This sandbox boots with Node.js, npm, and TypeScript pre-installed.\n",
+);
+
+// 4. create a snapshot of current state of volume
+const snapshot = await client.volumes.snapshot(volume.id, {
+  slug: "my-toolchain-snapshot",
+});
+
+console.log(`Snapshot ready: ${snapshot.slug} (${snapshot.region})`);
+```
+
+Now that the snapshot is ready, we can spin up new sandboxes that use it as the root filesystem:
+
+```tsx
+import { Client, Sandbox } from "@deno/sandbox";
+
+const client = new Client();
+
+// 1. create a new sandbox mounting the snapshot volume
+await using dev = await client.sandboxes.create({
+  region: "ord",
+  root: snapshot.slug,
+  labels: { job: "dev-shell" },
+});
+
+const nodeVersion = await dev.sh`node --version`;
+const tscVersion = await dev.sh`tsc --version`;
+const banner = await dev.fs.readTextFile("/opt/banner.txt");
+
+console.log({ nodeVersion: nodeVersion.stdout, tscVersion: tscVersion.stdout });
+console.log(banner);
+```
+
+Writes inside this sandbox are ephemeral—they vanish when the session ends—but reads pull directly from the snapshot's filesystem, so every sandbox sees the same curated environment instantly.
+
+#### iterate or retire snapshots
+
+Need an updated toolchain? You can fork the snapshot into a writable volume, make changes, then snapshot again.
+
+```tsx
+const fork = await client.volumes.create({
+  region: "ord",
+  slug: "my-toolchain-fork",
+  capacity: "10GiB",
+  from: snapshot.slug,
+});
+```
+
+When a snapshot is obsolete you can remove it:
+
+```tsx
+await client.snapshots.delete(snapshot.slug);
+```
+
+🦕 You now have a concrete workflow for shipping reproducible environments: build once, snapshot, and hand teammates a slug that boots fully configured sandboxes in seconds.
