@@ -990,6 +990,43 @@ export default function Subscribe({ data }: PageProps<Data>) {
   );
 }
 ```
+
+```tsx
+// routes/todos.tsx
+import { Handlers, PageProps } from "$fresh/server.ts";
+import { kv } from "../lib/db.ts";
+
+interface Todo { id: string; text: string; done: boolean }
+
+export const handler: Handlers<Todo[]> = {
+  async GET(_req, ctx) {
+    const todos = await kv.list<Todo>({ prefix: ["todos"] });
+    return ctx.render([...todos].map((e) => e.value));
+  },
+  async POST(req, ctx) {
+    const form = await req.formData();
+    const text = form.get("text")!.toString();
+    const id = crypto.randomUUID();
+    await kv.set(["todos", id], { id, text, done: false });
+    const headers = new Headers({ Location: "/todos" });
+    return new Response(null, { status: 303, headers });
+  },
+};
+
+export default function Todos({ data }: PageProps<Todo[]>) {
+  return (
+    <div>
+      <form method="POST">
+        <input name="text" required placeholder="New todo..." />
+        <button type="submit">Add</button>
+      </form>
+      <ul>
+        {data.map((t) => <li key={t.id}>{t.text}</li>)}
+      </ul>
+    </div>
+  );
+}
+```
 ### API routes
 
 API routes are just pages in the `routes` folder except you don't export a react component. Just export handlers.
@@ -1133,3 +1170,137 @@ export default function SubscribeForm() {
   );
 }
 ```
+
+### Partials
+
+  
+Partials are Fresh 2's answer to HTMX. They let you update specific DOM regions without JavaScript — just f-partial attributes on links or forms.
+
+```tsx
+// routes/partials/feed.tsx — returns only a fragment
+import { defineRoute, Partial } from "$fresh/server.ts";
+
+export default defineRoute(async () => {
+  const posts = await fetchLatest();
+  return (
+    <Partial name="feed">
+      {posts.map((p) => <PostCard key={p.id} post={p} />)}
+    </Partial>
+  );
+});
+```
+
+Think of it as server-driven DOM diffing. Instead of shipping a JavaScript framework to update the UI, you tell Fresh "when this link is clicked, fetch this route and swap only the element named `feed`." The browser ships zero JS for that interaction — Fresh's tiny runtime (~2KB) handles the swap transparently.
+
+![](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1780281911/image-clipboard-assets/bcko6k4yvzc2hdhs3tl0.svg)
+- `f-client-nav` is required on an ancestor element to opt that subtree into Fresh's client-side navigation. Without it, `f-partial` attributes are ignored and you get a normal full-page navigation. It's essentially the "enable partials here" switch.
+- Partials are not Islands. Islands hydrate in the browser and have local state. Partials are purely server-driven — the server is the source of truth, and every interaction round-trips to it. This makes Partials ideal for data that lives in a database, and Islands ideal for UI state that doesn't need to persist (open/closed menus, local counters, real-time inputs).
+- You can have multiple named Partials on a single page and update them independently — or update several at once by returning multiple `<Partial>` elements from one route response.
+
+#### Partial example
+
+Here's a practical, real-world example — a news feed with a "Load more" button — built step by step:
+
+**Step 1 — the page defines the slot** (`routes/index.tsx`)
+
+
+```tsx
+import { defineRoute, Partial } from "$fresh/server.ts";
+import { getLatestPosts } from "../lib/db.ts";
+
+export default defineRoute(async () => {
+  const posts = await getLatestPosts({ limit: 5 });
+  return (
+    <main f-client-nav>          {/* enables Fresh's client nav on this subtree */}
+      <h1>Latest posts</h1>
+
+      {/* Named Partial slot — Fresh will target this by name */}
+      <Partial name="feed">
+        {posts.map((p) => <PostCard key={p.id} post={p} />)}
+      </Partial>
+
+      {/* This link triggers a partial fetch, not a full page load */}
+      <a href="/partials/feed" f-partial="/partials/feed">
+        Load more
+      </a>
+    </main>
+  );
+});
+```
+
+**Step 2 — a dedicated partials route returns only the fragment** (`routes/partials/feed.tsx`)
+
+tsx
+
+```tsx
+import { defineRoute, Partial } from "$fresh/server.ts";
+import { getLatestPosts } from "../../lib/db.ts";
+
+export default defineRoute(async (req) => {
+  const url = new URL(req.url);
+  const cursor = url.searchParams.get("cursor") ?? undefined;
+
+  const posts = await getLatestPosts({ limit: 5, cursor });
+  const nextCursor = posts.at(-1)?.id;
+
+  return (
+    // Same name="feed" — Fresh matches and swaps this into the DOM
+    <Partial name="feed">
+      {posts.map((p) => <PostCard key={p.id} post={p} />)}
+
+      {/* The new link replaces itself too — pagination chains naturally */}
+      
+        href={`/partials/feed?cursor=${nextCursor}`}
+        f-partial={`/partials/feed?cursor=${nextCursor}`}
+      >
+        Load more
+      </a>
+    </Partial>
+  );
+});
+```
+
+
+The key insight here is that the "Load more" link _replaces itself_ with the next "Load more" link in each response. This is how you get infinite scroll with no JavaScript written by you.
+
+#### Partial form example
+
+```tsx
+// routes/todos.tsx
+export default defineRoute(async () => {
+  const todos = await getAllTodos();
+  return (
+    <div f-client-nav>
+      {/* Form submits via POST, response swaps only the list */}
+      <form action="/partials/todos" method="POST" f-partial="/partials/todos">
+        <input name="text" placeholder="New task…" required />
+        <button type="submit">Add</button>
+      </form>
+
+      <Partial name="todo-list">
+        <ul>
+          {todos.map((t) => <li key={t.id}>{t.text}</li>)}
+        </ul>
+      </Partial>
+    </div>
+  );
+});
+
+// routes/partials/todos.tsx
+export const handler: Handlers = {
+  async POST(req) {
+    const form = await req.formData();
+    await createTodo(form.get("text")!.toString());
+    const todos = await getAllTodos();
+    return (
+      <Partial name="todo-list">
+        <ul>
+          {todos.map((t) => <li key={t.id}>{t.text}</li>)}
+        </ul>
+      </Partial>
+    );
+  },
+};
+```
+
+Submit the form → server writes to DB → returns updated list fragment → Fresh swaps it in. The form input clears automatically. Zero JavaScript on your part.
