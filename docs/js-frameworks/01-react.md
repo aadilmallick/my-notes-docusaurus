@@ -4917,6 +4917,44 @@ Every zustand store hook has these two methods
 
 State-setter functions in a store are called **actions**, and for readability and ease of use, actions should be markedly separate from state, which we can achieve by nesting all actions inside of an `actions` object.
 
+Here are the benefits:
+
+1. **cleaner code**
+2. **less re-renders**: extracting our actions out of the store means the store has less reason to change, avoiding unnecessary re-renders.
+
+
+```ts
+import {create} from "zustand"
+
+interface CounterStore {
+	count: number;
+}
+
+interface CounterStoreActions {
+	increment: () => number;
+	decrement: () => number;
+	reset: () => void;
+}
+
+export const useCounterStore = create<CounterStore>(
+	(set) => ({
+		count: 0;
+	})
+)
+
+export const counterStoreActions = {
+	increment: () => {
+			// automatically merges objects
+			useCounterStore.setState(state => ({count: state.count + 1})) 
+	},
+	decrement: () => {
+		useCounterStore.setState(state => ({count: state.count - 1})) 
+	},
+	reset: () => {
+		useCounterStore.setState({ count: 0 })
+	}
+}
+```
 ## Custom Hooks
 
 ### `useWaitForAnimationsToFinish`
