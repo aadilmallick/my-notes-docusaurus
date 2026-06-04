@@ -4,6 +4,9 @@
 
 The supabase CLI can be installed here
 
+
+#### Setup
+
 Here is how you can set up your project:
 
 1. Run `supabase login` to login
