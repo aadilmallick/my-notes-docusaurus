@@ -1,11 +1,11 @@
-## Supabase
+# Supabase
 
-### CLI
+## CLI
 
 The supabase CLI can be installed here
 
 
-#### Setup
+### Setup
 
 Here is how you can set up your project:
 
@@ -17,7 +17,7 @@ Here is how you can set up your project:
 supabase link --project-ref <project-id>
 ```
 
-#### secrets
+### secrets
 
 You can use the `supabase secrets` command to perform CRUD operations on secrets and upload them to the cloud.
 
@@ -30,9 +30,13 @@ Here is how to setup multiple secrets at once by pointing to an env file to uplo
 supabase secrets set --env-file .env
 ```
 
-### SDK
+## Local Dev with Supabase
 
-#### SDK setup
+
+
+## SDK 
+
+### Setup
 
 1. Install the supabase SDK `@supabase/supabase-js` package.
 
@@ -212,12 +216,7 @@ You then paste in your client secret and id here:
 
 
 The final step you need to do is to register redirect URLs to your app with supabase. Go to the `/auth/url-configuration` route in supaabase to do so.
-#### Auth
-
-Here is a supabase auth client you can create:
-
-```ts
-```
+#### Client-side Auth
 
 Here's an abstraction over common supabase auth operations:
 
@@ -281,7 +280,7 @@ export class SupabaseAuthManager {
 ```
 
 
-### Edge functions 
+## Edge functions 
 
 Edge functions are serverless cloud functions you create that supabase hosts that you can request like an API endpoint. An example would be something like this:
 
@@ -593,7 +592,7 @@ Deno.serve(async (req) => {
 ```
 
 
-### DB
+## DB
 
 #### Security policies
 
@@ -602,31 +601,8 @@ This is what a security policy will look like to enable row level security
 
 ![](https://i.imgur.com/3d3MRzR.jpeg)
 
-#### Migrations
-
-Since supabase just runs on postgres, you can write normal psotgresql and make changes to your cloud DB. You follow these steps:
-
-1. Create a `supabase/migrations` folder and write all the SQL files that describe the migration there. They will be run in alphabetical order.
-2. Run `supabase db push` command to run all the SQL files in the `supabase/migrations` folder.
-
-To do a complete rest on your project and clear the db to start fresh, run this command:
-
-```bash
-supabase db reset --linked
-```
-
-#### Setup with stripe
-
-Here I will walk you through a complete supabase setup with stripe.
-
-The first step is to run this migration:
-
-Then to add fields to your user:
-
-Add triggers to automatically create customer ID for a user once they're created in supabase, which is much easier than manually adding the customer id.
 
 
-## Firebase
 
-## Appwrite
+
 
