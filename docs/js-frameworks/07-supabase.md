@@ -32,6 +32,24 @@ supabase secrets set --env-file .env
 
 ## Local Dev with Supabase
 
+### Migrations and DB schemas
+
+#### Declarative schema development
+
+Supabase has a new way to automatically generate migrations for local development.
+
+1. Create a SQL file that defines a table in the `supabase/schemas` folder
+2. Use the `supabase db diff` command to create a migration based on the diff of the current state of the database and the SQL file.
+
+
+```bash
+supabase 
+```
+
+
+![](https://i.imgur.com/UWQzWEo.jpeg)
+
+
 
 
 ## SDK 
@@ -594,7 +612,7 @@ Deno.serve(async (req) => {
 
 ## DB
 
-#### Security policies
+### Security policies
 
 This is what a security policy will look like to enable row level security
 
