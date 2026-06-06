@@ -30,6 +30,9 @@ Here is how to setup multiple secrets at once by pointing to an env file to uplo
 supabase secrets set --env-file .env
 ```
 
+> [!WARNING]
+> Any custom secrets you set for edge functions in supabase CANNOT start with `SUPABASE_` prefix as that is reserved only for special env vars supabase auto-injects into each function execution environment.
+
 ## Local Dev with Supabase
 
 ### Migrations and DB schemas
@@ -78,7 +81,23 @@ supabase stop --no-backup
 - `supabase migrations up`: applies migrations to local db
 - `supabase db push`: pushes up local db migrations and changes to the prod db
 
+### Local auth
 
+#### External provider setup
+
+Here is how to set up auth for an external provider like google:
+
+1. In the root `.env` of your app, set up the google oauth client id and google oauth
+2. In the `supabase/config.toml`, setup auth like so:
+
+
+```toml
+[auth.external.github]
+enabled = true
+client_id = "env(GOOGLE_OAUTH_CLIENT_ID)"
+secret = "env(GOGGLE_OAUTH_SECRET)"
+redirect_uri = "http://localhost:54321/auth/v1/callback"
+```
 
 ## SDK 
 
