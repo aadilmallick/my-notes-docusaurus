@@ -35,6 +35,15 @@ supabase secrets set --env-file .env
 
 ## Local Dev with Supabase
 
+### Overview
+
+Runnign supabase locally via docker compose runs all of the supabase services on localhost, meaning to connect to supabase locally, you have to configure your code to access these local services:
+
+- `http://localhost:54321`: the default local origin of where your supabase project runs, basically where all the REST APIs for the project live
+- `http://localhost:54323`: the default studio API
+
+You can change all local behavior, ports, urls, etc. via the `supabase/config.toml`, which controls the configuration for local development.
+
 ### Migrations and DB schemas
 
 #### Declarative schema development
@@ -87,17 +96,25 @@ supabase stop --no-backup
 
 Here is how to set up auth for an external provider like google:
 
-1. In the root `.env` of your app, set up the google oauth client id and google oauth
+1. In the root `.env` of your app, set up the client id and client secret of the oauth provider
 2. In the `supabase/config.toml`, setup auth like so:
-
 
 ```toml
 [auth.external.github]
 enabled = true
 client_id = "env(GOOGLE_OAUTH_CLIENT_ID)"
 secret = "env(GOOGLE_OAUTH_SECRET)"
+# redirect uri must be this, since local project url is http://localhost:54321
 redirect_uri = "http://localhost:54321/auth/v1/callback"
 ```
+
+Then for the external auth providers, you should add the new redirect uri and authorized origins to account for `http://localhost:54321`
+
+
+![](https://i.imgur.com/ss2ps8N.jpeg)
+
+
+
 
 ## SDK 
 
