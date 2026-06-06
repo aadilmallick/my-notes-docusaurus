@@ -95,7 +95,7 @@ Here is how to set up auth for an external provider like google:
 [auth.external.github]
 enabled = true
 client_id = "env(GOOGLE_OAUTH_CLIENT_ID)"
-secret = "env(GOGGLE_OAUTH_SECRET)"
+secret = "env(GOOGLE_OAUTH_SECRET)"
 redirect_uri = "http://localhost:54321/auth/v1/callback"
 ```
 
