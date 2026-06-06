@@ -40,15 +40,30 @@ Supabase has a new way to automatically generate migrations for local developmen
 
 1. Create a SQL file that defines a table in the `supabase/schemas` folder
 2. Use the `supabase db diff` command to create a migration based on the diff of the current state of the database and the SQL file.
+3. Use the `supabase migration up` command to apply the migration to the db
 
 
 ```bash
-supabase 
+supabase db diff -f <migration_name>
 ```
 
 
 ![](https://i.imgur.com/UWQzWEo.jpeg)
 
+#### Declarative sync
+
+The new supabase declarative db schema sync command allows you to generate migrations automatically and sync it to the database automatically. Use this command:
+
+```bash
+supabase db schema declarative sync
+```
+
+1. Enable the `[experimental.pgDelta]` key in the `supabase/config.toml`
+
+
+### Seed file
+
+For local development
 
 
 
