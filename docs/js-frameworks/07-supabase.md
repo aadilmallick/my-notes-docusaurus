@@ -61,9 +61,22 @@ supabase db schema declarative sync
 1. Enable the `[experimental.pgDelta]` key in the `supabase/config.toml`
 
 
-### Seed file
+#### Seed file
 
-For local development
+For local development you can create a `supabase/seed.sql` that will run automatically on database initialization to seed the database.
+
+If you have a bunch of data in the database you want to create as initial data for the seed, this is how you can copy the current data in the database into a seed file:
+
+```bash
+supabase db diff -f my_schema
+supabase db dump --local --data-only > supabase/seed.sql
+supabase stop --no-backup
+```
+
+#### Push up migrations
+
+- `supabase migrations up`: applies migrations to local db
+- `supabase db push`: pushes up local db migrations and changes to the prod db
 
 
 
