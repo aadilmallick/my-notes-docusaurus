@@ -694,7 +694,7 @@ export const useStripeClient = (route: string) => {
 
 The Stripe CLI is an easy way to test out webhooks locally. here is how to install:
 
-#### Installation
+### Installation
 
 **windows**
 
@@ -714,7 +714,9 @@ brew install stripe/stripe-cli/stripe
 ```bash
 docker run --rm -it stripe/stripe-cli:latest
 ```
-#### Starting webhook local development
+### webhook local development
+
+#### Setup
 
 The first step to use the stripe CLI is to run the `stripe login` command.
 
@@ -727,9 +729,23 @@ stripe listen -e checkout.session.completed --forward-to http://localhost:3000/w
 
 3. After successfully listening, copy the outputted webhook secret into your `.env` and use it for testing your webhooks.
 
-The `-e` flag specifies the events you want to listen to, but by default if you omit this option, stripe forwards all events to your webhook.
+#### Listening to specific events
 
-### Triggering events
+
+The `-e` or `--event` flag specifies the events you want to listen to, but by default if you omit this option, stripe forwards all events to your webhook.
+
+```bash
+stripe listen --events payment_intent.created,customer.created,payment_intent.succeeded,charge.succeeded,checkout.session.completed,charge.failed \
+  --forward-to localhost:4242/webhook
+```
+
+If you’ve already [registered your endpoint in Stripe](https://docs.stripe.com/webhooks#register-webhook), you can use the `--load-from-webhooks-api` and `--forward-to` flags.
+
+```bash
+stripe listen --load-from-webhooks-api --forward-to localhost:4242
+```
+
+#### Triggering events
 
 You can easily trigger events in stripe using the `stripe trigger` command, which allows you to test stuff like webhook events without the hassle of manually cancelling or updating subscriptions.
 
