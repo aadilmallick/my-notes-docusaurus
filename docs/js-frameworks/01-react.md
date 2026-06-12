@@ -4319,6 +4319,63 @@ function InfinitePosts() {
 
 export default InfinitePosts;
 ```
+
+## React router
+
+### Basic browser router
+
+### Scroll to top
+
+In newer versions of react router 7+, you can just render the `<ScrollRestoration />` component from `react-router-dom` at the top level of the app, and that automatically saves scroll position.
+
+If you want to force scrolling to the top each time, then you should use the `useLocation()` hook to scroll up the page every time the URL changes, and make a custom hook from this:
+
+```tsx
+import { useLayoutEffect } from "react";
+import { useLocation } from "react-router-dom";
+
+export function useScrollToTop() {
+  const { pathname } = useLocation();
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+```
+
+Then you use this hook somewhere in your app tree:
+
+```tsx
+const ScrollRestorer = () => {
+  useScrollToTop();
+  return null;
+};
+
+const App = () => (
+        <BrowserRouter>
+          <ScrollRestorer />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/order" element={<Order />} />
+            <Route path="/order-result" element={<OrderResult />} />
+            <Route path="/order-history" element={<OrderHistory />} />
+            <Route path="/orders/:id" element={<CustomerOrderDetailPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin/manage-orders" element={<AdminPage />} />
+            <Route path="/admin/orders/:id" element={<OrderDetailPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+);
+
+export default App;
+```
 ## React 19 changes
 
 The React 19 changes remove a lot of annoying optimization code we once had to write ourselves, like `useMemo()` or `useCallback()` or `memo()`. This is because the react compiler looks ahead of time at the correct optimizations to make. But besides this main feature, there are new changes:
