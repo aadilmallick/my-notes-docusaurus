@@ -78,14 +78,3 @@ function useStatuses<const T extends string>(statuses: T[]): T[] {
 const statuses = useStatuses(["active", "inactive"]);
 ```
 
-## Complete guide to infer
-
-You can add constraints to `infer` uses, making it even more usefel.
-
-```tsx
-type GetReturnTypeString<T> = T extends ((
-  ...args: any[]
-) => infer R extends string | number | boolean)
-  ? `return type is ${R}`
-  : never;
-```

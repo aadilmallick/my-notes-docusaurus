@@ -95,14 +95,46 @@ For the `type` command, there are 4 types of things a command could be:
 
 ### Getting file info
 
+
+#### File metadata commands
+
+The commands are used to get specific metadata about a file or folder
+
+- `file <filepath>`: returns the type of file the specified file is, like a directory, file, or symlink.
+- `du <filepath>`: returns the filesize for the file or folder.
+
+
+**`file` command**
+
 To get information about the what resource a filepath actually is, use the `file` command:
 
 - `file <filepath>`: describes whether the filepath is a symlink, file, or directory.
+
+**file size commands**
 
 You also have these commands to get file size info
 
 - `df -h` : displays the disk usage information for the laptop
 - `du -h <folder>` : displays the disk usage info for the specified folder
+
+**file timestamps**
+
+Unix filesystems track three distinct metadata timestamps for each file: ctime, mtime, and atime.
+
+- `ctime`: latest timestamp when permissions were changed for the file
+- `mtime`: latest timestamp when the file was modified
+- `atime`: latest timestamp when the file was accessed or read.
+
+#### Filepath commands
+
+These commands are used for manipulating filepaths
+
+- `realpath <filepath>`: returns the absolute path version of the relative filepath
+- `basename <filepath>`: returns the basename (filename including extension) from the filepath
+- `dirname <filepath>`: returns the directory path of the directory that contains the specified file (filepath excluding filename).
+
+
+**`basename` command**
 
 To parse the basename of a file, you can use the `basename` command:
 
@@ -240,6 +272,13 @@ The `-t` option is used to sneak peek inside the tarball and list all files livi
 ```bash
 tar -tf <tarball>
 ```
+
+### `gzip`
+
+The `gzip` command in linux allows you to compress files losslessly with the **GZIP** compression algorithm.
+
+- `gzip <filepath>`: compresses the specified file with the GZIP algorithm and outputs the compressed copy version with a `.gz` extension.
+- `gzip -d <gz-filepath>`: decompresses a GZipped file that ends in the `.gz` extension to what it originally was.
 
 ### `zip`
 
@@ -782,9 +821,18 @@ grep "bruh" < <(echo "bruh")
 
 ## Dealing with processes
 
-You can see all current processes running with the `ps` command. You can see all **background processes** running with the `jobs` command:
+You can see all current processes running with the `ps` command. 
 
-- `ps`: lists all currently running processes along with their pid (process identifier)
+- `ps`: lists all currently running processes in the current shell along with their pid (process identifier)
+- `ps -ef`: lists all currently running processes in the system and details the following info for each process:
+	- `PID`: the process id
+	- `UID`: the user that owns/initiated the process
+	- `PPID`: the parent process's process id
+	- `C`: the CPU utilization percentage of this process.
+
+
+You can see all **background processes** running with the `jobs` command:
+
 - `jobs`: lists all currently running background processes
 - `jobs -l`: lists all currently running background processes along with their PID.
 
@@ -808,9 +856,13 @@ You can check current background jobs running with the `jobs` command, and then 
 
 ### Killing processes
 
-You can kill any process in the foreground with `CTRL + D`, but you can also use the `kill` command to kill processes:
+You can kill any process in the foreground with `CTRL + D`, but you can also use the `kill` command to kill processes specified by their process id, which sends a `SIGTERM` signal to politely signal to the process to stop and die.
 
-- `kill -9 <pid>`: ungracefully kills a process, specified by the process id
+```
+kill <pid>
+```
+
+- `kill -9 <pid>`: ungracefully kills a process via a `SIGKILL` signal, specified by the process id
 - `kill -l`: see options for the `kill` command
 
 ## Permissions
@@ -870,6 +922,24 @@ If a folder is in write mode, the directory’s contents can be modified but onl
 
 - If a file is in executable mode, it can be treated as a program to be executed.
 - If a folder is in executable mode, it can be “cd”ed into.
+
+### SUDO: root user
+
+The root user, also called **superuser** on linux has all permissions available to do anything they want, like modify any files, install any applications, etc.
+
+- The superuser has the user id of 1
+- The superuser's username is `root`
+
+However, since the root user is very powerful, it violates the principle of least privilege, so OSs like Mac and Ubuntu by default disable you logging in as the root user.
+
+However, you can still access root user powers by using `sudo` to temporarily assume the role of the superuser and execute a command.
+
+> [!NOTE]
+> The idea is that when you use `sudo` it’s more likely to be intentional that you’re going to execute a superuser-level action that could potentially be dangerous.
+
+To switch to the superuser role temporarily past a single command, you can use the following commands:
+
+- `sudo su -`: switches to superuser
 
 ### Changing permissions with `chmod`
 
@@ -992,6 +1062,21 @@ PS1="${PS1}$(git_branch) "
 **linux**
 
 On linux, the default shell is bash, and the startup files are in `~/.bashrc` and `~/.bash_profile`
+
+```bash title="~/.bashrc"
+parse_git_branch() {
+    local branch
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+    if [ -n "$branch" ]; then
+        echo -e "(\033[32m$branch\033[0m)"
+    else
+        echo -e "(\033[31mnone\033[0m)"
+    fi
+}
+
+# Simple, reliable prompt definition
+PS1='\u@\h:\w $(parse_git_branch)\$ '
+```
 
 **git bash**
 
@@ -1160,7 +1245,7 @@ Here are some useful examples:
 
 Cron jobs do not have the ability to print to stdout, so if they fail, the fail silently. The best practice is to redirect all stdout from a cron job into a file and also redirect stderr into a file.
 
-## Linux Admin
+## Advanced Linux
 
 ### Learning the Linux Filesystem
 

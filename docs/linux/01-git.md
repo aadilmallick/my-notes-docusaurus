@@ -409,6 +409,123 @@ Now when we run the `git l` alias, it will log our git logs in a *oneline* fashi
 
 [![Gist Card](https://github-readme-stats.vercel.app/api/gist?id=8bd4643d2f186cce28a59c6366d243c3)](https://gist.github.com/aadilmallick/8bd4643d2f186cce28a59c6366d243c3)
 
+
+## Dealing with git SSH connection
+
+### When having multiple SSH hosts at the same time
+
+If you need to maintain git SSH for your work email and one for your personal, then the SSH setup is a little more complicated, but consists of three main points:
+
+- **SSH Key:** A dedicated key pair (`id_ed25519_personal`) handles personal authentication.
+- **SSH Config (`~/.ssh/config`):** Acts as a router. It intercepts requests sent to `github.com-personal` and redirects them to `github.com` using your personal key.
+- **Local Git Config:** Overrides your global work name/email inside specific repository folders only.
+
+#### 🛠️ Step 1: Generate & Add Personal SSH Key
+
+1. Run this in WSL to create your personal key
+
+```bash
+ssh-keygen -t ed25519 -C "your-personal-email@email.com"
+```
+
+2. ⚠️ **Important:** Do _not_ overwrite the default path. When prompted, type a custom path:
+
+```
+/home/yourusername/.ssh/id_ed25519_personal
+```
+
+3. Print out and copy your public key
+
+```sh
+cat ~/.ssh/id_ed25519_personal.pub | clip.exe
+```
+
+4. Go to **GitHub Settings** ➡️ **SSH and GPG keys** ➡️ **New SSH Key** and paste your key.
+
+
+#### ⚙️ Step 2: Configure the SSH Router File
+
+1. Open your `~/.ssh/config` file to add the `github.com-personal` host:
+`
+```toml title="~/.ssh/config"
+# Personal GitHub Account
+Host github.com-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_personal
+```
+
+2. Test that your routing works:
+
+```sh
+ssh -T git@github.com-personal
+```
+
+
+#### 🚀 Step 3: Setup connection to personal git SSH
+
+1. In your local git config, override your global settings by setting your personal github username and email:
+
+```sh
+git config --local user.name "aadilmallick"
+git config --local user.email "aadiltj.mallick@gmail.com"
+```
+
+2. Add the git remote from the remote repo you created
+3. Set the git remote URL to use your github-personal SSH:
+
+```sh
+git remote set-url origin git@github.com-personal:aadilmallick/remote-repo-name.git
+```
+
+Now you can push up your code at will.
+
+#### Step 3 automation
+
+To automate step 3 and have a less error-prone local git setup, here's a bash script wher eyou preconfigure your personal github username and email ahead of time so that when you run this bash script, it automatically 1) sets your local git config with your local credentials and 2) overrides the remote origin url to point to your personal SSH host.
+
+```sh
+#!/bin/bash
+
+# Define your personal details here
+PERSONAL_EMAIL="aadiltj.mallick@gmail.com"
+PERSONAL_NAME="aadilmallick"
+PERSONAL_HOST="github.com-personal"
+
+# 1. Get the current remote URL
+CURRENT_URL=$(git remote get-url origin 2>/dev/null)
+
+if [ -z "$CURRENT_URL" ]; then
+    echo "Error: No remote named 'origin' found in this directory."
+    exit 1
+fi
+
+# 2. Check if the URL is using standard SSH format
+if [[ "$CURRENT_URL" =~ ^git@github\.com: ]]; then
+    # Swap github.com with github.com-personal
+    NEW_URL="${CURRENT_URL/git@github.com:/git@${PERSONAL_HOST}:}"
+
+    # Update the remote URL
+    git remote set-url origin "$NEW_URL"
+    echo "Remote URL updated to: $NEW_URL"
+else
+    # Check if it's already converted to prevent breaking it
+    if [[ "$CURRENT_URL" =~ ^git@${PERSONAL_HOST}: ]]; then
+        echo "Remote URL is already configured for your personal account."
+    else
+        echo "Warning: Remote URL doesn't look like a standard GitHub SSH URL ($CURRENT_URL)."
+        echo "Could not automatically safely convert it."
+    fi
+fi
+
+# 3. Override the local repository Git configurations
+git config --local user.name "$PERSONAL_NAME"
+git config --local user.email "$PERSONAL_EMAIL"
+
+echo "Local Git configuration updated successfully!"
+echo "   Name:  $(git config user.name)"
+echo "   Email: $(git config user.email)"
+```
 ## Github Codespaces
 
 You can open up a github codespace for any repository by just pressing the period `.` on the repo page.

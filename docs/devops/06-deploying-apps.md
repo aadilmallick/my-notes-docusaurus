@@ -14,13 +14,47 @@ Here is an example of how to deploy express with vercel: https://github.com/verc
 2. Login to vercel with `vercel login` command.
 3. Create a new project with `vercel dev` command. This will create a `.vercel` directory in your project root.
 
-### `vercel dev`
+Here's a quick summary of the core commands:
 
-The `vercel dev` command is used to set up your vercel project, configure deployment settings, and start a local development server.
+- `vercel dev`: used to set up your vercel project, configure deployment settings, and start a local development server.
+- `vercel`: used to deploy your project to the Vercel platform. It will automatically detect your project settings and deploy it to the cloud.
+- `vercel login`: login to your vercel account using `vercel login`
+- `vercel switch`: switch vercel team accounts
+- `vercel list`: list all vercel projects
+- `vercel link`: Link existing vercel projects to your local codebase with `vercel link`
 
-### `vercel`
 
-The `vercel` command is used to deploy your project to the Vercel platform. It will automatically detect your project settings and deploy it to the cloud.
+#### `vercel` command
+
+Anytime you want to deploy your app, use the `vercel --prod` command.
+
+```json title="package.json"
+{
+  "scripts": {
+    "deploy": "vercel --prod"
+  }
+}
+```
+
+Then you can imply run `npm run deploy` to deploy your app.
+
+
+### Deploying different frameworks
+
+#### Deploying React apps to vercel
+
+When doing client side routing, you MUST have a `vercel.json` in the root of your project that specifies to redirect all requests to the index HTML:
+
+```json title="vercel.json"
+    {
+      "rewrites": [
+        {
+          "source": "/:path*",
+          "destination": "/index.html"
+        }
+      ]
+    }
+```
 
 ### Express with vercel complete steup guide
 

@@ -1928,23 +1928,218 @@ Here are the most common use cases for using `using`:
 
 Decorators in javascript work just like they do in Python. They are syntactic sugar around functions that return wrapper functions and add some extra reusable functionality. 
 
+However, in JS you can decorate three different things:
+
+1. **functions/methods**: the classic decorator syntax
+2. **classes**: You can decorate entire classes by gaining access to the constructor before the class is initialized and doing stuff with the object instance after its instantiation.
+3. **class properties**: You can hook into class properties and decorate them
+4. **accessors**: Just like you can decorate class properties, you can decorate getters and setters.
+
+
+
+### Decorator basics
+
+At its most basic, here is how a decorator works:
+
+1. Create an **outer function** that accepts two arguments: the **function** to decorate and the **context** type, depending on whether you're decorating a method, property, or entire class.
+2. In the outer function body, create a **wrapper function** that calls the function you want to decorate, supplying the function with what it needs by maintaining `this` and the arguments via `...args`.
+3. Return the wrapper function.
+
 ```ts
-function asyncLogger(fn) {
-  return async function (...args) {
-    console.log('Starting async function...');
-    const result = await fn(...args);
-    console.log('Async function completed.');
-    return result;
-  };
+// outer function decorator
+function decoratorMethod(realMethod: Function, _ctx: ClassMethodDecoratorContext) {
+
+	// 1. create wrapper
+    function replacedDecoratorMethod(this: any, ...args: any[]) {
+        console.log(`Hi, ${realMethod.name} method starts executing here.`);
+        // 1a) call decorated function
+        const res = realMethod.call(this, ...args);
+        console.log(`The ${realMethod.name} method stops executing here.`);
+        
+        // 1b) return the result of decorated function
+        return res;
+    }
+
+	// return wrapper
+    return replacedDecoratorMethod;
 }
 
-@asyncLogger
-async function main() {
-  const data = await makeRequest('http://example.com/');
-  console.log(data);
+// Implementing class for decorator method
+class User {
+    constructor(private name: string, private desc: string) { }
+
+    @decoratorMethod
+    welcome() {
+        console.log(`Hello, Welcome ${this.name}.`);
+    }
+
+    @decoratorMethod
+    description() {
+        console.log(`It is "${this.desc}".`);
+    }
+}
+
+const user = new User("GeeksforGeeks", "A Computer Science portal for all geeks");
+user.welcome();
+user.description();
+```
+
+The context type varies depending on the type of function or property you are decorating.
+
+Here are the three main ones you will use most often
+
+- `ClassDecoratorContext`: used to type context for a decorator that decorates an entire class, used for **class decorators**
+- `ClassMethodDecoratorContext`: used to type context for a decorator that decorates a method within a class, used for **method decorators**.
+
+And here are the context types for decorating accessors:
+
+- `ClassGetterDecoratorContext`: used to type context for a decorator that decorates a getter.
+- `ClassSetterDecoratorContext`: used to type context for a decorator that decorates a setter.
+
+Here are the properties available on all the context objects:
+
+- `context.kind`: used to discern the type of object being decorated. One of `"method"`, `"class"`, `"getter"`, `"setter"`, `"accessor"`, or `"field"`
+- `context.addInitializer(cb)`: offers a way to hook into the beginning of the constructor (or the initialization of the class itself if we’re working with `static`s).
+
+### Class decorators
+
+Class decorators can be applied to the entire class
+
+```ts
+function Frozen(value: Function, context: ClassDecoratorContext) {
+  // Freezes both the constructor and its prototype
+  Object.freeze(value);
+  Object.freeze(value.prototype);
+}
+
+@Frozen
+class IceCream {
+  flavor: string;
+  constructor(flavor: string) {
+    this.flavor = flavor;
+  }
+}
+
+// Attempting to modify the prototype at runtime will now fail
+// IceCream.prototype.topping = "Sprinkles"; // Error in strict mode
+```
+
+
+### Method decorators
+
+Method decorators are used to wrap a method declaration to track behavior, add logging, catch errors, or measure performance.
+
+This is what it looks like without types:
+
+Notice that `loggedMethod` takes the original method (`originalMethod`) and returns a function that
+
+1. logs an "Entering…" message
+2. passes along `this` and all of its arguments to the original method
+3. logs an "Exiting…" message, and
+4. returns whatever the original method returned.
+
+```ts
+function loggedMethod(originalMethod: any, _context: any) {
+
+    function replacementMethod(this: any, ...args: any[]) {
+        console.log("LOG: Entering method.")
+        const result = originalMethod.call(this, ...args);
+        console.log("LOG: Exiting method.")
+        return result;
+    }
+
+    return replacementMethod;
 }
 ```
 
+And here' what it looks like with types:
+
+```ts
+function LoggedMethod<This, Args extends any[], Return>(
+  originalMethod: (this: This, ...args: Args) => Return,
+  context: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Return>
+) {
+  const methodName = String(context.name);
+
+  function replacementMethod(this: This, ...args: Args): Return {
+    console.log(`LOG: Entering method '${methodName}'.`);
+    const result = originalMethod.call(this, ...args);
+    console.log(`LOG: Exiting method '${methodName}'.`);
+    return result;
+  }
+
+  return replacementMethod;
+}
+
+class MathOperations {
+  @LoggedMethod
+  add(a: number, b: number): number {
+    return a + b;
+  }
+}
+
+const calc = new MathOperations();
+calc.add(5, 10); // Prints: LOG: Entering method 'add' -> LOG: Exiting method 'add'
+
+```
+
+For method decorators, the context is of type `ClassMethodDecoratorContext` and has these properties:
+
+
+### Property decorators
+
+
+Property decorators let you monitor, modify, or initialize class properties. The modern implementation uses an `addInitializer` hook.
+
+```ts
+function DefaultValue(value: string) {
+  return function <This>(
+    target: undefined, 
+    context: ClassFieldDecoratorContext<This, string>
+  ) {
+    context.addInitializer(function (this: any) {
+      this[context.name] = value;
+    });
+  };
+}
+
+class User {
+  @DefaultValue("Guest") 
+  role!: string;
+}
+
+const user = new User();
+console.log(user.role); // Prints: "Guest"
+
+```
+
+### Decorator factories
+
+If you need to pass custom arguments to your decorator, you can write a Decorator Factory. This is simply a wrapper function that returns the actual decorator function.
+
+```ts
+// The Factory accepts custom variables
+function LogWithPrefix(prefix: string) {
+  // Returns the actual decorator
+  return function <This, Args extends any[], Return>(
+    originalMethod: (this: This, ...args: Args) => Return,
+    context: ClassMethodDecoratorContext
+  ) {
+    return function (this: This, ...args: Args): Return {
+      console.log(`[${prefix}] Executing...`);
+      return originalMethod.call(this, ...args);
+    };
+  };
+}
+
+class Service {
+  @LogWithPrefix("AUTH-SERVICE")
+  login() {
+    // login logic
+  }
+}
+
+```
 
 ## Generators
 

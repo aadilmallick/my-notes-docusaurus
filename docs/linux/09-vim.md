@@ -72,6 +72,7 @@ Here are the different ways to navigate a file in vim while in edit mode
 - **j, k, h, l** - move the cursor down, up, left and right (similar to the arrow keys)
 - `^` - move cursor to beginning of current line
 - `$` - move cursor to end of the current line
+- `_`: move to the first non-whitespace character of a line
 - `gg`: move the first line in the file
 - `G` - move to the last line in the file
 - `w` - move forward one word
@@ -97,6 +98,10 @@ And you have these that take in a numerical argument:
 
 -  `<n>x` - delete `n` characters (eg `5x` deletes five characters)
 - `<n>dd` - Deletes the next `n` lines (eg `5dd` means delete 5 lines)
+
+And you have this that takes in a character argument:
+
+- `dt<char>`: deletes up to a specific character
 
 #### Deletion mode
 
@@ -177,48 +182,12 @@ So here's a basic summary:
 - `A`: Pressing `Shift+A` enters insert mode at the end of the line, including any trailing whitespace
 - `o`: Pressing 'o' creates a new line below the current line, respects the current indentation, and enters insert mode
 
-## Find and replace
+### Registers
 
-### basics
+**registers** in VIM store VIM keystroke and commands history.
 
-- `/<pattern>`: search for matches matching the specified regex pattern, and after you hit the **Enter** key, enters **search mode**.
+To view the contents of Vim registers, type the `:register` command
 
-#### Navigating between occurrences and highlighting
-
-You can navigate between occurrences like so:
-
--  `n`: goes to next match while in search mode
--  `N`: goes to previous match while in search mode
-
-You can also highlight occurrences and stop highlighting them with this command:
-
-- `:set hls ic`: highlights all matching searches
-- `:nohls`: stops highlighting.
-
-
-
-### Find and replace 
-
-- `:%s/<pattern>/<replace>/g`: performs find and replace globally
-
-### Quickfix list
-
-A quickfix list is a list of all matching results of fuzzy search, which you get by using `:grep` or the `fzf` vim plugin.
-
-Here is an example of how to search stuff within a directory with the `:grep` command:
-
-``` bash
-# 1st argument is the pattern, 2nd argument is the glob pattern
-:grep aadil **/*.html
-```
-
-This creates a quickfix list that is saved and you can navigate, where the list length is the number of occurrences of that regex pattern within all matching files to the glob pattern.
-
-- `:copen`: opens the quick fix list, creating a horizontal split panel view where the matched regex pattern occurrence in the file is on the top panel and the quick fix list is on the bottom panel.
-- `:cnext`: goes to the next result in the quick fix list, opening the the next occurrence up in the top panel.
-- `:cprev`: goes to the previous result in the quick fix list, opening the the previous occurrence up in the top panel.
-
-Typing `:cnext` and `:cprev` is a lot of work to go to the next occurrence, so we can remap those:
 
 ## Vim customization
 
@@ -442,10 +411,21 @@ To instantly jump back and forth between your two most recently opened files in 
 
 ### Jump List
 
-The jump list is a history of all the places you navigated to in your vim session. You have two keyboard shortcuts to navigate it:
+The jump list is a history of all the places you navigated to in your vim session., which includes movements you make within a file and navigations between files/directories.
+
+There are two symbols reserved for the immediate navigation history:
+
+- `%`: references the current file
+- `#`: references the previous file
+
+You have two keyboard shortcuts to navigate it:
 
 - `ctrl + o`: move backward in the jump list
 - `ctrl + i`: move forward in the jump list.
+
+> [!TIP]
+> A common tactic is to add imports at the top of the file with `gg` and then go back to where you were using `ctrl + o`
+
 ### Marks
 
 Marks are a way to save a position in a file when navigating a file tree and opening up files, and then you can navigate to those marks, navigating to that saved position in the file. There are two types of marks:
@@ -495,11 +475,10 @@ Add a vim-plug section to your `~/.vimrc` (or `~/.config/nvim/init.vim` for 
 
 For example,
 
-```viml
+```vim
 call plug#begin()
 
 " List your plugins here
-Plug 'tpope/vim-sensible'
 
 call plug#end()
 ```
@@ -515,7 +494,7 @@ Reload the file or restart Vim, then you can,
 
 1. First register the plugin you want to install by typing this code in the plugin section:
 
-```viml
+```vim
 call plug#begin('~/.vim/plugged')
 
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
@@ -539,9 +518,170 @@ nnoremap <C-p> :GFiles<CR>
 
 And here is a remap where if you're not in a git repo, you can do fuzzy search over all files in the directory recursively, mapping the **Space** + `pf` (project files) shortcut to execute the `:Files` command:
 
+```vim
+let mapleader = " "  
+nnoremap <leader>pf :Files<CR>
 ```
 
+All in all, this is what your `~/.vimrc` should look like now:
+
+```vim
+set scrolloff=8
+set number
+set tabstop=4 softtabstop=4
+set expandtab
+set smartindent
+syntax on
+set cursorline
+set shiftwidth=4
+set incsearch
+set smartcase
+set hlsearch
+set backspace=indent,eol,start
+colorscheme habamax
+
+call plug#begin('~/.vim/plugged')
+
+" List your plugins here
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
+call plug#end()
+
+" space + S = start sed substitution
+let mapleader = " "
+nnoremap <leader>s :%s/
+
+" space + pv = open file explorer with vertical split
+let mapleader = " "  
+nnoremap <leader>pv :Vex<CR>
+
+" space + ph = open file explorer with horizontal split
+let mapleader = " "  
+nnoremap <leader>ph :Sex<CR>
+
+" space + enter = source vimrc
+let mapleader = " "
+nnoremap <leader><CR> :so ~/.vimrc<CR>
+
+" CTRL+P: run GFiles command from fzf plugin
+nnoremap <C-p> :GFiles<CR>
 ```
+
+### Installing a colorscheme
+
+Most plugins can be installed just by listing the github repo in between the `plug#begin()` and `plug#end()` directives. Here is how we can install the gruvbox color theme:
+
+1. Add the `morhetz/gruvbox` plugin like so:
+2. Source the vimrc
+3. Run the `:PlugInstall` command
+4. Source the vimrc
+5. The gruvbox colorscheme option should now pop up when typing the `:colorscheme` command.
+
+
+## Find and replace
+
+### basics
+
+In find and replace within a file, there are two basic ways to do it:
+
+1. **find and replace across entire file**: searching for occurrences matches across the entire file
+	- **find**: use `/pattern` for global searching across the file
+	- **find and replace**: use `:%s/pattern` for find and replace across the file
+2. **find and replace across a range**: searching for occurrences matches within a range you highlighted using visual mode.
+	- **find**: highlight a range with visual mode, and then use `:/pattern` for searching within that range.
+	- **find and replace**: highlight a range with visual mode, and then use `:s/pattern` for find and replace within that range.
+
+use `/<pattern>` search for matches in the file matching the specified regex pattern, and after you hit the **Enter** key, enters **search mode**.
+
+If you want to search within a range, you can type `v` to go into visual highlight mode, select the range you want to search, and then type `:` and then enter a pattern to find occurrences.
+
+For example, if I wanted to search for the pattern "foo" within a range, I would do the following:
+
+1. Go into visual mode with `v`
+2. Navigate around the range I want to search in, highlighting it completely
+3. Type a `:` which will enter you into command mode for the range, and then type the pattern `/foo` to search for occurrences of "foo" within that range.
+
+
+
+#### Navigating between occurrences and highlighting
+
+You can navigate between occurrences like so:
+
+-  `n`: goes to next match while in search mode
+-  `N` or (`shift + n`): goes to previous match while in search mode
+
+You can also highlight occurrences and stop highlighting them with this command:
+
+- `:set hls ic`: highlights all matching searches
+- `:nohls`: stops highlighting.
+
+
+
+### Find and replace with sed
+
+You have two possible ways to initiate sed:
+
+- **file substitution**: Since the `%` refers to the current file, `:%s` performs substitution across the file.
+- **range substitution**: `:s` performs substitution on a selected range, or by default the current line.
+
+
+> [!NOTE]
+> If no range is selected, then the local `:s` will perform substitution on the current line.
+
+Here are some examples:
+
+- `:%s/<pattern>/<replace>/g`: performs find and replace globally across the file
+
+### Quickfix list
+
+A quickfix list is a list of all matching results of fuzzy search, which you get by using `:grep` or the `fzf` vim plugin.
+
+Here is an example of how to search stuff within a directory with the `:grep` command:
+
+``` bash
+# 1st argument is the pattern, 2nd argument is the glob pattern of files to apply the search in
+:grep aadil **/*.html
+```
+
+This creates a quickfix list that is saved and you can navigate, where the list length is the number of occurrences of that regex pattern within all matching files to the glob pattern.
+
+- `:copen`: opens the quick fix list, creating a horizontal split panel view where the matched regex pattern occurrence in the file is on the top panel and the quick fix list is on the bottom panel.
+- `:cnext`: goes to the next result in the quick fix list, opening the the next occurrence up in the top panel.
+- `:cprev`: goes to the previous result in the quick fix list, opening the the previous occurrence up in the top panel.
+
+Typing `:cnext` and `:cprev` is a lot of work to go to the next occurrence, so we can remap those to `Ctrl+J` for `:cnext` and `Ctrl+K` for `:cprev`
+
+```vim
+nnoremap <C-j> :cnext<CR>
+nnoremap <C-k> :cprev<CR>
+```
+
+## Advanced Vim
+
+### Macros
+
+Macros are a way to record vim movements and commands so you can easily replay them later.
+
+Here is how you can create a macro:
+
+1. While in normal mode, press `q`, which enters you into **macro mode**
+2. Press any other letter to start recording a macro for that specific identifier. 
+	- For example, pressing `q` to enter macro mode then pressing `a` will start recording a macro under the identifier `a`
+3. Record your movements, do stuff
+4. End the macro by first going into normal mode and then typing `q`
+5. You can run the macro with `@a`
+
+You can now use the macro with this syntax:
+
+```bash
+@<identifier> # runs the macro once
+100@<identifier> # runs the macro 100 times.
+```
+
+Here are some useful things to do while in a macro:
+
+- **increment a number**: increment a number the cursor is on by pressing `Ctrl+a` or if in tmux, do `Ctrl+a` twice.
 
 
 ## NeoVim
