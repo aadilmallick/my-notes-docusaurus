@@ -86,10 +86,9 @@ This is what the prefix + `w` command looks like:
 
 - **prefix + `,`**: rename current window
 
-**closing windoes**
+**closing windows**
 
 - **prefix + `&`**: kill the current window
-- 
 
 #### **pane management**
 

@@ -32,6 +32,10 @@ https://stevekinney.com/courses/visual-studio-code
 - `fn + f2`: refactor across codebase (much better than ctrl + d  )
 - `ctrl + shift + o`: searches for symbols in the current file (same as opening up command palette and typing `@` prefix to initiate symbol search mode)
 
+**collapsing shortcuts**
+
+- **Collapse All (Fold All)**: Press **Ctrl + K, Ctrl + 0** (Windows/Linux) or **⌘K ⌘0** (Mac) to fold all top-level sections in the current file, including classes, functions, and regions
+
 ## Essentials
 
 ### Command Palette
@@ -407,3 +411,24 @@ There are three possible values you can have for the `"dependsOrder"` key, all w
 - `"sequence"`: the default, which runs dependent tasks in order
 - `"parallel"`: runs all tasks in parallel
 - `"any"`: runs all tasks in parallel, but the main task will start as soon as at least on of the dependent tasks finishes. This is useful for race conditions and the like.
+
+### Automatic tasks
+
+If you want the power of a devcontainer without being in a devcontainer
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup Environment",
+      "type": "shell",
+      "command": "nvm use",
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    }
+  ]
+}
+```
+

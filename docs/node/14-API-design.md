@@ -1,3 +1,68 @@
+## Development utilities
+
+### Constants and config
+
+The best design pattern is to maintain separate versions of constants for three environments: **development, production, and testing**, and then supply different values of the same environment variables depending on the current environment, which is decided at runtime.
+
+### Logging
+
+You should use dedicated npm logging modules to handle logging for your app. Why? Because of these benefits:
+
+- **asynchronous execution**: logging libraries print out to the console asynchronously instead of blocking, since `console.log` is synchronous.
+- **filter log levels**: You can create logger instances that filter log levels and only show log levels above a certain level. This lets you create stricter filters for different environments.
+
+Here, we will use bunyan:
+
+```ts
+import bunyan from "npm:bunyan"
+
+// 1. create loggers of different log levels for different environments
+const loggers = {
+    // for dev, only show debug and above
+    development: () => bunyan.createLogger({
+        name: "development",
+        level: "debug"
+    }),
+    // for prod, only show info and above
+    production: () => bunyan.createLogger({
+        name: "production",
+        level: "info"
+    }),
+    // for test, only show fatal (highest level)
+    test: () => bunyan.createLogger({
+        name: "test",
+        level: "fatal"
+    })
+
+}
+
+// use dev logger, which only allows log messages of level debug and above.
+const logger = loggers.development()
+
+export function handler(req: Request): Response {
+  const url = new URL(req.url);
+    
+  // info log is above debug, so it'll show
+  logger.info(`HTTP method on resource ${url.pathname}`)
+  if (url.pathname === "/api") {
+    return Response.json({
+      message: "Hello, world!",
+      time: new Date().toISOString(),
+    });
+  }
+
+  return new Response("<h1>Welcome to Deno!</h1>", {
+    headers: { "content-type": "text/html" },
+  });
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}
+
+```
+
+
 ## Better fetching
 
 This simple drop-in axios replacement has type safety, flexibility, and just overall ease of use:

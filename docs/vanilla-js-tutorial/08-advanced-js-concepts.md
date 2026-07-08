@@ -1177,7 +1177,7 @@ function makeAbortable(fn) {
 
 ### Messaging queues
 
-#### Basic
+#### Theory
 
 At their core, asynchronous messaging queues are a way to decouple the production of tasks from their consumption. Instead of immediately processing a request, you put it into a queue, and then a separate worker (or set of workers) picks up tasks from that queue when it's ready.
 
@@ -1220,6 +1220,8 @@ To coordinate tasks across invocations and instances in serverless, you need **
 - redis streams
 - upstash
 - inggest
+
+#### Basic implementation
 
 #### Main custom class
 
