@@ -197,6 +197,3 @@ v2 = null;
 v3 = null;
 ```
 
-## Node HTTP
-
-### Basics

@@ -895,6 +895,79 @@ Many industry experts recommend this pattern for building maintainable and flexi
 
 The main difference lies in how boundaries and modules are defined; onion is more opinionated about the domain structure, while ports and adapters focus on modular separation without prescribing domain details.
 
+- **Layered vs. Onion Architecture:** In layered architecture, the business layer depends on infrastructure, while in onion architecture, infrastructure depends on the business layer, applying the dependency inversion principle.
+- **Onion vs. Ports and Adapters:** Both are similar and apply dependency inversion, but onion architecture is more opinionated about the core domain structure, whereas ports and adapters separate each adapter into its own module and don't dictate core domain design.
+- **Overall:** The main difference lies in how boundaries and modules are organized, but fundamentally, they are variations of the layered pattern focused on loose coupling and maintainability.
+
+
+### Application Patterns 2
+
+#### Modular monolith
+
+A monolith is a single running process with multiple subdomains and handles multiple technical concerns like business logic, UI, and data storage.
+
+The main problem with a monolith is that it leads to **tightly coupled** code, making it difficult to develop, scale, and test.
+
+A **modular monolith** aims to solve this problem by mimicking microservices by creating separate **modules** which are mini-monoliths on their own: they handle all business logic, UI, and data storage for a specific feature like payments, inventory, etc.
+
+
+![](https://i.imgur.com/PmgQoNW.jpeg)
+
+- **module separation**: Since each module deals with a different business concern, each module will have their own UI, business logic, and data storage pattern.
+- **module messaging**: Each module can communicate with each other through a message broker.
+- **module data storage**: Since each module deals with a different business concern, their data should also be separate, thus they should each query from a different database or at least table to avoid tight coupling of data.
+
+Here are the core advantages of a modular monolith:
+
+- **loose coupling**: loose coupling leads to increased developer agility, easier deployments, and easy development.
+- **easy migration to microservices**: A modular monolith is halfway between a monolith and a microservice, so it's easy to migrate to a completely distributed system afterwards.
+
+#### Microkernel
+
+The microkernel pattern allows for plug-ins to extend the behavior of a core business logic feature.
+
+There are three core prinicples for the microkernel architecture
+
+1. **The core does not need to know about plugins**: The core provides a universal interface for plugins to extend the core, so the core does not need to know about plugin implementation details.
+
+
+![](https://i.imgur.com/t66h13N.jpeg)
+
+The microkernel pattern has a core application with extendable plugins that follow defined contracts, allowing flexible addition of features without modifying the core.
+
+- This separation lets different teams develop core logic and plugins independently, and some implementations support adding/removing plugins at runtime.
+- Potential risks include the core needing to trust plugins, which might affect the whole application, and challenges in deciding what belongs in the core versus plugins.
+#### CQRS
+
+CQRS (command query responsibility segration) uses data duplication to optimize database performance, where instead of using just one database for reads and writes, it separates data business logic into a Read model and Write model, where we have two databases:
+
+1. **write-optimized database**: all WRITE operations query this database
+2. **read-optimized database**: all READ operations query this database. To keep in sync, the write-optimized db sends asynchronous writes to the read-only database.
+
+
+![](https://i.imgur.com/a2ogIBf.jpeg)
+
+When data is written, the write model updates the database and then synchronizes changes to the read model, which may even use a separate database. 
+
+- **pro**: This separation allows for more scalable and efficient read operations and aligns well with business language. 
+- **con**: However, it introduces complexity like ensuring synchronization between models and handling eventual consistency, meaning the read data might not update instantly after a write. 
+
+> [!NOTE]
+> CQRS is especially useful in complex applications where read and write workloads differ significantly.
+
+> [!NOTE]
+> The main disadvantage of CQRS is that it has **eventual consistency**, where consistency is not guaranteed but most likely to be consistent after an asynchronous WRITE.
+
+
+#### Event sourcing
+
+Instead of storing the current state, event sourcing stores all the events that happened to the data, allowing you to reconstruct the current state by replaying these events.
+
+- **use cases**: business audit trails, version history.
+
+Implementation involves storing new events when changes occur and replaying them to restore object state, with event handlers managing side effects like notifications.
+
+- **con**: Challenges include handling event replay side effects on external systems, managing changes in event structure, and performance issues when replaying many events, which can be mitigated by using snapshots.
 ### UI patterns
 
 

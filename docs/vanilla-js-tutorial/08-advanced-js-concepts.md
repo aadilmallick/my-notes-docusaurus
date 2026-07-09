@@ -1223,6 +1223,236 @@ To coordinate tasks across invocations and instances in serverless, you need **
 
 #### Basic implementation
 
+We will create a `TaskQueue` class that takes in an array of promises and maintains three arrays based on a common interface:
+
+```ts
+interface Task<T> {
+	id: string
+	promise: Promise<T>
+	status: "pending" | "running" | "resolved" | 'rejected'
+	retryCount: number
+}
+```
+
+- `todo`: the array of tasks to execute
+- `running`: the array of tasks that are currently in execution
+- `completed`: the array of tasks that have been successfully completed (their promises resolved)
+- `failed`: the array of tasks that failed (their promises rejected)
+
+Here is the basic idea:
+
+1. While there are todo tasks remaining, dequeue them and then process them asynchronously, then once the promise is fulfilled, recurse the function.
+2. Add the dequeued pending task to the list of current tasks
+
+
+```ts
+interface Task<T> {
+	id: string
+	promise: Promise<T>
+	status: "pending" | "running" | "resolved" | 'rejected'
+	retryCount: number
+}
+
+type TaskType = "completed" | "running" | "todo" | "failed"
+
+type RequireId<T> = Partial<Task<T>> & Pick<Task<T>, "id">;
+
+const taskArrayToStatusMap = {
+   "todo" : "pending",
+    "running": "running",
+    "completed": "resolved",
+     "failed" : 'rejected'
+} as const
+
+
+class PromiseQueue<T> {
+    private tasks = {
+     completed : [] as Task<T>[],
+     running : [] as Task<T>[],
+     todo : [] as Task<T>[],
+     failed : [] as Task<T>[],
+    } satisfies Record<TaskType, Task<T>[]>
+    #maxConcurrencyCount: number
+    #maxRetries: number
+
+    constructor(promises = [] as Promise<T>[], options? : {
+        maxConcurrencyCount?: number,
+        maxRetries?: number
+    }) {
+        this.tasks.todo = promises.map(promise => ({
+            id: crypto.randomUUID(),
+            promise,
+            retryCount: 0,
+            status: "pending"
+        }))
+        this.#maxConcurrencyCount = Math.max(options?.maxConcurrencyCount || 1, 1)
+        this.#maxRetries = Math.max(options?.maxRetries || 0, 0)
+    }
+
+    private getTaskByID(key: TaskType,  id: string) {
+        return this.tasks[key].find(t => t.id === id) ?? null
+    }
+
+    private addTask(key: TaskType, task: Task<T>) {
+        task.status = taskArrayToStatusMap[key]
+        this.tasks[key].push(task)
+    }
+
+    private deleteTaskByID(key: TaskType,  id: string) {
+        const toRemove = this.tasks[key].find(t => t.id === id) ?? null
+        if (toRemove) {
+            this.tasks[key] = this.tasks[key].filter(t => t.id !== id)
+        }
+        return toRemove
+    }
+
+    private popTask(key: TaskType) {
+        return this.tasks[key].shift() ?? null
+    }
+
+    private updateTaskByID(key: TaskType,  task: RequireId<T>) {
+        this.tasks[key] = this.tasks[key].map(t => {
+            if (t.id === task.id) {
+                return {...t, ...task}
+            }
+            else {
+                return t
+            }
+        })
+    }
+
+    private updateTaskStatus(key: TaskType,  id: string) {
+        const status: Task<T>["status"] = taskArrayToStatusMap[key]
+        this.updateTaskByID(key, {
+            id,
+            status
+        })
+    }
+
+    // only run next task if we have todo tasks left and we are below concurrency count for currently running tasks
+    private get shouldRun() {
+        return (this.tasks.todo.length > 0) && (this.tasks.running.length < this.#maxConcurrencyCount)
+    }
+
+    private shouldRetryTask(task: Task<T>) {
+        return (task.retryCount < this.#maxRetries) && (task.status === "rejected")
+    }
+
+    /**
+     * We should continue to run the tasks based on two condition that must both be satisfied
+     * 1. We are below concurrency count
+     * 2. We have tasks in the todo array
+     * 
+     * Then to execute a task, we follow these steps:
+     * 1. Remove the task from the todo array
+     * 2. Asynchronously execute the task in a non-blocking manner
+     *      - .then(): If the task resolves, then remove it from the running array 
+     *                  and add it to the completed array, change status
+     * 
+     *                  If the task is also in the failed array (it failed before), 
+     *                  then remove it because now it succeeded, change status
+     * 
+     *      - .catch(): If the task rejects, then add it to the failed array and change status
+     * 
+     *                  and if we should retry the task then add it to the todo array and 
+     *                  increment the task's retry count and update task status to "pending"
+     * 
+     *      - .finally(): After the promise is fulfilled, then invoke this.run() recursively
+     * 
+     * 3. Add the task to the running array and change status
+     */
+    run({onData, onError} : { onData: (data: T) => void, onError: (error: any) => void}) {
+        while(this.shouldRun) {
+            // 1. get a task to process
+           const processing = this.popTask("todo")
+           if (!processing) return;
+
+        //    console.log(processing)
+
+           // 2. handle promises resolve and reject, update statuses
+           processing.promise
+                .then((data) => {
+                    // remove task from running
+                    this.deleteTaskByID("running", processing.id)
+
+                    // remove task from failed (if failed)
+                    this.deleteTaskByID("failed", processing.id)
+
+                    // add task to completed
+                    this.addTask("completed", processing)
+                    // this.updateTaskStatus("completed", processing.id)
+
+                    onData(data)
+
+                })
+                .catch((e) => {
+                    // remove task from running
+                    this.deleteTaskByID("running", processing.id)
+
+                    
+
+                    // retry task if need be
+                    if (this.shouldRetryTask(processing)) {
+                        processing.retryCount += 1
+                        this.addTask("todo", processing)
+                        // this.updateTaskStatus("todo", processing.id)
+                    }
+
+                    // add task to failed
+                    else {
+                        this.addTask("failed", processing)
+                        // this.updateTaskStatus("failed", processing.id)
+                        onError(e)
+                    }
+                })
+                .finally(() => {
+                    this.run({
+                        onData,
+                        onError
+                    })
+                })
+        
+            // 3. add to running, change status
+            this.addTask("running", processing)
+            // this.updateTaskStatus("running", processing.id)
+        }
+    }
+}
+
+const delay = (ms: number) => {
+    const {promise, resolve} = Promise.withResolvers()
+    setTimeout(() => {
+        console.log(`delay after ${ms*1000} executed`)
+        resolve(null)
+    }, ms*1000)
+    return promise
+}
+
+const tasks = [
+    delay(2),
+    delay(4),
+    delay(2),
+    delay(1),
+    delay(6),
+    delay(9),
+    delay(5),
+]
+
+const queue = new PromiseQueue(tasks, {
+    maxConcurrencyCount: 5,
+})
+queue.run({
+    onData: () => {
+        console.log("task finished")
+    },
+    onError: (e) => {
+        console.error("error!", e)
+    }
+})
+```
+
+you can get a much faster and easier implementation with maps:
+
 #### Main custom class
 
 ```ts

@@ -1,6 +1,48 @@
-# Socket.io
 
-## Setup
+## Normal web sockets
+
+### Web socket server and socket instances
+
+```ts
+import { WebSocketServer, WebSocket } from "ws"
+
+const wss = new WebSocketServer({ port: 3000 })
+
+
+function broadcast(message: any) {
+	wss.clients.forEach(client => client.send(message))
+}
+
+// the websocket server starts
+wss.on("connection", (ws) => {
+	// now we have access to new web socket connection on server
+	console.log("user connected")
+	
+	// handle when socket connection closes
+	ws.on("close", () => {
+		console.log("user disconnected")
+	})
+	
+	// handle when a message is sendt from client to server
+	ws.on("message", (message) => {
+		// 1. do some parsing on message
+		const parsedMessage = message.toString()
+		
+		// 2. basic pattern: do different things based on message
+		switch (parsedMessage) {
+			case "exit":
+				ws.close()
+			case "broadcast":
+				wss.clients.forEach(client => client.send('this is a broadcast'))
+		}
+	})
+})
+```
+
+
+## Socket.io
+
+### Setup
 
 You need to first create an HTTP server and then listen on that server and establish a socket connection.
 
@@ -52,7 +94,7 @@ import ClientSocket from "../utils/ClientSocket";
 const socket = io("http://localhost:3000");
 ```
 
-## Socket api
+### Socket api
 
 Both apis for client and server side are pretty similar. On the server side, you have both the `io` and `socket` objects, while on the client you only have the individual `socket` instance.
 
@@ -69,7 +111,7 @@ Here are the basic methods exposed on the `io` and `socket` objects:
 - `socket.disconnect()` : disconnects the socket connection.
 - `socket.off(channel : string, cb: (...args) => any)` : removes the listener for the specified channel.
 
-## Utility classes
+### Utility classes
 
 These utility classes and types are meant to be separated into different files as to separate client from server effectively. They share the same typesafe API.
 
@@ -213,7 +255,7 @@ clientSocket.on("ping", ({ ping }) => {
 });
 ```
 
-## WIth React
+### WIth React
 
 - In an `useEffect` hook, you can establish a connection to the server, but during the cleanup function remember to disconnect the socket.
 - It might be easier to just instantiate the socket at the beginning of the app
