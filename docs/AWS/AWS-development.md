@@ -115,7 +115,7 @@ sam list endpoints --output json
 
 ## LocalStack
 
-### Installation
+### Installation and authentication
 
 There are 6 ways to use localstack:
 
@@ -143,9 +143,79 @@ To debug if the localstack process is currently running, you can make a curl req
 ```bash
 curl http://localhost:4566/_localstack/info | jq
 ```
-### CLI
 
-- `localstack start`: starts localstack on 
+#### Connecting to Localstack
+
+There are two ways to programmatically use LocalStack with AWS:
+
+1. **CLI**: use the `awslocal` CLI or the `aws` CLI and point environment variables to localstack.
+2. **AWS local profile**: create a dedicated "localstack" profile in your `~/.aws/config` and `~/.aws/credentials` files. Once this is set up, all IaC solutions like Cloudformation, SAM, and AWS CDK will pull the localstack credentials from the localstack profile and be able to work.
+
+**method 1: `aws` way with `--endpoint-url`**
+
+The localstack process runs on a dedicated URL and has its own access keys for programmatic access, so all we have to do is change the endpoint url and some environment variables.
+
+```bash
+export AWS_ACCESS_KEY_ID="test"
+export AWS_SECRET_ACCESS_KEY="test"
+export AWS_DEFAULT_REGION="us-east-1"
+
+# example where we just point to localstack endpoint URL and dummy access keys
+aws --endpoint-url=http://localhost.localstack.cloud:4566 kinesis list-streams
+```
+
+**method 2: `aws` way with `--profile`**
+
+This method is a tad more convenient than the first because it works with IaC solutions for AWS automatically pulling from the currently authenticated AWS profile, so if you set the currently authenticated AWS profile to a localstack profile, then all IaC actions will automatically connect to LocalStack.
+
+1. Add the following profile to your AWS configuration file (by default, this file is at `~/.aws/config`):
+
+```bash title="~/.aws/config"
+[profile localstack]
+region=us-east-1
+output=json
+endpoint_url = http://localhost.localstack.cloud:4566
+```
+
+2. Add the `localstack` profile  to your AWS credentials file witht he exact dummy access keys being the value `"test"` (by default, this file is at `~/.aws/credentials`):
+
+```bash title="~/.aws/credentials"
+[localstack]
+aws_access_key_id=test
+aws_secret_access_key=test
+```
+
+You can now use the `localstack` profile with the `aws` CLI by specifying the `--profile localstack` flag on every single command:
+
+```bash
+aws s3 mb s3://test --profile localstack
+aws s3 ls --profile localstack
+```
+
+> [!NOTE]
+> Alternatively, you can also set the `AWS_PROFILE=localstack` environment variable, in which case the `--profile localstack` parameter can be omitted in the commands above.
+
+**method 3: `awslocal` way**
+
+`awslocal` is the official LocalStack AWS CLI and serves as a thin wrapper and a substitute for the standard `aws` command, enabling you to run AWS CLI commands within the LocalStack environment without specifying the `--endpoint-url` parameter or a profile.
+
+Here is how to install it:
+
+```bash
+pip install awscli-local[ver1] # installs version compatiable of v1 of AWS CLI
+```
+
+
+
+
+
+### Localstack CLI
+
+Here are the basic `localstack` CLI commands:
+
+- `localstack start`: starts localstack on `localhost:4566`
+- `localstack logs`: views the logs on localstack
+
 
 
 
