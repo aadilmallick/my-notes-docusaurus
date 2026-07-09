@@ -126,7 +126,28 @@ There are 6 ways to use localstack:
 - **localstack desktop**
 - **localstack VSCode extension**
 
-All localstack ways to 
+All the different ways to use LocalStack require the same thing: an **auth token**.
+
+There are two ways to supply an auth token:
+
+1. **env var method**: export the `LOCALSTACK_AUTH_TOKEN` environment variable into the shell session before interacting with the CLI
+2. **CLI way**: use the `localstack` CLI to run the `localstack auth set-token` command to set your auth token for localstack and gain permanent authentication:
+
+```bash
+localstack auth set-token <YOUR_AUTH_TOKEN>
+localstack start
+```
+
+To debug if the localstack process is currently running, you can make a curl request to `localhost:4566`, which is the port the localhost process runs on.
+
+```bash
+curl http://localhost:4566/_localstack/info | jq
+```
+### CLI
+
+- `localstack start`: starts localstack on 
+
+
 
 ### Localstack VSCode extension development
 
@@ -145,7 +166,7 @@ aspectRatio: "52.5"
 1. Install AWS toolkit
 2. Install the localstack VSCode extension
 3. Install the localstack CLI with brew
-4. Go to the command palette and then run **Localstack: Run LocalStack setup Wizard**
+4. Go to the command palette and then run **Localstack: Run LocalStack setup Wizard**. This will automatically authenticate with your account to use the localstack auth token for localstack actions.
 5. Go to the command palette and then run **Localstack: Configure LocalStack profile**
 
 The 4th step adds a dummy login and credentials to your `~/.aws/config` and `~/.aws/credentials` file that you can use so you can AWS through the context of localstack.
