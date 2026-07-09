@@ -114,3 +114,59 @@ sam list endpoints --output json
 ```
 
 ## LocalStack
+
+### Installation
+
+There are 6 ways to use localstack:
+
+- **standalone docker image**
+- **localstack operator with kubernetes**
+- **docker compose**
+- **localstack CLI**
+- **localstack desktop**
+- **localstack VSCode extension**
+
+All localstack ways to 
+
+### Localstack VSCode extension development
+
+Read this for more info:
+
+```embed
+title: "Developing with LocalStack using the AWS Toolkit for VS Code"
+image: "https://blog.localstack.cloud/_astro/banner.DZfy5x8r_ZdcPpx.webp"
+description: "The new AWS Toolkit for VS Code integration streamlines your serverless development by connecting directly to LocalStack’s AWS emulator. Seamlessly browse resources, deploy SAM projects, and live debug Lambda functions without leaving your IDE."
+url: "https://blog.localstack.cloud/aws-toolkit-vscode-localstack/"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+
+1. Install AWS toolkit
+2. Install the localstack VSCode extension
+3. Install the localstack CLI with brew
+4. Go to the command palette and then run **Localstack: Run LocalStack setup Wizard**
+5. Go to the command palette and then run **Localstack: Configure LocalStack profile**
+
+The 4th step adds a dummy login and credentials to your `~/.aws/config` and `~/.aws/credentials` file that you can use so you can AWS through the context of localstack.
+
+As part of the setup, a new `localstack` profile will have been added to your `~/.aws/config` file. If you examine the file, you’ll see the following entry:
+
+
+```bash title="~/.aws/config"
+[profile localstack]
+region = us-east-1
+output = json
+endpoint_url = http://localhost.localstack.cloud:4566
+```
+
+and the corresponding entry in `~/.aws/credentials`:
+
+```bash title="~/.aws/credentials"
+[localstack]
+aws_access_key_id = test
+aws_secret_access_key = test
+```
+
+> [!NOTE]
+> Note that the installer will add these entries to the end of your existing files, but only if you don’t already have a `localstack` profile. Nothing else in these files will be modified.
