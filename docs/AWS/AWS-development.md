@@ -144,7 +144,7 @@ To debug if the localstack process is currently running, you can make a curl req
 curl http://localhost:4566/_localstack/info | jq
 ```
 
-#### Connecting to Localstack
+### Connecting to Localstack
 
 There are two ways to programmatically use LocalStack with AWS:
 
@@ -261,3 +261,45 @@ aws_secret_access_key = test
 
 > [!NOTE]
 > Note that the installer will add these entries to the end of your existing files, but only if you don’t already have a `localstack` profile. Nothing else in these files will be modified.
+
+
+### Examples
+
+#### Creating Lambdas and SNS with aws CLI
+
+The `000000000000` is the AWS account ID for localstack, because since you're developing locally, 
+
+```bash
+#!/bin/bash
+
+export AWS_DEFAULT_REGION=us-east-1
+
+# 1. create S3 buckets
+awslocal s3 mb s3://localstack-thumbnails-app-images
+awslocal s3 mb s3://localstack-thumbnails-app-resized
+
+# 2. create an SNS topic
+awslocal sns create-topic --name failed-resize-topic
+awslocal sns subscribe \
+    --topic-arn arn:aws:sns:us-east-1:000000000000:failed-resize-topic \
+    --protocol email \
+    --notification-endpoint my-email@example.com
+
+# 3. create a python lambda function 
+	# --role: for lambdas, set this to arn:aws:iam::000000000000:role/lambda-role
+	#c 
+awslocal lambda create-function \
+    --function-name presign \
+    --runtime python3.11 \
+    --timeout 10 \
+    --zip-file fileb://lambdas/presign/lambda.zip \
+    --handler handler.handler \
+    --role arn:aws:iam::000000000000:role/lambda-role \
+    --environment Variables="{STAGE=local}"
+
+awslocal lambda wait function-active-v2 --function-name presign
+
+awslocal lambda create-function-url-config \
+    --function-name presign \
+    --auth-type NONE
+```
