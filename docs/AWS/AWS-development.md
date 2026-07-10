@@ -262,6 +262,22 @@ aws_secret_access_key = test
 > [!NOTE]
 > Note that the installer will add these entries to the end of your existing files, but only if you don’t already have a `localstack` profile. Nothing else in these files will be modified.
 
+### Localstack with CDK
+
+#### Connecting to CDK
+
+To connect to CDK, you can follow these patterns:
+
+**method 1: read from env vars**
+
+Set these two env vars and export them into the shell session:
+
+- `AWS_ENDPOINT_URL`: The endpoint URL (i.e., protocol, host, and port) to connect to LocalStack (default: `http://localhost.localstack.cloud:4566`)
+- `LAMBDA_MOUNT_CODE`: Whether to use local Lambda code mounting (via setting `hot-reload` S3 bucket name)
+
+```bash
+export AWS_ENDPOINT_URL="http://localhost.localstack.cloud:4566"
+```
 
 ### Examples
 
