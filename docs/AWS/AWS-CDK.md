@@ -336,7 +336,30 @@ Here are the different values you can set for the removal policy:
 - `"DESTROY"`: enum value under `cdk.RemovalPolicy.DESTROY`, which sets the `Delete` value for both the `UpdateReplacePolicy` and `DeletionPolicy`.
 - `"RETAIN"`: enum value under `cdk.RemovalPolicy.RETAIN`, which sets the `Retain` value for both the `UpdateReplacePolicy` and `DeletionPolicy`.
 
+#### Stack environment
 
+Every stack can specify an **environment** — the target account and region. This is set via the `env` prop:
+
+
+```typescript
+new MyStack(app, 'MyStack', {
+  env: { account: '111111111111', region: 'us-east-1' },
+});
+```
+
+**Environment-agnostic vs. environment-specific.** If you omit `env`, the stack is "environment-agnostic" — it can deploy to whatever account/region your credentials point at, but CDK can't do environment lookups (like finding a default VPC) because it doesn't know the target at synth time. For anything that needs lookups or for production, **always specify `env` explicitly.** The common pattern:
+
+
+```typescript
+new MyStack(app, 'MyStack', {
+  env: {
+	  account: process.env.CDK_DEFAULT_ACCOUNT,
+	  region: process.env.CDK_DEFAULT_REGION,
+  }
+});
+```
+
+`CDK_DEFAULT_ACCOUNT`/`CDK_DEFAULT_REGION` come from your active credentials, so the stack targets wherever you're authenticated — while still being a concrete environment CDK can reason about.
 
 ### Constructs
 
@@ -576,6 +599,42 @@ new BucketDeployment(this, 'DeployWebsite', {
 ```
 
 `BucketDeployment` zips a local folder, uploads it, and (via a helper Lambda it creates) extracts the contents into your bucket — handy for static sites.
+
+### Contexts
+
+#### Context and lookups
+
+**Context** is key-value data available at synth time. Its most important use is environment lookups — querying your AWS account for existing resources. For example, importing an existing VPC:
+
+typescript
+
+```typescript
+import { Vpc } from 'aws-cdk-lib/aws-ec2';
+
+const vpc = Vpc.fromLookup(this, 'ExistingVpc', {
+  vpcId: 'vpc-12345678',
+});
+```
+
+`fromLookup` calls AWS at synth time to fetch the VPC's details (subnets, AZs), then **caches** the result in `cdk.context.json`. Caching makes synth deterministic and fast, and lets CI synthesize without AWS access. Commit `cdk.context.json` to version control. If the underlying resource changes, run `cdk context --clear` (or delete the relevant entry) to refresh.
+
+#### Passing your own context
+
+You can pass values on the command line and read them in code:
+
+bash
+
+```bash
+cdk deploy -c stage=prod
+```
+
+typescript
+
+```typescript
+const stage = this.node.tryGetContext('stage') ?? 'dev';
+```
+
+This is one way to parameterize deployments, though for anything beyond a simple flag, plain TypeScript configuration objects are usually cleaner and more type-safe.
 
 ### Testing
 
