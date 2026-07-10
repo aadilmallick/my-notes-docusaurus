@@ -452,6 +452,56 @@ export class CdkLearningStack extends cdk.Stack {
 
 ```
 
+### DynamoDB + Lambda + API gateway
+
+This is how you create a DynamoDB table on the fly using AWS CDK.
+
+Things you should specify:
+
+- **partition key**
+
+```ts title="lib/constructs/dynamodb/ItemsTable.ts"
+import {
+  Table,
+  AttributeType,
+  BillingMode,
+  TableEncryption,
+} from 'aws-cdk-lib/aws-dynamodb';
+import { RemovalPolicy } from 'aws-cdk-lib';
+
+export const table = new Table(this, 'ItemsTable', {
+  partitionKey: { name: 'id', type: AttributeType.STRING },
+  billingMode: BillingMode.PAY_PER_REQUEST,   // on-demand; no capacity planning
+  encryption: TableEncryption.AWS_MANAGED,
+  pointInTimeRecovery: true,
+  // In production, keep RETAIN so a stack teardown never deletes your data.
+  // For a throwaway demo, DESTROY makes cleanup easier — choose deliberately.
+  removalPolicy: RemovalPolicy.DESTROY,
+});
+```
+
+```ts title="lib/constructs/lambda/ItemsHandler.ts"
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Duration } from 'aws-cdk-lib';
+import * as path from 'path';
+
+const handler = new NodejsFunction(this, 'ItemsHandler', {
+  runtime: Runtime.NODEJS_20_X,
+  entry: path.join(__dirname, '../src/handler.ts'), // your TS source
+  handler: 'handler',                                // exported function name
+  memorySize: 256,
+  timeout: Duration.seconds(10),
+  environment: {
+    // Pass the table name to the function at runtime.
+    TABLE_NAME: table.tableName,
+  },
+});
+
+// Grant the function least-privilege access to the table.
+// CDK writes the exact IAM policy for you.
+table.grantReadWriteData(handler);
+```
 ## CDK CLI
 
 ### Installation and setup
