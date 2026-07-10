@@ -474,6 +474,52 @@ Here are the conventions you should follow when creating custom constructs:
 - **Expose inner resources as public readonly fields** (like `this.bucket`) so consumers can wire up grants and integrations. Prefer exposing the _interface_ type (`IBucket`) rather than the concrete `Bucket` when you can — it keeps your API flexible.
 - **Document props with JSDoc `/** */` comments.** These show up in consumers' IDE tooltips, which is a big usability win.
 
+#### Escape hatches
+
+Sometimes an L2 construct doesn't expose a property you need, or CDK's abstraction is behind a new AWS feature. **Escape hatches** let you reach the underlying L1 resource and manipulate the raw CloudFormation. You're never blocked.
+
+> [!NOTE]
+> Escape hatches are legitimate and sometimes necessary, but they bypass the type safety and validation that make CDK pleasant. Prefer them as a targeted last resort. When you find yourself using one, it's often worth a comment explaining _why_ the L2 was insufficient, so a future reader (or a future CDK version that adds the property) knows the override can be removed.
+
+##### Reaching the L1 from an L2
+
+Every L2 construct wraps an L1. Access it via `node.defaultChild` and cast to the L1 type:
+
+
+```typescript
+import { CfnBucket } from 'aws-cdk-lib/aws-s3';
+
+const bucket = new Bucket(this, 'MyBucket');
+
+// Get the underlying L1 CfnBucket.
+const cfnBucket = bucket.node.defaultChild as CfnBucket;
+
+// Set any raw CloudFormation property, even ones the L2 doesn't surface.
+cfnBucket.accelerateConfiguration = { accelerationStatus: 'Enabled' };
+```
+
+##### `addPropertyOverride` for arbitrary properties
+
+When even the L1's typed properties don't cover something (rare, but happens with brand-new features), override the raw template path:
+
+
+```typescript
+cfnBucket.addPropertyOverride(
+  'ObjectLockConfiguration.ObjectLockEnabled',
+  'Enabled',
+);
+```
+
+You can also override the removal policy, add metadata, or set deletion policies at the raw level:
+
+
+```typescript
+cfnBucket.addOverride('DeletionPolicy', 'Retain');
+```
+
+
+
+
 ### IAM and permissions
 
 IAM is where CDK's abstraction shines brightest, because hand-writing least-privilege policies is tedious and error-prone.
@@ -606,7 +652,6 @@ new BucketDeployment(this, 'DeployWebsite', {
 
 **Context** is key-value data available at synth time. Its most important use is environment lookups — querying your AWS account for existing resources. For example, importing an existing VPC:
 
-typescript
 
 ```typescript
 import { Vpc } from 'aws-cdk-lib/aws-ec2';
@@ -616,19 +661,20 @@ const vpc = Vpc.fromLookup(this, 'ExistingVpc', {
 });
 ```
 
-`fromLookup` calls AWS at synth time to fetch the VPC's details (subnets, AZs), then **caches** the result in `cdk.context.json`. Caching makes synth deterministic and fast, and lets CI synthesize without AWS access. Commit `cdk.context.json` to version control. If the underlying resource changes, run `cdk context --clear` (or delete the relevant entry) to refresh.
+`.fromLookup` calls AWS at synth time to fetch the VPC's details (subnets, AZs), then **caches** the result in `cdk.context.json`. Caching makes synth deterministic and fast, and lets CI synthesize without AWS access. 
+
+Commit `cdk.context.json` to version control. If the underlying resource changes, run `cdk context --clear` (or delete the relevant entry) to refresh.
 
 #### Passing your own context
 
 You can pass values on the command line and read them in code:
 
-bash
 
 ```bash
 cdk deploy -c stage=prod
 ```
 
-typescript
+Then you can access the context you just created with the `construct.node.tryGetContext(key)` syntax:
 
 ```typescript
 const stage = this.node.tryGetContext('stage') ?? 'dev';
@@ -636,7 +682,105 @@ const stage = this.node.tryGetContext('stage') ?? 'dev';
 
 This is one way to parameterize deployments, though for anything beyond a simple flag, plain TypeScript configuration objects are usually cleaner and more type-safe.
 
+#### Multi-account, multi-stage pattern
+
+A robust pattern is to define your stages as plain data and instantiate stacks per stage:
+
+
+```typescript
+interface StageConfig {
+  account: string;
+  region: string;
+  instanceCount: number;
+}
+
+const stages: Record<string, StageConfig> = {
+  dev:  { account: '111111111111', region: 'us-east-1', instanceCount: 1 },
+  prod: { account: '222222222222', region: 'us-east-1', instanceCount: 3 },
+};
+
+for (const [name, cfg] of Object.entries(stages)) {
+  new AppStack(app, `App-${name}`, {
+    env: { account: cfg.account, region: cfg.region },
+    instanceCount: cfg.instanceCount,
+  });
+}
+```
+
+Because it's just TypeScript, you get loops, type checking, and IDE support — no templating language required. This is a genuine advantage of CDK over static config formats.
+
+### Sharing resources across stacks
+
+Real applications span multiple stacks (network, data, compute...). You share resources between them by passing construct references directly.
+
+#### Passing constructs into stack props
+
+Within a single app, pass a resource from one stack to another as a constructor argument for the `props` param.
+
+
+```typescript
+// bin/app.ts
+const network = new NetworkStack(app, 'Network', { env });
+
+const app_ = new ApplicationStack(app, 'Application', {
+  env,
+  vpc: network.vpc,   // pass the VPC across
+});
+```
+
+Then you can add type safety for the props a stack is supposed to accept.
+
+```typescript
+export interface ApplicationStackProps extends StackProps {
+  readonly vpc: IVpc;
+}
+
+export class ApplicationStack extends Stack {
+  constructor(scope: Construct, id: string, props: ApplicationStackProps) {
+    super(scope, id, props);
+    // use props.vpc here
+  }
+}
+```
+
+> [!NOTE]
+> When you reference a resource from another stack this way, CDK automatically creates a **CloudFormation Export** in the producing stack and an **Import** in the consuming one, and it manages deployment ordering so the producer deploys first. You don't write the exports by hand.
+
+**the tight-coupling caveat**
+
+Cross-stack references create a dependency. Once Stack B imports an exported value from Stack A, you **cannot** remove or change that export in Stack A while B still uses it — CloudFormation blocks it to prevent breaking B. This can make certain refactors awkward. 
+
+There are two mitigations that work by intelligently deciding how to structure the resources in stacks for sharing.
+
+1. **Put shared resources in their own stack**: keep genuinely shared, stable resources (VPCs, shared data stores) in dedicated foundational stacks that change rarely, and then use that stack as the sharer of resources so only one stack is tightly coupled with the rest rather than all stacks being tightly coupled.
+2. **Share configuration, not resources**: for looser coupling, share via well-known identifiers (SSM Parameter Store) instead of direct exports.
+
+#### Sharing via SSM Parameter Store
+
+The producer writes a parameter; the consumer reads it. This decouples the stacks — they no longer have a hard CloudFormation dependency.
+
+typescript
+
+```typescript
+// Producer stack
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+
+new StringParameter(this, 'TableNameParam', {
+  parameterName: '/myapp/items-table-name',
+  stringValue: table.tableName,
+});
+
+// Consumer stack
+const tableName = StringParameter.valueForStringParameter(
+  this, '/myapp/items-table-name',
+);
+```
+
+The trade-off: you lose CDK's automatic dependency ordering, so you're responsible for deploying the producer before the consumer.
+
 ### Testing
+
+Because CDK is code, you can unit-test your infrastructure. CDK ships an assertions library (`aws-cdk-lib/assertions`) that lets you make claims about the synthesized template without deploying anything.
 
 When testing, here are the basic steps to see if your cloud resources got provisioned correctly:
 
@@ -645,6 +789,147 @@ When testing, here are the basic steps to see if your cloud resources got provis
 3. Create the cloudformation template in code from the stack
 4. You can test if specific cloudformation properties exist on the created in-memory template to see if your infra was provisioned correctly.
 
+> [!NOTE]
+> Test the things that matter and could plausibly regress: that security-critical properties are set (encryption, public-access blocks), that IAM grants produce the expected policies, that your custom constructs behave correctly given various props, and that resource counts are what you expect. Don't try to assert every auto-generated property — that's brittle and low-value.
+
+#### Fine-grained assertions
+
+You synthesize the stack into a `Template`, then assert that it contains resources with expected properties:
+
+
+```typescript
+import { App } from 'aws-cdk-lib';
+import { Template, Match } from 'aws-cdk-lib/assertions';
+import { ServerlessApiStack } from '../lib/serverless-api-stack';
+
+test('creates an encrypted DynamoDB table', () => {
+  const app = new App();
+  const stack = new ServerlessApiStack(app, 'TestStack');
+  const template = Template.fromStack(stack);
+
+  // Assert exactly one table exists with the expected key schema.
+  template.hasResourceProperties('AWS::DynamoDB::Table', {
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+  });
+
+  // Assert the Lambda has the table name in its environment.
+  template.hasResourceProperties('AWS::Lambda::Function', {
+    Environment: {
+      Variables: Match.objectLike({ TABLE_NAME: Match.anyValue() }),
+    },
+  });
+
+  // Count resources.
+  template.resourceCountIs('AWS::DynamoDB::Table', 1);
+});
+```
+
+`Match` provides flexible matchers: `objectLike` (partial match), `arrayWith`, `anyValue`, `absent`, and more. Use these because CDK injects a lot of auto-generated properties you don't want to assert on exactly.
+
+#### Snapshot tests
+
+A snapshot test serializes the whole template and compares it against a stored version, flagging any change. It's a blunt but effective regression guard:
+
+
+```typescript
+test('template matches snapshot', () => {
+  const app = new App();
+  const stack = new ServerlessApiStack(app, 'TestStack');
+  const template = Template.fromStack(stack);
+  expect(template.toJSON()).toMatchSnapshot();
+});
+```
+
+The first run records the snapshot; later runs fail if the synthesized template changes. When a change is intentional, update snapshots with `jest -u`. Snapshots are great for catching _unintended_ drift, but on their own they don't tell you whether a change is good — pair them with fine-grained assertions for the properties you care about.
+
+
+### CDK pipelines
+
+For anything beyond solo experimentation, you want automated, repeatable deployments. CDK offers **CDK Pipelines**, a construct library that builds a self-updating CI/CD pipeline (on AWS CodePipeline) _in CDK itself_.
+
+>The defining feature: the pipeline is defined in your CDK app, and the pipeline can update _itself_.
+
+When you push a change that modifies the pipeline (adding a stage, changing a step), the pipeline detects it and reconfigures before deploying your application changes. You bootstrap it once manually, then it maintains itself from source control.
+
+#### Basic pipeline
+
+```ts
+import { Stack, StackProps, Stage, StageProps } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import {
+  CodePipeline,
+  CodePipelineSource,
+  ShellStep,
+} from 'aws-cdk-lib/pipelines';
+
+// A Stage groups the stacks that make up one deployable environment.
+class MyAppStage extends Stage {
+  constructor(scope: Construct, id: string, props?: StageProps) {
+    super(scope, id, props);
+    new ServerlessApiStack(this, 'Api');
+  }
+}
+
+export class PipelineStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
+    super(scope, id, props);
+
+    const pipeline = new CodePipeline(this, 'Pipeline', {
+      synth: new ShellStep('Synth', {
+        input: CodePipelineSource.gitHub('my-org/my-repo', 'main'),
+        commands: ['npm ci', 'npm run build', 'npx cdk synth'],
+      }),
+    });
+
+    // Add a deployment stage. Add more for staging/prod, with approvals.
+    pipeline.addStage(new MyAppStage(this, 'Prod', {
+      env: { account: '222222222222', region: 'us-east-1' },
+    }));
+  }
+}
+```
+
+### Best practices
+
+**Organize by lifecycle and blast radius, not by service type.** Put resources that change together and share a lifecycle in the same stack. Stable, foundational resources (VPCs, shared databases) belong in their own stacks that rarely change, isolating them from the churn of application code.
+
+**Keep stateful and stateless resources separate.** Databases, buckets, and tables have data you can't afford to lose. Isolating them from frequently-redeployed compute reduces the chance a bad deploy or refactor endangers them. Set explicit `removalPolicy: RETAIN` on anything stateful.
+
+**Prefer L2 constructs; use `grant*` methods for IAM.** Let CDK compute least-privilege policies. Hand-writing IAM JSON is where security mistakes creep in.
+
+**Don't hardcode account IDs, ARNs, or names when you can reference constructs.** Use `table.tableName`, `bucket.bucketArn`, and pass construct references between stacks. Hardcoded values break across environments and defeat CDK's dependency tracking.
+
+**Use generated names where possible.** Letting CDK auto-generate physical resource names (rather than setting `bucketName`, `tableName`, etc.) avoids name-collision errors and makes resources replaceable. Set explicit names only when something external depends on a stable, known name.
+
+**Commit `cdk.context.json`.** It caches environment lookups so synthesis is deterministic and CI doesn't need AWS access just to synth. Refresh it deliberately with `cdk context --clear`.
+
+**Run `cdk diff` before every production deploy** and read the security-impact section. It's your last line of defense against an unintended IAM or network change.
+
+**Write tests for security-critical properties and custom constructs.** You don't need exhaustive coverage, but assertions on encryption, public-access settings, and IAM grants catch real regressions cheaply.
+
+**Pin your `aws-cdk-lib` and CLI versions** and upgrade intentionally. Feature flags in `cdk.json` mean upgrades can subtly change synthesis; upgrade, run `cdk diff`, and review before deploying.
+
+**Tag everything** via `Tags.of(app).add(...)` for cost allocation and governance. It's one line and pays off in billing and compliance.
+
+**Keep constructs small and composable.** A construct that does one thing well, with a clean typed props interface, is easy to test, reuse, and reason about. Thin stacks that wire together focused constructs age better than monolithic ones.
+
+### Troubleshooting
+
+**"Environment not bootstrapped" on deploy.** You skipped `cdk bootstrap` for that account/region, or the bootstrap version is too old. Run `cdk bootstrap` again.
+
+**Renaming a construct destroyed my resource.** Logical IDs derive from the construct path. Changing an `id` or moving a construct changes the logical ID, and CloudFormation treats that as replace. For stateful resources, avoid this; if you must restructure, plan a migration or use `removalPolicy: RETAIN` plus a re-import.
+
+**Circular dependency between stacks.** Two stacks each reference something in the other. CDK can't order the deployment. Break the cycle: move the shared resource to a third foundational stack, or decouple via SSM Parameter Store.
+
+**"Cannot delete export ... in use by stack ..."** You tried to change or remove a cross-stack export that another stack still imports. Deploy a version where the consumer no longer uses it first, or restructure to avoid the tight export/import coupling.
+
+**Lookups return stale data.** `fromLookup` results are cached in `cdk.context.json`. If the real resource changed, clear the cache: `cdk context --clear` (or remove the specific key), then re-synth.
+
+**Token values printing as `${Token[...]}`.** Many CDK values (ARNs, names of not-yet-created resources) are **tokens** — placeholders resolved at deploy time, not synth time. You can't `console.log` them meaningfully or do string surgery on them as if they were real strings. Use CDK's helpers (`Fn.join`, template literals that CDK understands, or the resource's typed attribute) instead of manual string manipulation.
+
+**Docker not running.** Constructs that build image assets (`NodejsFunction` with certain bundling options, `DockerImageFunction`) invoke Docker at synth/deploy time. If Docker isn't running you'll get a build error. Start Docker, or use bundling modes that don't require it.
+
+**Deploy hangs or rolls back.** Read the CloudFormation events (in the console, or `cdk deploy` streams them). CloudFormation errors are usually specific — a missing permission, a name collision, a quota limit. The CDK error is often just the surface; the real cause is in the stack events.
 ## CDK Examples
 
 ### S3 with SQS
