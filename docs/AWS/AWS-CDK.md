@@ -248,7 +248,7 @@ App
     └── Bucket (S3) construct
 ```
 
-#### The smallest complete example
+##### The smallest complete example
 
 
 ```typescript
@@ -397,6 +397,186 @@ new ApplicationLoadBalancedFargateService(this, 'Service', {
 
 That single construct creates an ECS cluster service, a task definition, an Application Load Balancer, target groups, listeners, security groups, and all the IAM wiring — dozens of underlying resources. L3 constructs are fantastic for getting started fast, but they make architectural decisions for you; when you outgrow those decisions, you compose your own from L2s.
 
+#### Custom constructs
+
+The power of CDK is composition: wrapping resources into your own constructs with a clean, typed interface. This is how teams build internal platforms.
+
+A custom construct extends `Construct` and takes a typed props interface. Here's a reusable "secure bucket" that bakes in your organization's standards:
+
+```ts
+import { Construct } from 'constructs';
+import { Bucket, BucketEncryption, BlockPublicAccess, IBucket } from 'aws-cdk-lib/aws-s3';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+
+// Define the inputs your construct accepts, with types and docs.
+export interface SecureBucketProps {
+  /** Days after which to expire objects. Defaults to no expiration. */
+  readonly expirationDays?: number;
+  /** Whether to enable versioning. Defaults to true. */
+  readonly versioned?: boolean;
+}
+
+export class SecureBucket extends Construct {
+  // Expose the inner bucket so consumers can grant access, add notifications, etc.
+  public readonly bucket: IBucket;
+
+  constructor(scope: Construct, id: string, props: SecureBucketProps = {}) {
+    super(scope, id);
+
+    this.bucket = new Bucket(this, 'Bucket', {
+      encryption: BucketEncryption.S3_MANAGED,
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+      versioned: props.versioned ?? true,
+      removalPolicy: RemovalPolicy.RETAIN,
+      lifecycleRules: props.expirationDays
+        ? [{ expiration: Duration.days(props.expirationDays) }]
+        : undefined,
+    });
+  }
+}
+```
+
+Then you can use the bucket like so:
+
+```ts
+const logs = new SecureBucket(this, 'Logs', { expirationDays: 30 });
+logs.bucket.grantWrite(someService);
+```
+
+Here are the conventions you should follow when creating custom constructs:
+
+- **Mark props `readonly`.** Props objects should be immutable; the compiler helps enforce it.
+- **Provide defaults with `??`.** `props.versioned ?? true` gives a default while allowing an explicit `false`.
+- **Expose inner resources as public readonly fields** (like `this.bucket`) so consumers can wire up grants and integrations. Prefer exposing the _interface_ type (`IBucket`) rather than the concrete `Bucket` when you can — it keeps your API flexible.
+- **Document props with JSDoc `/** */` comments.** These show up in consumers' IDE tooltips, which is a big usability win.
+
+### IAM and permissions
+
+IAM is where CDK's abstraction shines brightest, because hand-writing least-privilege policies is tedious and error-prone.
+
+#### The `grant*` pattern
+
+Most L2 constructs that represent a resource offer `grant*` methods, and most that represent an identity (Lambda functions, ECS tasks, roles) can be passed to those methods as the grantee. CDK computes the minimal policy and attaches it to the right role.
+
+
+```ts
+table.grantReadData(handler);        // read-only on the table
+table.grantWriteData(handler);       // write-only
+table.grantReadWriteData(handler);   // both
+bucket.grantRead(handler);           // s3:GetObject etc. on this bucket
+bucket.grantPut(handler);            // s3:PutObject
+queue.grantConsumeMessages(handler); // SQS receive/delete
+topic.grantPublish(handler);         // SNS publish
+secret.grantRead(handler);           // read a specific Secrets Manager secret
+```
+
+#### Custom policies
+
+When no `grant*` method fits, add a policy statement directly:
+
+
+```typescript
+import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
+
+handler.addToRolePolicy(
+  new PolicyStatement({
+    effect: Effect.ALLOW,
+    actions: ['ses:SendEmail'],
+    resources: ['*'],
+    conditions: {
+      StringEquals: { 'ses:FromAddress': 'noreply@example.com' },
+    },
+  }),
+);
+```
+
+#### Creating roles
+
+Sometimes you need a role you control directly — for cross-account access, service roles, or when multiple resources share a role:
+
+
+```typescript
+import { Role, ServicePrincipal, ManagedPolicy } from 'aws-cdk-lib/aws-iam';
+
+const taskRole = new Role(this, 'TaskRole', {
+  assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
+  managedPolicies: [
+    ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMReadOnlyAccess'),
+  ],
+});
+
+bucket.grantReadWrite(taskRole);   // grant* works on roles too
+```
+
+The principle: prefer `grant*` methods, reach for `addToRolePolicy` for one-off custom actions, and define `Role` objects explicitly only when you genuinely need control over the role itself.
+
+### Assets
+
+An **asset** is a local file, directory, or Docker image that CDK bundles, uploads to the bootstrap S3 bucket or ECR repo, and references from your CloudFormation template. Assets are how your application code gets from your laptop into AWS.
+
+#### Lambda code assets
+
+The simplest form points a Lambda at a directory of pre-built code:
+
+
+```typescript
+import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
+
+new Function(this, 'Handler', {
+  runtime: Runtime.NODEJS_20_X,
+  handler: 'index.handler',
+  code: Code.fromAsset('lambda-dist'), // a folder with your built JS
+});
+```
+
+But as shown earlier, `NodejsFunction` is usually better for TypeScript because it runs esbuild for you — no separate build step, tree-shaking, and TypeScript support out of the box. You can customize bundling:
+
+
+```typescript
+new NodejsFunction(this, 'Handler', {
+  entry: 'src/handler.ts',
+  bundling: {
+    minify: true,
+    sourceMap: true,
+    externalModules: ['@aws-sdk/*'], // provided by the Lambda runtime; don't bundle
+  },
+});
+```
+
+Excluding the AWS SDK v3 packages via `externalModules` keeps your bundle small since they're already present in the Node.js runtime.
+
+#### Docker image assets
+
+For containerized Lambdas or ECS tasks, CDK can build a Docker image from a local `Dockerfile`, push it to ECR, and reference it:
+
+
+```typescript
+import { DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
+
+new DockerImageFunction(this, 'ContainerFn', {
+  code: DockerImageCode.fromImageAsset('./image'), // dir with a Dockerfile
+});
+```
+
+This requires Docker running locally at synth/deploy time. CDK invokes `docker build`, tags the result, and pushes it during deploy.
+
+#### File/directory assets
+
+You can also ship arbitrary files — for example, seeding config into S3:
+
+
+```typescript
+import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
+
+new BucketDeployment(this, 'DeployWebsite', {
+  sources: [Source.asset('./website-build')],
+  destinationBucket: siteBucket,
+});
+```
+
+`BucketDeployment` zips a local folder, uploads it, and (via a helper Lambda it creates) extracts the contents into your bucket — handy for static sites.
+
 ### Testing
 
 When testing, here are the basic steps to see if your cloud resources got provisioned correctly:
@@ -454,11 +634,13 @@ export class CdkLearningStack extends cdk.Stack {
 
 ### DynamoDB + Lambda + API gateway
 
+#### Creating the table
+
 This is how you create a DynamoDB table on the fly using AWS CDK.
 
 Things you should specify:
 
-- **partition key**
+- **partition key**: the partition key for the table
 
 ```ts title="lib/constructs/dynamodb/ItemsTable.ts"
 import {
@@ -479,6 +661,20 @@ export const table = new Table(this, 'ItemsTable', {
   removalPolicy: RemovalPolicy.DESTROY,
 });
 ```
+
+#### Creating the lambda with API gateway
+
+This is how you create a lambda function construct: Create a **handler** object and specify these core properties for the `props` parameter:
+
+- `runtime`: the code runtime value to use. If you want to create a nodeJS function, then use one of these values:
+	- `Runtime.NODEJS_20_X`: runs the lambda code in a node 20 environment.
+	- `Runtime.NODEJS_22_X`: runs the lambda code in a node 22 environment.
+	- `Runtime.NODEJS_24_X`: runs the lambda code in a node 24 environment.
+- `entry`: the absolute path to the code containing your exported lambda function.
+- `handler`: the function name of the exported function in the entry file.
+- `memorySize`: the amount of kilobytes to provide in memory for the lambda function compute.
+- `timeout`: the timeout amount to set for the lambda.
+- `environment`: any environment variables to pass into the lambda function code which can be accessed via `process.env` in the bundled handler.
 
 ```ts title="lib/constructs/lambda/ItemsHandler.ts"
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -502,6 +698,172 @@ const handler = new NodejsFunction(this, 'ItemsHandler', {
 // CDK writes the exact IAM policy for you.
 table.grantReadWriteData(handler);
 ```
+
+> [!NOTE]
+> That `table.grantReadWriteData(handler)` line is the payoff of L2 constructs. It creates an IAM policy allowing precisely the DynamoDB actions needed to read and write items on _this specific table's ARN_, and attaches it to the function's execution role. No hand-written JSON, no wildcard resources.
+
+The corresponding handler code (`src/handler.ts`) might look like:
+
+```ts
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from '@aws-sdk/lib-dynamodb';
+import type { APIGatewayProxyHandler } from 'aws-lambda';
+
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const TABLE_NAME = process.env.TABLE_NAME!;
+
+export const handler: APIGatewayProxyHandler = async (event) => {
+  if (event.httpMethod === 'POST') {
+    const item = JSON.parse(event.body ?? '{}');
+    await ddb.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
+    return { statusCode: 201, body: JSON.stringify(item) };
+  }
+
+  const id = event.pathParameters?.id;
+  const result = await ddb.send(
+    new GetCommand({ TableName: TABLE_NAME, Key: { id } }),
+  );
+  return result.Item
+    ? { statusCode: 200, body: JSON.stringify(result.Item) }
+    : { statusCode: 404, body: 'Not found' };
+};
+```
+
+Then you can create the API gateway like so, where the `LambdaRestAPI` gateway is an L3 construct that creates an API gateway that automatically uses the lambda function as a route handler for all resource and HTTP method combinations you specify.
+
+```ts
+import { LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
+
+const api = new LambdaRestApi(this, 'ItemsApi', {
+  handler,
+  proxy: false,      // we'll define routes explicitly
+});
+
+const items = api.root.addResource('items');
+items.addMethod('POST');              // POST /items
+
+const singleItem = items.addResource('{id}');
+singleItem.addMethod('GET');          // GET /items/{id}
+```
+
+> [!NOTE]
+> `LambdaRestApi` is a small L3-ish convenience over API Gateway that wires a Lambda as the backend. Setting `proxy: false` lets us define specific routes instead of forwarding everything.
+
+#### Reading outputs
+
+You often want to know the deployed API URL. `CfnOutput` prints values to the terminal after deploy and exposes them for scripts.
+
+```ts
+import { CfnOutput } from 'aws-cdk-lib';
+
+new CfnOutput(this, 'ApiUrl', {
+  value: api.url,
+  description: 'Base URL of the Items API',
+});
+```
+
+After `cdk deploy`, you'll see `MyStack.ApiUrl = https://xxxx.execute-api.us-east-1.amazonaws.com/prod/`.
+
+#### All together
+
+```ts
+import { Stack, StackProps, Duration, RemovalPolicy, CfnOutput } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import { Table, AttributeType, BillingMode } from 'aws-cdk-lib/aws-dynamodb';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
+import { LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
+import * as path from 'path';
+
+export class ServerlessApiStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
+    super(scope, id, props);
+
+	// 1. create a table
+    const table = new Table(this, 'ItemsTable', {
+      partitionKey: { name: 'id', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+	// 2. create the lambda function
+    const handler = new NodejsFunction(this, 'ItemsHandler', {
+      runtime: Runtime.NODEJS_20_X,
+      entry: path.join(__dirname, '../src/handler.ts'),
+      handler: 'handler',
+      timeout: Duration.seconds(10),
+      environment: { TABLE_NAME: table.tableName },
+    });
+
+	// 3. grant lambda function read/write perms to the DynamoDB table
+    table.grantReadWriteData(handler);
+
+	// 4. create the REST API gateway that send requests for resources to the lambda handler we defined.
+    const api = new LambdaRestApi(this, 'ItemsApi', { handler, proxy: false });
+    const items = api.root.addResource('items');
+    items.addMethod('POST');
+    items.addResource('{id}').addMethod('GET');
+
+	// print out the the REST API URL of the API gateway.
+    new CfnOutput(this, 'ApiUrl', { value: api.url });
+  }
+}
+```
+
+## CDK code reference
+
+### VPCs
+
+The `Vpc` L2 construct is a great example of how much an L2 does for you. This one line creates subnets across availability zones, route tables, an internet gateway, and NAT gateways:
+
+```ts
+import { Vpc, IpAddresses, SubnetType } from 'aws-cdk-lib/aws-ec2';
+
+const vpc = new Vpc(this, 'AppVpc', {
+  ipAddresses: IpAddresses.cidr('10.0.0.0/16'),
+  maxAzs: 2,
+  natGateways: 1,   // NAT gateways cost money — tune this deliberately
+  subnetConfiguration: [
+    { name: 'public',  subnetType: SubnetType.PUBLIC,  cidrMask: 24 },
+    { name: 'private', subnetType: SubnetType.PRIVATE_WITH_EGRESS, cidrMask: 24 },
+  ],
+});
+```
+
+> [!WARNING]
+> Be aware NAT gateways have an hourly cost plus data processing charges. For dev environments, `natGateways: 0` (using only public subnets or VPC endpoints) can save real money.
+
+
+
+### S3 buckets
+
+#### Basics
+
+```ts
+import { Bucket, BucketEncryption, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
+import { Duration } from 'aws-cdk-lib';
+
+const bucket = new Bucket(this, 'AssetsBucket', {
+  encryption: BucketEncryption.S3_MANAGED,
+  blockPublicAccess: BlockPublicAccess.BLOCK_ALL,  // safe default
+  versioned: true,
+  enforceSSL: true,                                 // deny non-HTTPS requests
+  lifecycleRules: [
+    {
+      // Move old versions to cheaper storage, then expire them.
+      noncurrentVersionExpiration: Duration.days(90),
+      transitions: [],
+    },
+  ],
+});
+```
+
+### Lambda functions
+
 ## CDK CLI
 
 ### Installation and setup

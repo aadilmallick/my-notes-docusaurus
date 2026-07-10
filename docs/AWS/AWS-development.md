@@ -271,13 +271,18 @@ npm install -g aws-cdk-local aws-cdk
 cdklocal --version
 ```
 
+
+
 #### Connecting to CDK
+
+Before doing anything with CDK and starting a new project, you must have a fresh slate. You can do this by stopping localstack and then restarting the cloud instance of localstack.
 
 To connect to CDK, you can follow these patterns:
 
 **method 1: connect to AWS localstack profile**
 
-1. Export these environment variables:
+1. Run the `cdklocal init app --language typescript` to scaffold the boilerplate.
+2. Export these environment variables:
 
 ```bash
 export AWS_PROFILE=localstack
@@ -286,8 +291,7 @@ export AWS_SECRET_ACCESS_KEY="test"
 export AWS_DEFAULT_REGION="us-east-1"
 ```
 
-2. Now run the `cdklocal bootstrap` command to setup resources.
-3. 
+3. Now run the `cdklocal bootstrap` command to setup resources.
 
 ### Examples
 
