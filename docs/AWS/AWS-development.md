@@ -264,20 +264,30 @@ aws_secret_access_key = test
 
 ### Localstack with CDK
 
+To run localstack with CDK, use the `cdklocal` command as a drop-in replacement for the `cdk` package.
+
+```bash
+npm install -g aws-cdk-local aws-cdk
+cdklocal --version
+```
+
 #### Connecting to CDK
 
 To connect to CDK, you can follow these patterns:
 
-**method 1: read from env vars**
+**method 1: connect to AWS localstack profile**
 
-Set these two env vars and export them into the shell session:
-
-- `AWS_ENDPOINT_URL`: The endpoint URL (i.e., protocol, host, and port) to connect to LocalStack (default: `http://localhost.localstack.cloud:4566`)
-- `LAMBDA_MOUNT_CODE`: Whether to use local Lambda code mounting (via setting `hot-reload` S3 bucket name)
+1. Export these environment variables:
 
 ```bash
-export AWS_ENDPOINT_URL="http://localhost.localstack.cloud:4566"
+export AWS_PROFILE=localstack
+export AWS_ACCESS_KEY_ID="test"
+export AWS_SECRET_ACCESS_KEY="test"
+export AWS_DEFAULT_REGION="us-east-1"
 ```
+
+2. Now run the `cdklocal bootstrap` command to setup resources.
+3. 
 
 ### Examples
 
