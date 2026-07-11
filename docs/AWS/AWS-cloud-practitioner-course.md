@@ -1283,6 +1283,14 @@ Cloudwatch Alarms are ways to trigger events based on metrics of other AWS servi
 - **metrics of AWS services**: you can set up alarms that listen for stuff like EC2 instance CPU utilization, billing alerts, etc.
 - **specific logs**: Once you create a log group that stores logs you programmatically send to cloudwatch, you can trigger events based on those logs and match specific patterns within those logs.  
 
+#### Schedule alarm
+
+You can create a lambda function that triggers on a schedule by using a special type of alarm that just triggers on a cron syntax.
+
+1. Go to **Cloudwatch -> Events -> Rules -> Create Rules**
+2. Choose the **schedule** option for creating a rule
+3. Choose a lambda you want to execute for the target.
+
 ## CloudTrail
 
 CloudTrail is a service that creates an **audit trail** for the AWS account, storing action logs from the AWS console, CLI, and SDKs.
