@@ -1156,6 +1156,8 @@ AWS handles and manages the deployment of containers you push to EKR (the AWS co
 1. Upload a container image to a container registry server, ECR in AWS.
 2. Use ECS to choose a **container host** EC2 instance to actually run the container image and choose configuration options like cluster size (how many container replicas), etc
 
+By default, an **ECS cluster** uses an auto-scaling group to add more **nodes** (container hosts) and uses a load balancer to perform container orchestration across all those nodes.
+
 EKS (elastic kubernetes service) is a managed service for kubernetes pods.
 
 
