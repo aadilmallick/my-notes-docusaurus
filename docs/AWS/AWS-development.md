@@ -171,3 +171,10 @@ Here are the available conditional keys:
 
 - `s3:ListBucket` operates on the bucket ARN, not the objects inside it.
 - `s3:GetObject` operates on objects, so the ARN ends with `/*`.
+
+### Cognito and user pools
+
+When creating an identity pool in cognito, it actually creates two roles behind the scenes:
+
+- **identity pool role for authenticated access**: Defines the AWS permissions authenticated users in the user pool have
+- **identity pool role for unauthenticated access**: Defines the AWS permissions unauthenticated users have (they are not in the user pool).

@@ -1,6 +1,110 @@
 
 ## AWS CLI
 
+### Authentication
+
+Run `aws configure` to set up your default profile:
+
+```bash
+aws configure
+```
+
+It prompts for four values:
+
+```
+AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
+AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+Default region name [None]: us-east-1
+Default output format [None]: json
+```
+
+Enter your access key ID, secret access key, `us-east-1` as the region, and `json` as the output format. These values get written to two files in your home directory:
+
+- `~/.aws/credentials`—stores your access keys
+- `~/.aws/config`—stores region and output preferences
+
+> [!NOTE]
+> Use `us-east-1` because it’s the region where CloudFront certificates and Lambda@Edge functions must be created. Using a single region for everything keeps things simple while you’re learning.
+
+Once you’ve set a default region with `aws configure`, the `--region` flag becomes optional: if you leave it off, the CLI uses whatever you configured. 
+
+
+
+#### Named Profiles
+
+The default profile works fine when you have one AWS account. But if you ever have a personal account and a work account—or a staging environment and a production environment—you’ll want **named profiles**.
+
+Create a named profile by adding `--profile` to the configure command:
+
+```bash
+aws configure --profile personal
+```
+
+This creates a separate set of credentials stored under the `personal` profile name. To use it, add `--profile personal` to any CLI command:
+
+```bash
+aws s3 ls \
+  --profile personal \
+  --region us-east-1
+```
+
+The underlying file structure looks like this:
+
+```bash title="~/.aws/credentials"
+[default]
+aws_access_key_id = AKIAIOSFODNN7EXAMPLE
+aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+[personal]
+aws_access_key_id = AKIAI44QH8DHBEXAMPLE
+aws_secret_access_key = je7MtGbClwBF/2Zp9Utk/h3yCo8nvbEXAMPLEKEY
+```
+
+
+```bash title="~/.aws/config"
+[default]
+region = us-east-1
+output = json
+
+[profile personal]
+region = us-east-1
+output = json
+```
+
+
+You can also set the `AWS_PROFILE` environment variable to avoid typing `--profile` on every command:
+
+```bash
+export AWS_PROFILE=personal
+```
+
+#### Verifying Your Credentials
+
+The best way to confirm your CLI is properly configured is the `get-caller-identity` command:
+
+```bash
+aws sts get-caller-identity \
+  --region us-east-1 \
+  --output json
+```
+
+This returns the identity associated with your credentials:
+
+```
+{
+  "UserId": "AIDAIOSFODNN7EXAMPLE",
+  "Account": "123456789012",
+  "Arn": "arn:aws:iam::123456789012:user/admin"
+}
+```
+
+If you see your account ID and the ARN of your `admin` user, everything is working. This command requires no special permissions—it works even if the user has no policies attached. It’s the AWS equivalent of `whoami`.
+
+If you get an error like `The security token included in the request is invalid`, your access keys are wrong. Double-check what you entered, or delete the key pair in the console and create a new one.
+
+> [!NOTE]
+> Run `aws sts get-caller-identity` any time you’re unsure which credentials the CLI is using. It’s especially useful when you have multiple profiles and want to confirm you’re not accidentally running commands against your production account.
+
 ### IAM
 
 #### Creating policies
@@ -21,6 +125,62 @@ Then here is how you can attach policies to users or user groups:
 aws iam attach-user-policy \
   --user-name admin \
   --policy-arn arn:aws:iam::123456789012:policy/S3AssetsReadOnly \
+  --region us-east-1 \
+  --output json
+```
+
+#### Creating an IAM user with a policy
+
+Create an IAM user named `deploy-bot` with:
+
+- **No console access**—this user exists purely for CLI/API use.
+- **Access keys** for programmatic access.
+- **A custom IAM policy** that allows exactly these operations and nothing more:
+    - Sync files to the `my-frontend-app-assets` S3 bucket (upload, delete, and list)
+    - Create cache invalidations on the CloudFront distribution with ID `E1A2B3C4D5E6F7`
+
+Here is how you can use the CLI for this:
+
+1. Create the user
+
+```bash
+aws iam create-user \
+  --user-name deploy-bot \
+  --region us-east-1 \
+  --output json
+```
+
+2. Create the access keys
+
+```bash
+aws iam create-access-key \
+  --user-name deploy-bot \
+  --region us-east-1 \
+  --output json
+```
+
+The next step is to create the policy
+
+Create a file called `deploy-bot-policy.json` with a policy that:
+
+1. Allows `s3:PutObject` and `s3:DeleteObject` on objects in the `my-frontend-app-assets` bucket.
+2. Allows `s3:ListBucket` on the `my-frontend-app-assets` bucket itself.
+3. Allows `cloudfront:CreateInvalidation` on the distribution `E1A2B3C4D5E6F7`.
+
+Remember:
+
+- `s3:PutObject` and `s3:DeleteObject` operate on **objects**, so the resource ARN needs `/*` at the end.
+- `s3:ListBucket` operates on the **bucket**, so the resource ARN doesn’t have `/*`.
+- CloudFront distribution ARNs have no region (use an empty region segment) and follow the pattern `arn:aws:cloudfront::<account-id>:distribution/<distribution-id>`.
+- Every statement needs `Effect`, `Action`, and `Resource`.
+- The policy needs `"Version": "2012-10-17"`.
+
+Then you can attach the policy using the `aws iam attach-user-policy` command:
+
+```bash
+aws iam create-policy \
+  --policy-name DeployBotPolicy \
+  --policy-document file://deploy-bot-policy.json \
   --region us-east-1 \
   --output json
 ```
@@ -48,6 +208,13 @@ await s3Client.send(createBucketCommand);
 ```
 
 ### IAM
+
+#### Creating policies and users
+
+This is a simple example where we perform the following steps:
+
+1. Create a policy that allows listing buckets and reading objects from a specific bucket
+2. Attach the policy to an existing IAM user
 
 ```ts
 import { IAMClient, CreatePolicyCommand, AttachUserPolicyCommand } from '@aws-sdk/client-iam';
@@ -85,6 +252,64 @@ await iam.send(
 );
 ```
 
+This is a more involved example where we perform the following:
+
+1. Create an IAM user
+2. Give them access keys
+3. Create a policy allowing object creation and deletion in a specific bucket and cloudfront cache invalidation
+4. Attach the policy to the newly created IAM user.
+
+```ts
+import {
+  IAMClient,
+  CreateUserCommand,
+  CreateAccessKeyCommand,
+  CreatePolicyCommand,
+  AttachUserPolicyCommand,
+} from '@aws-sdk/client-iam';
+
+const iam = new IAMClient({ region: 'us-east-1' });
+
+await iam.send(new CreateUserCommand({ UserName: 'deploy-bot' }));
+
+const keys = await iam.send(new CreateAccessKeyCommand({ UserName: 'deploy-bot' }));
+// This response is the ONLY time the secret is returned — store it now.
+console.log('Access key:', keys.AccessKey?.AccessKeyId);
+console.log('Secret:', keys.AccessKey?.SecretAccessKey);
+
+const policy = await iam.send(
+  new CreatePolicyCommand({
+    PolicyName: 'DeployBotPolicy',
+    PolicyDocument: JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Action: ['s3:PutObject', 's3:DeleteObject'],
+          Resource: 'arn:aws:s3:::my-frontend-app-assets/*',
+        },
+        {
+          Effect: 'Allow',
+          Action: ['s3:ListBucket'],
+          Resource: 'arn:aws:s3:::my-frontend-app-assets',
+        },
+        {
+          Effect: 'Allow',
+          Action: ['cloudfront:CreateInvalidation'],
+          Resource: 'arn:aws:cloudfront::123456789012:distribution/E1A2B3C4D5E6F7',
+        },
+      ],
+    }),
+  }),
+);
+
+await iam.send(
+  new AttachUserPolicyCommand({
+    UserName: 'deploy-bot',
+    PolicyArn: policy.Policy!.Arn!,
+  }),
+);
+```
 ### S3
 
 ```ts
