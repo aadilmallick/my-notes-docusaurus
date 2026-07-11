@@ -647,6 +647,204 @@ aws lambda invoke \
   --payload file://mock-event.json \
   response.json
 ```
+
+#### SQS Lambda
+
+The event for a lambda with an SQS trigger is typed with the `SQSEvent` interface:
+
+```ts
+import { SQSEvent } from "aws-lambda";
+
+const exampleSQSEvent: SQSEvent = {
+  Records: [
+    {
+      messageId: "19dd0b57-b21e-4ac1-bd88-01bbb068cb78",
+      receiptHandle: "MessageReceiptHandle",
+      // The body is ALWAYS a string. If you sent JSON, you must JSON.parse() it inside the Lambda!
+      body: '{"orderId": "XYZ-123", "quantity": 2}',
+      attributes: {
+        ApproximateReceiveCount: "1",
+        SentTimestamp: "1720700000000",
+        SenderId: "AROAIAMZBAOKFCBITNYOI",
+        ApproximateFirstReceiveTimestamp: "1720700000001"
+      },
+      messageAttributes: {},
+      md5OfBody: "098f6bcd4621d373cade4e832627b4f6",
+      eventSource: "aws:sqs",
+      eventSourceARN: "arn:aws:sqs:us-east-1:123456789012:MyQueue",
+      awsRegion: "us-east-1"
+    }
+  ]
+};
+```
+
+Here are the rules of the event:
+
+- **The Body is a Plain String:** Even if your frontend or microservice sends a beautiful TypeScript object to the queue, SQS serializes it as a string. You **must** use `JSON.parse(record.body)` inside your Lambda code to turn it back into an object.
+- **Batch Size Matters:** By default, Lambda can grab up to 10 messages at a time in a single `Records` array to process them efficiently. If message #4 fails but messages 1-3 succeed, handling errors properly prevents processing duplicate messages!
+
+Here is a lambda:
+
+```ts
+import { SQSHandler, SQSEvent } from "aws-lambda";
+
+// Define the interface for the message payload we expect
+interface OrderMessage {
+  orderId: string;
+  quantity: number;
+}
+
+export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
+  try {
+    // Remember, Lambda can poll and receive multiple messages at once!
+    for (const record of event.Records) {
+      console.log(`✉️ Processing SQS Message ID: ${record.messageId}`);
+      
+      // Fix the mistake from our riddle: parse the string body!
+      const bodyData = JSON.parse(record.body) as OrderMessage;
+      
+      console.log(`🛒 Order received! ID: ${bodyData.orderId}, 
+      Qty: ${bodyData.quantity}`);
+      
+      // Perform your business logic here (e.g., save to DynamoDB)
+    }
+  } catch (error) {
+    console.error("❌ Failed to process SQS batch:", error);
+    // Throwing an error tells SQS that the processing failed,
+    // so the messages will return to the queue to be retried!
+    throw error; 
+  }
+};
+```
+
+And this is how to trigger the lambda by sending a message to the SQS queue:
+
+```ts
+aws sqs send-message \
+  --queue-url https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue \
+  --message-body '{"orderId": "XYZ-123", "quantity": 2}'
+```
+
+
+#### SNS + SES lambda
+
+```ts
+import { SNSEvent } from "aws-lambda";
+
+const exampleSNSEvent: SNSEvent = {
+  Records: [
+    {
+      EventSource: "aws:sns",
+      EventVersion: "1.0",
+      EventSubscriptionArn: "arn:aws:sns:us-east-1:123456789012:NewUserTopic:some-subscription-id",
+      Sns: {
+        Type: "Notification",
+        MessageId: "95df01b4-ee98-5cb9-9903-4c221d41eb5e",
+        TopicArn: "arn:aws:sns:us-east-1:123456789012:NewUserTopic",
+        Subject: "New User Registered",
+        // Just like SQS, the Message payload itself is passed as a string!
+        Message: '{"userId": "usr_999", "email": "chef@bakery.com"}',
+        Timestamp: "2026-07-11T14:00:00.000Z",
+        MessageAttributes: {
+          // You can pass metadata metadata attributes for filtering!
+          tier: {
+            Type: "String",
+            Value: "premium"
+          }
+        }
+      }
+    }
+  ]
+};
+```
+
+Notice how the hierarchy differs slightly from SQS:
+
+- In **SQS**, the text payload is located at `record.body`.
+- In **SNS**, the text payload is located at `record.Sns.Message`.
+
+This is how you can create an SNS topic handler:
+
+```ts
+import { SNSHandler, SNSEvent } from "aws-lambda";
+
+interface UserRegistrationPayload {
+  userId: string;
+  email: string;
+}
+
+export const handler: SNSHandler = async (event: SNSEvent): Promise<void> => {
+  try {
+    for (const record of event.Records) {
+      console.log(`📢 Processing SNS Message ID: ${record.Sns.MessageId}`);
+
+      // Parse the stringified payload from record.Sns.Message
+      const userPayload = JSON.parse(record.Sns.Message) as UserRegistrationPayload;
+
+      console.log(`✉️ Sending welcome email to: ${userPayload.email} (User ID: ${userPayload.userId})`);
+      
+      // Your actual business logic here (e.g. calling an email service API)
+    }
+  } catch (error) {
+    console.error("❌ Error processing SNS event:", error);
+    throw error;
+  }
+};
+```
+
+#### SES
+
+Here's an example where we can execute a lambda by registering its trigger as an SES email trigger, where the lambda gets executed upon some email sent to a specific destination email.
+
+
+```ts
+import { SESEvent } from "aws-lambda";
+
+const exampleSESEvent: SESEvent = {
+  Records: [
+    {
+      eventSource: "aws:ses",
+      eventVersion: "1.0",
+      ses: {
+        mail: {
+          timestamp: "2026-07-11T14:00:00.000Z",
+          source: "user@example.com", // The sender!
+          messageId: "example-id-123",
+          destination: ["support@yourcompany.com"], // The recipient routing address
+          headersTruncated: false,
+          headers: [
+            { name: "Subject", value: "Re: Ticket #1024" }
+          ],
+          commonHeaders: {
+            returnPath: "user@example.com",
+            from: ["user@example.com"],
+            date: "2026-07-11T14:00:00.000Z",
+            to: ["support@yourcompany.com"],
+            messageId: "example-id-123",
+            subject: "Re: Ticket #1024"
+          }
+        },
+        receipt: {
+          timestamp: "2026-07-11T14:00:01.000Z",
+          processingTimeMillis: 342,
+          recipients: ["support@yourcompany.com"],
+          spamVerdict: { status: "PASS" },
+          virusVerdict: { status: "PASS" },
+          spfVerdict: { status: "PASS" },
+          dkimVerdict: { status: "PASS" },
+          dmarcVerdict: { status: "PASS" },
+          action: {
+            type: "Lambda",
+            functionArn: "arn:aws:lambda:us-east-1:123456789012:function:ProcessEmail"
+          }
+        }
+      }
+    }
+  ]
+};
+```
+
+
 ### Bedrock
 
 #### OpenAI compatible endpoints
