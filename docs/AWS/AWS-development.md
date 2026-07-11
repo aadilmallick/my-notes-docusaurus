@@ -442,7 +442,7 @@ This is how you can test this API gateway lambda by mocking the event:
   "requestContext": {
     "httpMethod": "GET",
     "path": "/hello",
-    "resourcePath": "hello",
+    "resource": "hello",
   }
 }
 ```
