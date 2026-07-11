@@ -199,15 +199,13 @@ When creating an identity pool in cognito, it actually creates two roles behind 
 
 ## Lambda
 
-### Lambda API gateway
+### Lambda Development Basics
 
-1. Create an API gateway that is an **HTTP API** type. Don't add any integrations or routes.
+#### Lambda Monitoring
 
-	![](https://i.imgur.com/1Jcl6gq.jpeg)
+Lambdas automatically have a dedicated log group for them in cloudwatch, and logs are written to cloudwatch just by printing to the console within the lambda handler using something like `console.log()` or `print()`.
 
-2. Create a lambda with the API gateway you created as the trigger. Choose **open** security so your API is open to the public and has no need for authentication.
 
-	![](https://i.imgur.com/Yb6ejdT.jpeg)
 
 #### Lambda development with AWS toolkit
 
@@ -361,6 +359,18 @@ export const handler = async (event) => {
 };
 
 ```
+
+
+
+### Lambda API gateway
+
+1. Create an API gateway that is an **HTTP API** type. Don't add any integrations or routes.
+
+	![](https://i.imgur.com/1Jcl6gq.jpeg)
+
+2. Create a lambda with the API gateway you created as the trigger. Choose **open** security so your API is open to the public and has no need for authentication.
+
+	![](https://i.imgur.com/Yb6ejdT.jpeg)
 
 #### Testing the API gateway
 
