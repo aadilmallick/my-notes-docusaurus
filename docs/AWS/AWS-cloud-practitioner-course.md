@@ -1001,6 +1001,8 @@ Here is what you can configure with the Elasticache service:
 
 ### DynamoDB
 
+#### Primer
+
 
 Amazon DynamoDB is a fully managed, serverless NoSQL database service designed for high scalability and ultra-fast performance.
 
@@ -1025,20 +1027,44 @@ Besides being performant, DynamoDB offers three useful capacities:
 2. **global tables**: make tables global instead of just regional, replicating data across the entire world for lower latency.
 3. **DAX**: an in-memory cache layer on top of DynamoDB that implements query caching behind the scenes to speed up querying.
 
+**table structure**
+
+In DynamoDB, you can have multiple tables, and each table is data storage for multiple items, which can have different attributes.
+
+- **tables must have primary keys**: All tables must have a **primary key**, which is either the partition key or a combination of the partition key and sort key.
+- **Attributes can be different on items**: Each item can have different **attributes**, which is a key-value pair on the item, reflecting the NoSQL nature of dynamodb.
+	- Each item can be 400kb in size maximum
+	- Each item can have different attribute types
+
+
+
 #### Partition key + Sort key
 
 DynamoDB is unique in that it allows you to pick one of two setups for how you structure your primary key.
 
 Here is the terminology:
 
-- **partition key**: The partition key is part of the table's primary key. It is a hash value that is used to retrieve items from your table and allocate data across hosts for scalability and availability.
+- **partition key**: The partition key is part of the table's primary key. It is a hash value that is used to retrieve items from your table and allocate data across hosts for scalability and availability by literally partitioning the table across multiple load-balanced database instances.
 - **sort key**: You can use a sort key as the second part of a table's primary key. The sort key allows you to sort or search among all items sharing the same partition key.
 
 Here are the two setups:
 
 1. **partition key alone**: records are considered unique or not based on the partition key value. No two records can have the same partition key value
 2. **partition key + sort key**: uniqueness of records is based on the combination of the partition key and sort key values. No two record can have the same combination of partition key and sort key values.
-#### DynamoDB vs RDS
+
+> [!NOTE]
+> The **primary key** is the unique identifier of an item in a table, and is either the partition key or the partition key + sort key combination, depending on your table setup.
+
+When querying with the partition key and sort key combination, it allows for use cases like finding all resources associated with a specific user, like in the example below, we can easily find all the games a single user specified by its userId has played, without doing a JOIN.
+
+
+![](https://i.imgur.com/1kfPf3D.jpeg)
+
+#### Creating a DynamoDB table
+
+1. **Choose the primary key**: specify a partition key or a partition + sort key combination
+2. **Choose the table class**: Either choose between standard DynamoDB (optimized for frequent reads/writes) or archive DynamoDB (costs less, archive storage)
+3. **Choose the pricing option**: Either choose on-demand pricing (auto-scales for availability and load balancing) or **provisioned**, where you guess read/write capacity in advance so it costs less.
 
 **performance**
 
