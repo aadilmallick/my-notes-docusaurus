@@ -619,7 +619,9 @@ The basic code for a lambda has the following three rules:
  * In AWS Lambda, your entrypoint is always an exported function.
  */
 export const handler = async (
-  event: any // different lambdas will have different types of events
+  event: any, // different lambdas will have different types of events
+  context: any, // runtime information associated with the lambda
+  callback: any // callback to return info to invoker of lambda
 ) => {
     console.log("📥 Received Event:", JSON.stringify(event, null, 2));
 
@@ -632,6 +634,21 @@ export const handler = async (
     };
 }
 ```
+
+The lambda handler has these different parameters:
+
+- `event`: the data sent into the lambda
+- `context`: runtime information associated with the lambda
+- `callback`: callback to return info to invoker of lambda
+
+There are three main types of lambda executions:
+
+- **synchronous execution**: The invoker of the lambda function waits for a response to come back from the lambda.
+	- **example**: HTTP lambda or API gateway lambda, where client invokes the lambda acting as an HTTP request-response cycle
+- **asynchronous execution**: The invoker of the lambda function fires and forgets, not caring about getting a response back. It only cares about getting back an acknowledgment that the event was correctly forward to the lambda
+	- **example**: lambda getting triggered on an S3 event, like an object being put into a bucket.
+- **stream/poll execution**: The lambda function subscribes to a service like SNS or SQS that some other service pushes to, and then consumes the stream of event data.
+	- **example**: DynamoDB stream trigger, SNS trigger, or SQS trigger.
 
 ##### Deploying
 
