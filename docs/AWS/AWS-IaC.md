@@ -209,6 +209,37 @@ You can list all the currently deployed endpoints with the `sam list endpoints` 
 sam list endpoints --output json
 ```
 
+### `template.yaml` in depth
+
+Let's examine the basic hello world example for `template.yaml`
+
+Your file has this structure
+
+```
+AWSTemplateFormatVersion
+Transform
+Description
+
+Globals
+
+Resources
+
+Outputs
+```
+
+These are the major sections.
+
+Think of it like
+
+```
+Metadata
+
+Global defaults
+
+Actual AWS resources
+
+Useful information after deployment
+```
 ## LocalStack
 
 ### Installation and authentication
