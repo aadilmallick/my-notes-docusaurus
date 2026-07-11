@@ -916,6 +916,7 @@ Here are the main properties of S3:
 	- You can mock a filesystem using **object keys**, which simulate folders, but in reality they are not actual folders. To have a real filesystem, you need block storage.
 - **high durability**: S3 has eleven 9s of durability, meaning that for every billion objects you store in S3, only one gets corrupted or lost. This means data loss is extremely improbable.
 - **granular access control**: you have control over who can access the bucket and even access to individual objects within the bucket
+- **eventual data consistency**: putting new objects in S3 is immediate, but object modifications like updating or deleting is **eventually consistent**, meaning users might get a stale version.
 
 ### Storage classes
 
