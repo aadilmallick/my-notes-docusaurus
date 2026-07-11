@@ -53,7 +53,34 @@ To resolve version compatibility issues:
 - Specify a compatible [runtime](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-init.html#sam-cli-command-reference-sam-init-options-runtime) during initialization: `sam init --runtime python3.9`
 - Modify the `Runtime` property in `template.yaml` after initialization
 
-### Building and deploying
+#### File structure
+
+```
+.
+├── README.md
+├── events    // contain sample events
+│   └── event.json
+├── hello-world  // contain lambda image code
+│   ├── Dockerfile
+│   ├── app.mjs
+│   ├── package.json
+│   └── tests    // for testing lambda with sample event
+│       └── unit
+│           └── test-handler.mjs
+├── samconfig.toml
+└── template.yaml
+```
+
+Here are the important top-level files:
+
+- `template.yaml`: A template that defines the application's AWS resources.
+
+And here are the dedicated folders:
+
+- `hello-world/tests` : folder containing nit tests for the application code.
+- `events`: folder containing sample JSON events that you can use to invoke the function and test it out.
+
+#### Building and deploying
 
 Run the `sam build` command to build the CloudFormation template from your `template.yaml`
 
