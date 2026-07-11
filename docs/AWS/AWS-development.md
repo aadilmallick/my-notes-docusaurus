@@ -216,6 +216,165 @@ Once the lambda is created, you can now start developing with it in VSCode using
 
 ![](https://i.imgur.com/qpknLp3.jpeg)
 
+Here is a good workflow:
+
+1. Create a sample event that is based on the trigger for your lambda. For example, for an API gateway lambda, choose the **APIGatewayProxy event** choice.
+
+
+![](https://i.imgur.com/1EmG6Wt.jpeg)
+
+
+2. Based on the sample event, ask the AI to generate JSDOC typings for you so you get type safety.
+3. The best dev pipeline is to invoke your function locally, and then hit **Ctrl + S** to save and automatically deploy your function to the cloud.
+
+```ts
+const sampleEvent = `{
+    "body": "{\"test\":\"body\"}",
+    "resource": "/{proxy+}",
+    "path": "/path/to/resource",
+    "httpMethod": "POST",
+    "queryStringParameters": {
+        "foo": "bar"
+    },
+    "pathParameters": {
+        "proxy": "path/to/resource"
+    },
+    "stageVariables": {
+        "baz": "qux"
+    },
+    "headers": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, sdch",
+        "Accept-Language": "en-US,en;q=0.8",
+        "Cache-Control": "max-age=0",
+        "CloudFront-Forwarded-Proto": "https",
+        "CloudFront-Is-Desktop-Viewer": "true",
+        "CloudFront-Is-Mobile-Viewer": "false",
+        "CloudFront-Is-SmartTV-Viewer": "false",
+        "CloudFront-Is-Tablet-Viewer": "false",
+        "CloudFront-Viewer-Country": "US",
+        "Host": "1234567890.execute-api.{dns_suffix}",
+        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": "Custom User Agent String",
+        "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
+        "X-Amz-Cf-Id": "cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA==",
+        "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
+        "X-Forwarded-Port": "443",
+        "X-Forwarded-Proto": "https"
+    },
+    "requestContext": {
+        "accountId": "123456789012",
+        "resourceId": "123456",
+        "stage": "prod",
+        "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+        "identity": {
+            "cognitoIdentityPoolId": null,
+            "accountId": null,
+            "cognitoIdentityId": null,
+            "caller": null,
+            "apiKey": null,
+            "sourceIp": "127.0.0.1",
+            "cognitoAuthenticationType": null,
+            "cognitoAuthenticationProvider": null,
+            "userArn": null,
+            "userAgent": "Custom User Agent String",
+            "user": null
+        },
+        "resourcePath": "/{proxy+}",
+        "httpMethod": "POST",
+        "apiId": "1234567890"
+    }
+}`;
+
+/**
+ * @typedef {Object} Identity
+ * @property {string|null} cognitoIdentityPoolId
+ * @property {string|null} accountId
+ * @property {string|null} cognitoIdentityId
+ * @property {string|null} caller
+ * @property {string|null} apiKey
+ * @property {string} sourceIp
+ * @property {string|null} cognitoAuthenticationType
+ * @property {string|null} cognitoAuthenticationProvider
+ * @property {string|null} userArn
+ * @property {string} userAgent
+ * @property {string|null} user
+ */
+
+/**
+ * @typedef {Object} RequestContext
+ * @property {string} accountId
+ * @property {string} resourceId
+ * @property {string} stage
+ * @property {string} requestId
+ * @property {Identity} identity
+ * @property {string} resourcePath
+ * @property {string} httpMethod
+ * @property {string} apiId
+ */
+
+/**
+ * @typedef {Object} APIGatewayProxyEvent
+ * @property {string} body
+ * @property {string} resource
+ * @property {string} path
+ * @property {string} httpMethod
+ * @property {Object.<string, string>} queryStringParameters
+ * @property {Object.<string, string>} pathParameters
+ * @property {Object.<string, string>} stageVariables
+ * @property {Object.<string, string>} headers
+ * @property {RequestContext} requestContext
+ */
+
+/**
+ * @typedef {Object} APIGatewayProxyResult
+ * @property {number} statusCode
+ * @property {string} body
+ */
+
+/**
+ * Lambda handler for REST API requests
+ * @param {APIGatewayProxyEvent} event
+ * @returns {Promise<APIGatewayProxyResult>}
+ */
+export const handler = async (event) => {
+  /**
+   * @type {APIGatewayProxyResult}
+   */
+  let response = {
+    statusCode: 200,
+    body: JSON.stringify("Hello from Lambda!"),
+  };
+
+  if (event.queryStringParameters && event.queryStringParameters.foo) {
+    response.body = JSON.stringify(`Hello ${event.queryStringParameters.foo}!`);
+    return response;
+  }
+
+  const stage = event.requestContext.stage;
+  if (stage) {
+    response.body = JSON.stringify(`In stage ${stage} stage!`);
+    return response;
+  }
+
+  return response;
+};
+
+```
+
+#### Testing the API gateway
+
+Once the lambda is deployed and the API gateway is created, you need to test out if the API gateway URL works for real or not.
+
+1. Go to **Routes**
+2. Find the specific route in the API gateway whose **integration** is the lambda you created that gets triggered.
+
+> [!NOTE]
+> The thing about HTTP API gateway is that it creates a specific route by default where the lambda gets triggered, so it's one lambda that gets triggered per route.
+
+
+![](https://i.imgur.com/g6d2rXZ.jpeg)
+
 
 ### Bucket to SNS to lambda
 
