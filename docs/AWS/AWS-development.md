@@ -149,6 +149,8 @@ Here are the available conditional keys:
 
 #### Example policies
 
+**allow reading objects from a bucket**
+
 ```json
 {
   "Version": "2012-10-17",
@@ -171,6 +173,22 @@ Here are the available conditional keys:
 
 - `s3:ListBucket` operates on the bucket ARN, not the objects inside it.
 - `s3:GetObject` operates on objects, so the ARN ends with `/*`.
+
+**prevent deletion of a bucket**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PreventDeleteBucket",
+      "Effect": "Deny",
+      "Action": ["s3:DeleteBucket"],
+      "Resource": "arn:aws:s3:::my-frontend-app-assets"
+    }
+  ]
+}
+```
 
 ### Cognito and user pools
 

@@ -987,7 +987,7 @@ aws sqs send-message \
 ```
 
 
-#### SNS + SES lambda
+#### SNS lambda
 
 ```ts
 import { SNSEvent } from "aws-lambda";
@@ -1058,6 +1058,7 @@ export const handler: SNSHandler = async (event: SNSEvent): Promise<void> => {
 Here's an example where we can execute a lambda by registering its trigger as an SES email trigger, where the lambda gets executed upon some email sent to a specific destination email.
 
 
+
 ```ts
 import { SESEvent } from "aws-lambda";
 
@@ -1106,6 +1107,10 @@ const exampleSESEvent: SESEvent = {
 ```
 
 
+To send an email with lambda, you need these permissions:
+
+- `ses:SendEmail`: allows you to send an email
+- `ses:SendRawEmail`: allows you to send an email with HTML content.
 ### Bedrock
 
 #### OpenAI compatible endpoints
