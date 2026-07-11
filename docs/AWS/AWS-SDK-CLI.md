@@ -312,6 +312,200 @@ await iam.send(
 ```
 ### S3
 
+#### Object management
+
+**creating objects**
+
+```ts
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { readFile } from 'node:fs/promises';
+
+const body = await readFile('./hello.txt');
+
+await s3.send(
+  new PutObjectCommand({
+    Bucket: 'my-bucket',
+    Key: 'hello.txt',
+    Body: body,
+    ContentType: 'text/plain',
+  }),
+);
+```
+
+**get object**
+
+```ts
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+
+const { Body } = await s3.send(
+  new GetObjectCommand({
+    Bucket: 'my-bucket',
+    Key: 'hello.txt',
+  }),
+);
+
+const text = await Body!.transformToString();
+console.log(text);
+```
+
+**list objects**
+
+```ts
+import { ListObjectsV2Command } from '@aws-sdk/client-s3';
+
+let ContinuationToken: string | undefined;
+do {
+  const page = await s3.send(
+    new ListObjectsV2Command({
+      Bucket: 'my-bucket',
+      Prefix: 'uploads/',
+      ContinuationToken,
+    }),
+  );
+
+  for (const obj of page.Contents ?? []) {
+    console.log(obj.Key, obj.Size);
+  }
+
+  ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+} while (ContinuationToken);
+```
+
+**delete object**
+
+```ts
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+
+await s3.send(
+  new DeleteObjectCommand({
+    Bucket: 'my-bucket',
+    Key: 'hello.txt',
+  }),
+);
+```
+
+**copy object**
+
+```ts
+import { CopyObjectCommand } from '@aws-sdk/client-s3';
+
+await s3.send(
+  new CopyObjectCommand({
+    Bucket: 'my-bucket',
+    CopySource: 'my-bucket/hello.txt', // object key to copy from
+    Key: 'archive/hello.txt', // object key to create
+  }),
+);
+```
+
+**check existence**
+
+```ts
+import { HeadObjectCommand, NotFound } from '@aws-sdk/client-s3';
+
+async function exists(Bucket: string, Key: string) {
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket, Key }));
+    return true;
+  } catch (err) {
+    if (err instanceof NotFound) return false;
+    throw err;
+  }
+}
+```
+
+#### Presigned URLs
+
+Pre-signed URLs let a client upload or download an object directly from S3 without your backend proxying the bytes (think firebase URLs). The URL carries a short-lived, scoped signature — the client doesn't need AWS credentials.
+
+
+> [!NOTE] 
+> This is exactly what notion and firebase use to let you view public files living in a S3 bucket.
+
+**presigned URL for download**
+
+```ts
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+const url = await getSignedUrl(
+  s3,
+  new GetObjectCommand({
+    Bucket: 'my-bucket',
+    Key: 'reports/q1.pdf',
+  }),
+  { expiresIn: 60 * 5 }, // 5 minutes
+);
+
+// Hand `url` to the browser — plain GET, no auth headers.
+```
+
+**presigned URL for upload**
+
+```ts
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+// defines an HTTP url you can make a PUT request to and pass file data to upload.
+const url = await getSignedUrl(
+  s3,
+  new PutObjectCommand({
+    Bucket: 'my-bucket',
+    Key: `uploads/${crypto.randomUUID()}.png`,
+    ContentType: 'image/png',
+  }),
+  { expiresIn: 60 * 15 },
+);
+```
+
+Then on the client you would load a file like so:
+
+```ts
+await fetch(url, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'image/png' },
+  body: file,
+});
+```
+
+> [!NOTE]
+> The `Content-Type` header on the `PUT` must match what was signed, or S3 rejects the request with `SignatureDoesNotMatch`.
+
+#### Multipart upload
+
+```ts
+import { Upload } from '@aws-sdk/lib-storage';
+import { createReadStream } from 'node:fs';
+
+const upload = new Upload({
+  client: s3,
+  params: {
+    Bucket: 'my-bucket',
+    Key: 'videos/large.mp4',
+    Body: createReadStream('./large.mp4'),
+    ContentType: 'video/mp4',
+  },
+  queueSize: 4,
+  partSize: 5 * 1024 * 1024,
+});
+
+upload.on('httpUploadProgress', (p) => {
+  console.log(`${p.loaded}/${p.total}`);
+});
+
+await upload.done();
+```
+
+
+#### Common gotchas
+
+- **CORS**: Browser uploads via pre-signed URL need the bucket's CORS config to allow `PUT` from your origin.
+- **Clock skew**: Pre-signed URLs are time-bound. A client with a badly drifted clock can get `RequestTimeTooSkewed`.
+- **Signed headers must match**: Any header included when signing (e.g., `ContentType`, `ACL`, `x-amz-meta-*`) must be sent verbatim by the client.
+- **Region**: The client region must match the bucket's region, or you'll get `PermanentRedirect` / 301s.
+
+#### Custom class
+
 ```ts
 import {
   S3Client,
