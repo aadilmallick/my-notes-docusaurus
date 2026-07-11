@@ -197,7 +197,25 @@ When creating an identity pool in cognito, it actually creates two roles behind 
 - **identity pool role for authenticated access**: Defines the AWS permissions authenticated users in the user pool have
 - **identity pool role for unauthenticated access**: Defines the AWS permissions unauthenticated users have (they are not in the user pool).
 
-## Lambda use cases
+## Lambda
+
+### Lambda API gateway
+
+1. Create an API gateway that is an **HTTP API** type. Don't add any integrations or routes.
+
+	![](https://i.imgur.com/1Jcl6gq.jpeg)
+
+2. Create a lambda with the API gateway you created as the trigger. Choose **open** security so your API is open to the public and has no need for authentication.
+
+	![](https://i.imgur.com/Yb6ejdT.jpeg)
+
+#### Lambda development with AWS toolkit
+
+Once the lambda is created, you can now start developing with it in VSCode using AWS toolkit.
+
+
+![](https://i.imgur.com/qpknLp3.jpeg)
+
 
 ### Bucket to SNS to lambda
 
