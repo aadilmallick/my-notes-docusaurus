@@ -372,6 +372,66 @@ export const handler = async (event) => {
 
 	![](https://i.imgur.com/Yb6ejdT.jpeg)
 
+
+#### Example
+
+Here is an example API gateway lambda that accepts a POST request with `num1` and `num2` as parameters in the request body:
+
+
+```ts
+/**
+ * Lambda handler for REST API requests
+ * @param {APIGatewayProxyEvent} event
+ * @returns {Promise<APIGatewayProxyResult>}
+ */
+export const handler = async (event) => {
+  /**
+   * @type {APIGatewayProxyResult}
+   */
+  let response = {
+    statusCode: 200,
+    body: JSON.stringify("Hello from Lambda!"),
+  };
+
+  console.log("Received event:", JSON.stringify(event, null, 2));
+
+  if (event.requestContext.http.method === "POST" && event.body) {
+    const { num1, num2 } =
+      typeof event.body === "string" ? JSON.parse(event.body) : event.body;
+    if (typeof num1 === "number" && typeof num2 === "number") {
+      const sum = num1 + num2;
+      response.body = JSON.stringify(
+        `The sum of ${num1} and ${num2} is ${sum}.`,
+      );
+      return response;
+    } else {
+      response.statusCode = 400;
+      response.body = JSON.stringify(
+        "Invalid input. Please provide two numbers.",
+      );
+      return response;
+    }
+  }
+
+  return response;
+}
+```
+
+Then you can test the lambda like so:
+
+```http
+### GET /
+GET https://l5cfpz1xhg.execute-api.us-east-1.amazonaws.com/lambda-course-rest-api-handler
+
+### POST /
+POST https://l5cfpz1xhg.execute-api.us-east-1.amazonaws.com/lambda-course-rest-api-handler
+Content-Type: application/json
+
+{
+    "num1": 5,
+    "num2": 10
+}
+```
 #### Testing the API gateway
 
 Once the lambda is deployed and the API gateway is created, you need to test out if the API gateway URL works for real or not.
@@ -385,6 +445,10 @@ Once the lambda is deployed and the API gateway is created, you need to test out
 
 ![](https://i.imgur.com/g6d2rXZ.jpeg)
 
+You can find the exact deployed URL of the API gateway by going to your lambda then go to **triggers** and look at the API gateway trigger:
+
+
+![](https://i.imgur.com/GNCM2ks.jpeg)
 
 ### Bucket to SNS to lambda
 
