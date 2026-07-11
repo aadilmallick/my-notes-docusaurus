@@ -429,6 +429,14 @@ Request comes in
 > [!TIP]
 > A common mistake is thinking that adding an Allow policy fixes access. If there’s an explicit Deny somewhere—maybe on the user’s group, or an organization-wide policy—no amount of Allow will override it. When debugging access issues, always check for Deny statements first.
 
+#### Permission boundaries 
+
+Permission boundaries limit policies, and you can attach them individually to IAM users.
+
+Think of permission boundaries as a **set intersection** between two policies. An IAM user with the `AWSAdministratorAccess` policy attached but the `IAMAccess` permission boundary, they will only get the intersection between those two permission sets, which just results in the user only having `IAMAccess`.
+
+
+
 ## EC2
 
 ### Intro

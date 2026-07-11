@@ -196,3 +196,11 @@ When creating an identity pool in cognito, it actually creates two roles behind 
 
 - **identity pool role for authenticated access**: Defines the AWS permissions authenticated users in the user pool have
 - **identity pool role for unauthenticated access**: Defines the AWS permissions unauthenticated users have (they are not in the user pool).
+
+## Lambda use cases
+
+### Bucket to SNS to lambda
+
+1. Create an SNS topic that anybody can subscribe to (`Principal: *`)
+2. Go to **S3 -> events -> create new event** and have it push to the SNS topic.
+3. Create a lambda whose trigger is the SNS topic, and thus receives data in SNS event format.
