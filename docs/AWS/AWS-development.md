@@ -338,6 +338,84 @@ awslocal lambda create-function-url-config \
 ## Serverless Framework
 ## AWS SDK
 
+### Lambda functions
+
+There are two main ways to create lambda functions in your code:
+
+1. **AWS toolkit + upload lambda**: write the code for a lambda function and then manually upload it to the AWS console or use AWS toolkit to upload it.
+2. **infrastructure as code**: Using something like AWS CDK or serverless framework, you can write the code describing the behavior and architecture of the lambda, and then also write the actual source code of the lambda.
+
+The basic code for a lambda has the following three rules:
+
+1. There must be an exported async handler function in the file, which takes in an `event` parameter and returns an object that structures a response.
+2. The `event` parameter will have different types depending on which type of Lambda you are creating (input/output of Lambda)
+3. You must return an object with `statusCode`, `body`, and `headers` property.
+
+```ts
+/**
+ * In AWS Lambda, your entrypoint is always an exported function.
+ */
+export const handler = async (
+  event: any // different lambdas will have different types of events
+) => {
+    console.log("📥 Received Event:", JSON.stringify(event, null, 2));
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({"message" : "hello world"}),
+    };
+}
+```
+
+#### API Gateway Lambda
+
+This is an example of a lambda that should be used as an API gateway handler.
+
+- **event typing**: The `event` argument coming into the lambda should be typed with the `APIGatewayProxyEvent` interface.
+- **event typing**: The `event` argument coming into the lambda should be typed with the `APIGatewayProxyEvent` interface.
+
+```ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+
+/**
+ * In AWS Lambda, your entrypoint is always an exported function.
+ * API Gateway routes events here into the `event` parameter.
+ */
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  try {
+    console.log("📥 Received API Gateway Event:", JSON.stringify(event, null, 2));
+
+    // Extract query parameters from the HTTP request url (e.g. ?name=Sam)
+    const name = event.queryStringParameters?.name || "Anonymous Developer";
+
+    // Build a structured response matching what API Gateway expects
+    const responseBody = {
+      message: `Hello ${name}! Welcome to your serverless backend.`,
+      timestamp: new Date().toISOString(),
+    };
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(responseBody),
+    };
+
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Internal Server Error" }),
+    };
+  }
+};
+```
+
 ### Bedrock
 
 #### OpenAI compatible endpoints

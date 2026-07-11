@@ -1134,6 +1134,16 @@ There are two ways you can design the behavior of your lambda invocation to be:
 
 ### ECS and EKS
 
+Container orchestration is the act of managing a variable amount of **container instances** and assigning them to **container hosts.**
+
+- **container instances**: Individual ephemeral containers
+- **container hosts**: the underlying EC2 instances that run multiple containers at a time in a ReplicaSet for availability and redundancy.
+
+
+
+![](https://i.imgur.com/ypB4AJA.jpeg)
+
+
 ECS and EKS are unmanaged container orchestration systems for scaling applications in clusters with two main differences:
 
 - **ECS**: uses AWS's custom container deployment and orchestration solution
