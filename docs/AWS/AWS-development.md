@@ -375,7 +375,7 @@ export const handler = async (
 This is an example of a lambda that should be used as an API gateway handler.
 
 - **event typing**: The `event` argument coming into the lambda should be typed with the `APIGatewayProxyEvent` interface.
-- **event typing**: The `event` argument coming into the lambda should be typed with the `APIGatewayProxyEvent` interface.
+- **response**: The response type returned from the lambda should be typed with the `APIGatewayProxyResult` interface.
 
 ```ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
@@ -415,6 +415,8 @@ export const handler = async (
   }
 };
 ```
+
+
 
 ### Bedrock
 
