@@ -339,9 +339,36 @@ Here are the 4 main components of IAM:
 > [!IMPORTANT]
 > All users, user groups, and roles have a maximum of 10 policies you can apply.
 
+![IAM mental model|692](https://s2mkrsfdifk0dskd.public.blob.vercel-storage.com/images/a8f9bd27f28fbb96/original.svg)
+
+| Frontend RBAC                | AWS IAM                          |
+| ---------------------------- | -------------------------------- |
+| User account                 | IAM user                         |
+| Role (admin, editor, viewer) | IAM group or role                |
+| Permission (can_edit_posts)  | IAM policy statement             |
+| Check at request time        | IAM evaluation on every API call |
+### Users and User groups
+
+IAM users and user groups attach a set of policies to individual users you give login access to your AWS account.
+
+There are two ways users registered with IAM can access resources on your AWS account:
+
+1. **console sign-in**: you create an IAM user, which has their own account ID and password. They then login with those credentials to access the AWS console with only the permissions you gave them.
+2. **programmatic access**: You can give an IAM user or user group an access key and secret access key for programmatic access.
+
+> [!WARNING]
+> Avoid using the `AdministratorAccess` managed policy for anything other than your own admin user. Attaching it to a Lambda role or a CI/CD bot means any bug or compromise gives an attacker full control of your AWS account. We cover this in [Principle of Least Privilege](https://stevekinney.com/courses/aws/principle-of-least-privilege).
+
 ### Roles
 
+An **IAM role** is like a user, but without permanent credentials. Instead of logging in as a role, you **assume** it temporarily. The role hands back short-lived credentials that expire after a set duration.
+
 Roles allow an identity to temporarily assume a set of permissions/policies. By default, no service in AWS can interact with another AWS service (like lambda executing dynamodb), so for that to occur, you need to give AWS services a role so they can gain access to other services.
+
+Roles are critical for two scenarios:
+
+- **AWS services that need permissions.** When a Lambda function needs to read from S3 or write to DynamoDB, it assumes a role. The function doesn’t have its own access keys—it borrows permissions from the role every time it runs.
+- **Cross-account access.** A role in Account A can be assumed by a user in Account B. This is how organizations manage access across multiple AWS accounts without sharing credentials.
 
 ### Policies
 
@@ -356,9 +383,51 @@ So here is the full logic behind permission evaluation:
 2. Multiple policies are evaluated additively to extend the set of permissions
 3. Explicit DENYs override explicit ALLOWs.
 
+There are two kinds of policies:
+
+- **Identity-based policies** attach to users, groups, or roles. They define what that identity can do.
+- **Resource-based policies** attach to a resource (like an S3 bucket). They define who can access that resource.
+
+Here's the simplest possible policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-frontend-app-assets/*"
+    }
+  ]
+}
+```
 
 
+#### How AWS evaluates policies
 
+Every time you make a request to AWS—clicking a button in the console, running a CLI command, making an SDK call from code—IAM runs an evaluation. The logic is simple but absolute:
+
+1. **Start with a default deny.** Every request is denied unless something explicitly allows it. A brand-new IAM user with no policies attached can’t do anything.
+    
+2. **Check for explicit denies.** AWS looks at every policy that applies to this request. If any policy has a `"Effect": "Deny"` statement that matches the action and resource, the request is **denied immediately**. No allow can override an explicit deny.
+    
+3. **Check for explicit allows.** If no explicit deny was found, AWS checks for a `"Effect": "Allow"` statement that matches. If one exists, the request is allowed.
+    
+4. **If nothing allows it, deny.** Back to the default: no explicit allow means implicit deny.
+    
+
+The critical takeaway: **explicit deny always wins**. If one policy says “allow everything on S3” and another says “deny access to this specific bucket,” the deny wins. Always. This is how you create guardrails that can’t be accidentally overridden.
+
+```
+Request comes in
+    → Any explicit Deny? → YES → Request DENIED (game over)
+    → Any explicit Allow? → YES → Request ALLOWED
+    → Neither? → Request DENIED (implicit deny)
+```
+
+> [!TIP]
+> A common mistake is thinking that adding an Allow policy fixes access. If there’s an explicit Deny somewhere—maybe on the user’s group, or an organization-wide policy—no amount of Allow will override it. When debugging access issues, always check for Deny statements first.
 
 ## EC2
 
