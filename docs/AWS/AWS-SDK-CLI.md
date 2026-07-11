@@ -1,8 +1,184 @@
 
 ## AWS CLI
 
+### IAM
+
+#### Creating policies
+
+This is how you can create a policy and output its JSON:
+
+```bash
+aws iam create-policy \
+  --policy-name S3AssetsReadOnly \
+  --policy-document file://s3-assets-read-only.json \
+  --region us-east-1 \
+  --output json
+```
+
+Then here is how you can attach policies to users or user groups:
+
+```bash
+aws iam attach-user-policy \
+  --user-name admin \
+  --policy-arn arn:aws:iam::123456789012:policy/S3AssetsReadOnly \
+  --region us-east-1 \
+  --output json
+```
 
 ## AWS SDK
+
+Most SDK helpers use the **command pattern** to provide a simple, unified API for accessing AWS services programmatically.
+
+1. Create a client
+2. Invoke a command with `client.send(command)`, which is an asynchronous function.
+
+Here's an example:
+
+```ts
+// 1. create with default credentials (reads from ~/.aws/config)
+const s3Client = new S3Client({});
+
+// 2. create  a command
+const createBucketCommand = new CreateBucketCommand({
+  Bucket: "2022-amallick-unique-bucket-name",
+});
+
+// 3. send the command
+await s3Client.send(createBucketCommand);
+```
+
+### IAM
+
+```ts
+import { IAMClient, CreatePolicyCommand, AttachUserPolicyCommand } from '@aws-sdk/client-iam';
+
+const iam = new IAMClient({ region: 'us-east-1' });
+
+const policy = await iam.send(
+  new CreatePolicyCommand({
+    PolicyName: 'S3AssetsReadOnly',
+    PolicyDocument: JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Sid: 'AllowListBucket',
+          Effect: 'Allow',
+          Action: ['s3:ListBucket'],
+          Resource: 'arn:aws:s3:::my-frontend-app-assets',
+        },
+        {
+          Sid: 'AllowReadObjects',
+          Effect: 'Allow',
+          Action: ['s3:GetObject'],
+          Resource: 'arn:aws:s3:::my-frontend-app-assets/*',
+        },
+      ],
+    }),
+  }),
+);
+
+await iam.send(
+  new AttachUserPolicyCommand({
+    UserName: 'admin',
+    PolicyArn: policy.Policy!.Arn!,
+  }),
+);
+```
+
+### S3
+
+```ts
+import {
+  S3Client,
+  CreateBucketCommand,
+  PutObjectCommand,
+  S3ClientConfig,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  DeleteBucketCommand,
+} from "@aws-sdk/client-s3";
+
+export class S3Wrapper {
+  private s3Client: S3Client;
+
+  constructor(
+    public bucketName: string,
+    config?: S3ClientConfig,
+  ) {
+    // 1. Initialize the S3 Client (inherits region from your CLI setup)
+    this.s3Client = new S3Client(config ?? {});
+  }
+
+  async createBucket(): Promise<void> {
+    const createBucketCommand = new CreateBucketCommand({
+      Bucket: this.bucketName,
+    });
+    await this.s3Client.send(createBucketCommand);
+  }
+
+  async uploadObject(
+    key: string,
+    body: Buffer | string,
+    options?: { ContentType?: string },
+  ): Promise<void> {
+    const putObjectCommand = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      Body: body,
+      ContentType: options?.ContentType,
+    });
+    await this.s3Client.send(putObjectCommand);
+  }
+
+  async getObject(key: string): Promise<Buffer | null> {
+    try {
+      const getObjectCommand = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+      const response = await this.s3Client.send(getObjectCommand);
+      if (response.Body) {
+        const chunks: Uint8Array[] = [];
+        for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+          chunks.push(chunk);
+        }
+        return Buffer.concat(chunks);
+      }
+      return null;
+    } catch (error) {
+      if (error instanceof Error && error.name === "NoSuchKey") {
+        return null; // Object not found
+      }
+      throw error; // Rethrow other errors
+    }
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    const deleteObjectCommand = new DeleteObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+    await this.s3Client.send(deleteObjectCommand);
+  }
+
+  async listObjects(): Promise<string[]> {
+    const listObjectsCommand = new ListObjectsV2Command({
+      Bucket: this.bucketName,
+    });
+    const response = await this.s3Client.send(listObjectsCommand);
+    return response.Contents?.map((item) => item.Key ?? "") ?? [];
+  }
+
+  async deleteBucket(): Promise<void> {
+    const deleteBucketCommand = new DeleteBucketCommand({
+      Bucket: this.bucketName,
+    });
+    await this.s3Client.send(deleteBucketCommand);
+  }
+}
+
+```
 
 ### Lambda functions
 
