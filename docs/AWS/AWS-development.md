@@ -338,4 +338,74 @@ awslocal lambda create-function-url-config \
 ## Serverless Framework
 ## AWS SDK
 
+### Bedrock
 
+#### OpenAI compatible endpoints
+
+Here is how you can use the bedrock API key to query GPT models:
+
+1. Set the `OPENAI_API_KEY` env var to the bedrock API key and set the `OPENAI_BASE_URL` env var to point to the bedrock inference endpoint.
+
+```bash
+export OPENAI_API_KEY="bedrock-api-key-...."
+export OPENAI_BASE_URL="https://bedrock-mantle.us-east-1.api.aws/v1"
+```
+
+2. Install openai
+
+```bash
+npm install openai
+```
+
+3. Run inference as normal:
+
+```ts
+import OpenAI from "openai";  
+
+const client = new OpenAI();  
+
+const response = await client.responses.create({ 
+    model: "openai.gpt-oss-120b", 
+    input: [ 
+        { role: "user", content: "Write a one-sentence bedtime story about a unicorn." } 
+    ] 
+});  
+
+console.log(response.output_text);
+```
+
+
+### AWS bedrock API inference
+
+
+1. Export the env var `AWS_BEARER_TOKEN_BEDROCK` into the shell session
+
+```bash
+export AWS_BEARER_TOKEN_BEDROCK="bedrock-api-key-..."
+```
+
+2. INstall the bedrock SDK:
+
+```bash
+npm install @aws-sdk/client-bedrock-runtime
+```
+
+3. Run inference like so:
+
+```ts
+import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
+
+const client = new BedrockRuntimeClient({ region: "us-east-1" });
+
+const response = await client.send(new ConverseCommand({ 
+    modelId: "us.anthropic.claude-haiku-4-5-20251001-v1:0", 
+    messages: [
+        { 
+            role: "user",
+            content: [{ text: "Write a one-sentence bedtime story about a unicorn." }] 
+        } 
+    ] 
+}));
+
+console.log(response.output.message.content[0].text);
+```
