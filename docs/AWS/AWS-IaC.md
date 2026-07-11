@@ -154,6 +154,17 @@ The first command will build a docker image from a Dockerfile and then the sourc
 
 ### Local testing
 
+After building the function with `sam build`, you have these options available to you:
+
+```
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate
+[*] Invoke Function: sam local invoke
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided
+```
+
 #### Local function invocation
 
 1. Build the app with the `sam build` command
