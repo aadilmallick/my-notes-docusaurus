@@ -379,7 +379,23 @@ Under the `Resources` top level key, you define the resources you want to provis
 
 - `AWS::Serverless::Function`: represents a lambda function, which you can create either with containerization or zipping the source code folder, both of which SAM handles for you.
 
+Here is an example resource, where we create a lambda function resource by specifying the type as `AWS::Serverless::Function` under the logical ID `HelloWorldFunction`.
+
+```yaml
+Resources:
+  HelloWorldFunction: # logical ID of resource
+    Type: AWS::Serverless::Function # define as lambda
+    Properties: # configuration for the lambda
+	    ...
+```
+
 ##### Lambda Resources
+
+Here are the important top-level configuration keys that live under the `Properties` key:
+
+- `PackageType`: `Zip` to zip up lambda source code or `Image` to use docker to build lambda source code.
+- `Architectures`: which architectures to build the lambda for
+- `Events`: the triggers to define for the lambda
 
 ```yaml
 Resources:
@@ -423,6 +439,18 @@ Resources:
       DockerContext: ./roll-die
       Dockerfile: Dockerfile
 ```
+
+**zip vs dockerfile method**
+
+When choosing to either use a DockerFile to package up your lambdas or let SAM manage the lambda source code by zipping it up, you have different configurations you need to provide.
+
+For a single lambda resource, to control whether using zip method or docker method, you specify the `Properties.PackageType` either with the `Zip` value to specify zip or `Image` value to specify docker.
+
+- `PackageType: Zip`: Uses zip mode for lambda packaging and requires these properties:
+	- `CodeUri`: the path to the folder (relative from project root) containing the lambda source code.
+	- `Handler`: follows the syntax `<file-basename>.<handler-method-name>`, which specifies the specific function to register as the lambda handler function.
+		- For example, `app.handler` refers to the exported `handler()` method in `app.mjs`
+	- 
 
 #### Deployment outputs
 
