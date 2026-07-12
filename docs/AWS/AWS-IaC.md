@@ -1356,7 +1356,190 @@ Database
 
 Notice that only **`handler.ts`** knows anything about API Gateway or Lambda. Everything below it is plain TypeScript and can be reused, unit tested, or even moved into another application.
 
+This is the final architecture to use:
+
+```
+                 API Gateway
+                      │
+                      ▼
+             withApiHandler()
+                      │
+      ┌───────────────┼───────────────┐
+      ▼               ▼               ▼
+ Parse JSON      Validate Zod     Authenticate
+      │               │               │
+      └───────────────┼───────────────┘
+                      ▼
+             Build Request Context
+        (logger, config, AWS clients, user)
+                      │
+                      ▼
+               Business Service
+                      │
+                      ▼
+                Repository Layer
+                      │
+                      ▼
+            DynamoDB / PostgreSQL / S3
+                      │
+                      ▼
+             Response Helper (ok, created)
+                      │
+                      ▼
+               API Gateway Response
+```
+
 #### Useful Utilities
+
+Here are the http utilities that will help with providing standardized HTTP responses:
+
+```ts
+export function ok<T>(body: T) {
+  return {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  };
+}
+
+export function created<T>(body: T) {
+  return {
+    statusCode: 201,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  };
+}
+
+export function noContent() {
+  return {
+    statusCode: 204,
+    body: "",
+  };
+}
+
+export class HttpError extends Error {
+  constructor(
+    public status: number,
+
+    message: string,
+  ) {
+    super(message);
+  }
+
+  toResponse(): { statusCode: number; body: string } {
+    return {
+      statusCode: this.status,
+      body: JSON.stringify({ error: this.message }),
+    };
+  }
+}
+
+export class NotFoundError extends HttpError {
+  constructor(msg = "Not Found") {
+    super(404, msg);
+  }
+}
+
+export class BadRequestError extends HttpError {
+  constructor(msg = "Bad Request") {
+    super(400, msg);
+  }
+}
+
+export class UnauthorizedError extends HttpError {
+  constructor(msg = "Unauthorized") {
+    super(401, msg);
+  }
+}
+
+export function handleError(error: unknown) {
+  if (error instanceof HttpError) {
+    return error.toResponse();
+  }
+
+  console.error(error);
+
+  return {
+    statusCode: 500,
+
+    body: JSON.stringify({
+      message: "Internal Server Error",
+    }),
+  };
+}
+
+```
+
+Here are the zod schema and handler wrapper utilities:
+
+```ts
+import { ZodSchema } from "zod";
+import { handleError } from "./httpUtils";
+
+export function validateBody<T>(schema: ZodSchema<T>, body: string | null) {
+  return schema.parse(JSON.parse(body ?? "{}"));
+}
+
+type HandlerOptions<TBody> = {
+  body?: ZodSchema<TBody>;
+};
+
+export function withApiHandler<TBody>(
+  options: HandlerOptions<TBody>,
+  fn: (ctx: {
+    body: TBody;
+    event: APIGatewayProxyEventV2;
+    context: Context;
+  }) => Promise<APIGatewayProxyResultV2>,
+) {
+  return async (event: APIGatewayProxyEventV2, context: Context) => {
+    try {
+      const body = options.body
+        ? validateBody(options.body, event.body)
+        : undefined;
+
+      return await fn({
+        body: body as TBody,
+        event,
+        context,
+      });
+    } catch (err) {
+      return handleError(err);
+    }
+  };
+}
+
+```
+
+The goal is to make this fully typesafe, handling dynamic query parameters and route parameters as well.
+
+```ts
+const CreateUserBody = z.object({
+  name: z.string(),
+  email: z.email(),
+});
+
+export const handler = withApiHandler(
+  {
+    body: CreateUserBody,
+    query: z.object({
+      sendWelcome: z.coerce.boolean().default(false),
+    }),
+    path: z.object({
+      organizationId: z.uuid(),
+    }),
+  },
+  async ({ body, query, path, user, db }) => {
+    // body, query, and path are fully inferred from the Zod schemas.
+    // user, db, logger, and config are already available.
+    return created(await createUser(body, path.organizationId, query.sendWelcome));
+  }
+);
+```
 
 ## LocalStack
 
