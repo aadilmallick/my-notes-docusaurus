@@ -1153,7 +1153,29 @@ https://abc.lambda-url.us-east-1.on.aws
 
 Much simpler than API Gateway for lightweight services.
 
+#### Metadata
+
+The `Properties.Metadata` field describes how to look for the Dockerfile and prepare the build context.
+
+```yaml
+Metadata:
+      DockerTag: nodejs24.x-v1
+      DockerContext: ./roll-die # the folder of content the Dockerfile can access
+      Dockerfile: Dockerfile # the path to DockerFile within the DockerCOntext
+```
+
+- `Metadata.DockerContext`: specifies the build path which contains all the files the Dockerfile can access. The Dockerfile cannot access any files or folders outside of what you provide to the `DockerContext`.
+- `Metadata.Dockerfile`: the path to DockerFile relative to the folderpath you provided for `DockerContext`.
+
+
+
 ### SAM with TypeScript and Docker
+
+#### Basic Docker
+
+#### Docker with TypeScript
+
+#### Useful Utilities
 
 ## LocalStack
 
