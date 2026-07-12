@@ -653,6 +653,8 @@ The lambda handler has these different parameters:
 - `context`: runtime information associated with the lambda
 - `callback`: callback to return info to invoker of lambda
 
+
+
 **event**
 
 Depending on the trigger for the lambda, you have different types of incoming event data that is being passed into the `event` parameter, so here is where TypeScript and zod become truly important.
@@ -691,6 +693,74 @@ context.getRemainingTimeInMillis()
 
 - `context.awsRequestId`: a unique ID for the invocation. Useful for debugging
 - `context.functionName`: the lambda function name in AWS
+
+
+##### Lamda code best practices
+
+1. **Always parse event data**: Use zod schemas and parsing to give type safety to event data. Properties like `event.body` come back as strings instead of objects, so be sure to run a `JSON.parse()` on them.
+2. **Instantiate objects outside of the hander**: avoid instantiating objects within the handler when you can instantiate them outside to avoid to overhead of setup and teardown of objects, and warm invocations can reuse those global objects.
+3. **do structured logging**: It's easier to find JSON logs in cloudwatch, so always log JSON instead of just a traditional `console.log()`
+
+**parsing best practices**
+
+**logging best practices**
+
+```ts
+export const handler = async () => {
+	// ❌ not structured, so hard to find
+	console.log(body)
+	
+	// ✔️ structured JSON and shows unique request ID.
+	console.log({
+	    requestId: context.awsRequestId,
+	    userId,
+	    body
+	});
+};
+```
+
+**warm invocations**
+
+It's important to udnerstand that functions rapidly invoked within quick succession of each other are called **warm invocations** and have access to the same global variables of the previous function invocation, allowing for lambda runtime optimization.
+
+- Anything outside the handler runs **once per container**.
+- Anything inside runs **every invocation**.
+
+So avoid instantiating objects within the handler when you can instantiate them outside to avoid to overhead of setup and teardown of objects, and warm invocations can reuse those global objects.
+
+```ts
+// ❌ expensive database instantiation
+export const handler = async () => {
+    const db = new Database();
+};
+
+// ✔️ warm invocations reuse the same db var
+const db = new Database();
+export const handler = async () => {
+	// code here
+};
+```
+
+Good, since defined outside the handler.
+
+```ts
+const s3 = new S3Client({});
+const dynamo = new DynamoDBClient({});
+```
+
+Bad since reinstantiated every function invocation.
+
+```ts
+export const handler = async () => {
+
+    const s3 = new S3Client({});
+
+};
+```
+
+inside.
+
+The AWS SDK v3 clients are designed to be reused.
 ##### Deploying
 
 **method 1: deploying manually**
@@ -851,8 +921,10 @@ const body = JSON.parse(event.body ?? "{}");
 
 To handle something like `GET /users?page=2`, use the `event.queryParameters` object, which is a key-value record of the query parameters and their values.
 
-```
-event.queryParameters.page
+```ts
+const page = Number(
+    event.queryStringParameters?.page ?? "1"
+);
 ```
 
 **dynamic route parameters**
