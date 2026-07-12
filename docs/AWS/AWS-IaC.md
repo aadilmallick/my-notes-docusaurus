@@ -827,7 +827,9 @@ Deployment
 Stage
 ```
 
-##### API Gateway events
+##### REST API Gateway events
+
+You specify a REST API gateway through specifying the `Events.<Event-ID>.Type` to be of value `Api`.
 
 Here are the different keys that live under the `Properties` configuration for an API gateway event:
 
@@ -873,10 +875,200 @@ export const lambdaHandler = async (event, context) => {
 
 ```
 
+**http method**
+
+Here are the allowed HTTP method values you can pass to the `Properties.Method` property for an API Gateway Event:
+
+```
+get
+
+post
+
+put
+
+delete
+
+patch
+
+head
+
+options
+
+any
+```
+
 **implicit event**
 
 When specifying an API gateway event, SAM creates an implicit API gateway called `ServerlessRestApi` which you can then access as a variable.
 
+##### HTTP API Gateway event
+
+You specify a HTTP (newer version) API gateway through specifying the `Events.<Event-ID>.Type` to be of value `HTTPApi`.
+
+> [!NOTE]
+> You should always prefer `HTTPApi` now to just `Api`, because HTTP API gateway version is not only newer but also faster and simpler. Most new APIs should use **HTTP APIs** unless you specifically need a REST API feature such as API keys, request validation, usage plans, or certain advanced integrations.
+
+
+```yaml
+Events:
+	Hello: # logical ID for trigger
+	  Type: HTTPApi # define HTTP API gateway trigger
+	  Properties:
+		Path: /users/{id} # triggers lambda on GET /users/:id
+		Method: get
+```
+
+**code**
+
+Now in the code, since you're using the HTTP API, then you should use the V2 versions.
+
+```ts
+import {
+  APIGatewayProxyEventV2,
+  APIGatewayProxyResultV2,
+} from "aws-lambda";
+
+export const handler = async (
+    event: APIGatewayProxyEventV2
+): Promise<APIGatewayProxyResultV2> => {
+	// code here
+};
+```
+
+##### S3 event
+
+```yaml
+Events:
+  Upload: # logical ID of trigger
+    Type: S3 # S3-based trigger
+    Properties:
+      Bucket: !Ref UploadBucket # reference specific bucket resource
+      Events: s3:ObjectCreated:* # listen for any object created evenbts
+```
+
+##### SQS event
+
+```yaml
+Events:
+  Message: # logical ID of trigger
+    Type: SQS # SQS based trigger that forwards messages to lambda
+    Properties:
+      Queue: !GetAtt OrdersQueue.Arn # reference queue
+      BatchSize: 10 # batch size (max concurrent messages)
+```
+
+##### Cron event
+
+```yaml
+Events:
+  Cleanup: # logical ID of trigger
+    Type: Schedule # cron based trigger that runs lambda on schedule
+    Properties:
+      Schedule: rate(5 minutes) # runs every 5 minutes
+```
+
+You can also use normal cron syntax to describe the schedule:
+
+```yaml
+Schedule: cron(0 3 * * ? *)
+```
+
+##### EventBridge
+
+Think of EventBridge as AWS's central event bus.
+
+Example
+
+```
+Order Created
+
+↓
+
+EventBridge
+
+↓
+
+Inventory Lambda
+
+↓
+
+Email Lambda
+
+↓
+
+Analytics Lambda
+```
+
+One event.
+
+Multiple consumers.
+
+SAM
+
+```
+Type: EventBridgeRule
+```
+
+Very popular in microservices.
+
+##### SNS
+
+SNS is pub/sub.
+
+```
+Publisher
+
+↓
+
+Topic
+
+↓
+
+Subscriber A
+
+Subscriber B
+
+Subscriber C
+```
+
+SAM
+
+```
+Type: SNS
+```
+
+Good for broadcasting notifications to multiple systems.
+
+##### DynamoDB streams
+
+Suppose someone inserts
+
+```
+New User
+```
+
+into DynamoDB.
+
+Automatically
+
+```
+DynamoDB
+
+↓
+
+Stream
+
+↓
+
+Lambda
+```
+
+Great for
+
+- auditing
+- analytics
+- cache invalidation
+- search indexing
 #### Layers
 
 Lambda Layers are shared code or binaries.

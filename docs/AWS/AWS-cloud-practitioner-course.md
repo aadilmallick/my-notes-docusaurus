@@ -1335,6 +1335,13 @@ API gateway is a managed server AWS service where AWS manages incoming HTTP and 
 - staging for APIs, allowing API versioning
 - parsing of request body, headers, route parameters, search parameters, and response body.
 
+**type of gateways**
+
+There are two main types of API Gateways you can make:
+
+- **REST API**: older version, has more features, and is more expensive.
+- **HTTP API**: newer version, faster, simpler, and less expensive.
+
 
 ### AppSync
 

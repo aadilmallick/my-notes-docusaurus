@@ -751,7 +751,40 @@ aws lambda invoke \
 
 #### API Gateway Lambda
 
-##### Intro
+##### Type Safety
+
+If you are using a REST API for API gateway, these are the types you should use:
+
+```ts
+import {
+    APIGatewayProxyEvent,
+    APIGatewayProxyResult
+} from "aws-lambda";
+
+export const handler = async (
+    event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+
+};
+```
+
+Otherwise, if you're using the HTTP API, then you should use the V2 versions.
+
+```ts
+import {
+  APIGatewayProxyEventV2,
+  APIGatewayProxyResultV2,
+} from "aws-lambda";
+
+export const handler = async (
+    event: APIGatewayProxyEventV2
+): Promise<APIGatewayProxyResultV2> => {
+
+};
+```
+
+
+##### Routing and event parsing
 
 This is an example of a lambda that should be used as an API gateway handler.
 
@@ -799,9 +832,7 @@ export const handler = async (
 
 **event body**
 
-This surprises almost everyone.
-
-Suppose the client sends
+Suppose the client sends this to be value of `event.body`
 
 ```
 {
@@ -809,58 +840,49 @@ Suppose the client sends
 }
 ```
 
-Inside Lambda
+Inside the lambda, there is no parsing going on, so `event.body` is just a string, so make sure to always run `JSON.parse(event.body)`
 
-```
-event.body
-```
-
-is
-
-```
-"{\"name\":\"Alice\"}"
-```
-
-It's a string.
-
-Always.
-
-So
-
-```
+```js
 const body = JSON.parse(event.body ?? "{}");
 ```
 
-is necessary.
 
 **query parameters**
 
-To handle something like `GET /users?page=2`, 
-##### Type Safety
+To handle something like `GET /users?page=2`, use the `event.queryParameters` object, which is a key-value record of the query parameters and their values.
 
-If you are using a REST API for API gateway, these are the types you should use:
-
-```ts
-import {
-    APIGatewayProxyEvent,
-    APIGatewayProxyResult
-} from "aws-lambda";
-
-export const handler = async (
-    event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-
-};
+```
+event.queryParameters.page
 ```
 
-Otherwise, if you're using the HTTP API, then you should use the V2 versions.
+**dynamic route parameters**
+
+To handle something like `GET /users/:id`, use the `event.pathParameters` object, which is a key-value record of the route parameters and their values.
 
 ```ts
-import {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyResultV2,
-} from "aws-lambda";
+event.pathParameters.id
 ```
+
+**catch-all routing**
+
+
+```
+Path: /{proxy+}
+```
+
+This matches
+
+```
+/users
+
+/users/123
+
+/users/123/orders
+
+anything
+```
+
+
 ##### Testing
 
 This is how you can test this API gateway lambda by mocking the event:

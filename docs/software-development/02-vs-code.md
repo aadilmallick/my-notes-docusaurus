@@ -195,6 +195,18 @@ This is an example that puts the currently selected code in a try-catch block:
   }
 ```
 
+## VSCode Tips and Tricks
+
+### Region
+
+You can have a super cool header in your minimap with a simple js comment like `// region <REGION_NAME>`, like so:
+
+```js
+// region REGION_NAME
+```
+
+This is great for organization.
+
 ## Workspace specific configuration with `.vscode`
 
 Let's talk about all the different files you can have in `.vscode`, which is the folder that contains all JSON configuration files for your workspace settings.

@@ -239,14 +239,50 @@ export default PxComponent.extend(ModalMixin, {
 });
 ```
 
-## Super cool vscode tricks
 
-### Region
+## Examples
 
-You can have a super cool header in your minimap with a simple js comment like `// region <REGION_NAME>`, like so:
+### AWS Lambda typing
 
-```js
-// region REGION_NAME
+First install the `aws-lambda` library as a dev dependency.
+
+```bash
+npm i --save-dev @types/aws-lambda
 ```
 
-This is great for organization.
+For standard REST APIs API gateway triggers or HTTP APIs using the v1.0 payload format, you can use the `APIGatewayEvent` type.
+
+```ts
+/**
+ * @param {import('aws-lambda').APIGatewayEvent} event - The API Gateway event object.
+ * @param {import('aws-lambda').Context} context - The Lambda execution context.
+ * @returns {Promise<import('aws-lambda').APIGatewayProxyResult>} The response object.
+ */
+export const handler = async (event, context) => {
+  const name = event.queryStringParameters?.name || 'World';
+  
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: `Hello ${name}!` }),
+  };
+};
+```
+
+If you are using the newer [HTTP API (Payload Format 2.0)](https://www.google.com/1), you should use the `APIGatewayProxyEventV2` type.
+
+```js
+/**
+ * @param {import('aws-lambda').APIGatewayProxyEventV2} event
+ * @returns {Promise<import('aws-lambda').APIGatewayProxyStructuredResultV2>}
+ */
+export const handler = async (event) => {
+  return {
+    statusCode: 200,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ route: event.routeKey }),
+  };
+};
+```
+
+
+
