@@ -608,6 +608,18 @@ There are two main ways to create lambda functions in your code:
 1. **AWS toolkit + upload lambda**: write the code for a lambda function and then manually upload it to the AWS console or use AWS toolkit to upload it.
 2. **infrastructure as code**: Using something like AWS CDK or serverless framework, you can write the code describing the behavior and architecture of the lambda, and then also write the actual source code of the lambda.
 
+
+There are three main types of lambda executions:
+
+- **synchronous execution**: The invoker of the lambda function waits for a response to come back from the lambda.
+	- **example**: HTTP lambda or API gateway lambda, where client invokes the lambda acting as an HTTP request-response cycle
+- **asynchronous execution**: The invoker of the lambda function fires and forgets, not caring about getting a response back. It only cares about getting back an acknowledgment that the event was correctly forward to the lambda
+	- **example**: lambda getting triggered on an S3 event, like an object being put into a bucket.
+- **stream/poll execution**: The lambda function subscribes to a service like SNS or SQS that some other service pushes to, and then consumes the stream of event data.
+	- **example**: DynamoDB stream trigger, SNS trigger, or SQS trigger.
+
+##### Lambda Code
+
 The basic code for a lambda has the following three rules:
 
 1. There must be an exported async handler function in the file, which takes in an `event` parameter and returns an object that structures a response.
@@ -641,15 +653,44 @@ The lambda handler has these different parameters:
 - `context`: runtime information associated with the lambda
 - `callback`: callback to return info to invoker of lambda
 
-There are three main types of lambda executions:
+**event**
 
-- **synchronous execution**: The invoker of the lambda function waits for a response to come back from the lambda.
-	- **example**: HTTP lambda or API gateway lambda, where client invokes the lambda acting as an HTTP request-response cycle
-- **asynchronous execution**: The invoker of the lambda function fires and forgets, not caring about getting a response back. It only cares about getting back an acknowledgment that the event was correctly forward to the lambda
-	- **example**: lambda getting triggered on an S3 event, like an object being put into a bucket.
-- **stream/poll execution**: The lambda function subscribes to a service like SNS or SQS that some other service pushes to, and then consumes the stream of event data.
-	- **example**: DynamoDB stream trigger, SNS trigger, or SQS trigger.
+Depending on the trigger for the lambda, you have different types of incoming event data that is being passed into the `event` parameter, so here is where TypeScript and zod become truly important.
 
+Here's an example for giving type safety to a lambda that gets triggered by a REST API gateway, otherwise known as a APIGatewayProxy lambda
+
+```ts
+import {
+    APIGatewayProxyEvent,
+    APIGatewayProxyResult
+} from "aws-lambda";
+
+export const handler = async (
+    event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+
+};
+```
+
+> [!NOTE]
+> If sending data via `event.body`, that will always come back as a string, so you must parse it with `JSON.parse()`.
+
+**context**
+
+The `context` parameter is an object that contains the lambda metadata, which includes info about the lambda runtime, function name, etc.
+
+```ts
+context.awsRequestId
+
+context.functionName
+
+context.memoryLimitInMB
+
+context.getRemainingTimeInMillis()
+```
+
+- `context.awsRequestId`: a unique ID for the invocation. Useful for debugging
+- `context.functionName`: the lambda function name in AWS
 ##### Deploying
 
 **method 1: deploying manually**
@@ -706,7 +747,11 @@ aws lambda invoke \
   response.json
 ```
 
+
+
 #### API Gateway Lambda
+
+##### Intro
 
 This is an example of a lambda that should be used as an API gateway handler.
 
@@ -752,6 +797,70 @@ export const handler = async (
 };
 ```
 
+**event body**
+
+This surprises almost everyone.
+
+Suppose the client sends
+
+```
+{
+    "name": "Alice"
+}
+```
+
+Inside Lambda
+
+```
+event.body
+```
+
+is
+
+```
+"{\"name\":\"Alice\"}"
+```
+
+It's a string.
+
+Always.
+
+So
+
+```
+const body = JSON.parse(event.body ?? "{}");
+```
+
+is necessary.
+
+**query parameters**
+
+To handle something like `GET /users?page=2`, 
+##### Type Safety
+
+If you are using a REST API for API gateway, these are the types you should use:
+
+```ts
+import {
+    APIGatewayProxyEvent,
+    APIGatewayProxyResult
+} from "aws-lambda";
+
+export const handler = async (
+    event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+
+};
+```
+
+Otherwise, if you're using the HTTP API, then you should use the V2 versions.
+
+```ts
+import {
+  APIGatewayProxyEventV2,
+  APIGatewayProxyResultV2,
+} from "aws-lambda";
+```
 ##### Testing
 
 This is how you can test this API gateway lambda by mocking the event:

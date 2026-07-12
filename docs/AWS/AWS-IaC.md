@@ -212,7 +212,7 @@ You can list all the currently deployed endpoints with the `sam list endpoints` 
 sam list endpoints --output json
 ```
 
-### `template.yaml` in depth
+### `template.yaml` primer
 
 Let's examine the basic hello world example for `template.yaml`:
 
@@ -389,13 +389,193 @@ Resources:
 	    ...
 ```
 
-##### Lambda Resources
+##### Implicit resources
+
+Certain keys can create implicit resources behind the scenes, which are not resources you explicitly define under the `Resources` key, but rather resources that SAM manages and makes for you, like IAM roles, API gateways, etc.
+
+```yaml
+Resources:
+  RollDieFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: roll-die/
+      Architectures:
+        - x86_64
+      Events:
+        RollDieGet:
+          Type: Api # creates implicit API gateway
+          Properties:
+            Path: /roll
+            Method: get
+```
+
+
+For example, when you create the above API gateway trigger for the `RollDieFunction`, here are the resources that implicitly get created:
+
+- `RollDieFunctionRole`: the IAM role attached to the lambda that provides basic lambda execution permissions
+
+Also, whenever you create an API gateway event type, it implicitly creates a API gateway resource with the logical ID as `ServerlessRestApi`  behind the scenes that acts as an API gateway for all API gateway proxy lambdas you set in the app.
+
+> [!NOTE]
+> Implicit resources can be accessed as variables through their logical ID and then combined with functions like `!GetAtt` or `!Sub` to dynamically retrieve values from them.
+
+##### Explicit Resources
+
+Explicit resources can often be much easier to reason about, so you can define APIs and other resources explicitly and then reference them with the `!Ref` function whenever you need to:
+
+```yaml
+Resources:
+  MyApi: # define API gateway with logical ID MyApi
+    Type: AWS::Serverless::Api
+```
+
+Now when creating API gateway events you can reference the explicit API gateway reference to use through the `!Ref` function.
+
+```yaml
+Events:
+  CreateUser:
+    Type: Api
+    Properties:
+      RestApiId: !Ref MyApi
+      Path: /users
+      Method: post
+```
+
+#### Deployment outputs, functions, Variables implicit vs explicit APIs
+
+Deployment outputs are just like `CfnOutput` instances in AWS CDK, where important info is printed to the console.
+
+```yaml
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  HelloWorldApi:
+    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/hello/
+  HelloWorldFunction:
+    Description: Hello World Lambda Function ARN
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: Implicit IAM Role created for Hello World function
+    Value: !GetAtt HelloWorldFunctionRole.Arn
+```
+
+##### Outputs
+
+Outputs live under the `Outputs` key and define the outputs for each AWS resource created in the SAM build.
+
+Here is the basic syntax:
+
+```yaml
+Outputs:
+	<ResourceLogicalId>:
+		Description: some description of the output
+		Value: some value of the output
+```
+
+However, for outputs to do anything useful we need to use functions and variables to dynamically read properties of created resources.
+
+##### Functions and variables
+
+**functions**
+
+The `!GetAtt`, `!Ref`, and `!Sub` functions are important for retrieving data and creating dynamic values.
+
+- **fetching resource properties via logical ID**: the `!GetAtt` function allows you to reference an AWS resource by its logical ID and then extract a property from that resource.
+
+```yaml
+!GetAtt HelloWorldFunction.Arn # Retrieve the ARN attribute of HelloWorldFunction.
+```
+
+- **string interpolation**: The `!Sub` function allows you to perform string interpolation by using the `${varname}` syntax.
+
+```yaml
+!Sub Hello ${AWS::Region} # returns "Hello us-east-1"
+```
+
+- **fetching AWS ID of a resource**: You can fetch the AWS ID of a resource through the `!Ref` function and passing the logical ID of the resource to it:
+
+```yaml
+Events:
+  CreateUser:
+    Type: Api
+    Properties:
+      RestApiId: !Ref MyApi
+      Path: /users
+      Method: post
+```
+
+**global variables**
+
+Here are the global variables that are always available:
+
+- `AWS::Region`: returns the current AWS region
+- `AWS::URLSuffix`: always returns `amazonaws.com`
+
+**implicit variables**
+
+You also have variables that come from implicitly created resources or APIs, which makes this:
+
+```
+https://${ServerlessRestApi}.executeapi.${AWS::Region}.${AWS::URLSuffix}/Prod/hello
+```
+
+Become this:
+
+```
+https://abc123.execute-api.us-east-1.amazonaws.com/Prod/hello/
+```
+
+### Lambda resources
+
+Serverless functions in SAM are defined by the `AWS::Serverless::Function`resource type, but there is one very important thing to keep in mind:
+
+>A SAM Function is **not** a Lambda function. It's actually a **template** that SAM expands into multiple CloudFormation resources.
+
+For example, this:
+
+```
+Resources:
+  MyFunction:
+    Type: AWS::Serverless::Function
+```
+
+is approximately expanded into something like:
+
+```
+MyFunction (SAM)
+
+        │
+        ▼
+
+AWS::Lambda::Function
+AWS::IAM::Role
+AWS::Logs::LogGroup
+AWS::Lambda::Permission
+AWS::ApiGateway::Integration (if API)
+AWS::ApiGateway::Method
+AWS::ApiGateway::Deployment
+```
+
+#### Intro
 
 Here are the important top-level configuration keys that live under the `Properties` key:
 
+- `Timeout`: the max timeout in seconds of the lambda function
+- `ReservedConcurrentExecutions`: the max concurrency for the lambdas, meaning the maximum number of lambdas that can run at one time.
+- `Memory`: the max memory in megabytes to let the lambda function execution environment have.
+	- An important thing to remember is *Higher memory == faster execution*.
+- `Architectures`: which architectures to build the lambda for, which accept either `x86_64` or `arm64` as values.
+	- An important thing to remember is your Docker image architecture **must match** this value.
+
+
+And here are the top-level keys that require a bit more configuration and determine a large portion of lambda behavior:
+
 - `PackageType`: `Zip` to zip up lambda source code or `Image` to use docker to build lambda source code.
-- `Architectures`: which architectures to build the lambda for
 - `Events`: the triggers to define for the lambda
+- `Environment`: provides configuration to set environment variables
+- `Policies`: policies to attach to the lambda role
+- `Metadata`: metadata that helps containerized images find their Dockerfile path, etc.
 
 ```yaml
 Resources:
@@ -407,12 +587,13 @@ Resources:
       PackageType: Zip
       CodeUri: hello-world/
       Handler: app.lambdaHandler
+      ReservedConcurrentExecutions: 5
       Architectures:
         - x86_64
       # define lambda triggers
       Events:
-        HelloWorld: # API gateway trigger that executes lambda on GET /hello
-          Type: Api
+        HelloWorld: # logical ID for trigger
+          Type: Api # API gateway trigger that executes lambda on GET /hello
           Properties:
             Path: /hello
             Method: get
@@ -440,7 +621,47 @@ Resources:
       Dockerfile: Dockerfile
 ```
 
-**zip vs dockerfile method**
+
+Here's a more complete example:
+
+```yaml
+Resources:
+  CreateUserFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+
+      PackageType: Image
+
+      Timeout: 30
+
+      MemorySize: 512
+
+      Architectures:
+        - arm64
+
+      Environment:
+        Variables:
+          DATABASE_URL: postgres://...
+          LOG_LEVEL: info
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: Users
+
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+
+    Metadata:
+      DockerContext: ./functions/create-user
+      Dockerfile: Dockerfile
+      DockerTag: latest
+```
+#### **zip vs dockerfile method**
 
 When choosing to either use a DockerFile to package up your lambdas or let SAM manage the lambda source code by zipping it up, you have different configurations you need to provide.
 
@@ -450,10 +671,289 @@ For a single lambda resource, to control whether using zip method or docker meth
 	- `CodeUri`: the path to the folder (relative from project root) containing the lambda source code.
 	- `Handler`: follows the syntax `<file-basename>.<handler-method-name>`, which specifies the specific function to register as the lambda handler function.
 		- For example, `app.handler` refers to the exported `handler()` method in `app.mjs`
-	- 
+- `PackageType: Image`: Uses zip mode for lambda packaging and requires these properties:
+	- `ImageUri`: the path to the folder (relative from project root) containing the Dockerfile.
 
-#### Deployment outputs
+#### Environment variables
 
+The `Properties.Environment` key on a resource lets you set environment variables which can be accessed in code.
+
+```yaml
+Environment:
+  Variables:
+    DATABASE_URL: xxx
+    NODE_ENV: production
+    API_KEY: abc
+```
+
+However, to load secrets that should not be exposed within the `template.yaml`, you would have to references secrets inside Secrets manager or SSM parameter store like so:
+
+```yaml
+DATABASE_URL: !Ref DatabaseSecret
+```
+
+#### Policies and roles
+
+Without SAM creating IAM permissions is incredibly verbose. Instead you can simply write something like this, creating policies under the `Properties.Policies` key, which will then attach that policy to the implicitly created lambda execution role.
+
+```yaml
+Policies:
+  - DynamoDBCrudPolicy: # grants READ/WRITE to a specific ddb table
+      TableName: Users
+```
+
+By default, the implicitly created role will have the `AWSLambdaBasicExecutionRole` permissions attached to it, but if you want to add additional policies, here are some examples:
+
+```yaml
+Policies:
+  # grants the lambda READ objects permission to the uploads bucket
+  - S3ReadPolicy:
+      BucketName: uploads
+      
+  # grants the lambda READ/WRITE to the Users ddb table
+  - DynamoDBCrudPolicy: 
+	TableName: Users
+
+ # allows the lambda to send messages to the Orders SQS queue
+  - SQSSendMessagePolicy:
+      QueueName: Orders
+```
+
+You can also use any of the 1,482 AWS managed policies, like the `AWSLambdaBasicExecutionRole` which grants basic lambda execution permissions to the implicitly created lambda role.
+
+```yaml
+Policies:
+    - AWSLambdaBasicExecutionRole
+```
+
+Overall the steps for giving your lambda the right permissions are as follows:
+
+1. Either you create your own role, use an existing role, or just do nothing and use the implicit role attached to the lambda.
+2. Specify additional policies
+##### Override implicit role
+
+Instead of Policies, you can provide your own IAM Role that will override the implicitly created lambda role. There are two ways you can do this:
+
+1. **use existing role**: point the lambda to use an already existing role and thus set of permissions via the `Properties.Role` key
+
+```yaml
+Role: arn:aws:iam::123456789:role/MyRole
+```
+
+2. **create new role**: Create a new role that is basically you creating a JSON policy statement that defines permissions for the lambda role. This requires both the `Properties.AssumeRolePolicyDocument` and the `Properties.Policies` keys
+
+```yaml
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      # 1. create the role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      # 2. define the policies to attach to the role
+      Policies:
+        - AWSLambdaBasicExecutionRole
+```
+
+
+
+> [!NOTE]
+> Generally,
+> 
+> - use `Policies` for most projects
+> - use `Role` only when you need full control or must reuse an existing role
+
+#### Events
+
+The `Properties.Events` key defines the triggers for the lambda and creates all the necessary infrastructure behind the scene to create the trigger wiring successfully.
+
+| Event Type      | Trigger                                    |
+| --------------- | ------------------------------------------ |
+| Api             | HTTP request through API Gateway           |
+| HttpApi         | HTTP request through API Gateway HTTP APIs |
+| Schedule        | Cron or rate expression                    |
+| S3              | File uploaded to a bucket                  |
+| SQS             | Message arrives in a queue                 |
+| SNS             | Topic publishes a message                  |
+| DynamoDB        | Table stream record changes                |
+| EventBridgeRule | Custom or AWS events                       |
+| CloudWatchLogs  | Log subscription                           |
+| Kinesis         | Stream records                             |
+
+For example:
+
+```yaml
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+      PackageType: Image
+
+      Events:
+        Hello: # logical ID for trigger
+          Type: Api
+          Properties:
+            Path: /hello # triggers lambda on GET /hello to API gateway
+            Method: get
+```
+
+This tiny amount of YAML creates:
+
+```
+Lambda
+↓
+API Gateway
+↓
+Permission allowing API Gateway to invoke Lambda
+↓
+Method
+↓
+Integration
+↓
+Deployment
+↓
+Stage
+```
+
+##### API Gateway events
+
+Here are the different keys that live under the `Properties` configuration for an API gateway event:
+
+- `Path`: the routing pattern to match for the event
+- `Method`: the lowercase HTTP method to match for the event.
+
+**routing**
+
+This is how to match a dynamic route to `GET /users/:id`:
+
+```yaml
+Events:
+	Hello: # logical ID for trigger
+	  Type: Api
+	  Properties:
+		Path: /users/{id} # triggers lambda on GET /users/:id to API gateway
+		Method: get
+```
+
+Then inside the lambda you can access it through the `event.pathParameters.id` property:
+
+```js
+/**
+ * @param {import('aws-lambda').APIGatewayEvent} event - The API Gateway event object.
+ * @param {import('aws-lambda').Context} context - The Lambda execution context.
+ * @returns {Promise<import('aws-lambda').APIGatewayProxyResult>} The response object.
+ */
+export const lambdaHandler = async (event, context) => {
+
+  /**
+    * @type {import('aws-lambda').APIGatewayProxyResult}
+    */
+  const response = {
+	statusCode: 200,
+	body: JSON.stringify({
+	  message: `route id is ${event.pathParameters.id}`,
+	}),
+  };
+
+
+  return response;
+};
+
+```
+
+**implicit event**
+
+When specifying an API gateway event, SAM creates an implicit API gateway called `ServerlessRestApi` which you can then access as a variable.
+
+#### Layers
+
+Lambda Layers are shared code or binaries.
+
+Imagine
+
+```
+20 Lambdas
+```
+
+all need
+
+```
+FFmpeg
+```
+
+Instead of embedding FFmpeg into every image or ZIP,
+
+you can create
+
+```
+FFmpeg Layer
+```
+
+Every Lambda mounts it.
+
+```
+Layer
+
+↓
+
+Lambda A
+
+Lambda B
+
+Lambda C
+```
+
+This reduces duplication for ZIP-based deployments. For container image Lambdas, you'll often bake shared dependencies into a common base image instead of using layers.
+
+
+#### VPC
+
+If your lambda needs access to private AWS resources that live inside VPCs, like RDS, then you need to specify which VPC a lambda should live in.
+
+```yaml
+VpcConfig:
+  SecurityGroupIds:
+    - sg-123
+
+  SubnetIds:
+    - subnet-1
+    - subnet-2
+```
+
+Pros
+
+- Access to private resources (RDS, internal services)
+
+Cons
+
+- More networking complexity
+- Historically slower cold starts (much improved today)
+
+
+#### Function URLs
+
+Not every Lambda needs API Gateway.
+
+Lambda URLs provide a built-in HTTPS endpoint.
+
+```
+FunctionUrlConfig:
+  AuthType: NONE
+```
+
+Now AWS creates
+
+```
+https://abc.lambda-url.us-east-1.on.aws
+```
+
+Much simpler than API Gateway for lightweight services.
 
 ## LocalStack
 
