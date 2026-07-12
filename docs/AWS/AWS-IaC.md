@@ -727,6 +727,38 @@ However, to load secrets that should not be exposed within the `template.yaml`, 
 DATABASE_URL: !Ref DatabaseSecret
 ```
 
+SAM supports CloudFormation parameters:
+
+```yaml
+Parameters:
+  Environment:
+    Type: String
+```
+
+Then
+
+```yaml
+Environment:
+  Variables:
+    STAGE: !Ref Environment
+```
+
+Now
+
+```bash
+sam deploy \
+    --parameter-overrides Environment=prod
+```
+
+sets the environment.
+
+Great for
+
+- dev
+- staging
+- prod
+
+without changing code.
 #### Policies and roles
 
 Without SAM creating IAM permissions is incredibly verbose. Instead you can simply write something like this, creating policies under the `Properties.Policies` key, which will then attach that policy to the implicitly created lambda execution role.
@@ -1543,6 +1575,8 @@ export const handler = withApiHandler(
 
 ### Production grade SAM architecture
 
+#### Different types of architecture
+
 When building serverless apps with SAM, it's important to reason about the best architecture choice for your app:
 
 - **monolith lambda**: One lambda handling all business logic and endpoints. 
@@ -1552,6 +1586,260 @@ When building serverless apps with SAM, it's important to reason about the best 
 	- **example**: 1 lambda handling all HTTP methods for the resource `/users`
 - **microservices lambda**: By dedicating one lambda per endpoint (resource + method combination), you attain ultimate decoupling.
 	- **example**: 1 lambda for `GET /users`, another for `POST /users`, etc.
+
+> [!NOTE]
+> The best choice is a **generic services lambda** where it's one lambda per resource.
+
+Here would be the full architecture stack:
+
+Here's the full folder structure:
+
+```
+SAM
+│
+├── Docker Image Lambdas
+├── HTTP API (not REST API unless I needed advanced features)
+├── Node.js 22 or newer
+├── TypeScript
+├── Zod
+├── npm or pnpm Workspaces
+├── Shared "core" package
+├── Shared "database" package
+├── Shared "auth" package
+├── PostgreSQL (or DynamoDB where appropriate)
+├── AWS SDK v3
+├── Structured JSON logging
+├── CloudWatch metrics
+├── X-Ray tracing
+├── GitHub Actions
+└── Multi-stage Docker builds
+```
+
+#### Folder structure
+
+Here is a good folder structure that emphasizes reusability and shared code:
+
+```
+project/
+
+├── template.yaml
+
+├── packages/
+
+│   ├── core/
+│   ├── database/
+│   ├── auth/
+│   ├── config/
+│   └── shared/
+
+├── functions/
+
+│   ├── auth/
+│   ├── meals/
+│   ├── orders/
+│   ├── payments/
+│   └── insurance/
+
+└── infrastructure/
+```
+
+- `packages`: reusable helpers
+
+```
+packages/
+    auth/
+    logging/
+    database/
+    validation/
+    aws/
+```
+
+- `functions`: folders containing the handlers and docker images to build those handlers.
+
+
+
+#### Environment variables, secrets, and staging
+
+**basic env vars**
+
+One mistake beginners make is scattering environment variables everywhere.
+
+Instead:
+
+```
+.env
+
+↓
+
+config.ts
+
+↓
+
+Everything imports config
+```
+
+Example:
+
+```ts
+export const config = {
+  supabaseUrl: process.env.SUPABASE_URL!,
+  supabaseKey: process.env.SUPABASE_KEY!,
+  resendApiKey: process.env.RESEND_API_KEY!,
+};
+```
+
+Now your application has **one source of truth**.
+
+**using cloudformation parameters**
+
+SAM supports CloudFormation parameters:
+
+```yaml
+Parameters:
+  Environment:
+    Type: String
+```
+
+Then
+
+```yaml
+Environment:
+  Variables:
+    STAGE: !Ref Environment
+```
+
+Now
+
+```bash
+sam deploy \
+    --parameter-overrides Environment=prod
+```
+
+sets the environment.
+
+Great for
+
+- dev
+- staging
+- prod
+
+without changing code.
+
+**secrets**
+
+Never
+
+```yaml
+Environment:
+
+  Variables:
+
+      DATABASE_PASSWORD: password123
+```
+
+Instead
+
+```
+Secrets Manager
+
+↓
+
+Lambda
+
+↓
+
+Environment Variable references or SDK lookup
+```
+
+SAM can wire these in using dynamic references, and your code can also retrieve them with the AWS SDK when appropriate.
+
+**staging**
+
+Eventually you'll have multiple different environments, like dev, staging, and prod.
+
+Each environment has different
+
+- database
+- bucket
+- secrets
+- API URLs
+
+Never hardcode these.
+
+
+#### Faster docker builds
+
+One Docker image per Lambda?
+
+Not always.
+
+Suppose
+
+```
+Orders
+
+Payments
+
+Meals
+```
+
+all use
+
+- Node
+- Zod
+- PostgreSQL
+- AWS SDK
+
+Those can share a common base image.
+
+Example:
+
+```
+FROM my-company/node-lambda-base
+```
+
+Then each function only copies its own code.
+
+Benefits:
+
+- Faster builds
+- Smaller Dockerfiles
+- Consistent runtime
+- Easier dependency updates
+
+**base image**
+
+Build a base image with this architecture:
+
+```
+AWS Lambda Base
+        │
+        ▼
+Company Base Image
+(Node, shared OS packages)
+        │
+        ▼
+Service Image
+(orders, auth, payments...)
+```
+
+
+#### Logging and metrics
+
+`console.log()` invocations in your lambda handlers push logs to their respective log group in Cloudwatch, so it's important to make them informative and structured for a better debugging experience:
+
+```json
+{
+  "requestId": "...",
+  "userId": "...",
+  "route": "...",
+  "duration": "...",
+  "level": "INFO"
+}
+```
+
+Also record metrics. CloudWatch Metrics (or Amazon EMF), combined with alarms, are often more actionable than logs because they let you detect trends automatically.
+
 ## LocalStack
 
 ### Installation and authentication
