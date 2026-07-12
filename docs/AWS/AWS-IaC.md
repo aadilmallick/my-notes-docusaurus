@@ -150,7 +150,10 @@ The first command will build a docker image from a Dockerfile and then the sourc
 - **AWS Region**: The AWS region you want to deploy your app to.
 - **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
 - **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-- **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+- **Save arguments to `samconfig.toml`**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+
+> [!NOTE]
+> Deployment configuration settings are stored in `samconfig.toml` so you can run `sam deploy` without any flags or arguments on subsequent deployments.
 
 ### Local testing
 
@@ -191,7 +194,7 @@ To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam log
 sam logs -n HelloWorldFunction --stack-name sam-lambda-course --tail
 ```
 
-### Stack Management
+### Deployment in depth
 
 #### Deleting stacks
 
@@ -214,6 +217,69 @@ sam list endpoints --output json
 Let's examine the basic hello world example for `template.yaml`:
 
 ```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: |
+  sam-lambda-course
+  Sample SAM Template for sam-lambda-course
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+    Metadata:
+      DockerTag: nodejs24.x-v1
+      DockerContext: ./hello-world
+      Dockerfile: Dockerfile
+  RollDieFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: roll-die/ # this is the path to the folder where the Dockerfile is located
+      Architectures:
+        - x86_64
+      Events:
+        RollDieGet:
+          Type: Api
+          Properties:
+            Path: /roll
+            Method: get
+        RollDiePost:
+          Type: Api
+          Properties:
+            Path: /roll
+            Method: post
+    Metadata:
+      DockerTag: nodejs24.x-v1
+      DockerContext: ./roll-die
+      Dockerfile: Dockerfile
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  HelloWorldApi:
+    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/hello/
+  HelloWorldFunction:
+    Description: Hello World Lambda Function ARN
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: Implicit IAM Role created for Hello World function
+    Value: !GetAtt HelloWorldFunctionRole.Arn
 
 ```
 
@@ -244,6 +310,123 @@ Actual AWS resources
 
 Useful information after deployment
 ```
+
+#### Metadata section
+
+```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: |
+  sam-lambda-course
+  Sample SAM Template for sam-lambda-course
+```
+
+Pretty standard, these settings don't change.
+
+> [!NOTE]
+> The `|` means register it as a multiline string, maintain new line breaks verbatim.
+
+#### Global defaults
+
+The `Global` top level provides global configuration across all AWS resources of a specific type, like for lambda functions, a shared timeout, environment variables, etc.
+
+This below example gives all lambda functions a timeout of 30 seconds.
+
+```yaml
+Globals:
+  Function:
+    Timeout: 30
+```
+
+**Lambda function globals**
+
+Global configuration across all lambda functions live under the `Globals.Function` key.
+
+**`LoggingConfig` globals**
+
+
+```yaml
+LoggingConfig:
+	LogFormat: JSON
+```
+
+Without it
+
+```
+hello world
+
+user logged in
+
+finished
+```
+
+With JSON
+
+```
+{
+  "level":"INFO",
+  "message":"user logged in",
+  "timestamp":"..."
+}
+```
+
+Structured logs are much easier to search.
+#### AWS resources
+
+SAM is not just for lambda. It's IaC for all AWS resources.
+
+Under the `Resources` top level key, you define the resources you want to provision and their individual configuration. Here are some examples of resources you can provision:
+
+- `AWS::Serverless::Function`: represents a lambda function, which you can create either with containerization or zipping the source code folder, both of which SAM handles for you.
+
+##### Lambda Resources
+
+```yaml
+Resources:
+  # name of resource
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function # define as lambda
+    Properties:
+	  # use Zip method and target lambda source handler() at hello-world/app.mjs
+      PackageType: Zip
+      CodeUri: hello-world/
+      Handler: app.lambdaHandler
+      Architectures:
+        - x86_64
+      # define lambda triggers
+      Events:
+        HelloWorld: # API gateway trigger that executes lambda on GET /hello
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+  RollDieFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: roll-die/ # folderpath where the Dockerfile is located
+      Architectures:
+        - x86_64
+      Events:
+        RollDieGet:
+          Type: Api
+          Properties:
+            Path: /roll
+            Method: get
+        RollDiePost:
+          Type: Api
+          Properties:
+            Path: /roll
+            Method: post
+    Metadata:
+      DockerTag: nodejs24.x-v1
+      DockerContext: ./roll-die
+      Dockerfile: Dockerfile
+```
+
+#### Deployment outputs
+
+
 ## LocalStack
 
 ### Installation and authentication
@@ -424,6 +607,8 @@ export AWS_DEFAULT_REGION="us-east-1"
 
 3. Now run the `cdklocal bootstrap` command to setup resources.
 
+
+### LocalStack with SAM
 ### Examples
 
 #### Creating Lambdas and SNS with aws CLI
