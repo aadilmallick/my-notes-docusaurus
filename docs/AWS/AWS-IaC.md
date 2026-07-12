@@ -204,7 +204,13 @@ To delete the sample application that you created, use the AWS CLI. Assuming you
 sam delete --stack-name sam-lambda-course
 ```
 
-### Deployment information
+To delete all resources provisioned from the CloudFormation template, just run the `sam delete` command to delete all stacks and their resources.
+
+```bash
+sam delete
+```
+
+#### Deployment information
 
 You can list all the currently deployed endpoints with the `sam list endpoints` command
 
