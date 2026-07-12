@@ -211,7 +211,11 @@ sam list endpoints --output json
 
 ### `template.yaml` in depth
 
-Let's examine the basic hello world example for `template.yaml`
+Let's examine the basic hello world example for `template.yaml`:
+
+```yaml
+
+```
 
 Your file has this structure
 
