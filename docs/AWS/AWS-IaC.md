@@ -1541,6 +1541,17 @@ export const handler = withApiHandler(
 );
 ```
 
+### Production grade SAM architecture
+
+When building serverless apps with SAM, it's important to reason about the best architecture choice for your app:
+
+- **monolith lambda**: One lambda handling all business logic and endpoints. 
+	- **pro**: easy to deploy and reason about routing and is very simple.
+	- **con**: leads to a bloated, large function with large cold starts and difficult to scale.
+- **generic services lambda**: By dedicating one lambda per resource, you approach the realm of microservices, where you dedicate one single lambda per resource (URL path)
+	- **example**: 1 lambda handling all HTTP methods for the resource `/users`
+- **microservices lambda**: By dedicating one lambda per endpoint (resource + method combination), you attain ultimate decoupling.
+	- **example**: 1 lambda for `GET /users`, another for `POST /users`, etc.
 ## LocalStack
 
 ### Installation and authentication
