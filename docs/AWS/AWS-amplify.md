@@ -25,7 +25,65 @@ If deploying your `dev` git branch, a staging dev environment is created and bec
 3. Setup hosting for the app by running `amplify add hosting`
 4. Publish the app by running `amplify publish`
 
+### Installation
+
+To get started with AWS Amplify we recommend that you use our [quickstart](https://docs.amplify.aws/react/start/quickstart/) starter template. However, for some use cases, it may be preferable to start from scratch, either with a brand new directory or an existing frontend app. In that case we recommend to use [npm](https://npmjs.com/) with [`create-amplify`](https://www.npmjs.com/package/create-amplify).
+
+#### Manual installation
+
+1. Run `npm create amplify@latest` to go through the app creation wizard
+2. Create a vite app with `npm create vite@latest`
+3. Install necessary backend dependencies
+
+```bash
+npm add --save-dev @aws-amplify/backend@latest @aws-amplify/backend-cli@latest typescript
+```
+
+3. Next, create the entry point for your backend, `amplify/backend.ts`, with the following code:
+
+```ts
+import { defineBackend } from '@aws-amplify/backend';
+
+defineBackend({});
+```
+
+4. Now you can run `npx ampx sandbox` to create your first backend!
+#### Bootstrapping the environment
+
+1. Run the `npx ampx sandbox` command to bootstrap amplify with your locally stored AWS credentials, for a specific profile:
+
+```bash
+npx ampx sandbox # boostrap with default profile
+
+npx ampx sandbox --profile admin-developer # bootstrap with specific profile
+```
+
 ### App building basics
+
+#### Local development
+
+1. In amplify studio, once you have deployed your app, click on a branch then go to **deployments ➡️ deployed backend resources ➡️ download `amplify_outputs.json`**
+
+![](https://docs.amplify.aws/images/gen2/getting-started/react/nextImageExportOptimizer/amplify-outputs-download-opt-1920.WEBP)
+
+2. Then store the `amplify_outputs.json` in the root of the project.
+
+> [!NOTE]
+> The **amplify_outputs.json** file contains backend endpoint information, publicly-viewable API keys, authentication flow information, and more. 
+> 
+> - The Amplify client library uses this outputs file to connect to your Amplify Backend. 
+> - You can review how the outputs file is imported within the `main.tsx` file and then passed into the `Amplify.configure(...)` function of the Amplify client library.
+
+3. Once you are done making changes, run the `npx ampx sandbox` command, which provisions your cloud resources in a staging development environment and deploys a cloud sandbox.
+
+> [!NOTE]
+> The `npx ampx sandbox` command should run concurrently to your `npm run dev`. You can think of the cloud sandbox as the "localhost-equivalent for your app backend".
+
+
+> [!NOTE]
+> Once the cloud sandbox has been fully deployed (~5 min), you'll see the `amplify_outputs.json` file updated with connection information to a new isolated authentication and data backend.
+
+
 
 #### Data
 
@@ -80,8 +138,10 @@ You can customize your authentication flow with customized sign-in and registrat
 
 Then, you could use the Amplify `Authenticator` component or the client libraries to add user flows.
 
+Here is an example with the `withAuthenticator` HOC
 
-```ts
+
+```tsx
 import { withAuthenticator } from '@aws-amplify/ui-react';
 
 function App({ signOut, user }) {
@@ -94,4 +154,190 @@ function App({ signOut, user }) {
 }
 
 export default withAuthenticator(App);
+```
+
+Or you can just use the context provider:
+
+```tsx title="App.tsx"
+import type { Schema } from '../amplify/data/resource';
+import { useAuthenticator } from '@aws-amplify/ui-react';
+import { useEffect, useState } from 'react';
+import { generateClient } from 'aws-amplify/data';
+
+const client = generateClient<Schema>();
+
+function App() {
+  const { user, signOut } = useAuthenticator();
+
+  // ...
+
+  return (
+    <main>
+      {/* ... */}
+      <h1>{user?.signInDetails?.loginId}'s todos</h1>
+      <button onClick={signOut}>Sign out</button>
+    </main>
+  );
+}
+
+export default App;
+```
+
+```tsx title="index.tsx"
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Authenticator } from '@aws-amplify/ui-react';
+import { Amplify } from 'aws-amplify';
+import App from './App.tsx';
+import outputs from '../amplify_outputs.json';
+import './index.css';
+import '@aws-amplify/ui-react/styles.css';
+
+Amplify.configure(outputs);
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <Authenticator>
+      <App />
+    </Authenticator>
+  </React.StrictMode>
+);
+```
+
+Then to connect authenticated access control with data, you can specify authorization rules on the data model:
+
+```ts
+import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+
+const schema = a.schema({
+  Todo: a.model({
+    content: a.string(),
+  }).authorization(allow => [allow.owner()]),
+});
+
+export type Schema = ClientSchema<typeof schema>;
+
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    // This tells the data client in your app (generateClient())
+    // to sign API requests with the user authentication token.
+    defaultAuthorizationMode: 'userPool',
+  },
+```
+#### Amplify with CDK
+
+Gen 2 is layered on top of [AWS Cloud Development Kit (CDK)](https://docs.aws.amazon.com/cdk/api/v2/)—the Data and Auth capabilities in `@aws-amplify/backend` wrap L3 AWS CDK constructs. As a result, extending the resources generated by Amplify does not require any special configuration. The following example adds Amazon Location Services by adding a file: `amplify/custom/maps/resource.ts`.
+
+```ts
+import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
+import * as locations from 'aws-cdk-lib/aws-location';
+import { Construct } from 'constructs';
+
+export class LocationMapStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
+    super(scope, id, props);
+
+    // Create the map resource
+    const map = new locations.CfnMap(this, 'LocationMap', {
+      configuration: {
+        style: 'VectorEsriStreets' // map style
+      },
+      description: 'My Location Map',
+      mapName: 'MyMap'
+    });
+
+    new CfnOutput(this, 'mapArn', {
+      value: map.attrArn,
+      exportName: 'mapArn'
+    });
+  }
+}
+```
+
+This is then included in the `amplify/backend.ts` file so it gets deployed as part of your Amplify app.
+
+```ts
+import { Backend } from '@aws-amplify/backend';
+import { auth } from './auth/resource';
+import { data } from './data/resource';
+import { LocationMapStack } from './locationMapStack/resource';
+
+const backend = new Backend({
+  auth,
+  data
+});
+
+new LocationMapStack(
+  backend.getStack('LocationMapStack'),
+  'myLocationResource',
+  {}
+);
+```
+
+### Connecting to existing AWS resources
+
+Amplify client libraries can be used **independently** without the Amplify backend workflow. If you have AWS resources provisioned with CDK, Terraform, CloudFormation, or the AWS Console, you can connect Amplify libraries directly to those resources.
+
+This gives you the full power of Amplify's client APIs — authentication flows, data queries, file management, and more — while keeping complete control over your infrastructure.
+
+You can configure the libraries in two ways:
+
+- **Manual `amplify_outputs.json`** — Create the configuration file with your resource details
+- **Programmatic configuration** — Build the configuration in code (ideal for testing and environment switching)
+
+Both approaches support all Amplify services: **Auth**, **Data**, **Storage**, **Analytics**, **Geo**, and **Notifications**.
+
+
+## App Building
+
+### Backend SDK basics
+
+You can use `define*` functions to _define_ your resources. For example, you can define authentication:
+
+
+
+```ts title="amplify/auth/resource.ts"
+import { defineAuth } from '@aws-amplify/backend';
+
+export const auth = defineAuth({
+  loginWith: {
+    email: true
+  }
+});
+```
+
+Or define your data resource:
+
+
+```ts title="amplify/data/resource.ts"
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
+
+const schema = a.schema({
+  Todo: a.model({
+      content: a.string(),
+      isDone: a.boolean()
+    })
+    .authorization(allow => [allow.publicApiKey()])
+});
+
+export type Schema = ClientSchema<typeof schema>;
+export const data = defineData({
+  schema
+});
+```
+
+Each of these newly defined resources are then imported and set in the backend definition:
+
+
+
+```ts title="amplify/backend.ts"
+import { defineBackend } from '@aws-amplify/backend';
+import { auth } from './auth/resource';
+import { data } from './data/resource';
+
+defineBackend({
+  auth,
+  data
+});
 ```

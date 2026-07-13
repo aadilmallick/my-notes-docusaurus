@@ -171,3 +171,66 @@ Outputs:
         Value: "https://someurl.com"
         Description: "some description"
 ```
+
+## Examples
+
+### DynamoDB + DependsOn + Policies
+
+1. `OrdersTable`: Create a DynamoDB table resource with a partition and sort key combination as the primary key and it also depends on (specified by `DependsOn` property) the IAM resource `DynamoDBQueryPolicy` to be defined first.
+2. `DynamoDBQueryPolicy`: create an IAM policy that allows querying of all DynamoDB tables, and attach this policy to the role `OrdersTableQueryRole`
+
+```yaml
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: AuthorsTable_prod
+      AttributeDefinitions:
+        - AttributeName: "AuthorName"
+          AttributeType: "S"
+        - AttributeName: "BookTitle"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "AuthorName"  # partition key, string
+          KeyType: "HASH"
+        - AttributeName: "BookTitle"   # sort key, string
+          KeyType: "RANGE"
+      TimeToLiveSpecification:
+        AttributeName: "ExpirationTime"
+        Enabled: true
+      ProvisionedThroughput:
+        ReadCapacityUnits: "10"
+        WriteCapacityUnits: "5"
+    DependsOn:                          # needs the policy to be created first
+      - DynamoDBQueryPolicy
+
+  DynamoDBQueryPolicy:             # policy that allows querying all tables
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: DynamoDBQueryPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "dynamodb:Query"
+            Resource: "*"
+      Roles:
+	    # attaches to specific role via logical ID
+        - Ref: !Ref OrdersTableQueryRole  
+
+  OrdersTableQueryRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "dynamodb.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+
+```
