@@ -2,7 +2,7 @@
 
 Cloudformation is a declarative IaC solution for AWS, and all other IaC solutions that apply to AWS in reality just compile down to CloudFormation, like Pulumi, AWS CDK, AWS SAM, etc.
 
-CloudFormation figures out
+Given a template YAML file, CloudFormation figures out
 
 - what order to create them
 - what depends on what
