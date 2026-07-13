@@ -291,3 +291,10 @@ To get a HTTPS dev url that forwards to a dev process you have running on a port
 ```bash
 ngrok http <port_number>
 ```
+
+## Tree
+
+```bash
+npm install -g tree-console
+tree-cli -d ./my-project --ignore node_modules,.git
+```
