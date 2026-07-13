@@ -20,6 +20,17 @@ Here are three main reasons why to use CloudFormation:
 - **rollback**: CloudFormation provisions resources and updates them in a transaction, where if any single part of the deploy process fails, the whole thing fails and you are not left in a half-broken state.
 - **drift detection**: Cloudformation knows when someone has manually changed provisioned resources in a stack and can detect drift from the declarative template
 
+### Manually uploading a CloudFormation template
+
+When manually uploading a template, here are the steps you should follow:
+
+1. Choose which S3 bucket to store the template YAML in
+2. Choose the IAM role that CLoudformation will use to provision those resources, o perform all the required operations in the stack.
+3. Choose the **stack policy**, which is a JSON document that defines the resources you want to prevent from accidental deletion or retain them when a stack gets destroyed.
+4. Choose the **rollback configuration**, which defines cloudwatch alarms to listen for and if those alarms are breached, then CloudFormation rolls back to the previous template version.
+5. Choose the **stack notification options**, where upon stack creation, you set up an SNS topic you want to push to.
+6. 
+
 ### CloudFormation Resources
 
 All resources you define for a template live under the `Resources` top level key, where for each resource, you define these three core information pieces:
