@@ -1,5 +1,7 @@
 ## Claude 101
 
+Yes, this is undoubtedly AI slop but mfs on Linkedln eat this up. All of this should be common sense, but if not, then you might be cooked.
+
 ### Prompt engineering
 
 
@@ -45,15 +47,22 @@ To Delegate well, you need to do these three things:
 2. Know what AI systems can and can't do well.
 3. Decide how to divide the work between you and AI.
 
-There are three types of delegation:
+There are three types of delegation and what questions you need to ask to use them effectively:
 
-- Problem Awareness: Understanding your goals and the work involved to achieve it
-- Platform Awareness: Knowing what different AI systems can do
-- Task Delegation: Strategically dividing work between you and AI
+- **Problem Awareness**: Understanding your goals and the work involved to achieve it
+	- What does success look like? What's the thinking and type of work needed to get there?
+	- How can I rely on my domain expertise to delegate to the AI effectively?
+- **Platform Awareness**: Knowing what different AI systems can do, their capabilities and limitations.
+	- What's the best AI system for this specific task?
+	- Which systems prioritize speed, accuracy, and creativity?
+- **Task Delegation**: Strategically dividing work between you and AI
+	- What could be usefully automated?
+	- Where would augmentation create more value than working separately?
+	- What should be done by a human alone?
+	- What can an agent do on your behalf?
 
-Before taking apart in delegation, ask yourself these core questions:
 
-1. What is my expertise and domain knowledge
+
 #### Description
 
 A good description describes the following:
@@ -327,6 +336,35 @@ Since Research can take 5 to 45 minutes depending on complexity, investing time 
 - **Specify the sections or structure you want.** Claude will organize its findings around the structure you provide. For example: "Compare venue options for a team offsite including: location and accessibility, meeting space and amenities, catering options, and pricing considerations."
 - **Include relevant constraints.** Budget ranges, timelines, geographic requirements, and other parameters help Claude focus its research on relevant options.
 - **Ask Claude to help refine your prompt.** If you're not sure how to frame your research question, you can even ask Claude to help you write a better Research prompt before enabling the feature.
+
+### Prompt engineering projects
+
+**Communication Projects:**
+
+- Create a compelling presentation on a topic you're knowledgeable about
+- Write a post or series of posts explaining a complex topic to a general audience
+- Develop a proposal or pitch for an idea you'd like to pursue
+- Create a personal or professional bio with supporting materials
+
+**Research Projects:**
+
+- Research and summarize the current state of an emerging technology or trend
+- Analyze a dataset to identify patterns and create recommendations
+- Compare multiple products, services, or approaches and create a recommendation
+- Investigate a historical event and present your findings in an engaging format
+
+**Creative Projects:**
+
+- Outline a short story with fully developed characters and plot
+- Design a simple website structure with content for key pages
+- Develop a concept for a product, service, or experience
+
+**Learning Projects:**
+
+- Create a structured learning plan for a skill you want to develop
+- Build a resource collection on a topic you're learning about
+- Develop a tutorial or guide for a process you understand well
+- Create a set of study materials for a topic you want to master
 
 ## AI fluency fundamentals
 
