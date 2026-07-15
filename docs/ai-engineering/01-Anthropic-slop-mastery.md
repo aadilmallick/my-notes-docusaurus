@@ -21,6 +21,14 @@ Yes, this is undoubtedly AI slop but mfs on Linkedln eat this up. All of this sh
 | **I got confident-sounding information that turned out to be wrong** | Claude occasionally generates plausible but incorrect information, especially with specific facts or niche topics | For high-stakes work, verify key facts independently. Ask Claude to cite sources or indicate confidence level. Enable web search to ground responses in current information.                                                                                                                                                    |
 | **The tone isn't right**                                             | Claude defaults to helpful and professional, which may not match your needs                                       | Describe the tone in plain language: "Make this more conversational" or "This should sound authoritative and formal." Provide an example of writing in the style you want.                                                                                                                                                      |
 
+#### The 6-part prompt framework
+
+- Give context: Be specific about what you want, why you want it, and relevant background
+- Show examples: Demonstrate the output style or format you're looking for
+- Specify constraints: Clearly define format, length, and other output requirements
+- Break complex tasks into steps: Guide the AI through multi-step reasoning
+- Ask the AI to think first: Give space for the AI to work through its process
+- Define the AI's role or tone: Specify how you want the AI to communicate
 
 ### 4D framework for AI fluency
 
@@ -71,6 +79,12 @@ A good description describes the following:
 2. How you want the AI to approach the task
 3. How exactly you want the AI to behave (tone and style)
 
+There are three components that make up a good description:
+
+- Product Description involves clearly defining what you want in terms of outputs, format, audience, and style
+- Process Description guides how the AI approaches your request, which can be as important as specifying the end goal
+- Performance Description defines behavioral aspects like whether the AI should be concise or detailed, challenging or supportive
+
 #### Discernment
 
 Discerning what's good vs bad concernign AI outputs hinges on three key questions:
@@ -79,9 +93,37 @@ Discerning what's good vs bad concernign AI outputs hinges on three key question
 2. Is AI taking the correct approach?
 3. Is the AI behaving as desired?
 
+There are hree types of Discernment:
+
+- Product Discernment: Evaluating the quality of AI outputs
+- Process Discernment: Assessing how the AI approached the task
+- Performance Discernment: Evaluating how the AI behaved during the interaction itself
+
+**Product Discernment:**
+
+- Which explanation contains the most accurate information?
+- Are there any factual errors or misconceptions?
+- Is the level of detail appropriate for someone learning about this topic?
+
+**Process Discernment:**
+
+- Does Claude follow logical reasoning in each explanation?
+- Are there gaps in its analysis or thinking process?
+- Does Claude make appropriate connections between concepts?
+
+**Performance Discernment:**
+
+- Was Claude attentive to your specific question and responsive to feedback and direction?
+- Is terminology used appropriately for the topic?
+- How does the tone and style affect the clarity of the explanation?
+
 #### Diligence
 
 Can you stand behind your outputs and verify them as correct and take responsibility for them?
+
+- Creation Diligence: Being thoughtful about which AI systems you choose and how you work with them
+- Transparency Diligence: Being open about AI's role in your work
+- Deployment Diligence: Taking ownership for AI-assisted outputs you share with others
 
 
 ### Personalizing Claude
@@ -384,6 +426,37 @@ Similar to what you did in the previous lesson, work with Claude to explore your
     - _Note: Again, have a genuine conversation about these questions rather than just exchanging statements. Challenge assumptions, ask for clarification, and remain open to unexpected insights that emerge during your discussion._
 3. Create a project plan that includes your major tasks and delegation decisions.
 4. Save your project plan—you'll return to this project later in the course to practice your Description, Discernment, and Diligence skills.
+
+#### Step 2: Describe
+
+Discuss these questions with Claude to establish clear expectations for your collaboration.
+
+- **Product Description**: What specific outputs do you need from Claude for each task? What format, style, length, and level of detail are you looking for?
+- **Process Description**: How should Claude approach each task? Are there specific methods, frameworks, or steps you want it to follow?
+- **Performance Description**: What kind of collaborative behavior do you want from Claude during this project? Should it be concise or detailed, challenging or supportive, focused on ideas or analysis?
+
+#### Step 3: Description-discernment loops
+
+Now, work through your planned project tasks with Claude. For each task:
+
+1. **Describe** what you need clearly, using the Description skills you've learned:
+    - Be specific about what you want (Product)
+    - Guide how Claude should approach or think about the task (Process)
+    - Specify how you want Claude to engage with you during the process (Performance)
+2. **Discern** the quality of what you receive:
+    - Evaluate the output itself (Product Discernment)
+    - Assess how Claude approached the task (Process Discernment)
+    - Consider if Claude's behavior is most helpful for what you need (Performance Discernment)
+3. **Refine** based on your discernment:
+    - Provide feedback on what worked and what didn't
+    - Clarify or adjust your description as needed
+    - Request iterations until you're satisfied with the result
+4. **Integrate** your own expertise and judgment:
+    - Add your unique perspective, creativity, or domain knowledge
+    - Make the final decisions about what to keep, modify, or discard
+    - Take responsibility for the final output
+
+Continue this Description-Discernment loop for each task in your project until completion.
 
 ## AI fluency fundamentals
 
