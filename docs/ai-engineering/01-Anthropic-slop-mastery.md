@@ -366,6 +366,25 @@ Since Research can take 5 to 45 minutes depending on complexity, investing time 
 - Develop a tutorial or guide for a process you understand well
 - Create a set of study materials for a topic you want to master
 
+#### Step 1: delegation
+
+Start a conversation with Claude. Share your project idea and invite Claude to ask you some questions until you feel you have a solid vision for the final result. Work together until you have a clear picture of:
+
+- What success looks like for your project
+- What would make this project particularly valuable or meaningful to you
+
+Similar to what you did in the previous lesson, work with Claude to explore your project through the lens of Delegation:
+
+1. Identify together the major tasks needed to complete your project.
+2. For each task, one at a time, discuss:
+    - What specific skills, knowledge, or AI capabilities are needed?
+    - Which parts would benefit from uniquely human strengths?
+    - Which parts could leverage AI capabilities well?
+    - Where might collaboration have the most impact?
+    - _Note: Again, have a genuine conversation about these questions rather than just exchanging statements. Challenge assumptions, ask for clarification, and remain open to unexpected insights that emerge during your discussion._
+3. Create a project plan that includes your major tasks and delegation decisions.
+4. Save your project plan—you'll return to this project later in the course to practice your Description, Discernment, and Diligence skills.
+
 ## AI fluency fundamentals
 
 ### Generative AI fundamentals
