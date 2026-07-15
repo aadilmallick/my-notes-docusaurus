@@ -22,6 +22,12 @@
 
 #### 4D framework for AI fluency
 
+three ways people engage with AI:
+
+- **Automation**: The AI completes specific tasks based on your instructions.
+- **Augmentation**: You and AI collaborate as creative thinking and task execution partners.
+- **Agency**: You configure AI to work independently on your behalf, establishing its knowledge and behavior patterns rather than just giving it specific tasks.
+
 The **4D Framework for AI Fluency**, developed through research collaboration between Professor Rick Dakan (Ringling College of Art and Design) and Professor Joseph Feller (University College Cork), identifies four core competencies that, when combined, can help you make the most of your AI interactions:
 
 - **Delegation:** Deciding on what work should be done by humans, what work should be done by AI, and how to distribute tasks between them. Includes understanding your goals, AI capabilities, and making strategic choices about collaboration.
@@ -87,7 +93,7 @@ The main three modes are chat, cowork, and claude code.
 - **Projects scale automatically.** When your knowledge base approaches context limits, Claude seamlessly enables Retrieval Augmented Generation (RAG) mode to expand capacity by up to 10x while maintaining response quality.
 - **For Claude for Work users, projects enable collaboration.** Share projects with teammates so everyone benefits from the same context, instructions, and accumulated knowledge.
 
-**when to use projects**
+#### **when to use projects**
 
 Projects are particularly valuable when you're working on something ongoing—not just a one-off question. Consider creating a project when you have a workflow with:
 
@@ -95,7 +101,7 @@ Projects are particularly valuable when you're working on something ongoing—no
 - **Consistent requirements** for how Claude should respond (always use formal language, always cite sources, always follow our template)
 - **Team collaboration needs** where multiple people should work from the same foundation
 
-**creating project instructions**
+#### **creating project instructions**
 
 Good project instructions typically include:
 
@@ -104,12 +110,24 @@ Good project instructions typically include:
 - **Tone and style preferences:** "Use a professional but conversational tone. Avoid jargon when possible."
 - **Specific requirements:** "Always include a call-to-action at the end of marketing copy."
 
-**adding project files**
+#### **adding project files**
 
 > [!NOTE]
 > **Pro tip:** Name your files descriptively. Claude uses file names to understand and retrieve the right information, so "Q4-2024-Brand-Guidelines.pdf" is more helpful than "document1.pdf."
 
+### Claude chrome extension
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/IypXvHej9eY?si=jD_yP-T8ERRXEn8c" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+The claude for chrome extension allows claude to read webpage content and run browser client-side JS code to interact with the page via a content script.
+
+**security**
+
+The claude team has made this with security in mind:
+
+- **granular permissions**
+- **limited websites**
+- **protects against prompt injections**
 ### Skills
 
 There are two categories of Skills you'll encounter:
