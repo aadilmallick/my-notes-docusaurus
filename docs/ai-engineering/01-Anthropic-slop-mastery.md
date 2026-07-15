@@ -20,7 +20,7 @@
 | **The tone isn't right**                                             | Claude defaults to helpful and professional, which may not match your needs                                       | Describe the tone in plain language: "Make this more conversational" or "This should sound authoritative and formal." Provide an example of writing in the style you want.                                                                                                                                                      |
 
 
-#### 4D framework for AI fluency
+### 4D framework for AI fluency
 
 three ways people engage with AI:
 
@@ -34,6 +34,45 @@ The **4D Framework for AI Fluency**, developed through research collaboration b
 - **Description:** Effectively communicating with AI systems. Includes clearly defining outputs, guiding AI processes, and specifying desired AI behaviors and interactions.
 - **Discernment:** Thoughtfully and critically evaluating AI outputs, processes, behaviors and interactions. Includes assessing quality, accuracy, appropriateness, and determining areas for improvement.
 - **Diligence:** Using AI responsibly and ethically. Includes making thoughtful choices about AI systems and interactions, maintaining transparency, and taking accountability for AI-assisted work.
+
+#### Delegation
+
+Delegation is about making thoughtful decisions about what work to do yourself, what to do together with AI, or what to let AI handle independently, and how to distribute those tasks. It's the  thoughtful approach about deciding where and when to use AI.
+
+To Delegate well, you need to do these three things:
+
+1. Understand your goal and the problems you are trying to solve
+2. Know what AI systems can and can't do well.
+3. Decide how to divide the work between you and AI.
+
+There are three types of delegation:
+
+- Problem Awareness: Understanding your goals and the work involved to achieve it
+- Platform Awareness: Knowing what different AI systems can do
+- Task Delegation: Strategically dividing work between you and AI
+
+Before taking apart in delegation, ask yourself these core questions:
+
+1. What is my expertise and domain knowledge
+#### Description
+
+A good description describes the following:
+
+1. What you want the final output to be
+2. How you want the AI to approach the task
+3. How exactly you want the AI to behave (tone and style)
+
+#### Discernment
+
+Discerning what's good vs bad concernign AI outputs hinges on three key questions:
+
+1. Is the output useful and correct? 
+2. Is AI taking the correct approach?
+3. Is the AI behaving as desired?
+
+#### Diligence
+
+Can you stand behind your outputs and verify them as correct and take responsibility for them?
 
 
 ### Personalizing Claude
@@ -288,3 +327,12 @@ Since Research can take 5 to 45 minutes depending on complexity, investing time 
 - **Specify the sections or structure you want.** Claude will organize its findings around the structure you provide. For example: "Compare venue options for a team offsite including: location and accessibility, meeting space and amenities, catering options, and pricing considerations."
 - **Include relevant constraints.** Budget ranges, timelines, geographic requirements, and other parameters help Claude focus its research on relevant options.
 - **Ask Claude to help refine your prompt.** If you're not sure how to frame your research question, you can even ask Claude to help you write a better Research prompt before enabling the feature.
+
+## AI fluency fundamentals
+
+### Generative AI fundamentals
+
+Generative AI learns through two stages: pre-training (analyzing patterns across billions of examples) and fine-tuning (learning to follow instructions and provide helpful responses)
+
+- Current capabilities include versatility across tasks, conversational awareness, and the ability to connect with external tools
+- Current limitations include knowledge cutoff dates, potential for hallucinations, context window constraints, and challenges with complex reasoning
