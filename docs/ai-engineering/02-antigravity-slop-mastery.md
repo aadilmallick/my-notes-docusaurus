@@ -1,4 +1,9 @@
-## IDE
+
+Antigravity 2.0 is now two separate apps:
+
+- **Antigravity**: only agent chat view
+- **Antigravity IDE**: the classic agy IDE
+## Agent view
 
 ### Basics
 
@@ -9,8 +14,23 @@ Open up the current folder in antigravity using the `agy .` command
 
 ### General workflow
 
-1. Prompt the AI with what you want to create, and say **create an implementation plan** for it.
+With antigravity 2.0, you have three powerful new tools at your disposal:
+
+1. **implementation plans**: still here from the last version, you can ask agy to "create an implementation plan" and it will go into plan mode for you to plan out what to do.
+2. **worktrees**: You can spawn a conversation and tell the agent to do something else in a worktree so you can work in parallel.
+3. **comment on diffs**: You can comment of file diffs and ask the agent to make changes.
+4. **slash commands**: Powerful slash commands like `/browser` allow you to urge the AI to use its browser skill to test code in the browser via Playwright.
+
+Here are the basic steps I use for a general workflow
+
+1. . Prompt the AI with what you want to create, and say **create an implementation plan** for it.
 2. Leave comments on the implementation plan so the AI knows what to change. 
 3. When adding new changes, choose the agent to deal with the prompt in a **new worktree** as to not interrupt the main flow.
 
 ![](https://i.imgur.com/hYL8mvp.jpeg)
+
+
+
+## IDE view
+
+
