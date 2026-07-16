@@ -29,8 +29,34 @@ Here are the basic steps I use for a general workflow
 
 ![](https://i.imgur.com/hYL8mvp.jpeg)
 
+### Slash commands
 
+#### Workflow-based commands
+
+- `/browser`: enables remote debugging with chrome and playwright
+
+### Parallel work
+
+#### Worktrees
+
+You can specify to spin up a new worktree on an agent prompt.
+
+#### Subagents
+
+You can tell the agent to spin up subagents to realize parallel work via a prompt like this:
+
+```
+"Spin up a bunch of subagents to get this work done in parallel and then let me know when you're done"
+```
+
+#### Third-party skills
 
 ## IDE view
+
+### MCP servers
+
+You can install MCP servers either by installing MCP servers that have first-class support in antigravity, like the following:
+
+Or you can install them manually by modifying the MCP server json in the `.gemini` folder.
 
 
