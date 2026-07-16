@@ -415,3 +415,10 @@ With the growing use of containers in back-end development, securing containeriz
 - Use minimal base images: Reduce the attack surface by using lightweight, minimal base images for your containers.
 - Implement namespace isolation: Ensure containers have proper isolation to prevent cross-container attacks.
 - Restrict container privileges: Run containers with the least privilege necessary. Avoid running containers as the root user unless absolutely required.
+
+## E2E Client-side encryption
+
+### Theory
+
+To implement **end-to-end encryption (E2EE)**, you must **ensure that data is encrypted on the sender's device and decrypted only on the recipient's device**, preventing intermediaries or central servers from ever accessing the plaintext. The standard industry architecture combines **asymmetric cryptography** (for secure key exchange) with **symmetric cryptography** (for fast data encryption).
+
