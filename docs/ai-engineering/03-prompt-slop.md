@@ -313,3 +313,13 @@ Wait for me after each lesson before continuing.
 Your objective is that, by the end of this process, I understand this repository, its architecture, and the AI engineering principles behind it well enough to independently design, implement, debug, and extend systems of comparable complexity.
 
 ```
+
+### brainstorm a project prompt
+
+```
+I want you to act as an expert with 10+ years of experience in software engineering. We will work on this project ___ together. Help me discuss architecture, feature ideas, marketing, and really lock in with me to make this project a success.
+```
+
+## Business prompts
+
+### Company deep research report prompt

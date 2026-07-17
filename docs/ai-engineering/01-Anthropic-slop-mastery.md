@@ -23,12 +23,12 @@ Yes, this is undoubtedly AI slop but mfs on Linkedln eat this up. All of this sh
 
 #### The 6-part prompt framework
 
-- Give context: Be specific about what you want, why you want it, and relevant background
-- Show examples: Demonstrate the output style or format you're looking for
-- Specify constraints: Clearly define format, length, and other output requirements
-- Break complex tasks into steps: Guide the AI through multi-step reasoning
-- Ask the AI to think first: Give space for the AI to work through its process
-- Define the AI's role or tone: Specify how you want the AI to communicate
+- **Give context:** Be specific about what you want, why you want it, and relevant background
+- **Show examples**: Demonstrate the output style or format you're looking for
+- **Specify constraints**: Clearly define format, length, and other output requirements
+- **Break complex tasks into steps**: Guide the AI through multi-step reasoning
+- **Ask the AI to think first**: Give space for the AI to work through its process
+- **Define the AI's role or tone**: Specify how you want the AI to communicate
 
 ### 4D framework for AI fluency
 
