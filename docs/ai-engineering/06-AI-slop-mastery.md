@@ -1250,6 +1250,15 @@ Some platforms like Cursor or Warp allow you to BYOK or BYOM (bring your own mod
 | Nemotron 3 Ultra Free  | nemotron-3-ultra-free  | `https://opencode.ai/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` |
 | DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` |
 
+#### NVidia free models
+
+The model inference endpoint is `https://integrate.api.nvidia.com/v1`
+
+And here are the models:
+
+- `nvidia/nemotron-3-ultra-550b-a55b:free`
+
+
 ## Vibe coding mastery
 
 ### tech stack
