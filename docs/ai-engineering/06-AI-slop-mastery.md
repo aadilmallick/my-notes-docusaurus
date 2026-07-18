@@ -1240,23 +1240,70 @@ Some platforms like Cursor or Warp allow you to BYOK or BYOM (bring your own mod
 2. **API key**: the API key for the provider
 3. **model tag**: the specific model identifier to user, like `deepseek-v4-flash-free`.
 
-#### Opencode free models
+#### Inference with Opencode
 
-| Model name             | Model identifier       | Model inference endpoint                      |                             |
-| ---------------------- | ---------------------- | --------------------------------------------- | --------------------------- |
-| Big Pickle             | big-pickle             | `https://opencode.ai/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` |
-| MiMo-V2.5 Free         | mimo-v2.5-free         | `https://opencode.ai/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` |
-| North Mini Code Free   | north-mini-code-free   | `https://opencode.ai/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` |
-| Nemotron 3 Ultra Free  | nemotron-3-ultra-free  | `https://opencode.ai/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` |
-| DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` |
+#### Inference with NVidia APIs
 
-#### NVidia free models
+- **endpoint URL**  : `https://integrate.api.nvidia.com/v1`
+- **model list**: [Models | Try NVIDIA NIM APIs](https://build.nvidia.com/models)
 
-The model inference endpoint is `https://integrate.api.nvidia.com/v1`
+```python
+from openai import OpenAI
+import os
+import sys
 
-And here are the models:
+_USE_COLOR = sys.stdout.isatty() and os.getenv("NO_COLOR") is None
+_REASONING_COLOR = "\033[90m" if _USE_COLOR else ""
+_RESET_COLOR = "\033[0m" if _USE_COLOR else ""
 
-- `nvidia/nemotron-3-ultra-550b-a55b:free`
+client = OpenAI(
+  base_url = "https://integrate.api.nvidia.com/v1",
+  api_key = "YOUR_NVIDIA_API_KEY"
+)
+
+
+completion = client.chat.completions.create(
+  model="z-ai/glm-5.2",
+  messages=[{"role":"user","content":""}],
+  temperature=1,
+  top_p=1,
+  max_tokens=16384,
+  seed=42,
+  
+  stream=True
+)
+
+for chunk in completion:
+  if not getattr(chunk, "choices", None):
+    continue
+  if len(chunk.choices) == 0 or getattr(chunk.choices[0], "delta", None) is None:
+    continue
+  delta = chunk.choices[0].delta
+  if getattr(delta, "content", None) is not None:
+    print(delta.content, end="")
+```
+
+#### Free models
+
+**Opencode free modelsw**
+
+| Model name             | Model identifier       | Model inference endpoint                      |
+| ---------------------- | ---------------------- | --------------------------------------------- |
+| Big Pickle             | big-pickle             | `https://opencode.ai/zen/v1/chat/completions` |
+| MiMo-V2.5 Free         | mimo-v2.5-free         | `https://opencode.ai/zen/v1/chat/completions` |
+| North Mini Code Free   | north-mini-code-free   | `https://opencode.ai/zen/v1/chat/completions` |
+| Nemotron 3 Ultra Free  | nemotron-3-ultra-free  | `https://opencode.ai/zen/v1/chat/completions` |
+| DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` |
+**nvidia free models**
+
+| Model name             | Model identifier       | Model inference endpoint                      |
+| ---------------------- | ---------------------- | --------------------------------------------- |
+| Big Pickle             | big-pickle             | `https://opencode.ai/zen/v1/chat/completions` |
+| MiMo-V2.5 Free         | mimo-v2.5-free         | `https://opencode.ai/zen/v1/chat/completions` |
+| North Mini Code Free   | north-mini-code-free   | `https://opencode.ai/zen/v1/chat/completions` |
+| Nemotron 3 Ultra Free  | nemotron-3-ultra-free  | `https://opencode.ai/zen/v1/chat/completions` |
+| DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` |
+**nvidia free models**
 
 
 ## Vibe coding mastery
