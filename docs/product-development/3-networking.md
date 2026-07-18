@@ -25,3 +25,5 @@ When sending invites, keep it short and sweet, don't reveal your nefarious inten
 - **recommendations**: Ask people for recommendations, and if they're lazy, just write it up wtih AI and then tell them to submit.
 	- Recruiters look for 5-10 recommendations
 - **active commenting and liking**: For your dream company like google, comment on the niche google developer posts and be a common face they recognize.
+- **500+ connections**: Recruiters want you to have 500+ connections so it shows you're well connected.
+- **make linkedln profile public**
