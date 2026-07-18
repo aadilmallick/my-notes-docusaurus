@@ -154,3 +154,64 @@ These are the levels of listeneing
 
 - **Level 3**: 
 - **Level 4**: You are the best listener, you are listening for someone's pain point and business problem so you can talk with them to help them solve it.
+
+## Networking
+
+### Finding networking events
+
+Go to `meetup.com` to find meetups in NOVA.
+### What to do at a networking event
+
+- **why are you going**: are you going for profession reasons, education, or what?
+- **who are you looking to meet**: understand who you want to meet at the event.
+	- connect with the speaker and organizers of the event before you go
+
+**Big tips**
+
+1. **Always meet with the speaker of an event and the event organizers**: they know people, so meet with them, so this is how you turbocharge your networking.
+2. **Make sure your linkedln is updated**
+
+
+### Network on platforms
+
+1. **conferences and industry events**: attend semniars and meetups relevant to your field.
+2. **community involvement**: do something in your community.
+3. **online networking**: reach out to people on linkedln with similar interests to you.
+
+The best way to network is to volunteer on platforms like for conferences, blogs, organizations, so you can become a part of a broader community.
+
+When joining these, find leverage points:
+
+- **speakers**: research the poresenters and speakers and then introduce yourself to the speakers
+- **vendors/sponsors**: network with booth and vendor folks
+
+### Icebreakers
+
+To start a conversation with someone, just ask them, "so what brought you here to this event today, or what is it that you do."
+
+In reality, people are just waiting for someone to start talking to them, so be the first to initiate content.
+
+
+### Art of networking
+
+Here is the art of networking:
+
+1. Listening vs speaking (2:1 rule)
+2. Smile, be genuine and authentic
+3. Be open, get out of your comfort zone, don't be on your phone because you're not social.
+4. DO NOT BE ON YOUR PHONE. Make an effort to connect.
+5. To truly bond with someone, ask a lot of questions until you find out what they care about, and then talk about what's important to them.
+6. Have courage to make the firt move to talk to someone and initiate the convo. Having the courage to network gives you a competitive advantage.
+
+Being an introvert is not an excuse to not network. You can be an introvert and still be good at networking.
+
+### Post networking strataegy and networking online
+
+Follow up with people on Linkedln within 24 hours, send them a message referencing the conversation you guys had so that they remember you.
+
+If you want to network online, then always start the convo with helping them or asking them for insight instead of getting straight to the point.
+
+### Referrals
+
+1. Ask someone on Linkedln who you want a referral from who you should talk to in order to get a job in software engineering, then when reaching out to a recruiter, say "Hey X told me that I should talk to you abotu a job in X"
+2. If a referral was successful, then thank the referral with a message, because they will be more inclined to send you more referrals.
