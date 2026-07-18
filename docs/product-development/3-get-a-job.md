@@ -113,3 +113,9 @@ Nobody cares if you give them the facts. They want a story. They want to feel so
 **VibeResume example**
 
 - **situation**: I entered the William&Mary hackathon to work with my friends and improve, I came up with an idea to win the best of Gemini API prize
+
+## Negotiating
+
+1. Go to salary calculator to find the average salary for your occupation, job title, and location
+2. Always ask them is there any flexibility in the pay
+3. If they refuse to give money, just ask them for other things, like equity, stocks, or work-life balancing
