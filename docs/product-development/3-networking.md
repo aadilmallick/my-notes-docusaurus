@@ -46,6 +46,14 @@ And only apply if the company's values apply with your values, like remote work 
 4. Based off the first three research tasks, **make questions** about the indistry and the specific company's business strategy.
 
 >"Hey netflix, I research your company and your competitors, so I'm wondering your strategy to go against paramount and disney+"
+
+#### Answers to prepare
+
+For each of these categories, make 2-3 answers and prepare them beforehand
+
+- **problem solving story**
+- **team or conflict story**
+- **leadership or initiative story**
 ### During the interview
 
 #### What interviewers look for
@@ -101,3 +109,7 @@ Nobody cares if you give them the facts. They want a story. They want to feel so
 - Interviewers remember stories, not resume,
 - stories show how you think and act
 - stories prove impact
+
+**VibeResume example**
+
+- **situation**: I entered the William&Mary hackathon to work with my friends and improve, I came up with an idea to win the best of Gemini API prize
