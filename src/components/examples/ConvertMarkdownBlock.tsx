@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import BrowserOnly from "@docusaurus/BrowserOnly";
 import useIsBrowser from "@docusaurus/useIsBrowser";
 import { convertEmbedBlocks } from "../EmbedLinkConverter";
+import { convertObsidianLinks } from "../ObsidianLinkConverter";
 
 function ConvertMarkdownBlock() {
   const isBrowser = useIsBrowser();
@@ -9,15 +10,20 @@ function ConvertMarkdownBlock() {
     return <p>loading...</p>;
   }
 
+  const runConversions = () => {
+    convertEmbedBlocks();
+    convertObsidianLinks();
+  };
+
   useEffect(() => {
     if (!isBrowser) return;
     console.log("working");
-    convertEmbedBlocks();
+    runConversions();
   }, [isBrowser]);
 
   useEffect(() => {
     // Run conversion after component mounts
-    const timeoutId = setTimeout(convertEmbedBlocks, 100);
+    const timeoutId = setTimeout(runConversions, 100);
 
     // Clean up timeout on unmount
     return () => clearTimeout(timeoutId);
@@ -26,7 +32,7 @@ function ConvertMarkdownBlock() {
   // Also run conversion when location changes (SPA navigation)
   useEffect(() => {
     const handleLocationChange = () => {
-      setTimeout(convertEmbedBlocks, 100);
+      setTimeout(runConversions, 100);
     };
 
     // Listen for Docusaurus route changes
@@ -38,12 +44,12 @@ function ConvertMarkdownBlock() {
 
     history.pushState = function (...args) {
       originalPushState.apply(history, args);
-      setTimeout(convertEmbedBlocks, 100);
+      setTimeout(runConversions, 100);
     };
 
     history.replaceState = function (...args) {
       originalReplaceState.apply(history, args);
-      setTimeout(convertEmbedBlocks, 100);
+      setTimeout(runConversions, 100);
     };
 
     return () => {

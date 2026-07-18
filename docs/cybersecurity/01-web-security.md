@@ -27,7 +27,7 @@
 
 Output encoding ensures that any user-generated content (such as comments, form inputs, etc.) displayed on the page doesn’t contain harmful code that could be executed in the browser.
 
-1. Escape special characters by converting HTML-sensitive characters (<, >, &, ", ') to their corresponding HTML entities (&lt;, &gt;, etc.) before displaying them on the page.
+1. Escape special characters by converting HTML-sensitive characters (`<`, `>`, `&`, `"`, `'`) to their corresponding HTML entities (`&lt;`, `&gt;`, etc.) before displaying them on the page.
 2. Always use textContent by default, which escapes HTML characters and prevents XSS attacks by treating everything as plain text.
 3. Use safe methods for DOM manipulation, such as DOMPurify, when HTML content is necessary.
 4. Implement Content Security Policy (CSP) headers.
