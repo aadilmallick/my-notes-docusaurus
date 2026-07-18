@@ -22,3 +22,6 @@ When sending invites, keep it short and sweet, don't reveal your nefarious inten
 
 - **about profile**: optimize the about profile telling your life story and progression so recreuiters understand you better.
 - **personal info**: recruiters love having a personal phone, personal email, etc.
+- **recommendations**: Ask people for recommendations, and if they're lazy, just write it up wtih AI and then tell them to submit.
+	- Recruiters look for 5-10 recommendations
+- **active commenting and liking**: For your dream company like google, comment on the niche google developer posts and be a common face they recognize.
