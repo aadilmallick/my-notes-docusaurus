@@ -119,3 +119,38 @@ Nobody cares if you give them the facts. They want a story. They want to feel so
 1. Go to salary calculator to find the average salary for your occupation, job title, and location
 2. Always ask them is there any flexibility in the pay
 3. If they refuse to give money, just ask them for other things, like equity, stocks, or work-life balancing
+
+## Communications
+
+- **why smart people get overlooked**: never overload people with technical jargon. Here are the red flags why smart people get overlooked
+	- **Too much jargon**: keep in mind your audience
+	- Rambling and over-explaining
+	- **No clear structure**: Do not deliver information as a stream of consciousness. There should be a clear structure to communication.
+- **clarity creates opportunity**: one clear message that conveys your intentions beats ten scattered ideas
+- **communicate with confidence**: Always speak slowly, and pause for thought so you can clam your nerves
+
+
+### Communicating your value
+
+Here is the number one tip:
+
+>Before entering any professional conversation, ask yourself what is the one thing I want them to remember.
+
+For example, do you want them to remember how you will change the trajectory of their company to make it better than their competitors?
+
+There are three components of communicating your value to a recruiter:
+
+- **responsibilities**: what did you do?
+- **results**: what were the results of what you did?
+- **business value**: what value did your results give to the business?
+
+### Be a better listener
+
+The best conversations come from being an effective lsitener because people love to talk about themselves.
+
+Good listening comes from following the conversation, not thinking of what to say next. It's about getting to the core of the conversation.
+
+These are the levels of listeneing
+
+- **Level 3**: 
+- **Level 4**: You are the best listener, you are listening for someone's pain point and business problem so you can talk with them to help them solve it.
