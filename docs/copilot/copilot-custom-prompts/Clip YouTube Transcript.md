@@ -14,6 +14,8 @@ IMPORTANT: If no YouTube video context is found, remind the user to:
 
 Generate the note with this exact structure:
 
+````
+
 ---
 title: "<video title>"
 description: "<first 200 chars of description>"
@@ -67,3 +69,4 @@ mindmap
 - [<timestamp>: <quote text>](<video_url>&t=<seconds>s)
 
 Return only the markdown content without any explanations or comments.
+````

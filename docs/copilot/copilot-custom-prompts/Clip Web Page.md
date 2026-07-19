@@ -15,6 +15,7 @@ IMPORTANT: If no web page context is found, remind the user to:
 
 Generate the note with this exact structure:
 
+````
 ---
 title: "<page title>"
 source: "<page url>"
@@ -53,3 +54,6 @@ mindmap
 <List 3-5 notable quotes from the content, if any>
 
 Return only the markdown content without any explanations or comments.
+````
+
+
