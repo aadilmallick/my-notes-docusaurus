@@ -323,3 +323,503 @@ I want you to act as an expert with 10+ years of experience in software engineer
 ## Business prompts
 
 ### Company deep research report prompt
+
+
+## Learning prompts
+
+### Education organization prompt
+
+```
+# Linear Learning Operating System (LLOS)
+
+You are an expert curriculum designer, instructional designer, software architect, and productivity consultant. Your task is to organize all educational content into a scalable Linear workspace that functions as a lifelong Learning Management System (LMS), not merely a task manager.
+
+The objective is to eliminate decision fatigue and cognitive overload while ensuring that at any point in time there is always a single, obvious "next thing to learn."
+
+---
+
+# Core Philosophy
+
+This system is built around one principle:
+
+**Linear tracks learning objectives—not resources.**
+
+Books, courses, YouTube videos, articles, podcasts, conference talks, and documentation are merely resources that support a learning objective.
+
+Never create issues for books or videos.
+
+Instead, create issues that represent capabilities or learning outcomes.
+
+Example:
+
+❌ Watch React Native Crash Course
+
+✅ Understand React Native Navigation
+
+Resources supporting that issue may include:
+
+* React Native Crash Course
+* Official React Navigation documentation
+* Expo Router documentation
+* YouTube explanation
+
+The issue is completed when the learning objective has been achieved—not when every resource has been consumed.
+
+---
+
+# Workspace Hierarchy
+
+Use the following hierarchy.
+
+Workspace
+→ Projects
+→ Milestones
+→ Issues
+→ Subtasks
+
+---
+
+## Projects
+
+Projects represent complete courses or disciplines.
+
+A project should answer:
+
+> "What subject am I becoming proficient in?"
+
+Examples:
+
+* Backend Engineering
+* React Native
+* Operating Systems
+* Computer Networks
+* Linux
+* Next.js
+* AI Engineering
+* Personal Finance
+* Mathematics
+* Physics
+
+Projects should have a clearly defined completion criteria.
+
+Every project should contain:
+
+* Project Goal
+* Why this subject matters
+* Desired mastery level
+* Exit Criteria
+
+Example:
+
+Backend Engineering
+
+Goal
+
+Become capable of designing, implementing, deploying, and maintaining production backend systems.
+
+Exit Criteria
+
+* Complete all milestones
+* Build multiple production-quality applications
+* Deploy applications to the cloud
+* Implement authentication
+* Implement databases
+* Implement caching
+* Implement queues
+* Implement testing
+* Implement monitoring
+
+---
+
+# Milestones
+
+Milestones represent major capabilities.
+
+A milestone should answer:
+
+> "What capability will I gain after completing this milestone?"
+
+Good milestone examples:
+
+Backend Engineering
+
+* Networking Fundamentals
+* HTTP
+* REST APIs
+* Databases
+* Authentication
+* Authorization
+* Caching
+* Message Queues
+* Scaling
+* Distributed Systems
+
+React Native
+
+* Fundamentals
+* Navigation
+* Device APIs
+* State Management
+* Animations
+* Authentication
+* Payments
+* Offline Support
+* Performance
+* Deployment
+
+Avoid using milestones as folders of resources.
+
+Instead, milestones define competencies.
+
+Each milestone should contain:
+
+* Goal
+* Core curriculum
+* Learning objectives (issues)
+* Suggested build projects
+* Exit criteria
+
+---
+
+# Issues
+
+Issues represent individual learning objectives.
+
+Each issue should answer:
+
+> "What specific thing should I be able to understand or build?"
+
+Good issue titles begin with action verbs.
+
+Examples:
+
+* Explain HTTP Request Lifecycle
+* Understand TCP Handshake
+* Compare Cookies vs JWT
+* Implement React Navigation
+* Build Authentication Flow
+* Design REST API
+* Explain Virtual Memory
+* Implement LRU Cache
+
+Avoid issue titles like:
+
+* Networking
+* React Native Course
+* Watch Video
+* Read Book
+
+---
+
+# Issue Template
+
+Every issue should use the same structure.
+
+---
+
+Goal
+
+Describe exactly what capability should exist after completing this issue.
+
+Example:
+
+Understand how Expo Router performs filesystem-based routing.
+
+---
+
+Why This Matters
+
+Explain what future topics depend on this concept.
+
+Example:
+
+Required for:
+
+* Authentication
+* Deep Linking
+* Navigation
+* Production applications
+
+---
+
+Success Criteria
+
+Completion should be based on competency, not resource completion.
+
+Example:
+
+* Explain the concept aloud
+* Draw a diagram
+* Answer interview questions
+* Build a working example
+* Pass a self-quiz
+
+---
+
+Core Resources
+
+Maximum of THREE.
+
+Only include the highest-value resources.
+
+These should provide roughly 80% of the value.
+
+Example:
+
+⭐⭐⭐⭐⭐ Master.dev lesson
+
+⭐⭐⭐⭐ React Native documentation
+
+⭐⭐⭐⭐ Course Chapter 5
+
+Never add more than three core resources.
+
+---
+
+Further Reading
+
+Optional material.
+
+Examples:
+
+* Additional YouTube videos
+* Blog posts
+* RFCs
+* Documentation
+* Podcasts
+* Reddit discussions
+
+These should never block issue completion.
+
+---
+
+Evidence of Mastery
+
+Every issue should produce evidence.
+
+Examples:
+
+* Markdown notes
+* Diagram
+* Mini project
+* Flashcards
+* Code implementation
+* Blog post
+* Whiteboard explanation
+
+Learning should always produce an artifact.
+
+---
+
+Prerequisites
+
+Specify required prior knowledge.
+
+Example:
+
+Requires:
+
+* React Components
+* JSX
+* useState
+* Basic Navigation
+
+---
+
+Unlocks
+
+Specify future issues that depend on this concept.
+
+Example:
+
+Unlocks:
+
+* Authentication
+* Deep Linking
+* Nested Navigation
+
+---
+
+Dependencies
+
+Use Linear issue dependencies whenever possible.
+
+Learning paths should naturally emerge from dependency graphs.
+
+Example:
+
+Networking Basics
+
+↓
+
+TCP
+
+↓
+
+Sockets
+
+↓
+
+HTTP
+
+↓
+
+REST APIs
+
+↓
+
+Authentication
+
+---
+
+# Resource Management
+
+Distinguish between learning objectives and resources.
+
+Resources are never first-class citizens.
+
+Resources only support objectives.
+
+Every issue should contain:
+
+Core Resources
+
+Maximum: 3
+
+Further Reading
+
+Unlimited
+
+Do not attempt to complete every resource.
+
+The objective is mastery—not consumption.
+
+---
+
+# Labels
+
+Keep labels intentionally minimal.
+
+Type
+
+* Learn
+* Build
+* Review
+
+Focus
+
+* Now
+* Next
+* Later
+
+Difficulty
+
+* Easy
+* Medium
+* Hard
+
+Avoid labels that describe media type (Book, Video, Article, etc.), since they do not help prioritize learning.
+
+---
+
+# Resource Collection Workflow
+
+Phase 1 — Resource Collection
+
+Collect and organize books, articles, courses, videos, documentation, and tutorials into milestone buckets.
+
+Do not create issues yet.
+
+Simply curate.
+
+---
+
+Phase 2 — Curriculum Design
+
+Transform milestone resource collections into learning objectives.
+
+Ask:
+
+"What competencies should someone have after completing this milestone?"
+
+Create issues for those competencies.
+
+---
+
+Phase 3 — Resource Mapping
+
+Attach the best 1–3 resources to each issue.
+
+Everything else becomes Further Reading.
+
+---
+
+Phase 4 — Review and Prune
+
+Regularly review the curriculum.
+
+Archive outdated resources.
+
+Delete beginner resources that no longer provide value.
+
+Demote unnecessary content to Further Reading.
+
+Keep the core curriculum small and intentional.
+
+---
+
+# Daily Workflow
+
+The learner should never browse hundreds of resources.
+
+Instead, the workflow is:
+
+Open Linear
+
+↓
+
+View Current Project
+
+↓
+
+View Current Milestone
+
+↓
+
+Complete highest-priority "Now" issue
+
+↓
+
+Produce Evidence of Mastery
+
+↓
+
+Move to next dependency
+
+Decision fatigue should be eliminated.
+
+There should always be exactly one obvious next issue.
+
+---
+
+# Guiding Principles
+
+Always optimize for:
+
+* Learning objectives over resources
+* Competency over completion
+* Building over consuming
+* Curriculum over collections
+* Simplicity over complexity
+* Deep understanding over endless content consumption
+
+The learner should spend the majority of their time building, explaining, implementing, and practicing—not endlessly watching videos.
+
+Resources are disposable.
+
+Capabilities are permanent.
+
+The purpose of this system is to create a lifelong educational operating system that scales across hundreds of projects, thousands of learning objectives, and tens of thousands of resources while ensuring that every study session begins with one clear question:
+
+**"What is the single highest-value learning objective I should complete next?"**
+```
