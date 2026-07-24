@@ -1285,7 +1285,9 @@ for chunk in completion:
 
 #### Free models
 
-**Opencode free modelsw**
+**Opencode free models**
+
+The endpoint URL is `https://opencode.ai/zen/v1`, with the OpenAI-compatible inference endpoint being `https://opencode.ai/zen/v1/chat/completions`
 
 | Model name             | Model identifier       | Model inference endpoint                      |
 | ---------------------- | ---------------------- | --------------------------------------------- |
@@ -1296,14 +1298,87 @@ for chunk in completion:
 | DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` |
 **nvidia free models**
 
-| Model name             | Model identifier       | Model inference endpoint                      |
-| ---------------------- | ---------------------- | --------------------------------------------- |
-| Big Pickle             | big-pickle             | `https://opencode.ai/zen/v1/chat/completions` |
-| MiMo-V2.5 Free         | mimo-v2.5-free         | `https://opencode.ai/zen/v1/chat/completions` |
-| North Mini Code Free   | north-mini-code-free   | `https://opencode.ai/zen/v1/chat/completions` |
-| Nemotron 3 Ultra Free  | nemotron-3-ultra-free  | `https://opencode.ai/zen/v1/chat/completions` |
-| DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` |
-**nvidia free models**
+The endpoint URL is `https://integrate.api.nvidia.com/v1`, with the OpenAI-compatible inference endpoint being `https://integrate.api.nvidia.com/v1/chat/completions`
+
+| name                                   | modelTag                                      | param count           |
+| -------------------------------------- | --------------------------------------------- | --------------------- |
+| nemotron-3-super-120b-a12b             | nvidia/nemotron-3-super-120b-a12b             | 120B                  |
+| nemotron-3-ultra-550b-a55b             | nvidia/nemotron-3-ultra-550b-a55b             | 550B                  |
+| gpt-oss-120b                           | openai/gpt-oss-120b                           | 120B                  |
+| llama-3.3-70b-instruct                 | meta/llama-3_3-70b-instruct                   | 70B                   |
+| qwen3-next-80b-a3b-instruct            | qwen/qwen3-next-80b-a3b-instruct              | 80B                   |
+| gpt-oss-20b                            | openai/gpt-oss-20b                            | 20B                   |
+| llama-3.1-8b-instruct                  | meta/llama-3_1-8b-instruct                    | 8B                    |
+| deepseek-v4-flash                      | deepseek-ai/deepseek-v4-flash                 | N/A                   |
+| qwen3.5-397b-a17b                      | qwen/qwen3.5-397b-a17b                        | 397B                  |
+| llama-4-maverick-17b-128e-instruct     | meta/llama-4-maverick-17b-128e-instruct       | 400B (17B x 128E MoE) |
+| kimi-k2.6                              | moonshotai/kimi-k2.6                          | N/A                   |
+| minimax-m2.7                           | minimaxai/minimax-m2.7                        | N/A                   |
+| qwen3.5-122b-a10b                      | qwen/qwen3.5-122b-a10b                        | 122B                  |
+| llama-3.1-nemotron-nano-vl-8b-v1       | nvidia/llama-3.1-nemotron-nano-vl-8b-v1       | 8B                    |
+| nemotron-3-nano-30b-a3b                | nvidia/nemotron-3-nano-30b-a3b                | 30B                   |
+| mistral-small-4-119b-2603              | mistralai/mistral-small-4-119b-2603           | 119B                  |
+| minimax-m3                             | minimaxai/minimax-m3                          | N/A                   |
+| step-3.5-flash                         | stepfun-ai/step-3.5-flash                     | N/A                   |
+| nemotron-3-nano-omni-30b-a3b-reasoning | nvidia/nemotron-3-nano-omni-30b-a3b-reasoning | 30B                   |
+| glm-5.2                                | z-ai/glm-5.2                                  | N/A                   |
+| step-3.7-flash                         | stepfun-ai/step-3.7-flash                     | N/A                   |
+| deepseek-v4-pro                        | deepseek-ai/deepseek-v4-pro                   | N/A                   |
+| llama-3.3-nemotron-super-49b-v1.5      | nvidia/llama-3_3-nemotron-super-49b-v1_5      | 49B                   |
+| llama-3.3-nemotron-super-49b-v1        | nvidia/llama-3_3-nemotron-super-49b-v1        | 49B                   |
+| gemma-4-31b-it                         | google/gemma-4-31b-it                         | 31B                   |
+| llama-3.1-70b-instruct                 | meta/llama-3_1-70b-instruct                   | 70B                   |
+| nemotron-nano-12b-v2-vl                | nvidia/nemotron-nano-12b-v2-vl                | 12B                   |
+| gemma-2-2b-it                          | google/gemma-2-2b-it                          | 2B                    |
+| mistral-medium-3.5-128b                | mistralai/mistral-medium-3.5-128b             | 128B                  |
+| nv-embed-v1                            | nvidia/nv-embed-v1                            | N/A                   |
+| ministral-14b-instruct-2512            | mistralai/ministral-14b-instruct-2512         | 14B                   |
+| llama-3.2-90b-vision-instruct          | meta/llama-3.2-90b-vision-instruct            | 90B                   |
+| diffusiongemma-26b-a4b-it              | google/diffusiongemma-26b-a4b-it              | 26B                   |
+| llama-3.2-11b-vision-instruct          | meta/llama-3.2-11b-vision-instruct            | 11B                   |
+| nemotron-mini-4b-instruct              | nvidia/nemotron-mini-4b-instruct              | 4B                    |
+| gemma-3n-e4b-it                        | google/gemma-3n-e4b-it                        | 4B                    |
+| nvidia-nemotron-nano-9b-v2             | nvidia/nvidia-nemotron-nano-9b-v2             | 9B                    |
+| nemotron-3.5-content-safety            | nvidia/nemotron-3.5-content-safety            | N/A                   |
+| nv-embedcode-7b-v1                     | nvidia/nv-embedcode-7b-v1                     | 7B                    |
+| gemma-3n-e2b-it                        | google/gemma-3n-e2b-it                        | 2B                    |
+| llama-3.2-3b-instruct                  | meta/llama-3.2-3b-instruct                    | 3B                    |
+| rerank-qa-mistral-4b                   | nvidia/rerank-qa-mistral-4b                   | 4B                    |
+| mistral-nemotron                       | mistralai/mistral-nemotron                    | 12B                   |
+| llama-3.1-nemotron-nano-8b-v1          | nvidia/llama-3_1-nemotron-nano-8b-v1          | 8B                    |
+| dracarys-llama-3.1-70b-instruct        | abacusai/dracarys-llama-3_1-70b-instruct      | 70B                   |
+| mixtral-8x7b-instruct-v0.1             | mistralai/mixtral-8x7b-instruct               | 47B (8x7B MoE)        |
+| seed-oss-36b-instruct                  | bytedance/seed-oss-36b-instruct               | 36B                   |
+| esmfold                                | meta/esmfold                                  | 3B                    |
+| llama-3.2-1b-instruct                  | meta/llama-3.2-1b-instruct                    | 1B                    |
+| solar-10.7b-instruct                   | upstage/solar-10_7b-instruct                  | 10.7B                 |
+| gliner-pii                             | nvidia/gliner-pii                             | N/A                   |
+| ising-calibration-1-35b-a3b            | nvidia/ising-calibration-1-35b-a3b            | 35B                   |
+| sarvam-m                               | sarvamai/sarvam-m                             | N/A                   |
+| llama-guard-4-12b                      | meta/llama-guard-4-12b                        | 12B                   |
+| llama-3.1-nemotron-safety-guard-8b-v3  | nvidia/llama-3_1-nemotron-safety-guard-8b-v3  | 8B                    |
+| riva-translate-4b-instruct-v1_1        | nvidia/riva-translate-4b-instruct-v1_1        | 4B                    |
+| synthetic-video-detector               | nvidia/synthetic-video-detector               | N/A                   |
+| magpie-tts-zeroshot                    | nvidia/magpie-tts-zeroshot                    | N/A                   |
+| paligemma                              | google/google-paligemma                       | 3B                    |
+| Studio Voice                           | nvidia/studiovoice                            | N/A                   |
+| esm2-650m                              | meta/esm2-650m                                | 650M                  |
+| cosmos3-nano-reasoner                  | nvidia/cosmos3-nano-reasoner                  | N/A                   |
+| cosmos3-nano                           | nvidia/cosmos3-nano                           | N/A                   |
+| Active Speaker Detection               | nvidia/active-speaker-detection               | N/A                   |
+| Background Noise Removal               | nvidia/bnr                                    | N/A                   |
+| nemotron-voicechat                     | nvidia/nemotron-voicechat                     | N/A                   |
+| cosmos-transfer1-7b                    | nvidia/cosmos-transfer1-7b                    | 7B                    |
+| streampetr                             | nvidia/streampetr                             | N/A                   |
+| bevformer                              | nvidia/bevformer                              | N/A                   |
+| sparsedrive                            | nvidia/sparsedrive                            | N/A                   |
+| cosmos-transfer2.5-2b                  | nvidia/cosmos-transfer2_5-2b                  | 2B                    |
+| inkling                                | thinkingmachines/inkling                      | N/A                   |
+| ising-calibration-1.5-31b              | nvidia/ising-calibration-1.5-31b              | 31B                   |
+| laguna-xs-2.1                          | poolside/laguna-xs-2.1                        | N/A                   |
+| nemotron-3-embed-1b                    | nvidia/nemotron-3-embed-1b                    | 1B                    |
+| nemotron-3.5-nano-30b-a3b              | nvidia/nemotron-3.5-nano-30b-a3b              | 30B                   |
+| seallm-7b-v2.5                         | seallms/seallm-7b                             | 7B                    |
 
 
 ## Vibe coding mastery
