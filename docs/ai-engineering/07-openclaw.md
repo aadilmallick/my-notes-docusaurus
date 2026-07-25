@@ -52,6 +52,16 @@ You can also use the `hermes doctor` command to check for config issues
    hermes gateway      # install Install gateway service (messaging + cron)
    hermes update       # Update to latest version
 ```
+
+#### Command reference
+
+- `hermes`: starts chat TUI
+- `hermes -c`: resume alst chat session
+- `hermes status`: view the status of the hermes gateway
+- `hermes model`: switch the default model
+- `hermes insights`:view tokens, cost, and activity
+- `hermes sessions browse`: browse through all the sessions
+- `hermes skills browse`: browse through all the skills
 ## MaxClaw slop mastery
 
 ## KiloClaw slop mastery
