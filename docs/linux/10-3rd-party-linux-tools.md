@@ -282,7 +282,9 @@ This is how to do robotic text to speech: use the `say` command
 say 'process complete'
 ```
 
-## `ngrok`
+## Dev tunnel utilities
+
+### `ngrok`
 
 `ngrok` is a tool used to enable HTTPS in development by creating a temporary HTTPS url that forwards to your dev server. This is useful for stuff like registering webhooks.
 
@@ -292,7 +294,12 @@ To get a HTTPS dev url that forwards to a dev process you have running on a port
 ngrok http <port_number>
 ```
 
-## Tree
+### `dev-tunnel` 
+
+The `devtunnel` CLI from microsoft allows you to authenticate with your microsoft account
+## Filesystem utilities
+
+### Tree
 
 ```bash
 npm install -g tree-console
