@@ -1285,6 +1285,20 @@ for chunk in completion:
 
 #### Free models
 
+**Kilocode free models**
+
+Kilocode allows you to use other inference endpoint providers but you can also use these free models that come with kilocode:
+
+```embed
+title: "Best Free AI Coding Models Available Now | Kilo Code"
+image: "https://kilo.ai/kilocode-social.png"
+description: "Find the best currently tested free AI coding models in Kilo Code, plus a live catalog of hosted models with $0 input and $0 output token pricing."
+url: "https://kilo.ai/landing/free-models"
+favicon: ""
+aspectRatio: "56.35062611806798"
+```
+
+
 **Opencode free models**
 
 The endpoint URL is `https://opencode.ai/zen/v1`, with the OpenAI-compatible inference endpoint being `https://opencode.ai/zen/v1/chat/completions`

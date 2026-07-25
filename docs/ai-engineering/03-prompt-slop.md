@@ -829,9 +829,6 @@ The purpose of this system is to create a lifelong educational operating system 
 ### Personal profile context prompt slop
 
 ```bash
-Here is the completed **Master Personal Context Profile** as a Markdown document. You can save this as something like `personal-context-profile.md` and provide it to future AI agents.
-
-```markdown
 # Master Personal Context Profile
 
 ## Purpose
