@@ -296,7 +296,45 @@ ngrok http <port_number>
 
 ### `dev-tunnel` 
 
-The `devtunnel` CLI from microsoft allows you to authenticate with your microsoft account
+The `devtunnel` CLI from microsoft allows you to authenticate with your microsoft account to set up devtunnels and can be easier than ngrok.
+
+1. Install the CLI
+
+```bash
+brew install --cask devtunnel host -p 3978
+```
+
+2. Expose a port 
+
+```bash
+devtunnel host -p 3978
+```
+
+You can also use these commands to manage your dev tunnels.
+
+
+```
+Commands:
+  list                 List tunnels
+  show <tunnel-id>     Show tunnel details
+  create <tunnel-id>   Create a tunnel
+  update <tunnel-id>   Update tunnel properties
+  delete <tunnel-id>   Delete a tunnel
+  delete-all           Delete all tunnels
+  token <tunnel-id>    Issue tunnel access token
+  set <tunnel-id>      Set default tunnel
+  unset                Clear default tunnel
+  access               Manage tunnel access control entries
+  user                 Manage user credentials
+  port                 Manage tunnel ports
+  host <tunnel-id>     Host a tunnel, if tunnel ID is not specified a new 
+                       tunnel will be created
+  connect <tunnel-id>  Connect to an existing tunnel
+  limits               List user limits
+  clusters             List available service clusters by location
+  echo <protocol>      Run a diagnostic echo server on a local port
+  ping <uri>           Send diagnostic messages to a remote echo server
+```
 ## Filesystem utilities
 
 ### Tree
