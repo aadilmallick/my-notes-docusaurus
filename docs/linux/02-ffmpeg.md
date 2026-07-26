@@ -158,34 +158,302 @@ https://ffmpegwasm.netlify.app/docs/getting-started/examples
 
 
 
-### Installation
+### Basics
 
-1. Install dependencies
+Here is the complete guide and implementation to get `ffmpeg.wasm` working seamlessly inside your React/Vite application to concatenate OPFS frames into an MP4.
 
+#### 1. What to Install
+
+Run the following in your terminal:
 ```bash
-npm install @ffmpeg/ffmpeg @ffmpeg/util
+npm install @ffmpeg/ffmpeg@0.12.10 @ffmpeg/util@0.12.1
 ```
 
-2. If using vite, set this in vite config, and optionally uncomment server headers.
+#### 2. How FFmpeg WASM works in Vite & React
 
-```ts
-import { defineConfig } from "vite";
-import tailwindcss from "@tailwindcss/vite";
+1. **ESM vs UMD:** Vite's module system conflicts with the standard UMD build of FFmpeg Core. As explicitly stated in the docs, you **must** use the `/dist/esm` path instead of `/dist/umd`.
+2. **CORS & `toBlobURL`:** Browsers block Web Workers from loading scripts cross-origin. The `toBlobURL` utility from `@ffmpeg/util` automatically fetches the core files and converts them to local Blob URLs to bypass this.
+3. **Virtual File System:** FFmpeg WASM runs in a Web Worker and operates on its own virtual memory file system (MEMFS). You cannot pass OPFS paths directly to FFmpeg. You must read the `File` objects from OPFS and use `ffmpeg.writeFile()` to load them into memory before executing.
+4. **OptimizeDeps:** Vite's dependency pre-bundling breaks FFmpeg's Worker instantiation, so it must be excluded in `vite.config.ts`.
+5. **Headers:** Even for single-threaded execution, Emscripten often relies on `SharedArrayBuffer` for internal synchronization, which requires specific security headers.
+
+#### 3. Update `vite.config.ts`
+
+Add the security headers and exclude FFmpeg from Vite's pre-bundling:
+
+```typescript
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
 export default defineConfig({
-  plugins: [tailwindcss()],
-  optimizeDeps: {
-    exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util"],
-  },
+  plugins: [react()],
   server: {
-    // headers: {
-    //   "Cross-Origin-Opener-Policy": "same-origin",
-    //   "Cross-Origin-Embedder-Policy": "require-corp",
-    // },
+    headers: {
+      // Required for SharedArrayBuffer (which Emscripten relies on)
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+  optimizeDeps: {
+    // Prevents Vite from breaking FFmpeg's worker thread
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
   },
 });
 ```
 
-3. If using vite, make sure to always run `npm run build` once at the beginning before starting development.
+#### 4. Create `FfmpegVideoExporter.ts`
+
+This class implements your `VideoExporter` interface, handles the singleton pattern, manages loading state, and abstracts the OPFS-to-MEMFS-to-MP4 pipeline.
+
+```typescript
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
+
+export interface VideoExporter {
+  exportVideo: (fileUri: string) => Promise<Blob>;
+}
+
+export class FfmpegVideoExporter implements VideoExporter {
+  private static instance: FfmpegVideoExporter | null = null;
+  private static loadPromise: Promise<void> | null = null;
+
+  private ffmpeg: FFmpeg;
+  private loaded = false;
+
+  private constructor() {
+    this.ffmpeg = new FFmpeg();
+  }
+
+  public static getInstance(): FfmpegVideoExporter {
+    if (!FfmpegVideoExporter.instance) {
+      FfmpegVideoExporter.instance = new FfmpegVideoExporter();
+    }
+    return FfmpegVideoExporter.instance;
+  }
+
+  public static async load(
+    onLog?: (message: string) => void,
+    onProgress?: (progress: number) => void
+  ): Promise<FfmpegVideoExporter> {
+    const instance = FfmpegVideoExporter.getInstance();
+
+    // Return immediately if already loaded
+    if (instance.loaded) return instance;
+    
+    // Prevent multiple simultaneous loads
+    if (FfmpegVideoExporter.loadPromise) {
+      await FfmpegVideoExporter.loadPromise;
+      return instance;
+    }
+
+    FfmpegVideoExporter.loadPromise = (async () => {
+      // CRITICAL: Vite requires the 'esm' path, NOT 'umd'
+      const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+
+      if (onLog) {
+        instance.ffmpeg.on('log', ({ message }) => onLog(message));
+      }
+
+      if (onProgress) {
+        instance.ffmpeg.on('progress', ({ progress }) => onProgress(progress));
+      }
+
+      await instance.ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+
+      instance.loaded = true;
+    })();
+
+    await FfmpegVideoExporter.loadPromise;
+    return instance;
+  }
+
+  public async exportVideo(fileUri: string): Promise<Blob> {
+    if (!this.loaded) {
+      throw new Error('FFmpeg is not loaded. Call FfmpegVideoExporter.load() first.');
+    }
+
+    const root = await navigator.storage.getDirectory();
+    const framesDir = (await root.getDirectoryHandle(fileUri)) as FileSystemDirectoryWithIterators;
+    
+    const frameNames: string[] = [];
+    if (framesDir.keys) {
+      for await (const name of framesDir.keys()) frameNames.push(name);
+    } else if (framesDir.entries) {
+      for await (const [name] of framesDir.entries()) frameNames.push(name);
+    }
+    
+    frameNames.sort();
+
+    if (frameNames.length === 0) {
+      throw new Error('No frames found in the OPFS directory.');
+    }
+
+    // 1. Load OPFS Frames into FFmpeg's Virtual File System
+    for (const name of frameNames) {
+      const fileHandle = await framesDir.getFileHandle(name);
+      const file = await fileHandle.getFile();
+      // fetchFile correctly converts a File object to a Uint8Array for FFmpeg
+      await this.ffmpeg.writeFile(name, await fetchFile(file));
+    }
+
+    // 2. Execute FFmpeg command
+    // -framerate 30: Assumes you captured at 30fps
+    // -i frame_%05d.png: Matches your padStart(5, '0') naming convention
+    // -preset ultrafast: Crucial for WASM to prevent browser timeouts on long videos
+    // -pix_fmt yuv420p: Ensures the MP4 plays correctly in all standard video players
+    await this.ffmpeg.exec([
+      '-framerate', '30',
+      '-i', 'frame_%05d.png',
+      '-c:v', 'libx264',
+      '-pix_fmt', 'yuv420p',
+      '-preset', 'ultrafast',
+      '-crf', '23',
+      'output.mp4',
+    ]);
+
+    // 3. Extract the encoded video
+    const data = await this.ffmpeg.readFile('output.mp4');
+    const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+
+    // 4. Cleanup virtual file system to free up RAM
+    for (const name of frameNames) {
+      await this.ffmpeg.deleteFile(name);
+    }
+    await this.ffmpeg.deleteFile('output.mp4');
+
+    return mp4Blob;
+  }
+}
+```
+
+#### 5. Updated `useExport.ts` Hook
+
+Integrate the real exporter. Notice how I map the FFmpeg `progress` event to the `setExportProgress` state.
+
+```typescript
+import { useCallback, useState } from "react";
+import { getErrorMessage } from "../utils/error";
+import { FfmpegVideoExporter } from "./FfmpegVideoExporter"; // Adjust path
+
+interface VideoExporter {
+  exportVideo: (fileUri: string) => Promise<Blob>;
+}
+
+export const downloadVideoFromOPFS = async (fileName?: string) => {
+  try {
+    const root = await navigator.storage.getDirectory();
+    const videoFh = await root.getFileHandle("export.mp4");
+    const file = await videoFh.getFile();
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName ? fileName.replace(/\.[^/.]+$/, "") : "flowkeys"}_export.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    await root
+      .removeEntry("frames", { recursive: true })
+      .catch(() => undefined);
+    return true;
+  } catch (error) {
+    console.error("Download error:", error);
+    return false;
+  }
+};
+
+export const useExport = () => {
+  const [exportState, setExportState] = useState<ExportState>("idle");
+  const [exportMessage, setExportMessage] = useState("");
+  const [exportProgress, setExportProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const exportViaFFMPEGWASM = useCallback(async () => {
+    try {
+      setExportState("processing");
+      setExportMessage("Initializing FFmpeg WASM (loads ~31MB core on first run)...");
+
+      // 1. Initialize or get the Singleton FFmpeg Instance
+      const exporter = await FfmpegVideoExporter.load(
+        (message) => {
+          // Optional: Pipe FFmpeg stdout logs to console
+          console.log("[FFmpeg LOG]", message);
+        },
+        (progress) => {
+          // Map FFmpeg progress (0.0 - 1.0) to UI progress (40% - 90%)
+          // Leaving 0-40% for loading/traversing, and 90-100% for saving
+          setExportProgress(40 + progress * 50);
+          setExportMessage(`Encoding video... ${Math.round(progress * 100)}%`);
+        }
+      );
+
+      setExportMessage("Reading frames from OPFS storage...");
+      setExportProgress(10);
+
+      // 2. Traverse OPFS for UI feedback
+      const root = await navigator.storage.getDirectory();
+      const framesDir = (await root.getDirectoryHandle(
+        "frames",
+      )) as FileSystemDirectoryWithIterators;
+      const frameNames: string[] = [];
+
+      if (framesDir.keys) {
+        for await (const name of framesDir.keys()) frameNames.push(name);
+      } else if (framesDir.entries) {
+        for await (const [name] of framesDir.entries()) frameNames.push(name);
+      }
+      frameNames.sort();
+
+      setExportMessage(
+        `Found ${frameNames.length} frames. Writing to FFmpeg memory...`,
+      );
+      setExportProgress(20);
+
+      // 3. Process frames and get MP4 blob
+      const videoBlob = await exporter.exportVideo("frames");
+
+      setExportProgress(90);
+      setExportMessage("Saving compiled video to OPFS storage...");
+
+      // 4. Save back to OPFS
+      const videoFh = await root.getFileHandle("export.mp4", { create: true });
+      const writable = await videoFh.createWritable();
+      await writable.write(videoBlob);
+      await writable.close();
+
+      setExportProgress(100);
+      setExportMessage("Video compilation complete!");
+      setExportState("ready");
+    } catch (error) {
+      console.error("FFmpeg processing error:", error);
+      setErrorMessage(`Video encoding failed: ${getErrorMessage(error)}`);
+      setExportState("idle");
+    }
+  }, []);
+
+  return {
+    errorMessage,
+    exportMessage,
+    exportProgress,
+    exportState,
+    exportViaFFMPEGWASM,
+    setErrorMessage,
+    setExportState,
+    setExportMessage,
+    setExportProgress,
+  };
+};
+```
+
+#### ⚠️ Important Architectural Note on RAM
+Because `ffmpeg.wasm` operates in a virtual file system in memory (MEMFS), writing hundreds of PNG frames to it will consume high amounts of RAM. (e.g., 1000 frames at ~1MB each = ~1GB RAM). 
+* If your videos are relatively short (< 30 seconds), this will work perfectly.
+* If you plan on supporting multi-minute exports later, you should change your Web Worker's `canvas.toBlob()` to output `'image/jpeg'` instead of `'image/png'` to reduce the memory footprint by ~80%, or look into `@ffmpeg/ffmpeg`'s `WORKERFS` feature (added in 0.12.10) which allows streaming files directly from OPFS handles without loading them entirely into RAM.
+
 
 ### FFMPEGBrowser class
 
