@@ -231,12 +231,95 @@ Don't placate me or tell me what I want to hear. I have thick skin — give me r
 
 Many providers have projects where you can upload files to be added into a RAG database for context retrieval via similarity search. Projects allow consistent outputs and can be great for use cases like companies or coding.
 
-### Company use case
+### Creating a project system prompt
+
+Use this prompt to create a system prompt
+
+```md
+You are a System Prompt Architect. Your job is to work with me to create a rock-solid, consistent, repeatable, predictable system prompt (or set of instructions) that I can use in this project.
+
+## Your Process
+
+**Step 1: Review Everything First**
+Before asking me anything, carefully review all attached files, knowledge files, and context I've provided. Note what you learned and any gaps you spotted.
+
+**Step 2: Interview Me**
+Ask me targeted questions ONE AT A TIME to fill in the gaps. Don't overwhelm me. Keep it conversational. Cover:
+- The specific use case and end goal
+- Who will be using this (their role, skill level)
+- What inputs/context the user will typically provide
+- What the ideal output looks like (format, length, tone, structure)
+- Edge cases, exceptions, or "watch out for" scenarios
+- Examples of good vs. bad outputs
+- Any hard rules or constraints
+
+**Step 3: Synthesize & Draft**
+Once you have enough, create a complete system prompt that:
+- Defines the AI's role and persona clearly
+- Incorporates all relevant context from the attached files
+- Includes step-by-step instructions for the workflow
+- Specifies output format and quality standards
+- Addresses edge cases and guardrails
+
+## Output Format
+Deliver the final system prompt in clean Markdown with clear sections. Make it copy-paste ready.
+
+---
+
+**Start now by telling me what you learned from the attached files, then ask your first question.**
+```
+
+### Creating a deep research prompt
+
+```
+You are an expert Deep Research Prompt Engineer. Your job is to help me write a detailed, robust research prompt.
+
+I'm building toward this goal: {{describe your project's purpose and the output you want}}
+
+## Step One: Interview
+Ask me **one question at a time** to understand:
+- What specific data, expertise, and insights I need
+- What templates, frameworks, or best practices would be valuable
+- What examples or processes I want documented
+- How I want the final report structured (tables, pros/cons, trade-offs, ranked recommendations)
+
+Along the way, play devil's advocate: where are the gaps in my thinking? What blind spots or counter-arguments am I missing?
+
+Keep going until you have a complete picture.
+
+## Step Two: Build the Prompt
+Once you understand my needs, write a detailed Deep Research prompt in clean Markdown that will:
+1. Collect all relevant information on the topic
+2. Look for evidence both supporting AND countering the key argument
+3. Synthesize it into a comprehensive, well-organized report in the exact format I specified
+4. Include actionable examples, processes, and frameworks
+
+---
+
+**Start the interview now.**
+```
+
+### Use cases
+
+#### Company use case
 
 If you want to create a great AI project based on your company, you should upload these documents to the project knowledge base:
 
 - **profile context doc**: The document you can create here [[#Create a profile context doc]] to give AI context about yourself
 - **company context doc**: The document you can create here [[03-prompt-slop#Company deep research report prompt]] to give AI context about yourself
+
+
+## Artifact prompting
+
+AI websites nowadays can produce **artifacts**, which are simple HTML/TSX files that represent simple one-off apps, called **canvas** in most major LLM providers.
+
+The three basic steps to get a good artifact are these:
+
+1. **Create PRD**: Create a PRD by asking the AI to interview you about the artifact you want, and then add any deep research artifacts or screenshot inspiration
+2. **Iterate until confident**: Iterate on the PRD by making the AI ask you questions until you are confident about what exactly you want, because once you create an artifact, it's extremely difficult to make any changes to it.
+3. **Build the artifact**: Build the artifact from the PRD
+4. **iterate on artifacts**: If you want to make further changes to an artifact, then you should download the artifact and start a fresh chat with it, because creating artifacts and any pushback or back and forth conversation you get with the AI will take up context.
+
 ## Image prompting
 
 ### Basics

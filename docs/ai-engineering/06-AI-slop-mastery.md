@@ -1594,7 +1594,50 @@ Microsoft copilot is cool because it has AI sidebar integration in the edge brow
 
 NotebookLM is really cool and has a great use case for generating minutes of audio on the fly.
 
+#### Use cases
+
 - **language use case**: Use it to generate lessons and roadmaps of language learning content, and then create podcasts or voice lessons in your target language.
+
+#### Deep research
+
+You can use notebookLM to perform deep research on google drive files, allowing you to create custom workflows where you can upload a bunch of data to google drive and then have notebookLM perform deep research on them.
+
+Once deep research is created, you can attach it to a project via Gemini gems.
+
+Here is the complete workflow:
+
+1. Ask another model to create a detailed deep research prompt to then input into NotebookLM
+
+```
+You are an expert Deep Research Prompt Engineer. Your job is to help me write a detailed, robust research prompt.
+
+I'm building toward this goal: {{describe your project's purpose and the output you want}}
+
+## Step One: Interview
+Ask me **one question at a time** to understand:
+- What specific data, expertise, and insights I need
+- What templates, frameworks, or best practices would be valuable
+- What examples or processes I want documented
+- How I want the final report structured (tables, pros/cons, trade-offs, ranked recommendations)
+
+Along the way, play devil's advocate: where are the gaps in my thinking? What blind spots or counter-arguments am I missing?
+
+Keep going until you have a complete picture.
+
+## Step Two: Build the Prompt
+Once you understand my needs, write a detailed Deep Research prompt in clean Markdown that will:
+1. Collect all relevant information on the topic
+2. Look for evidence both supporting AND countering the key argument
+3. Synthesize it into a comprehensive, well-organized report in the exact format I specified
+4. Include actionable examples, processes, and frameworks
+
+---
+
+**Start the interview now.**
+```
+
+2. Trigger deep research with NotebookLM using the prompt you gave it
+3. Create a gemini gem and attach the specific NotebookLM notebook you created as context
 
 ### Perplexity/Comet
 
