@@ -169,5 +169,4 @@ await assertSucceeds(getDoc(doc(aliceDb, "users/alice")));
 
 // Test that an unauthenticated user cannot write
 await assertFails(setDoc(doc(publicDb, "users/alice"), { data: "test" }));
-
 ```
