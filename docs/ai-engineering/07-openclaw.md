@@ -62,6 +62,16 @@ You can also use the `hermes doctor` command to check for config issues
 - `hermes insights`:view tokens, cost, and activity
 - `hermes sessions browse`: browse through all the sessions
 - `hermes skills browse`: browse through all the skills
+
+### Cron jobs
+
+#### Use cases
+
+Here are several good use cases for cron jobs in hermes:
+
+- **daily news/AI digest**: a daily news brief of AI tools summarized to discord.
+- **end of week summary**: a reminder every friday night to organize your todos via the PARA method and GTD method, list outstanding todos.
+- **2nd brain ingest**: pull resources from todoist, apple notes, etc. into an obsidian kanban board of ingested resources/todos and then start an agentic workflow to process those resources/todos, move them into the `RAW` folder, start the agentic workflow and put them into **processing** status and then once the outputs are summarized into the `PROCESSED` folder, mark the task as **completed** which should prevent it from being ingested again.
 ## MaxClaw slop mastery
 
 ## KiloClaw slop mastery

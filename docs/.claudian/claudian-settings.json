@@ -71,14 +71,64 @@
     "opencode": {
       "cliPath": "",
       "cliPathsByHost": {},
-      "enabled": false,
+      "enabled": true,
       "environmentHash": "",
       "environmentVariables": "OPENCODE_ENABLE_EXA=1",
       "modelAliases": {},
-      "preferredThinkingByModel": {},
-      "selectedMode": "",
-      "thinkingOptionsByModel": {},
-      "visibleModels": []
+      "preferredThinkingByModel": {
+        "opencode/ling-3.0-flash-free": "high",
+        "opencode/laguna-s-2.1-free": "high",
+        "opencode/deepseek-v4-flash-free": "high"
+      },
+      "selectedMode": "claudian-yolo",
+      "thinkingOptionsByModel": {
+        "opencode/ling-3.0-flash-free": [
+          {
+            "label": "Low",
+            "value": "low"
+          },
+          {
+            "label": "Medium",
+            "value": "medium"
+          },
+          {
+            "label": "High",
+            "value": "high"
+          }
+        ],
+        "opencode/laguna-s-2.1-free": [
+          {
+            "label": "Low",
+            "value": "low"
+          },
+          {
+            "label": "Medium",
+            "value": "medium"
+          },
+          {
+            "label": "High",
+            "value": "high"
+          }
+        ],
+        "opencode/deepseek-v4-flash-free": [
+          {
+            "label": "High",
+            "value": "high"
+          },
+          {
+            "label": "Max",
+            "value": "max"
+          }
+        ]
+      },
+      "visibleModels": [
+        "opencode/big-pickle",
+        "opencode/ling-3.0-flash-free",
+        "opencode/laguna-s-2.1-free",
+        "opencode/mimo-v2.5-free",
+        "opencode/nemotron-3-ultra-free",
+        "opencode/deepseek-v4-flash-free"
+      ]
     },
     "pi": {
       "cliPath": "",
@@ -95,10 +145,12 @@
   },
   "settingsProvider": "claude",
   "savedProviderModel": {
-    "claude": "haiku"
+    "claude": "haiku",
+    "opencode": "opencode:opencode/big-pickle"
   },
   "savedProviderEffort": {
-    "claude": "high"
+    "claude": "high",
+    "opencode": "high"
   },
   "savedProviderServiceTier": {},
   "savedProviderThinkingBudget": {},
