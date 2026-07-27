@@ -3,7 +3,7 @@
   "permissionMode": "yolo",
   "model": "haiku",
   "thinkingBudget": "off",
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "serviceTier": "default",
   "enableAutoTitleGeneration": true,
   "titleGenerationModel": "",
@@ -149,7 +149,7 @@
     "opencode": "opencode:opencode/big-pickle"
   },
   "savedProviderEffort": {
-    "claude": "high",
+    "claude": "medium",
     "opencode": "high"
   },
   "savedProviderServiceTier": {},
