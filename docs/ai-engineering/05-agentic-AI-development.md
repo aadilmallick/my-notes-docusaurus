@@ -96,11 +96,7 @@ Here's an example of the loop in action:
 
 ## Google ADK
 
-<<<<<<< HEAD
 ### Installation and CLI
-=======
-#### Installation and CLI
->>>>>>> refs/remotes/origin/main
 
 You install the `adk` cli like so
 
@@ -125,11 +121,7 @@ You can now run the agent via these different options:
 - `adk api_server <agent-subfolder-name>`: deploys the specific agent in the subfolder as an API service
 - `adk run <agent-subfolder-name>`: runs in the terminal the specific agent in the subfolder
 
-<<<<<<< HEAD
 ### Basic Agent Code with Python
-=======
-#### Basic Agent Code with Python
->>>>>>> refs/remotes/origin/main
 
 ```python
 from google.adk.agents.llm_agent import Agent
@@ -153,11 +145,7 @@ Here are the important kwargs to understand:
 > [!IMPORTANT]
 > The variable name `root_agent` is a convention that allows Gemini ADK to find this agent as the main orchestrator agent, and it must be named that.
 
-<<<<<<< HEAD
 ### Using other models
-=======
-#### Using other models
->>>>>>> refs/remotes/origin/main
 
 You can use other models like so, using the `LiteLlm` class to instantiate an LLM provider with a specific API key.
 
@@ -191,11 +179,7 @@ root_agent = Agent(
 )
 ```
 
-<<<<<<< HEAD
 ### Creating a yaml based agent
-=======
-#### Creating a yaml based agent
->>>>>>> refs/remotes/origin/main
 
 Instead of writing Python code to define agents, you can define agents using YAML, by creating the boilerplate first with `adk create --type=config` command:
 
@@ -203,11 +187,7 @@ Instead of writing Python code to define agents, you can define agents using YAM
 adk create --type=config <agent-subfolder-name>
 ```
 
-<<<<<<< HEAD
 ### Architecture and main flow
-=======
-#### Architecture and main flow
->>>>>>> refs/remotes/origin/main
 
 | Primitive    | Purpose                                                                      |
 | ------------ | ---------------------------------------------------------------------------- |
@@ -219,11 +199,7 @@ adk create --type=config <agent-subfolder-name>
 | **Event**    | Basic communication unit — everything that happens is an event               |
 | **Callback** | Hook points for guardrails, logging, and behavior modification               |
 
-<<<<<<< HEAD
 #### Sessions and runners
-=======
-##### Sessions and runners
->>>>>>> refs/remotes/origin/main
 
 Since hundreds of people have have concurrent requests with a single agent, you need some way to distinguish between different chat sessions, which is where the idea of **sessions** come into play. 
 
@@ -425,11 +401,7 @@ if __name__ == "__main__":
         )
 ```
 
-<<<<<<< HEAD
 #### Session state
-=======
-##### Session state
->>>>>>> refs/remotes/origin/main
 
 You can pass agent results from one agent to another in the pipeline via the `output_key=` kwarg when instantiating an LLM agent. 
 
@@ -478,11 +450,7 @@ code_reviewer = Agent(
 ```
 
 
-<<<<<<< HEAD
 #### Basic Tools
-=======
-##### Basic Tools
->>>>>>> refs/remotes/origin/main
 
 You can write your own custom tools as Python functions which return a python dictionary, where the best practice is to return an object interface like so:
 
@@ -571,19 +539,8 @@ if __name__ == "__main__":
     asyncio.run(run_agent())
 ```
 
-<<<<<<< HEAD
-#### Tools and session state
-
-
-
-### Agent Types
-=======
-##### Tools and session state
-
-
 
 #### Agent Types
->>>>>>> refs/remotes/origin/main
 
 **Type 1: LLM agents**
 
@@ -624,11 +581,7 @@ There are three types of workflow agents:
 **Type 3: custom agents**
 
 
-<<<<<<< HEAD
 ### Structured Output
-=======
-#### Structured Output
->>>>>>> refs/remotes/origin/main
 
 You cna tell an agent to output structured output as JSON via a Pydantic model schema:
 
@@ -650,11 +603,7 @@ structured_agent = LlmAgent(
 )
 ```
 
-<<<<<<< HEAD
 ### Tools deep deive
-=======
-#### Tools deep deive
->>>>>>> refs/remotes/origin/main
 
 This is how you can add custom tools, where the tool name, args, and description must be put in the docstring, and the AI will dynamically read the docstring at runtime to understand how to use the tool.
 
@@ -943,11 +892,7 @@ root_agent = Agent(
 )
 ```
 
-<<<<<<< HEAD
 ### Delegating to subagents
-=======
-#### Delegating to subagents
->>>>>>> refs/remotes/origin/main
 
 For all `Agent` instances and subclasses, you can define a `subagents=` kwarg and pass in a list of subagents to delegate tasks to.
 
@@ -1030,11 +975,7 @@ root_agent = Agent(
 )
 ```
 
-<<<<<<< HEAD
 ### Sequential agents
-=======
-#### Sequential agents
->>>>>>> refs/remotes/origin/main
 
 Sequential agents run other agents sequentially in order as part of a pipeline:
 
@@ -1110,11 +1051,7 @@ root_agent = SequentialAgent(
 )
 ````
 
-<<<<<<< HEAD
 ### Parallel agent
-=======
-#### Parallel agent
->>>>>>> refs/remotes/origin/main
 
 The `ParallelAgent` agent runs all subagents in parallel.
 
@@ -1185,11 +1122,7 @@ root_agent = SequentialAgent(
 )
 ```
 
-<<<<<<< HEAD
 ### Persistent sessions
-=======
-#### Persistent sessions
->>>>>>> refs/remotes/origin/main
 
 Use the `DatabaseSessionService` class to persesit sessions to a SQL db
 
@@ -1274,11 +1207,7 @@ async def main():
 asyncio.run(main())
 ```
 
-<<<<<<< HEAD
 ### Reasoning
-=======
-#### Reasoning
->>>>>>> refs/remotes/origin/main
 
 You can make models think and output their think trace before answering as to get better answers by passing in a ReAct type planner into the `planner=` kwarg when creating an `Agent` instance.
 
@@ -1355,15 +1284,10 @@ root_agent = Agent(
 ```
 
 
-<<<<<<< HEAD
 ### Use cases
 
 #### OpenAPI built-in integration: Github API master
-=======
-#### Use cases
 
-##### OpenAPI built-in integration: Github API master
->>>>>>> refs/remotes/origin/main
 
 For any API that has an OpenAPI specification, you can immediately give an agent up to date, complete knowledge on how to use that API and all tools available by just linking the APIs `openapi.json` file.
 
