@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 ## Cursor IDE basics
 
 ### Inline chat
+=======
+### Cursor
+
+#### Inline chat
+>>>>>>> refs/remotes/origin/main
 
 The inline chat in cursor has several options for what you can do with it by first typing `CTRL + K` to bring up the inline chat, and then typing `@` for context options. 
 
@@ -8,7 +14,11 @@ You can also instead of asking it to generate or edit code, ask a quick question
 
 ![](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1748293987/image-clipboard-assets/ut9zdv3eklbjpj8qegh0.webp)
 
+<<<<<<< HEAD
 ### Adding context
+=======
+#### Adding context
+>>>>>>> refs/remotes/origin/main
 
 You can add context with the `@` symbol as a prefix.
 
@@ -16,7 +26,11 @@ You can add context with the `@` symbol as a prefix.
 - `@web`: tells cursor to do a web search
 - `@<filename>`: adds the specific file as context
 
+<<<<<<< HEAD
 #### Adding docs
+=======
+##### Adding docs
+>>>>>>> refs/remotes/origin/main
 
 You can add certain websites' documentation to cursor, and cursor will index it and be able to reference it via the `@docs` context command. There are two ways to add documentation to certain websites you want:
 
@@ -24,7 +38,11 @@ You can add certain websites' documentation to cursor, and cursor will index it 
 - Add in the cursor features settings.
 
 
+<<<<<<< HEAD
 ### Cursor rules
+=======
+#### Cursor rules
+>>>>>>> refs/remotes/origin/main
 
 Cursor rules are a new way to enforce coding style and give cursor additional context when you're chatting with it. There are 4 ways to create rules:
 
