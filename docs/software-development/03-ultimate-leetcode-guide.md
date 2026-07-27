@@ -318,7 +318,52 @@ To solve this, think in terms of sub-problems. Each time you move down or right,
 
 ![](https://i.imgur.com/fibW7Z4.jpeg)
 
+Here is the solution:
 
+```ts
+class Point {
+    constructor(public x: number, public y: number) {}
+
+    toHash() {
+        return `(${this.x},${this.y})`
+    }
+}
+
+function* range(start: number, end: number) {
+    for (let i = start; i < end; i+=1) {
+        yield i
+    }
+}
+
+function grid(m: number, n: number) {
+    // map of starting point to number of ways to get to bottom corner, if only can move down or right
+    const tabulated = new Map<string, number>()
+
+     // Base case: Starting anywhere in the first column, there is 1 way to move down/right
+    for (let row of range(1, m + 1)) {
+        tabulated.set(new Point(row, 1).toHash(), 1)
+    }
+
+    // Base case: Starting anywhere in the first row, there is 1 way to move down/right
+    for (let col of range(1, n + 1)) {
+        tabulated.set(new Point(1, col).toHash(), 1)
+    }
+
+
+    // Now, row-1 and col-1 are guaranteed to exist in the Map!
+    for (let row of range(2, m + 1)) {
+        for (let col of range(2, n + 1)) {
+        const fromLeft = tabulated.get(new Point(row, col - 1).toHash())!
+        const fromAbove = tabulated.get(new Point(row - 1, col).toHash())!
+        
+        tabulated.set(new Point(row, col).toHash(), fromLeft + fromAbove)
+        }
+    }
+
+    return tabulated.get((new Point(m, n)).toHash())!
+}
+
+```
 
 
 ## Patterns
