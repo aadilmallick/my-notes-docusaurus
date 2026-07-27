@@ -1,6 +1,6 @@
 # Dependencies
 /node_modules
-
+.claudian/*
 # Production
 /build
 
@@ -27,3 +27,4 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+.claudian/

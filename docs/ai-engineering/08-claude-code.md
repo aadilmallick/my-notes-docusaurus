@@ -115,6 +115,127 @@ You can tell claude to "make the plan multi-phase" which makes the plan, well, m
 
 
 
+
+## Claude Skills
+
+### Intro
+
+Claude skills are like MCP but just markdown files, whcih based off of that, claude creates some code attached to the skill.
+
+Skills are flexible, project-agnostic, and all around great.
+
+Here are 4 built in skills that claude already uses:
+
+| Skill      | ID     | Description                                                                 |
+| ---------- | ------ | --------------------------------------------------------------------------- |
+| Excel      | `xlsx` | Create and manipulate Excel workbooks with formulas, charts, and formatting |
+| PowerPoint | `pptx` | Generate professional presentations with slides, charts, and transitions    |
+| PDF        | `pdf`  | Create formatted PDF documents with text, tables, and images                |
+| Word       | `docx` | Generate Word documents with rich formatting and structure                  |
+|            |        |                                                                             |
+|            |        |                                                                             |
+
+A claude skill is a zip fiel of a directory with one `SKILL.md` file. This file should:
+
+1. Have yaml frontmatter
+2. Markdown instructions describing the skill
+
+So a claude skill looks like this:
+
+```
+my-skill/
+├── SKILL.md          # Required: instructions + metadata
+├── scripts/          # Optional: executable code
+├── references/       # Optional: documentation
+└── assets/           # Optional: templates, resources
+```
+
+Claude chooses to activate a skill in three steps:
+
+1. **Preload skill**: claude loads the name and description of all skills it has available
+2. **Choose relevant skill**: Claude chooses a skill that is relevant to the task based off of its metadata. It then loads the entire `SKILL.md` into its context
+3. **Executes skill**: Claude executes the skill based on the contents of the `SKILL.md`, running any tools or python scripts as appropriate.
+
+Or
+
+1. **Discovery**: At startup, agents load only the name and description of each available skill, just enough to know when it might be relevant.
+2. **Activation**: When a task matches a skill’s description, the agent reads the full `SKILL.md` instructions into context.
+3. **Execution**: The agent follows the instructions, optionally loading referenced files or executing bundled code as needed.
+### SKill metadata
+
+Here is an example `SKILL.md`:
+
+```markdown
+---
+name: pdf-processing
+description: Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files.
+allowed-tools: Bash(git:*) Bash(jq:*) Read
+---
+
+# PDF Processing
+
+## Quick Start
+Use pdfplumber to extract text from PDFs...
+
+## Advanced Usage
+For form filling, see [FORMS.md](FORMS.md).
+```
+
+In the yaml frontmatter, describing the metadata of the skill is really important. Here are the properties you have:
+
+- `name`: skill name, < 64 characters, lowercase, numbers, and hyphens only.
+- `description`: text description of skill, which claude uses to determine the relevance of the skill to a task.
+- `allowedTools`: a list of claude code tools the skill has approved access for.
+
+### Optional Folders and Entire Skills process
+
+Skills should be structured for efficient use of context:
+
+1. **Metadata** (~100 tokens): The `name` and `description` fields are loaded at startup for all skills
+2. **Instructions** (< 5000 tokens recommended): The full `SKILL.md` body is loaded when the skill is activated
+3. **Resources** (as needed): Files (e.g. those in `scripts/`, `references/`, or `assets/`) are loaded only when required
+
+Keep your main `SKILL.md` under 500 lines. Move detailed reference material to separate files.
+
+Here are the optional subfolders you can have in your skill:
+
+- `scripts/`: folder of coding scripts liek python or bash that act as tools the skill can execute.
+- `references/`: folder of more detailed markdown files going more into depth on what the skill has, maybe like documentation or something in `REFERENCES.md`
+
+When referencing other files in your skill, use relative paths from the skill root:
+
+```markdown
+See [the reference guide](references/REFERENCE.md) for details.
+
+Run the extraction script:
+scripts/extract.py
+```
+
+Keep file references one level deep from `SKILL.md`. Avoid deeply nested reference chains.
+
+![how claude skills load context](https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fa3bca2763d7892982a59c28aa4df7993aaae55ae-2292x673.jpg&w=3840&q=75)
+
+### Add skills to claude code
+
+
+
+The easiest way to add simple `SKILL.md` files to claude code is to just include them in your system prompt and give the filepaths to the `SKILL.md` files:
+
+```html
+<available_skills>
+  <skill>
+    <name>pdf-processing</name>
+    <description>Extracts text and tables from PDF files, fills forms, merges documents.</description>
+    <location>/path/to/skills/pdf-processing/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>data-analysis</name>
+    <description>Analyzes datasets, generates charts, and creates summary reports.</description>
+    <location>/path/to/skills/data-analysis/SKILL.md</location>
+  </skill>
+</available_skills>
+```
+
 ## Advanced claude tools
 
 ### Commands

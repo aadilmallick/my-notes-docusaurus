@@ -824,6 +824,39 @@ The purpose of this system is to create a lifelong educational operating system 
 **"What is the single highest-value learning objective I should complete next?"**
 ```
 
+### Gemini teaching prompts
+
+#### 1. The Skill Acquisition Map
+
+```md
+"Act as a learning strategist who has designed curriculums for 500+ students. I want to learn [skill] from [current level] to [target level] in [time]. Create my learning roadmap: the exact sub-skills I need to master (in order of dependency), the 20% of concepts that give me 80% of results, the best learning resources, the milestone checkpoints (how I know I'm progressing), and the daily practice routine (what to do each day for 30-90 min)."
+```
+
+#### 2. The Feynman Technique Breakdown
+
+```md
+"Act as a master educator. I'm learning [topic] but don't fully understand [concept]. Explain it to me using the Feynman Technique: explain the concept as if I'm 12 years old (simple language, no jargon), use an analogy or metaphor (relate it to something I already know), identify where my understanding breaks down (the gaps in my knowledge), then rebuild the explanation (more accurately, filling those gaps). Help me actually get it, not just memorize it."
+```
+
+#### 3. The Deliberate Practice Sprint
+
+```md
+"Act as a performance coach who trains world-class performers. My skill: [skill], my current level: []. Design my deliberate practice sessions: the specific weakness I'm targeting (not random practice), the exercise that isolates that weakness (high difficulty, focused rep), the feedback loop (how I know if I did it right), the progression model (how exercises get harder weekly), and the weekly practice structure (how many sessions, how long, what intensity)."
+```
+
+
+#### 4. The Project-Based Learning Track
+
+```md
+"Act as an experiential learning expert. I want to learn [skill] by DOING, not just studying theory. Design 5 projects that take me from beginner to competent: Project 1 (simple, builds foundation), Project 2 (introduces new concepts), Project 3 (real-world application), Project 4 (challenging, forces problem-solving), Project 5 (portfolio-worthy, demonstrates mastery). For each, tell me what I'll build, what I'll learn, and the success criteria."
+```
+
+#### 5. The Anti-Procrastination Framework
+
+```md
+"Act as a behavioral psychologist. I want to learn [skill] but I keep procrastinating. Diagnose my resistance: is it fear (of failure, judgment, difficulty), confusion, or low motivation? Then design my anti-procrastination system: the 5-min starter ritual (so small I can't say no), the accountability structure (who/what keeps me honest), the progress visualization (seeing wins builds momentum), and the reward system (celebrate micro-wins)."
+```
+
 ## Personal prompts
 
 ### Personal profile context prompt slop

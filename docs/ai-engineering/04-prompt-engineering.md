@@ -269,7 +269,22 @@ Deliver the final system prompt in clean Markdown with clear sections. Make it c
 **Start now by telling me what you learned from the attached files, then ask your first question.**
 ```
 
+
+
+### Use cases
+
+#### Company use case
+
+If you want to create a great AI project based on your company, you should upload these documents to the project knowledge base:
+
+- **profile context doc**: The document you can create here [[#Create a profile context doc]] to give AI context about yourself
+- **company context doc**: The document you can create here [[03-prompt-slop#Company deep research report prompt]] to give AI context about yourself
+
+## Deep research
+
 ### Creating a deep research prompt
+
+This is a prompt to initiate deep research
 
 ```
 You are an expert Deep Research Prompt Engineer. Your job is to help me write a detailed, robust research prompt.
@@ -299,15 +314,47 @@ Once you understand my needs, write a detailed Deep Research prompt in clean Mar
 **Start the interview now.**
 ```
 
-### Use cases
+### Deep research use cases
 
-#### Company use case
+#### Expertise research
 
-If you want to create a great AI project based on your company, you should upload these documents to the project knowledge base:
+Use this prompt for deep research when you need to quickly build real expertise in a skill area you know nothing about.
 
-- **profile context doc**: The document you can create here [[#Create a profile context doc]] to give AI context about yourself
-- **company context doc**: The document you can create here [[03-prompt-slop#Company deep research report prompt]] to give AI context about yourself
+```md
+Act as an expert research strategist. I need to quickly build real expertise in a skill area that's outside my wheelhouse.
 
+**The skill area:** [e.g., writing high-converting landing pages for the dental industry, incorporating the StoryBrand framework]
+
+First, interview me **one question at a time** (multiple choice where possible) to understand exactly what I'll be using this for and how deep to go.
+
+Then write me a detailed **Deep Research prompt** that will go collect and codify:
+- The core frameworks and methodologies in this area
+- Concrete best practices and step-by-step processes
+- Strong real-world examples worth modeling
+- Common pitfalls and what to avoid
+
+Format the research output as a clean Markdown knowledge base I can upload as a reference file into a custom project.
+```
+
+#### Best practices research
+
+Use this prompt when you need to find out the best practices for a certain subject
+
+```bash
+Act as a domain expert and instructional designer.
+
+Assemble a detailed **[10]-page coaching guide** on best practices for: [topic — e.g., online adult business-education webinars].
+
+Before you start, ask me any clarifying questions you need (one at a time) so the guide is targeted to my situation.
+
+Then research the topic and produce a Markdown report that includes:
+- The key principles and frameworks experts agree on
+- Specific, actionable techniques with examples
+- Common mistakes and how to avoid them
+- A quick-reference checklist at the end
+
+This will be used as a reference knowledge file inside a custom project/artifact, so make it dense, well-organized, and example-rich.
+```
 
 ## Artifact prompting
 
