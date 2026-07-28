@@ -8,6 +8,160 @@ Here is the Big O complexity:
 - **inserting: $O(n)$** linear time for insertion
 - **deletion: $O(n)$** linear time for deletion
 
+## HashSets and HashMaps
+
+### Hash Table basics
+
+A **hash table** is an unordered list of key-value pairs, where by using a **hash function**, we map keys to unique array indices called **buckets**, and in the buckets we store the values.
+
+> [!NOTE]
+> The reason Hash Tables are sometimes preferred instead of arrays or linked lists is because searching for, adding, and deleting data can be done really quickly, even for large amounts of data, where all CRUD operations on a hash table are $\Omega(1)$ on average.
+
+Here's some important terminology to understand:
+
+- **Hash code:** A number generated from an element's unique value (key), to determine what bucket that Hash Set element belongs to.
+- **Bucket:** A Hash Set consists of many such buckets, or containers, to store elements. If two elements have the same hash code, they belong to the same bucket. The buckets are therefore often implemented as arrays or linked lists, because a bucket needs to be able to hold more than one element.
+- **Bucket space / hash table size**: the underlying size of the data structure for the hash table, which is often an array.
+- **Hash table capacity**: the number of buckets currently filled in the hash table. Knowing what capacity the hash table has allows it to have smart, efficient resizing on the fly to enlarge its bucket space.
+
+Hash tables can be implemented either as hash tables or hash sets.
+
+- **hash sets**: used for quick adding and checking if an element is in the set. Impossible to accurately retrieve data, so it's not used for data access.
+	- **insertion and deletion**: $O(1)$ average case, but faster than hash maps.
+	- **checking if an element is in the set**: $O(1)$ average case, faster than hash maps.
+	- **uniqueness and storage**: every element in the set is a unique key, and the value is the same as the key.
+- **hash maps**: designed for efficient adding and reading, although a bit slower than hash sets for both adding and reading. You can access data and retrieve it through hash maps.
+	- **insertion and deletion**: $O(1)$ average case
+	- **checking if an element is in the set**: $O(1)$ average case
+	- **uniqueness and storage**: made of key-value pairs and uses collision-chaining
+
+The main difference arises in how both deal with hash collisions, which is when a hash function assigns a key to an index that is already used .
+
+- **hash sets:** Hash collisions are solved through **chaining,** which is when you have each bucket as an array that stores values whose keys hash to the same bucket.
+- **hash maps:** Hash collisions are solved through **open addressing,** where if we want to store an element but there is already an element in that bucket, the element is stored in the next available bucket.
+
+#### Hash functions
+
+A hash table has some underlying data structure like a set or array, where hash functions take in a key (string, number, etc.) and map it to a unique array index for that key.
+
+Here are the rules for what a good hash function must be:
+
+1. **fast, runs in constant time**: A hash function must in constant time and not have increased runtime complexity depending on the size of the hash table. 
+	- A good enough hash function has runtime independent of the hash table size and capacity, and a great hash function has the same constant time complexity regardless of key length.
+2. **distributes uniformly**: A good hash function distributes keys uniformly across the **bucket space**, which is just the size of the underlying storage data structure of a hash table. 
+	- Hash tables are useless if all keys are clustered together into a single bucket, so this property is very important.
+3. **deterministic**: the only way a hash table works is if the hash function is deterministic, meaning the same key hashes to the same bucket every time.
+
+The third rule leads to a key finding:
+
+> [!NOTE]
+> **keys must be immutable:** hash functions depend on the values of keys and are deterministic, so the keys must be immutable data types, like tuples rather than arrays, otherwise the hash changes and is no longer deterministic for the same reference object.
+
+
+**a simple hash function**
+
+We can create a useful, quick hash function by using the ASCII character code for each char a string key, like so:
+
+1. Get the alphabetic number of a char by subtracting 96 from the ASCII range (normalizes the ASCII range of 1-128 to the alphabetic range of 1-26)
+`
+```js
+"a".charCodeAt(0) - 96 // outputs 1
+"d".charCodeAt(0) - 96 // outputs 4
+"z".charCodeAt(0) - 96 // outputs 26
+```
+
+2. Add all the char codes together, so the hash function runtime is dependent on the key length, not on the hash table size.
+3. Ensure that the summed up char codes can point to a valid index in the hash table data structure, which we can do via modular arithmetic and modding by the hash table size:
+
+```ts
+function hash(key: string, bucketSpaceSize: number) {
+	// add up all char codex
+	const total = key.reduce((char, total) => {
+		const alphabetIndex = char.codeAt(0) - 96
+		return total + alphabetIndex
+	}, 0)
+	
+	// mod by bucket space size to return valid bucket index
+	return total % bucketSpaceSize
+}
+```
+
+Above is an example of a simple hash function that gets the job done, but has two main flaws:
+
+1. **not constant**: time complexity increases with key size, so it's not exactly constant, but it's at least independent of hash table size, which is the key requirement.
+2. **bad distribution**: a lot of the keys get clustered at bucket index 0, so we have to fix that.
+
+**a better hash function**
+
+A better hash function implementation uses primes and only loops over a subset of the key string to calculate a hash for the key:
+
+```ts
+function* firstHundredChars(key: string) {
+	const MAX_LENGTH = Math.min(key.length, 100)
+	for (const char of key.slice(0, MAX_LENGTH)) {
+		yield char
+	}
+}
+
+function hash(key: string, bucketSpaceSize: number) {
+	const WEIRD_PRIME = 37
+	
+	// add up all char codes
+	const total = [...firstHundredChars(key)].reduce((accumulator, char) => {
+		const alphabetIndex = char.charCodeAt(0) - 96
+		return (accumulator * WEIRD_PRIME + alphabetIndex) % bucketSpaceSize
+	}, 0)
+	
+	return total
+}
+
+console.log(hash("purple", 10)) // 0
+console.log(hash("orange", 10)) // 6
+```
+
+> [!NOTE]
+> Good hash functions leverage prime numbers to minimize clustering and evenly distribute values across the bucket space.
+
+#### Hash collisions
+
+A **hash collision** arises when a hash function assigns a key to an index that is already used up, so it must find a way to efficiently reassign the key to another unused index.
+
+There are two techniques for dealing with hash collisions:
+
+- **separate chaining**: making a bucket that has a collision into an array and storing the values or key value pairs that hash to that bucket within the bucket array.
+- **linear probing**: Upon a collision we search the bucket space for any empty buckets and put the key value pair in there and when bucket capacity gets filled up we resize the hash table to increase the bucket space size.
+
+**separate chaining**
+
+Upon a hash collision, we just set the bucket as an array and then append collision values to the array. hash sets and hash tables vary in what they store in the buckets upon a collision:
+
+- **hash set:** No need for retrieval, so a hash set simply appends values to the bucket array, omitting the key
+- **hash table:** Needs the key for retrieval of the specific value, so a hash table appends tuples of (key, value) pairs to the bucket array so when retrieving a value, the hash table directly identifies the corresponding key-value pair.
+
+**linear probing**
+
+Upon a collision, we search the array for any empty indices and just put the (key, value) pair there.
+
+When too many spots get filled, we resize the hash table.
+
+
+### HashSet implementation
+
+
+### HashMap implementation
+
+**hashtable set**
+
+1. Accept `key` and `value` pair
+2. Hash the key and map it to a bucket index
+3. Via separate chaining, append (key, value) tuple to the bucket array
+
+**hashtable get**
+
+1. Accept `key`
+2. Hash the key and map it to a bucket index
+3. Search the bucket array at the bucket index for the stored (key, value) and return the one whose key matches `key`
+
 ## Dynamic programming
 
 dynamic programming is a technique to solve complex problems by breaking it down into smaller sub problems and solving those just once, and then storing the result of those small sub problems.
@@ -27,6 +181,7 @@ There are 2 main approaches to solving dynamic programming:
 1. Memoization: Memoization plus recursion is a way of memorizing past recursive computations so you avoid redoing the unnecessary work of that branch.
 
 2. Tabulation: This is a bottom-up approach where you focus on solving an individual subproblem and build up from that to the bigger ones. 
+
 
 ### Memoization
 
@@ -370,4 +525,108 @@ function grid(m: number, n: number) {
 
 ### Two pointer (strings, arrays)
 
+Two pointer techniques consist you maintaining two references to indices in an array, where you can move the pointer and read the underlying value the pointer points to at will. 
+
+This technique has three main benefits:
+
+1. **Reduce the number of iterations you need**: Many $O(n^2)$ problems where you perform a nested loop over an array to check all two-pair combinations can be reduced to an $O(n)$ runtime complexity with the two pointers pattern.
+2. **track a relationship between two places**: knowing what indices the fast and slow pointers point to at all times helps you detect cycles and the middle of a data structure.
+3. **avoid extra space**: pointers are primitive index values, so they have very low overhead.
+
+
+
 ### Prefix sum (arrays)
+
+### Frequency Counter (hashmaps)
+
+When dealing with comparing elements from two iterables, we can avoid the O(n^2) runtime that naive solutions offer and instead use frequency counters to get a O(n) runtime on these types of problems.
+
+```python
+def createFrequencyMap(items):
+	frequency_map = {}
+	for item in items:
+		if item not in frequency_map:
+			frequency_map[item] = 1
+		else:
+			frequency_map[item] += 1
+```
+
+#### Example (Anagrams)
+
+```ts
+function createFrequencyMap<T>(iterable: T[]) {
+    const map = new Map<T, number>
+    iterable.forEach(value => {
+        const frequency = map.get(value)
+        map.set(value, frequency ? frequency + 1 : 1)
+    })
+    return map
+}
+
+function validAnagram(str1: string, str2: string): boolean {
+    const frequencyMap1 = createFrequencyMap([...str1])
+    const frequencyMap2 = createFrequencyMap([...str2])
+    for (let key of frequencyMap1.keys()) {
+        if (frequencyMap1.get(key) !== frequencyMap2.get(key)) {
+            return false
+        }
+    }
+    return true
+}
+```
+
+#### Example (Two Sum)
+
+Given an array of integers `nums` and an integer `target`, return _indices of the two numbers such that they add up to `target`_.
+
+You may assume that each input would have **_exactly_ one solution**, and you may not use the _same_ element twice.
+
+You can return the answer in any order.
+
+**Example 1:**
+
+```
+**Input:** nums = [2,7,11,15], target = 9
+**Output:** [0,1]
+**Explanation:** Because nums[0] + nums[1] == 9, we return [0, 1].
+```
+
+
+**Example 2:**
+
+```
+**Input:** nums = [3,2,4], target = 6
+**Output:** [1,2]
+```
+
+**Example 3:**
+
+```
+**Input:** nums = [3,3], target = 6
+**Output:** [0,1]
+```
+
+```python
+class Solution:
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
+        """
+        Let's say (target - nums[0]) is in the array nums, at nums[i].
+        That means nums[i] + nums[0] = target. We will use this trick
+        and a hashmap to achieve remembering complement values and finding
+        if the complement is in the hashmap. 
+        """
+
+        # maps (target - nums[i]) : i
+        num_to_index_map = {}
+
+        for index, number in enumerate(nums):
+            complement = target - number
+            print(complement)
+
+            # found a matching complement for a previous value in array
+            if f"{complement}" in num_to_index_map:
+                return [index, num_to_index_map[f"{complement}"]]
+            
+            num_to_index_map[f"{number}"] = index
+        return []
+```
