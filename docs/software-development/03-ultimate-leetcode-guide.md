@@ -523,7 +523,7 @@ function grid(m: number, n: number) {
 
 ## Patterns
 
-### Two pointer (strings, arrays)
+### Two pointer (arrays)
 
 Two pointer techniques consist you maintaining two references to indices in an array, where you can move the pointer and read the underlying value the pointer points to at will. 
 
@@ -533,9 +533,354 @@ This technique has three main benefits:
 2. **track a relationship between two places**: knowing what indices the fast and slow pointers point to at all times helps you detect cycles and the middle of a data structure.
 3. **avoid extra space**: pointers are primitive index values, so they have very low overhead.
 
+> [!NOTE]
+> When to use two pointers? Whenever you think you have to brute force an array iteration in $O(n^2)$ time, think to yourself, "can I solve this problem by walking the array once from both sides?" If so, then you should use two pointers. Here are the main use cases that fit this pattern:
+> 
+> - **comparing pair combinations across an array**
+> - **detecting symmetry of elements within array halves**
 
+Here are the three different types of pointer problems, differentiated based on the direction we move the pointers in:
+
+1. **same direction:** problems that have pointers move in the same direction are related to solving problems in a single pass.
+2. **fast, slow pointers**: this is where one pointer moves faster than the other so you are at two different points in the array.
+3. **opposite directions:** problems that have pointers move in the opposite direction are related to finding symmetry or pairs in an array.
+    - **two sum** is an example of a two pointers problem that can be solved with moving the pointers starting from opposite ends of the list.
+
+
+#### **opposite directions, same speed (method 1)**
+
+Start the pointers at the edges of the input. Move them towards each other until they meet.
+
+1. Start one pointer at the first index `0` and the other pointer at the last index `input.length - 1`.
+2. Use a while loop until the pointers are equal to each other.
+3. At each iteration of the loop, move the pointers towards each other. This means either increment the pointer that started at the first index, decrement the pointer that started at the last index, or both. Deciding which pointers to move will depend on the problem we are trying to solve.
+
+```
+function fn(arr):
+    left = 0
+    right = arr.length - 1
+
+    while left < right:
+        Do some logic here depending on the problem
+        Do some more logic here to decide on one of the following:
+            1. left++
+            2. right--
+            3. Both left++ and right--
+```
+
+Two pointers in opposite directions for problems like reversing a string or finding if a string is a palindrome gives the best possible runtime at $O(N)$.
+
+##### **isPalindrome - opposite directions, same speed**
+
+- **pointers:** two pointers, `left = 0` and `right = length - 1`
+- **pointer speed and direction:** We move in opposite directions at same speed, so we iterate via `left -= 1` and `right -= 1` in each iteration of the loop.
+- **pointer iteration condition:** pointers move at same speed, so they have same iteration condition, and that is the left pointer not meeting the right pointer.
+
+
+Here it is all together
+
+```python
+def check_if_palindrome(s):
+		# create two same speed, opposite direction pointers
+    left = 0
+    right = len(s) - 1
+
+		# loop condition: left and right don't cross
+    while left < right:
+        if s[left] != s[right]:
+            return False
+        
+        # iteration condition: while both chars on opposite side are equal
+        left += 1
+        right -= 1
+    
+    return True
+```
+
+##### **reversing a string**
+
+```python
+class Solution:
+    def reverseString(self, s: List[str]) -> None:
+        """
+        Do not return anything, modify s in-place instead.
+        
+        Problem type: two pointers, opposite direction, same speed
+        """
+        left = 0
+        right = len(s) - 1
+        
+        # general iteration condition: pointers don't meet or cross
+        while left < right:
+            s[left], s[right] = s[right], s[left]
+            left += 1
+            right = right - 1
+```
+
+##### **sorted twoSum - opposite directions, different speeds**
+
+- **pointers:** two pointers, `left = 0` and `right = length - 1`
+- **pointer iteration patterns**
+    - `left`: increment left when the two sum is less than target
+    - `right`: decrement right when the two sum is greater than target
+- **pointer iteration condition:** In sorted twoSum, we have a $O(n)$ runtime, so the iteration condition is `left < right` for both pointers.
+
+```python
+def sorted_two_sum(nums: list[int], target):
+		# 1. initialize pointers
+    left = 0
+    right = len(nums) - 1
+
+		# 2. pointer iteration condition
+    while left < right:
+        
+        twosum = nums[left] + nums[right]
+        if curr == target:
+            return True
+            
+        # right pointer iteration
+        if curr > target:
+            right -= 1
+            
+        # left pointer iteration
+        else:
+            left += 1
+    
+    return False
+```
+
+#### **two pointers, two iterables (method 2)**
+
+Another way to use two pointers is on two iterables, one for each iterable.
+
+1. Create two pointers, one for each iterable. Each pointer should start at the first index.
+2. Use a while loop until one of the pointers reaches the end of its iterable.
+3. At each iteration of the loop, move the pointers forward. This means incrementing either one of the pointers or both of the pointers. Deciding which pointers to move will depend on the problem we are trying to solve.
+4. Because our while loop will stop when one of the pointers reaches the end, the other pointer will not be at the end of its respective iterable when the loop finishes. Sometimes, we need to iterate through all elements - if this is the case, you will need to write extra code here to make sure both iterables are exhausted.
+
+```
+function fn(arr1, arr2):
+    i = j = 0
+    while i < arr1.length AND j < arr2.length:
+        Do some logic here depending on the problem
+        Do some more logic here to decide on one of the following:
+            1. i++
+            2. j++
+            3. Both i++ and j++
+
+    // Step 4: make sure both iterables are exhausted
+    // Note that only one of these loops would run
+    while i < arr1.length:
+        Do some logic here depending on the problem
+        i++
+
+    while j < arr2.length:
+        Do some logic here depending on the problem
+        j++
+```
+
+Time complexity of this general algorithm is $O(n + m)$
+
+##### **merge sort subarray combination**
+
+Given two sorted subarrays like `[1, 4, 7, 20]` and `[3, 5, 6]`, we can combine them together into a sorted array in $O(n)$ time via two pointers.
+
+The trivial solution is to combine the arrays and then sort them with quick sort or merge sort to get $O(n \log n)$ time, but using two pointers, we can sort it in $O(n)$ time, which is exacrtly what merge sort does.
+
+We use two pointers for the two subarrays, giving one pointer to each subarray.
+
+- At each step, we add the smaller element pointed by the two current pointers, and then increment the pointer whose element was smaller.
+- Once we exhaust one iterable’s pointer, we simply append the rest of the other subarray starting from its pointer’s current position.
+
+We implement it like so:
+
+```python
+def combine(arr1, arr2):
+    # ans is the answer
+    ans = []
+    i = j = 0
+    
+    # iteration condition for both pointers: no iterable exhausted
+    while i < len(arr1) and j < len(arr2):
+		    
+		    # iterable 1 iteration condition
+        if arr1[i] < arr2[j]:
+            ans.append(arr1[i])
+            i += 1
+        
+        # iterable 2 iteration condition
+        else:
+            ans.append(arr2[j])
+            j += 1
+    
+    # exhaustion condition for 1st pointer if not exhausted
+    while i < len(arr1):
+        ans.append(arr1[i])
+        i += 1
+    
+    # exhaustion condition for 2nd pointer if not exhausted
+    while j < len(arr2):
+        ans.append(arr2[j])
+        j += 1
+    
+    return ans
+```
+
+### Sliding Window (arrays)
+
+Sliding window is simply two pointers deciding the subarray size, start, and end within an array. 
+
+> [!NOTE]
+> When to use? If a problem asks you to find a contiguous slice of an array or string that satisfies some criteria, then that is when you should use sliding window technique.
+
+There are two types of sliding window problems:
+
+- **fixed window**: the window size is fixed
+- **dynamic window**: the window size expands or contracts to satisfy criteria
+
+
+
+The idea behind a sliding window is to maintain two variables, `left` and `right`. At any given time, `left` represents the left bound of our window, and `right` represents the right bound of our window.
+
+Here is the basic formula:
+
+1. Loop from `window_size` → `length`, with the right side of window being the iteration variable, so that gives us the `right` pointer.
+    
+2. In the loop, calculate `left` of the window as so:
+    
+```python
+left = right - window_size
+```
+    
+3. Reevaulate the calculation based on the window, decide whether it is optimal, valid, or invalid, and update the optimal solution as a result.
+
+#### Fixed window problems
+
+In a fixed window problem, you maintain the same size of the window and move the left and right bounds by the same amount each time. That way, the window always stays the same size. 
+
+Here is the template for a fixed window problem:
+
+```python
+def sliding_window_fixed(arr, window_size):
+	# 0. initialize initial bounds of first window
+	left = 0
+	right = window_size
+	# 1. initialize answer
+	answer = arr[0: window_size]
+	# 2, initialize running window
+	running_window = arr[0: window_size]
+	
+	# 3. iterate as long as right bound of window is within array
+	for right in range(window_size, len(arr)):
+		# 4. recalculate window bounds
+		left = right - window_size
+		running_window = arr[left:right]
+		
+		# 5. calculate running window and compare to optimal answer,
+		# override previous optimal answer if this new one is most optimal
+		answer = optimal(answer, calculation(running_window))
+		
+	return answer
+```
+
+#### Dynamic window problems
+
+There are two techniques related to dynamic sliding windows that will help you solve problems:
+
+- **expand window:** Fix one pointer to the same index while incrementing or decrementing the other pointer to expand the window.
+- **contract window:** Fix one pointer to the same index while incrementing or decrementing the other pointer to contract the window.
+
+The dynamic sliding window concept basically is changing the size of the window to try and always maintain a valid window or reevaulate a larger window.
+
+But what if after adding a new element, the subarray becomes invalid?
+
+1. For example, let's say adding a new element on the right makes the sum of the subarray too large. 
+2. We need to "remove" some elements from our window until it becomes valid again. To "remove" elements, we can continuously increment `left`, which shrinks our window, until it becomes valid again.
+
+As we add and remove elements, we are "sliding" our window along the input.
+
+- The window's size is constantly changing - it grows as large as it can until it's invalid, and then it shrinks until it's valid once more.
+- However, it always slides along to the right until it reaches the end of the input. Therefore, we always shrink using `left`, and not `right` unless we’re traversing backwards through the array.
+- Conceptualize slowly inching forward like a caterpillar: sometimes we arch our back and contract by incrementing `left`, and then we expand by incrementing `right`
+
+So here is the formula for dynamic sliding window:
+
+1. Determine initial window size, Initialize `left` and `right` to be the left bound and right bound of the window respectively.
+    
+    ```python
+    window_size = right - left + 1
+    ```
+    
+2. Initialize window calculation variable `curr` that acts as some sort of running total, initialized by the initial `left` and `right` window, but recalculated during every loop iteration.
+    
+3. Enter a while loop with pointer iteration condition set to `right < length`
+    
+    1. Recalculate `curr` based on current window
+    2. If window is invalid, shrink it by incrementing `left`
+    3. Once window is valid again, increment `right`
+
+Here is a general pseudocode template:
+
+```python
+function fn(arr):
+    left = 0
+    for (int right = 0; right < arr.length; right++):
+        Do some logic to "add" element at arr[right] to window
+
+        while WINDOW_IS_INVALID:
+            Do some logic to "remove" element at arr[left] from window
+            left++
+
+        Do some logic to update the answer
+```
 
 ### Prefix sum (arrays)
+
+Prefix sum is a technique that can be used on arrays (of numbers, usually). T
+
+The idea is to create an array `prefix` where `prefix[i]` is the sum of all elements up to the index `i` (inclusive).
+
+For example, given `nums = [5, 2, 1, 6, 3, 8]`, we would have `prefix = [5, 7, 8, 14, 17, 25]` and have these prefix sums:
+
+```
+nums = [5, 2, 1, 6, 3, 8]
+
+prefix_sum
+```
+
+> [!NOTE]
+> Prefix sums allow us to find the sum of any subarray in $O(1)$ time by just building them up front.
+
+If we want the sum of the subarray from `i` to `j` (inclusive), then the formula is:
+
+```python
+ prefix[j] - prefix[i - 1]
+```
+
+- `prefix[i - 1]`: represents the sum of all elements before index `i`, so basically the sum of the first `i` elements in the array.
+
+**building a prefix sum**
+
+Here is the pseudocode to build a prefix sum:
+
+```
+Given an array nums,
+
+prefix = [nums[0]]
+for (int i = 1; i < nums.length; i++)
+    prefix.append(nums[i] + prefix[prefix.length - 1])
+```
+
+Here it is in python:
+
+```python
+def build_prefix_sum(nums: List[int]):
+	prefix = [nums[0]]
+	for i in range(1, len(nums)):
+	    prefix.append(nums[i] + prefix[-1])
+	return prefix
+
+```
 
 ### Frequency Counter (hashmaps)
 
