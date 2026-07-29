@@ -291,8 +291,13 @@ Good startup ideas arise from doing good work with good people
 > [!NOTE]
 > **key takeaways**
 > ***
-> A good startup idea always arises from solving a problem you have, because it ensures that other people might have the same problem. So you’re finding solutions to existing problems, not starting with a solution and looking for a problem, which is exactly what bad startup ideas are. 
+> A good startup idea always arises from solving a problem you have, because it ensures that other people might have the same problem. So you’re finding solutions to existing problems, not starting with a solution and looking for a problem, which is exactly what bad startup ideas are. So here's how to find good ideas besides that: 
+> 
+> 1. **Competition validates you**: If you have competition, it validates your idea, and if you have just one thing that differentiates you from competitors, you're in a good position to succeed.
+> 2. **There is no such thing as an easy idea**: Every single idea you pursue will always come with its unfavorable and boring parts, so don't have any illusions that a startup is easy and will immediately make you millions. There is always a hard part, so you might as well not shy away from hard ideas because those have a higher barrier of entry and less competition lies there.
 
+
+>  "Live in the future and build what seems interesting. Strange as it sounds, that's the real recipe." - Paul Graham
 #### Start with the problem, find the solution
 
 You should always work on startup ideas that are problems you personally experience in life, and then try to find solutions for them. This is because a problem must actually exist for a solution to be viable. 
@@ -317,7 +322,60 @@ Here is how to notice good ideas: keep building stuff that personally interests 
 
 >A good way to trick yourself into noticing ideas is to work on projects that seem like they'd be cool. If you do that, you'll naturally tend to build things that are missing. It wouldn't seem as interesting to build something that already existed.
 
+#### Don't worry about competitors
 
+Yes. You may have a lot of competition, but the reality is that if you worry that you're too late or a space is too saturated, it's just a signal that your idea has already been validated and that you can become successful in the space.
+
+In fact, a little-known secret is that competitors rarely kill off startups because there's so much possible innovation. 
+
+>Because a good idea should seem obvious, when you have one you'll tend to feel that you're late. Don't let that deter you. Worrying that you're late is one of the signs of a good idea. Ten minutes of searching the web will usually settle the question. Even if you find someone else working on the same thing, you're probably not too late. It's exceptionally rare for startups to be killed by competitors — so rare that you can almost discount the possibility. So unless you discover a competitor with the sort of lock-in that would prevent users from choosing you, don't discard the idea.
+>
+>If you're uncertain, ask users. The question of whether you're too late is subsumed by the question of whether anyone urgently needs what you plan to make. If you have something that no competitor does and that some subset of users urgently need, you have a beachhead.
+
+To have a good idea in a crowded space, you need to find one thing that differentiates you that your competitors are not doing, even if you mainly have the same idea. For me, it's having KeyStash be local and have a good user experience, so that it acts primarily as a management dashboard for keys and not just secure sharing. 
+
+>You don't need to worry about entering a "crowded market" so long as you have a thesis about what everyone else in it is overlooking. In fact that's a very promising starting point. Google was that type of idea. Your thesis has to be more precise than "we're going to make an x that doesn't suck" though. You have to be able to phrase it in terms of something the incumbents are overlooking. Best of all is when you can say that they didn't have the courage of their convictions, and that your plan is what they'd have done if they'd followed through on their own insights. Google was that type of idea too. The search engines that preceded them shied away from the most radical implications of what they were doing — particularly that the better a job they did, the faster users would leave.
+
+>A crowded market is actually a good sign, because it means both that there's demand and that none of the existing solutions are good enough. A startup can't hope to enter a market that's obviously big and yet in which they have no competitors. So any startup that succeeds is either going to be entering a market with existing competitors, but armed with some secret weapon that will get them all the users (like Google), or entering a market that looks small but which will turn out to be big (like Microsoft).
+
+#### The greatest ideas lie in the ones other people are not willing to pursue
+
+The best ideas often lie in the ones that people are not willing to pursue. For example, Stripe dealt with payments because nobody else was doing payments before them, because working with payments was way too painful. But Stripe was up to the challenge. So they did the thing no one else was willing to do, and from that, they became billionaires. 
+
+>There are two more filters you'll need to turn off if you want to notice startup ideas: the unsexy filter and the schlep filter.
+>
+>Most programmers wish they could start a startup by just writing some brilliant code, pushing it to a server, and having users pay them lots of money. They'd prefer not to deal with tedious problems or get involved in messy ways with the real world. Which is a reasonable preference, because such things slow you down. But this preference is so widespread that the space of convenient startup ideas has been stripped pretty clean. If you let your mind wander a few blocks down the street to the messy, tedious ideas, you'll find valuable ones just sitting there waiting to be implemented.
+>
+>The schlep filter is so dangerous that I wrote a separate essay about the condition it induces, which I called schlep blindness. I gave Stripe as an example of a startup that benefited from turning off this filter, and a pretty striking example it is. Thousands of programmers were in a position to see this idea; thousands of programmers knew how painful it was to process payments before Stripe. But when they looked for startup ideas they didn't see this one, because unconsciously they shrank from having to deal with payments. And dealing with payments is a schlep for Stripe, but not an intolerable one. In fact they might have had net less pain; because the fear of dealing with payments kept most people away from this idea, Stripe has had comparatively smooth sailing in other areas that are sometimes painful, like user acquisition. They didn't have to try very hard to make themselves heard by users, because users were desperately waiting for what they were building.
+
+Don't think of a startup as avoiding hard problems or the parts of a company you don't want to deal with. In a startup, you'll have to deal with some amount of bureaucracy. Just deal with it because that's a part of life. 
+
+Also, there's no such thing as an easy idea. Every single idea will have its own blocks, and that's just something you have to deal with and not have illusions about. 
+
+>Even if the product doesn't entail a lot of schleps, you'll still have plenty dealing with investors, hiring and firing people, and so on. So if there's some idea you think would be cool but you're kept away from by fear of the schleps involved, don't worry: any sufficiently good idea will have as many.
+
+#### The dangers of coming up with startup ideas on purpose
+
+The best startup ideas are not ones you could immediately consider. Rather, they are just problems you encountered and found solutions for. 
+
+>One of the biggest dangers of not using the organic method is the example of the organic method. Organic ideas feel like inspirations. There are a lot of stories about successful startups that began when the founders had what seemed a crazy idea but "just knew" it was promising. When you feel that about an idea you've had while trying to come up with startup ideas, you're probably mistaken.
+
+But here are three ways to search for ideas:
+
+1. Look for problems in areas for which you have expertise and domain knowledge
+2. Ask other people what problems they have and then live like them or try to understand them and their job better to create a solution for it.
+
+**method 1 - expertise method**
+
+>When searching for ideas, look in areas where you have some expertise. If you're a database expert, don't build a chat app for teenagers (unless you're also a teenager). Maybe it's a good idea, but you can't trust your judgment about that, so ignore it. There have to be other ideas that involve databases, and whose quality you can judge. Do you find it hard to come up with good ideas involving databases? That's because your expertise raises your standards. Your ideas about chat apps are just as bad, but you're giving yourself a Dunning-Kruger pass in that domain.
+
+**method 2 - solving other people's problems**
+
+>The next best thing to an unmet need of your own is an unmet need of someone else. Try talking to everyone you can about the gaps they find in the world. What's missing? What would they like to do that they can't? What's tedious or annoying, particularly in their work? Let the conversation get general; don't be trying too hard to find startup ideas. You're just looking for something to spark a thought. Maybe you'll notice a problem they didn't consciously realize they had, because you know how to solve it.  
+>
+>When you find an unmet need that isn't your own, it may be somewhat blurry at first. The person who needs something may not know exactly what they need. In that case I often recommend that founders act like consultants — that they do what they'd do if they'd been retained to solve the problems of this one user. People's problems are similar enough that nearly all the code you write this way will be reusable, and whatever isn't will be a small price to start out certain that you've reached the bottom of the well. 
+>
+>One way to ensure you do a good job solving other people's problems is to make them your own. When Rajat Suri of E la Carte decided to write software for restaurants, he got a job as a waiter to learn how restaurants worked. That may seem like taking things to extremes, but startups are extreme. We love it when founders do such things.
 
 ### Maker vs Manager schedule
 
