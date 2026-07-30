@@ -764,10 +764,12 @@ To add custom skills to claude code, they should be `SKILL.md` files within the 
 
 ![](https://i.imgur.com/tEYm0Ux.png)
 
+### Tools
 
+`Read`, `Write`, `Edit`, `Glob`, `Grep`, `Bash`, and `Agent` are the seven core tools. Each gives Claude a specific capability. Knowing which tool it will reach for helps you write better prompts.
 ### Permissions
 
-You can manage permissions using the `/permissions` slash command and then choose from three different levels of permissions to set for claude code
+You can manage permissions for claude using different tools using the `/permissions` slash command and then choose from three different levels of permissions to set for claude code
 
 1. **allow**: Globs of permissions to always allow. 
 2. **ask**: Globs of permissions to always ask permission for
@@ -779,6 +781,7 @@ For example, a good use case is to always have claude ask before doing a destruc
 Bash(git push *)
 Bash(rm *)
 ```
+
 
 ### Hooks
 
