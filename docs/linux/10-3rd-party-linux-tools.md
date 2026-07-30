@@ -40,13 +40,19 @@ To use `gog`, you first need OAuth permissions. Follow these steps:
      - Choose "Desktop App" or "Other" as the application type.
      - Download the client_secret.json file after it’s created.
 
-### CLI setup
+### Auth setup
 
 You can use `gog` to manage multiple google email workspaces at the same time. To do so, you must first login:
 
 ```bash
 gog login <email>
 ```
+
+You also have these tools to manage multiple auth accounts:
+
+- `gog auth add <email>`: adds the gmail account and authenticates with it
+- `gog auth remove <email>`: removes the gmail account from the authenticated accounts.
+- `gog auth list`: lists all the authenticated accounts with this CLI
 
 ## Obsidian CLI
 

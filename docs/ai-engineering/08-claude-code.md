@@ -4,73 +4,6 @@
 
 ## Claude code basics
 
-### CLAUDE.md
-
-The `CLAUDE.md` file is based on three facts about LLM agents:
-
-1. Coding agents know absolutely nothing about your codebase at the beginning of each session.
-2. The agent must be told anything that's important to know about your codebase each time you start a session.
-3. `CLAUDE.md` is the preferred way of doing this.
-
-This file should clarify three questions:
-
-- **WHAT**: tell Claude about the tech, your stack, the project structure. Give Claude a map of the codebase. This is especially important in monorepos! Tell Claude what the apps are, what the shared packages are, and what everything is for so that it knows where to look for things
-- **WHY**: tell Claude the _purpose_ of the project and what everything is doing in the repository. What are the purpose and function of the different parts of the project?
-- **HOW**: tell Claude how it should work on the project. For example, do you use `bun` instead of `node`? You want to include all the information it needs to actually do meaningful work on the project. How can Claude verify Claude's changes? How can it run tests, typechecks, and compilation steps?
-
-To write a good `CLAUDE.md` file, we should follow these core principles:
-
-1. `CLAUDE.md` is for onboarding Claude into your codebase. It should define your project's **WHY**, **WHAT**, and **HOW**.
-2. **Less (instructions) is more**. While you shouldn't omit necessary instructions, you should include as few instructions as reasonably possible in the file.
-3. Keep the contents of your `CLAUDE.md` **concise and universally applicable**.
-4. Use **Progressive Disclosure** - don't tell Claude all the information you could possibly want it to know. Rather, tell it _how to find_ important information so that it can find and use it, but only when it needs to to avoid bloating your context window or instruction count. Also, don't embed files directly with `@`, as that bloats the context. Just reference the file.
-5. Claude is not a linter. Use linters and code formatters, and use other features like [Hooks](https://code.claude.com/docs/en/hooks) and [Slash Commands](https://code.claude.com/docs/en/slash-commands) as necessary.
-6. **`CLAUDE.md` is the highest leverage point of the harness**, so avoid auto-generating it. You should carefully craft its contents for best results.
-
-ANother 4 principles:
-
-1. **Start with Guardrails, Not a Manual.** Your `CLAUDE.md` should start small, documenting based on what Claude is getting wrong.
-    
-2. **Don’t** `@`**-File Docs.** If you have extensive documentation elsewhere, it’s tempting to `@`-mention those files in your `CLAUDE.md`. This bloats the context window by embedding the entire file on every run. But if you just _mention_ the path, Claude will often ignore it. You have to _pitch_ the agent on _why_ and _when_ to read the file. “For complex … usage or if you encounter a `FooBarError`, see `path/to/docs.md` for advanced troubleshooting steps.”
-    
-3. **Don’t Just Say “Never.”** Avoid negative-only constraints like “Never use the `--foo-bar` flag.” The agent will get stuck when it thinks it _must_ use that flag. Always provide an alternative.
-    
-4. **Use** `CLAUDE.md` **as a Forcing Function.** If your CLI commands are complex and verbose, don’t write paragraphs of documentation to explain them. That’s patching a human problem. Instead, write a simple bash wrapper with a clear, intuitive API and document _that_. Keeping your `CLAUDE.md` as short as possible is a fantastic forcing function for simplifying your codebase and internal tooling.
-
-#### **principle 1 - Keep your claude md small**
-
-**As instruction count increases, instruction-following quality decreases uniformly**. This means that as you give the LLM more instructions, it doesn't simply ignore the newer ("further down in the file") instructions - it begins to **ignore all of them uniformly**
-
-This implies that your `CLAUDE.md` file should contain as few instructions as possible - ideally only ones which are universally applicable to your task.
-
-
-> [!TIP]
-> Aim for a `CLAUDE.md` less than 60 lines long
-
-
-#### **principle 2 - use progressive disclosure**
-
-The term Progressive disclosure is just a fancy way of saying to reference different markdown files inside your `CLAUDE.md` file and then give brief descriptions of those files so that Claude can decide whether or not to read those markdown files.
-
-However, referencing files directly with the `@` prefix is NOT progressive disclosure, as that just completely embeds the file content into the context. 
-
-Rather, in the `CLAUDE.md`, to implement progressive disclosure, just reference the filepath and describe what that file does, and claude will decide whether or not to look at that md file.
-
-#### Principle 3 - use `/init` as a starting point
-
-The `/init` slash command is used to make up a lot first, gain context of your codebase, and use that context to then craft an appropriate `CLAUDE.md`.
-
-This is a good starting point, but you eventually want to make it lean so that Claude isn't overloaded with context on each conversation turn. 
-
-#### Principle 4 - maintain living documents
-
-You should maintain these four documents as important context and constantly update them with the latest information from your code base. Claude will use this to gain the most context about the code base instead of reading every single. 
-
-- `context/project-overview.md`: An overview of the project and the architecture involved.
-- `context/coding-standards.md`: An overview of the desired coding style, what abstractions to use, and what libraries to use.
-- `context/project-overview.md`: An overview of the project and the architecture involved.
-- `context/project-overview.md`: An overview of the project and the architecture involved.
-
 ### CLI options
 
 - `claude -p <prompt>`: runs a one-off prompt
@@ -141,6 +74,305 @@ To interrupt claude's process at any time, press the `esc` key and then you can 
 
 To ask claude a quick side question it processes before continuing on its agent loop, use the `/btw` slash command.
 
+
+
+## Claude context management
+
+### CLAUDE.md
+
+The `CLAUDE.md` file is based on three facts about LLM agents:
+
+1. Coding agents know absolutely nothing about your codebase at the beginning of each session.
+2. The agent must be told anything that's important to know about your codebase each time you start a session.
+3. `CLAUDE.md` is the preferred way of doing this.
+
+This file should clarify three questions:
+
+- **WHAT**: tell Claude about the tech, your stack, the project structure. Give Claude a map of the codebase. This is especially important in monorepos! Tell Claude what the apps are, what the shared packages are, and what everything is for so that it knows where to look for things
+- **WHY**: tell Claude the _purpose_ of the project and what everything is doing in the repository. What are the purpose and function of the different parts of the project?
+- **HOW**: tell Claude how it should work on the project. For example, do you use `bun` instead of `node`? You want to include all the information it needs to actually do meaningful work on the project. How can Claude verify Claude's changes? How can it run tests, typechecks, and compilation steps?
+
+To write a good `CLAUDE.md` file, we should follow these core principles:
+
+1. `CLAUDE.md` is for onboarding Claude into your codebase. It should define your project's **WHY**, **WHAT**, and **HOW**.
+2. **Less (instructions) is more**. While you shouldn't omit necessary instructions, you should include as few instructions as reasonably possible in the file.
+3. Keep the contents of your `CLAUDE.md` **concise and universally applicable**.
+4. Use **Progressive Disclosure** - don't tell Claude all the information you could possibly want it to know. Rather, tell it _how to find_ important information so that it can find and use it, but only when it needs to to avoid bloating your context window or instruction count. Also, don't embed files directly with `@`, as that bloats the context. Just reference the file.
+5. Claude is not a linter. Use linters and code formatters, and use other features like [Hooks](https://code.claude.com/docs/en/hooks) and [Slash Commands](https://code.claude.com/docs/en/slash-commands) as necessary.
+6. **`CLAUDE.md` is the highest leverage point of the harness**, so avoid auto-generating it. You should carefully craft its contents for best results.
+
+ANother 4 principles:
+
+1. **Start with Guardrails, Not a Manual.** Your `CLAUDE.md` should start small, documenting based on what Claude is getting wrong.
+    
+2. **Don’t** `@`**-File Docs.** If you have extensive documentation elsewhere, it’s tempting to `@`-mention those files in your `CLAUDE.md`. This bloats the context window by embedding the entire file on every run. But if you just _mention_ the path, Claude will often ignore it. You have to _pitch_ the agent on _why_ and _when_ to read the file. “For complex … usage or if you encounter a `FooBarError`, see `path/to/docs.md` for advanced troubleshooting steps.”
+    
+3. **Don’t Just Say “Never.”** Avoid negative-only constraints like “Never use the `--foo-bar` flag.” The agent will get stuck when it thinks it _must_ use that flag. Always provide an alternative.
+    
+4. **Use** `CLAUDE.md` **as a Forcing Function.** If your CLI commands are complex and verbose, don’t write paragraphs of documentation to explain them. That’s patching a human problem. Instead, write a simple bash wrapper with a clear, intuitive API and document _that_. Keeping your `CLAUDE.md` as short as possible is a fantastic forcing function for simplifying your codebase and internal tooling.
+
+#### **principle 1 - Keep your claude md small**
+
+**As instruction count increases, instruction-following quality decreases uniformly**. This means that as you give the LLM more instructions, it doesn't simply ignore the newer ("further down in the file") instructions - it begins to **ignore all of them uniformly**
+
+This implies that your `CLAUDE.md` file should contain as few instructions as possible - ideally only ones which are universally applicable to your task.
+
+
+> [!TIP]
+> Aim for a `CLAUDE.md` less than 60 lines long
+
+
+#### **principle 2 - use progressive disclosure**
+
+The term Progressive disclosure is just a fancy way of saying to reference different markdown files inside your `CLAUDE.md` file and then give brief descriptions of those files so that Claude can decide whether or not to read those markdown files.
+
+However, referencing files directly with the `@` prefix is NOT progressive disclosure, as that just completely embeds the file content into the context. 
+
+Rather, in the `CLAUDE.md`, to implement progressive disclosure, just reference the filepath and describe what that file does, and claude will decide whether or not to look at that md file.
+
+#### Principle 3 - use `/init` as a starting point
+
+The `/init` slash command is used to make up a lot first, gain context of your codebase, and use that context to then craft an appropriate `CLAUDE.md`.
+
+This is a good starting point, but you eventually want to make it lean so that Claude isn't overloaded with context on each conversation turn. 
+
+#### Principle 4 - maintain living documents
+
+You should maintain these four documents as important context and constantly update them with the latest information from your code base. Claude will use this to gain the most context about the code base instead of reading every single. 
+
+- `context/project-overview.md`: An overview of the project and the architecture involved.
+- `context/coding-standards.md`: An overview of the desired coding style, what abstractions to use, and what libraries to use.
+- `context/project-overview.md`: An overview of the project and the architecture involved.
+- `context/project-overview.md`: An overview of the project and the architecture involved
+
+### Manage context with claude rules
+
+The `.claude/rules/` directory is a **modular alternative to monolithic CLAUDE.md files**. Instead of cramming everything into one file, you organize instructions into multiple markdown files that Claude loads as project memory.
+
+> [!NOTE]
+> **Critical detail from Anthropic**: Rules files load with the **same high priority as CLAUDE.md**. This matters because Claude's context window has a priority hierarchy - not all tokens are weighted equally.
+
+Every `.md` file in `.claude/rules/` automatically becomes part of your project context. No configuration needed.
+
+```
+.claude/rules/
+├── code-style.md      # Formatting and conventions
+├── testing.md         # Test requirements
+├── security.md        # Security checklist
+└── frontend/
+    ├── react.md       # React-specific patterns
+    └── styles.md      # CSS conventions
+```
+
+This structure gives you **separation of concerns** at the instruction level. Update your security rules without touching your styling guidelines.
+
+If your `CLAUDE.md` file ever becomes too unwieldy, you can always break it up into modular rules and then use something like path-specific loading to load rules only when needed. 
+
+```bash
+mkdir -p .claude/rules
+echo "# Testing Rules
+- Run tests before committing
+- Mock external services in unit tests" > .claude/rules/testing.md
+```
+
+The modularity of claude rules arises from only applying the rules to specific glob patterns, just like cursor rules. You accomplish this via passing these arguments into the frontmatter:
+
+- `paths`: a list of glob patterns of filepaths to apply the rule to. 
+	- Basically claude will load the rule if it concerns a file that is matched by one of the glob patterns in the `paths` property.
+
+
+
+```md
+---
+paths: src/api/**/*.ts
+---
+ 
+# API Development Rules
+ 
+- All endpoints must validate input with Zod
+- Return consistent error shapes: { error: string, code: number }
+- Log all requests with correlation IDs
+```
+
+Here is an example targeting multiple glob patterns:
+
+```md
+---
+paths:
+  - src/components/**/*.tsx
+  - src/hooks/**/*.ts
+---
+ 
+# React Development Rules
+ 
+- Use functional components exclusively
+- Extract logic into custom hooks
+- Memoize expensive computations
+```
+
+When a rule has `paths` frontmatter, it only loads (and receives high priority) when Claude is working on matching files:
+
+```
+---
+paths: src/api/**/*.ts
+---
+ 
+# These instructions get high priority ONLY during API work
+```
+
+This is the key insight: **you're not just organizing files, you're scoping when instructions receive elevated attention**.
+
+#### Rule examples
+
+**security rules for sensitive directories**
+
+```md
+---
+paths:
+  - src/auth/**/*
+  - src/payments/**/*
+---
+ 
+# Security-Critical Code Rules
+ 
+- Never log sensitive data (passwords, tokens, card numbers)
+- Validate all inputs at function boundaries
+- Use parameterized queries exclusively
+- Require explicit authorization checks before data access
+```
+
+**rules for test files**
+
+```md
+---
+paths: **/*.test.ts
+---
+ 
+# Test Writing Standards
+ 
+- Use descriptive test names: "should [action] when [condition]"
+- One assertion per test when possible
+- Mock external dependencies, never real APIs
+- Include edge cases: empty inputs, null values, boundaries
+```
+
+**database migration rules**
+
+```md
+---
+paths: prisma/migrations/**/*
+---
+ 
+# Migration Safety Rules
+ 
+- Always include rollback instructions
+- Test migrations on a copy of production data first
+- Never delete columns in the same migration that removes code using them
+- Add columns as nullable first, populate, then add constraints
+```
+
+#### Migrating from monolith `CLAUDE.md` to modular rules
+
+If your CLAUDE.md has grown large, you're likely experiencing the priority saturation problem: too much high-priority content competing for attention. Extract domain sections into path-targeted rules:
+
+**Before** (single 400-line CLAUDE.md):
+
+```
+# Project Context
+ 
+...
+ 
+## API Guidelines
+ 
+- Validate inputs with Zod
+- Return consistent errors
+  ...
+ 
+## React Patterns
+ 
+- Use functional components
+- Extract hooks
+  ...
+ 
+## Testing Rules
+ 
+- Mock external services
+  ...
+```
+
+**After** (lean CLAUDE.md + modular rules):
+
+```
+# CLAUDE.md - Operational Core Only
+ 
+## Routing Logic
+ 
+- Simple tasks: execute directly
+- Complex tasks: delegate to sub-agents
+ 
+## Quality Standards
+ 
+- Correctness > Maintainability > Performance
+```
+
+```
+.claude/rules/
+├── api-guidelines.md      # API section with paths: src/api/**/*
+├── react-patterns.md      # React section with paths: src/components/**/*
+└── testing-rules.md       # Testing section with paths: **/*.test.*
+```
+
+Your CLAUDE.md stays focused on universal behavior. Domain knowledge lives in targeted rules that only receive high priority when relevant.
+
+The result: **cleaner priority distribution**. Your core operational instructions always get attention. Domain-specific rules get attention only when Claude is working in their target areas. Building this rule structure from scratch takes significant iteration. The [ClaudeFast Code Kit](https://claudefa.st/) ships a battle-tested `.claude/rules/` directory with path-targeted rules for React, API development, database operations, and security, so you start with a working foundation instead of an empty folder.
+
+#### Best practices
+
+1. **Keep rules focused**: One concern per file. Security rules separate from styling rules.
+2. **Use descriptive filenames**: `api-validation.md` beats `rules1.md`.
+3. **Leverage path targeting**: Rules without paths load everywhere. Add paths to reduce noise.
+4. **Version control everything**: Rules are code. Review changes, track history, roll back mistakes.
+5. **Document rule purpose**: Start each file with a brief comment explaining when it applies.
+
+### Context management in depth
+
+#### Claude context loading priority
+
+Claude's context window isn't flat. Different sources of information receive different priority levels in how the model weighs them during generation. Anthropic confirms that **CLAUDE.md and rules files receive high priority** - Claude treats these instructions as authoritative.
+
+This created a problem with the old approach: stuffing everything into one massive CLAUDE.md meant _all_ of that content received high priority. Your React patterns competed for attention with your API guidelines, even when you were working on database migrations.
+
+>**High priority everywhere = priority nowhere.**
+
+When everything is marked important, Claude struggles to determine what's actually relevant to the current task. The result: instructions get ignored, context becomes noisy, and Claude's behavior becomes unpredictable.
+
+Understanding how Claude weighs different context sources:
+
+|Source|Priority Level|Implication|
+|---|---|---|
+|**CLAUDE.md**|High|Treated as authoritative instructions|
+|**Rules Directory**|High|Same weight as CLAUDE.md|
+|**Skills**|Medium (on-demand)|Loaded only when triggered|
+|**Conversation history**|Variable|Decays over long sessions|
+|**File contents (Read tool)**|Standard|Normal context, no special weight|
+
+The rules directory solves the monolithic problem by letting you **distribute high-priority instructions across targeted files**. Your API rules still get high priority - but only when you're working on API files.
+
+#### [Rules vs CLAUDE.md vs Skills](https://claudefa.st/blog/guide/mechanics/rules-directory#rules-vs-claudemd-vs-skills)
+
+When do you use each?
+
+|Feature|Priority|Best For|Loads When|
+|---|---|---|---|
+|**CLAUDE.md**|High|Universal operational workflows|Every session|
+|**Rules Directory**|High|Domain-specific instructions|Every session (filtered by path)|
+|**[Skills](https://claudefa.st/blog/guide/mechanics/claude-skills-guide)**|Medium|Reusable cross-project expertise|On-demand when triggered|
+
+**Use CLAUDE.md** for what applies everywhere: routing logic, quality standards, coordination protocols. Keep it lean - everything here competes for high-priority attention.
+
+**Use rules** for what applies to specific areas: API patterns for API files, test requirements for test files. Path targeting ensures high priority only when relevant.
+
+**Use skills** for what applies across projects: deployment procedures, code review checklists, brand guidelines. Lower priority until explicitly triggered.
 
 ## Claude Skills
 
