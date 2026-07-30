@@ -56,6 +56,21 @@ However, referencing files directly with the `@` prefix is NOT progressive discl
 
 Rather, in the `CLAUDE.md`, to implement progressive disclosure, just reference the filepath and describe what that file does, and claude will decide whether or not to look at that md file.
 
+#### Principle 3 - use `/init` as a starting point
+
+The `/init` slash command is used to make up a lot first, gain context of your codebase, and use that context to then craft an appropriate `CLAUDE.md`.
+
+This is a good starting point, but you eventually want to make it lean so that Claude isn't overloaded with context on each conversation turn. 
+
+#### Principle 4 - maintain living documents
+
+You should maintain these four documents as important context and constantly update them with the latest information from your code base. Claude will use this to gain the most context about the code base instead of reading every single. 
+
+- `context/project-overview.md`: An overview of the project and the architecture involved.
+- `context/coding-standards.md`: An overview of the desired coding style, what abstractions to use, and what libraries to use.
+- `context/project-overview.md`: An overview of the project and the architecture involved.
+- `context/project-overview.md`: An overview of the project and the architecture involved.
+
 ### CLI options
 
 - `claude -p <prompt>`: runs a one-off prompt
@@ -68,8 +83,15 @@ Rather, in the `CLAUDE.md`, to implement progressive disclosure, just reference 
 
 ### Keyboard shortcuts
 
+#### Switching modes
+
 - **auto accept mode**: TO enter auto accept mode for edits, press `shift + tab` keyboard shortcut
 - **plan mode**: TO enter plan mode, press `shift + tab` twice
+
+#### Output
+
+- **tasks**: to view the tasks and todos claude has set, press the `ctrl + t` shortcut
+- **verbose output**: to set verbose output for claude, press the `ctrl + o` shortcut
 
 ### Slash options
 
@@ -84,6 +106,7 @@ When inside a conversation with claude code, you have access to these special sl
 - `/review`: performs a code review
 - `/security-review`: performs a code review that searches for security flaws.
 - `/install-github-app`: allows you to add claude as a collaborator to a github repoi so you can assign it issues and to pull requests
+- `/insights`: shows you how well you used claude code in a session
 
 ### Chat techniques
 
@@ -112,8 +135,11 @@ Use opus for planning, sonnet for execution.
 You can tell claude to "make the plan multi-phase" which makes the plan, well, multi-phase.
 
 
+#### Redo messages and have side questions
 
+To interrupt claude's process at any time, press the `esc` key and then you can send it a message.
 
+To ask claude a quick side question it processes before continuing on its agent loop, use the `/btw` slash command.
 
 
 ## Claude Skills
@@ -161,7 +187,7 @@ Or
 1. **Discovery**: At startup, agents load only the name and description of each available skill, just enough to know when it might be relevant.
 2. **Activation**: When a task matches a skill’s description, the agent reads the full `SKILL.md` instructions into context.
 3. **Execution**: The agent follows the instructions, optionally loading referenced files or executing bundled code as needed.
-### SKill metadata
+#### SKill metadata
 
 Here is an example `SKILL.md`:
 
@@ -187,7 +213,7 @@ In the yaml frontmatter, describing the metadata of the skill is really importan
 - `description`: text description of skill, which claude uses to determine the relevance of the skill to a task.
 - `allowedTools`: a list of claude code tools the skill has approved access for.
 
-### Optional Folders and Entire Skills process
+#### Optional Folders and Entire Skills process
 
 Skills should be structured for efficient use of context:
 
@@ -217,8 +243,6 @@ Keep file references one level deep from `SKILL.md`. Avoid deeply nested refere
 
 ### Add skills to claude code
 
-
-
 The easiest way to add simple `SKILL.md` files to claude code is to just include them in your system prompt and give the filepaths to the `SKILL.md` files:
 
 ```html
@@ -234,6 +258,32 @@ The easiest way to add simple `SKILL.md` files to claude code is to just include
     <location>/path/to/skills/data-analysis/SKILL.md</location>
   </skill>
 </available_skills>
+```
+
+This was the old way. Now Claude can generate actual skill .md files for you if you just ask it to. It will be registered in the session, and you can even invoke skills via slash commands. 
+
+> [!NOTE]
+> Skills are a nice happy medium between commands and normal prompting. Skills allow you to indirectly refer to the skill to be used and also invoke them as a slash command. 
+
+Here's an example of prompting Claude to create skill that creates a git commit message from the diff. 
+
+```
+Create a project-scoped skill called commit-msg. The workflow:
+
+1. Check that there are staged changes with git diff --staged. If nothing is staged, stop and tell me to stage first.
+2. Read the staged diff.
+3. Generate a commit message in this format:
+
+   type(scope): short subject
+
+   - bullet of what changed
+   - bullet of why
+
+4. Run git commit with that message.
+
+Types: feat, fix, refactor, chore, docs, style, test. Subject under 60 characters. Body bullets optional but encouraged. Never include a Co-Authored-By trailer.
+
+Trigger when I say "write a commit message", "generate a commit", "commit my changes", or run /commit-msg.
 ```
 
 ## Advanced claude tools
@@ -257,6 +307,22 @@ You can install MCP servers and skills as "plugins" in claude code.
 To add custom skills to claude code, they should be `SKILL.md` files within the `.claude/skills` folder
 
 ![](https://i.imgur.com/tEYm0Ux.png)
+
+
+### Permissions
+
+You can manage permissions using the `/permissions` slash command and then choose from three different levels of permissions to set for claude code
+
+1. **allow**: Globs of permissions to always allow. 
+2. **ask**: Globs of permissions to always ask permission for
+3. **deny**: Globs of permissions to always block
+
+For example, a good use case is to always have claude ask before doing a destructive action like `git push` or `rm`, so you can add these rules into the "ask" category:
+
+```
+Bash(git push *)
+Bash(rm *)
+```
 
 ### Hooks
 
@@ -397,7 +463,7 @@ exit 0
 ```
 ### Subagents
 
-Subagents in claude are just several different agents each with their own system prompt and context window.
+Subagents in claude are just several different agents each with their own system prompt and context window that you can tell Claude to invoke, and then delegate prompt work to that subagent.
 
 You can create subagents with the `/agents` command, and the agent specification is like so:
 
@@ -410,6 +476,35 @@ You can also set agents on the global level:
 | ----------- | ------------------- | ------------------------------------- | -------- |
 | **Project** | `.claude/agents/`   | Available only in the current project | Highest  |
 | **User**    | `~/.claude/agents/` | Available across all your projects    | Lower    |
+You can also tell Claude to create subagents for you:
+
+```
+Create a project-scoped subagent called code-reviewer. It should review the current uncommitted changes in this project and check for:
+
+- Dead code or unused imports
+- console.log statements left in
+- Missing key props on lists in React
+- Accessibility misses (missing alt text, missing aria labels on icon buttons)
+- Hardcoded values that should be env vars or constants
+- Anything that breaks the patterns in CLAUDE.md
+
+It should produce a markdown report with findings, grouped by severity. It should NOT make any edits — just report.
+
+Trigger it when I say "review my code", "run the reviewer", or /code-reviewer.
+```
+
+#### Built-in subagents
+
+Claude has these Built-in sub-agents are available; you can refer to them by name, and Claude will invoke them
+
+- **explore agent**: explores a codebase, can discover app flow. Use this to understand the application flow of a codebase.
+
+```
+Use the Explore agent to map the data flow in this project. Where does the coin data come from? What components consume it? How does state move through the app after our recent refactor? Report back with a summary.
+```
+
+
+#### Custom subagents
 
 Here is an example of the different types of subagent personalities you can create.
 
@@ -451,7 +546,21 @@ This section should clearly define the sub agent's role, capabilities, personali
 | `tools`       | No       | A comma-separated list of specific tools the agent can use. If omitted, it inherits all tools from the main agent, including any connected via MCP servers. |
 | `skills`      | No       | A command-separated list of skill names the agent can have access to.                                                                                       |
 
+## Claude with MCP
 
+### Playwright MCP
+
+1. Install playwright MCP like so:
+
+```bash
+claude mcp add -s user playwright -- npx @playwright/mcp@latest
+```
+
+2. Ask claude to open your project at a specific port using playwright and test it, like so:
+
+```
+Use Playwright to open the project and then click the star icon on the first coin in the list. Then click the favorites filter. Tell me if the starred coin is the only one showing, and take a screenshot.
+```
 ## Claude config
 
 The claude config file lives here:
@@ -459,7 +568,7 @@ The claude config file lives here:
 - **global**: `~/.claude/settings.json`
 - **local**: `.claude/settings.local.json`
 
-**allowed tools**
+#### Permissions for tools
 
 At the project or global level, you can set which tools claude does and doesn't need permission for:
 
@@ -477,7 +586,7 @@ At the project or global level, you can set which tools claude does and doesn't 
 }
 ```
 
-**MCP**
+#### **MCP**
 
 You can add MCP config in a `.mcp.json` in the current directory, which claude can access and load the MCP servers from.
 
@@ -534,6 +643,8 @@ Here's an example of my favoriute MCP setuo:
 
 ### Process - Claude code planning workflow
 
+#### Feature by feature
+
 
 1. **Start each task with a plan file**
     
@@ -564,7 +675,24 @@ Here's an example of my favoriute MCP setuo:
         
     - For new related features, point the AI at existing plan files so it keeps architecture consistent.​
 
-**Living document feature: save to github issue.**
+After finishing this process, clear your context with `/clear` to then start on a new feature, and then refer to the living document for Claude to load up its context on the project on the next conversation
+
+#### Creating living documents
+
+A living document refers to a way you can store the context of a session and summarize it so that you can load it later into Claude to retrieve that context. 
+
+Here are some ideas you can use to create living documents:
+
+1. **ask Claude to summarize the session**: Prompt cloud with a prompt like this. In order for it to summarize the current session and save it to a markdown file:
+
+```
+Can you summarize what we've done and put it into a `context/sessions.md`? 
+```
+
+2. **summarize the plan, not the action**:  Ask Claude to save the current plan state to a GitHub Issue before clearing the context. This lets you save the context of the plan rather than the implementation, which is mostly what you wnat.
+3. **use memcrate**: Use a third party library like memcrate to save your messages and sessions to a vault that you can then load on the fly with claude code commands the library installs for you.
+
+##### **Living document: save to github issue.**
 
 Ask Claude to **save the current plan state to a GitHub Issue** before clearing the context.
 
@@ -579,6 +707,34 @@ _Claude runs `gh issue create` automatically._
 > /clear "Get GitHub issue #24 and enact Phase 4 of that plan."
 
 _Claude reads the issue from GitHub, sees where it left off, and resumes work with a fresh context window._
+
+##### Living document: save to memcrate
+
+First install memcrate like so:
+
+```bash
+curl -fsSL https://memcrate.dev/install.sh | sh
+memcrate init ~/vaults
+memcrate setup
+memcrate install claude-code
+```
+
+You can now use these two commands to save and load session context:
+
+- `/save`: saves the session context to the vault
+- `/load <project-name>`: loads the context associated with a specific project from a vault
+
+### Refactoring code
+
+Use these prompts to refactor code:
+
+#### Module refactoring
+
+```
+refactor this for Readability and maintainability. Split it into focused ES modules. Keep the output identical and don’t add any dependencies. 
+```
+
+#### Refactor to use zustand or context
 
 ### Claude on your PRs
 
