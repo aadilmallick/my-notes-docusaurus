@@ -271,6 +271,29 @@ paths: prisma/migrations/**/*
 - Add columns as nullable first, populate, then add constraints
 ```
 
+**rules for content management**
+
+Match by folder, by file type, or both:
+
+>Files inside my emails folder → wake up the email tone rule 
+>Any file ending in `.md` → wake up the writing voice rule 
+>Files inside my meeting-notes → wake up the summary rule
+
+Here's what a rule file actually looks like. The top part (between the two lines of dashes) is the wake-up note. The bottom part is the rule itself.
+
+```md title=".claude/rules/writing_voice.md"
+---
+paths:
+  - "content/**"
+  - "**/*.md"
+---
+
+Warm and direct. No jargon.
+Short paragraphs. Concrete examples over abstract claims.
+```
+
+
+
 #### Migrating from monolith `CLAUDE.md` to modular rules
 
 If your CLAUDE.md has grown large, you're likely experiencing the priority saturation problem: too much high-priority content competing for attention. Extract domain sections into path-targeted rules:
@@ -368,11 +391,161 @@ When do you use each?
 |**Rules Directory**|High|Domain-specific instructions|Every session (filtered by path)|
 |**[Skills](https://claudefa.st/blog/guide/mechanics/claude-skills-guide)**|Medium|Reusable cross-project expertise|On-demand when triggered|
 
-**Use CLAUDE.md** for what applies everywhere: routing logic, quality standards, coordination protocols. Keep it lean - everything here competes for high-priority attention.
+- **Use CLAUDE.md** for what applies everywhere: routing logic, quality standards, coordination protocols. Keep it lean - everything here competes for high-priority attention.
 
-**Use rules** for what applies to specific areas: API patterns for API files, test requirements for test files. Path targeting ensures high priority only when relevant.
+- **Use rules** for what applies to specific areas: API patterns for API files, test requirements for test files. Path targeting ensures high priority only when relevant.
 
-**Use skills** for what applies across projects: deployment procedures, code review checklists, brand guidelines. Lower priority until explicitly triggered.
+- **Use skills** for what applies across projects: deployment procedures, code review checklists, brand guidelines. Lower priority until explicitly triggered.
+
+| Container           | Who writes it | When it loads                                |
+| ------------------- | ------------- | -------------------------------------------- |
+| `CLAUDE.md`         | You           | Every session, always. Hence: keep it short. |
+| `rules/*.md`        | You           | When you touch a file matching its `paths:`  |
+| `memory/*.md`       | Claude        | When Claude judges it relevant               |
+| `skills/*/SKILL.md` | You           | When your request matches its `description:` |
+
+#### Creating a garden-check skill
+
+Having a garden check skill is important to ensure that your user-scoped Claude code setup doesn’t grow weeds and become useless over time. This maintains it and provides an auto report of what’s not working. 
+
+```
+~/.claude/skills/
+└── garden-check/          ← this name becomes /garden-check
+    └── SKILL.md           ← the whole skill lives here
+```
+
+Here is a basic version of the garden check skill, which is supposed to accomplish 6 things:
+
+1. **weight**: Flags any `CLAUDE.md` past 50 lines. The test that decides: delete the line, and if nothing changes it was not earning its place.
+2. **dead paths**: Every file and folder named in your instructions, checked against disk. Claude follows a dead path anyway.
+3. **broken front matter**: Malformed, and the rule is invisible. No error, no warning.
+4. **rules that don't fire correctly**: The highest-value check. A `paths:` pattern matching nothing has never loaded once. No `paths:` field means it loads every session forever. 
+5. **orphaned memory**: Both directions: entries pointing at files that are gone, and memory files `MEMORY.md` never indexes, which makes them unreachable.
+
+Use the skill creator skill to tell Claude to create this garden check skill:
+
+```
+> use skill-creator to build me a skill called garden-check.
+  It audits my Claude setup and reports what has rotted:
+  dead file paths, rules whose paths match nothing, orphaned
+  memory, duplicated instructions. Read-only, it never edits.
+```
+
+```md title="~/.claude/skills/garden-check/SKILL.md"
+---
+name: garden-check
+description: Audits a Claude Code setup read-only and reports what has rotted, including dead file references, rules whose paths match nothing, orphaned memory entries, and duplicated instructions. Use for "garden check", "weed the garden", "audit my claude setup", or when a rule or skill never seems to fire.
+---
+
+<objective>
+Walk the user's Claude Code setup and report what is dead, stale, or too heavy. Report only. Never edit, never delete.
+</objective>
+
+<boundaries>
+READ-ONLY. MUST NOT create, edit, move, or delete any file in the setup being audited.
+Finding and fixing are separate jobs. A tool that fixes what it finds cannot be trusted to report honestly, and a user who cannot see the diff cannot learn their own setup.
+When the user asks for fixes, show the change and let them apply it, or ask before touching anything.
+</boundaries>
+
+<scope>
+Ask the user which garden to check if it is ambiguous. Default to both:
+
+Global setup:
+- `~/.claude/CLAUDE.md`
+- `~/.claude/rules/` (all files, including subfolders)
+- `~/.claude/skills/` (folder names and frontmatter only)
+
+Project setup, for the current working directory and any nested folder that has one:
+- `CLAUDE.md` at every level
+- `.claude/rules/`
+- `.claude/skills/`
+
+Memory:
+- `~/.claude/projects/<project-hash>/memory/MEMORY.md` and the memory files it indexes
+
+Follow symlinks. A setup symlinked into a private git repo is normal, not a finding.
+</scope>
+
+<checks>
+Run all eight. Each finding names the file, the line, and one concrete fix.
+
+1. WEIGHT — Count the lines in each CLAUDE.md. Flag anything past 50. There is no official limit and nothing truncates; 50 is a working target that keeps the file honest, so report it as "past target", never as "over the limit". This file is re-read every session, so every line is rent. For each flagged file, name the two or three sections most worth moving into a rule.
+
+   For SKILL.md files the documented guidance is different and real: keep them under 500 lines, and move detail into linked supporting files past that.
+
+2. DEAD PATHS — Extract every file path, folder path, and command name mentioned in CLAUDE.md and in the rules. Check each one exists. A path that no longer resolves is an instruction pointing at nothing, and Claude will follow it anyway.
+
+3. BROKEN FRONT MATTER — Every file in `rules/` and every SKILL.md must open with valid front matter: three dashes, the fields, three dashes. Flag any file missing it or with malformed YAML. A rule with broken front matter is invisible.
+
+   Parse the YAML, do not eyeball it. The common break is a colon followed by a space inside an unquoted value, as in `description: Reports what rotted: dead paths`. YAML reads the second colon as a new key and the file fails to parse. Fix by rewording to drop the inner colon, or by quoting the whole value.
+
+4. RULES THAT NEVER FIRE — For each rule carrying a `paths:` field, check the pattern matches at least one file that actually exists. A pattern matching nothing is a rule the user believes is active and which has never once loaded. This is the highest-value check: it fails silently.
+
+5. RULES THAT ALWAYS FIRE — List every rule with no `paths:` field. These load on every single session. For each one ask: is this genuinely universal, or is it a rule that wants a `paths:` field? Report them with their line counts so the user sees the standing cost.
+
+6. ORPHANED MEMORY — Every line in MEMORY.md points to a memory file. Check each file exists. Then check the reverse: memory files on disk that MEMORY.md does not index are invisible to recall. Flag both directions.
+
+7. UNLINKED SKILL FILES — Inside each skill folder, list every file other than SKILL.md. Check the SKILL.md body links to it. A supporting file nothing links to never loads: Claude does not discover skill files on its own. Flag it as invisible, not as unused.
+
+8. DUPLICATES — The same instruction stated in two places: global CLAUDE.md and project CLAUDE.md, or CLAUDE.md and a rule, or two rules. Report each pair and say which copy should survive. This is the most common finding and the most expensive, because contradictory duplicates make behavior unpredictable.
+</checks>
+
+<output>
+Report grouped into three sections, in this order. Skip any section with no findings and say so.
+
+DEAD — points at something that does not exist. Fix or delete.
+STALE — real, but describes finished work or a setup that has moved on.
+TOO HEAVY — real and current, but costs more than it returns.
+
+One line per finding:
+
+`<file>:<line>` — what is wrong → the fix
+
+End with a two-line summary: total findings by group, and the single change that would improve the setup most. Name that one change explicitly. A list of thirty findings with no priority is a list nobody acts on.
+
+If the setup is clean, say so plainly and name the one thing worth watching as it grows. Do not invent findings to fill the report.
+</output>
+
+<delegation>
+Optional. Skip this on a small setup, where one pass costs almost nothing. It earns its keep once the scan spans many projects, a large rules folder, or dozens of skills, because reading all those files is where the tokens go.
+
+Split the work by what it demands, following the `efficient-delegation` skill:
+
+DELEGATE the scanning to cheaper sub-agents, one per area (global CLAUDE.md and rules, project CLAUDE.md files, memory, skill folders). Checks 1, 2, 3, 4, 6 and 7 are mechanical: does this path exist, does this glob match anything, does this YAML parse, is this file linked. Each sub-agent returns its findings as structured data, nothing more.
+
+KEEP for the main model: check 5, which is a judgment call about whether a rule deserves to load every session; check 8, which needs every area in one head at once to spot the same instruction written twice; and the final priority ranking. The ranking is what makes the report actionable rather than a list, so never hand it off.
+
+Verify before reporting. A sub-agent claiming a path is dead is a lead, not a fact. Re-check any finding before it reaches the user.
+</delegation>
+
+<success_criteria>
+- Every finding names a real file and a real line the user can open
+- No file was modified
+- Findings are grouped dead / stale / too heavy, never one flat list
+- The report ends with one prioritized change, not a backlog
+- A non-coder can read any line of the report and know what to do next
+</success_criteria>
+```
+
+
+### Claude memory
+
+Claude also keeps track of your memory through a mini memory management system, maintaining its own user‑based folder in your home directory that is scoped to each project and contains a `MEMORY.md` inside each one. 
+
+This is what memory stored for a project looks like:
+
+```
+~/.claude/projects/<this-project>/memory/
+├── MEMORY.md              the list, opens every session
+├── how-i-work.md          opens on demand
+├── current-launch.md      opens on demand
+└── where-things-live.md   opens on demand
+```
+
+You don't organize the `MEMORY.md` side. Claude picks the topics, writes the notes, decides what goes on the list and what sits in a topic file.
+
+> [!NOTE]
+> Your job is to review: read what Claude has saved, edit anything wrong, delete anything you don't want kept. Nothing more.
 
 ## Claude Skills
 
@@ -439,11 +612,26 @@ Use pdfplumber to extract text from PDFs...
 For form filling, see [FORMS.md](FORMS.md).
 ```
 
-In the yaml frontmatter, describing the metadata of the skill is really important. Here are the properties you have:
+In the yaml frontmatter, describing the metadata of the skill is really important. Here are  required properties you have:
 
 - `name`: skill name, < 64 characters, lowercase, numbers, and hyphens only.
 - `description`: text description of skill, which claude uses to determine the relevance of the skill to a task.
+
+> [!NOTE]
+> A skill body is read **only when the skill fires**. But once it fires, **the body stays in the conversation for the rest of the session**. It is not unloaded when the task ends.
+
+Here are the optional properties in the frontmatter you have:
+
 - `allowedTools`: a list of claude code tools the skill has approved access for.
+- `paths`: a list of glob patterns of filepaths that if referenced in the conversation or Claude needs to do some work with files matched by those patterns, then it will activate the skill, as long as the description of the skill also matches the query in similarity.
+
+> [!NOTE]
+> **Skills can use `paths:` too**
+> 
+> - **`description:`** fires on what you _asked_.
+> - **`paths:`** fires on what you are _touching_. A second door.
+
+
 
 #### Optional Folders and Entire Skills process
 
@@ -473,6 +661,28 @@ Keep file references one level deep from `SKILL.md`. Avoid deeply nested refere
 
 ![how claude skills load context](https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fa3bca2763d7892982a59c28aa4df7993aaae55ae-2292x673.jpg&w=3840&q=75)
 
+In summary, this is how progressive disclosure works comapring `CLAUDE.md` and skills:
+
+|                           | `CLAUDE.md` and rules                                         | skills                                              |
+| ------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
+| How the split is declared | A `paths:` field in the front matter                          | A markdown link in the body, plus when to follow it |
+| Who decides               | Claude Code, by matching file paths                           | Claude, by reading your instruction                 |
+| Unlinked files            | Still load if the pattern matches                             | Never load. Invisible.                              |
+| When to split             | As soon as it is bigger than it has to be. No official number | Docs say under 500 lines                            |
+
+
+#### Skill troubleshooting
+
+| What you see                   | What is actually wrong                   | Fix                                                   |
+| ------------------------------ | ---------------------------------------- | ----------------------------------------------------- |
+| The skill never fires          | Your description lacks the words you use | Rewrite it with your sentences                        |
+| "It is not working"            | Wrong folder, or wrong place on disk     | `/skills` to see what is loaded                       |
+| You edited it, nothing changed | Nothing. Reload is immediate             | Run it again. If still nothing, it is the description |
+| The report is enormous         | Nothing. That is a used setup            | Fix the top three, re-run                             |
+### Skill best practices
+
+- **keep description small**: Keep the description under 1500 characters. Anything longer than that will be truncated by Claude.
+- **keep `SKILL.md` files below 500 lines of code**: keep your `SKILL.md` files small and focused.
 ### Add skills to claude code
 
 The easiest way to add simple `SKILL.md` files to claude code is to just include them in your system prompt and give the filepaths to the `SKILL.md` files:
@@ -516,6 +726,20 @@ Create a project-scoped skill called commit-msg. The workflow:
 Types: feat, fix, refactor, chore, docs, style, test. Subject under 60 characters. Body bullets optional but encouraged. Never include a Co-Authored-By trailer.
 
 Trigger when I say "write a commit message", "generate a commit", "commit my changes", or run /commit-msg.
+```
+
+### Skill marketplaces
+
+Some repos offer Entire collections of skills rather than just a single one. For this, you can go to CLAUDE code plugin marketplaces.
+
+```
+/plugin marketplace add <owner/repo>
+```
+
+Then you can install specific plugins from that marketplace like so:
+
+```
+/plugin install name
 ```
 
 ## Advanced claude tools
