@@ -547,6 +547,10 @@ You don't organize the `MEMORY.md` side. Claude picks the topics, writes the not
 > [!NOTE]
 > Your job is to review: read what Claude has saved, edit anything wrong, delete anything you don't want kept. Nothing more.
 
+## Claude agent loop in depth
+
+
+
 ## Claude Skills
 
 ### Intro
