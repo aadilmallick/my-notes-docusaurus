@@ -620,10 +620,19 @@ In the yaml frontmatter, describing the metadata of the skill is really importan
 > [!NOTE]
 > A skill body is read **only when the skill fires**. But once it fires, **the body stays in the conversation for the rest of the session**. It is not unloaded when the task ends.
 
+Even with progressive disclosure, if you have a lot of skills that still bloats up your context window by wasting 10k tokens to load all the skill front matter. 
+
+> [!NOTE]
+> One skill costs nothing. Sixty skills rot your context the same way a bloated `CLAUDE.md` does, before you have typed a word. And skills that fire on their own are wrong for anything you want to time yourself, like deploying, publishing, or sending an invoice.
+
+Here's a three-step process to add these properties to your front matter, so that you can scope and control when a scope gets loaded. 
+
 Here are the optional properties in the frontmatter you have:
 
 - `allowedTools`: a list of claude code tools the skill has approved access for.
 - `paths`: a list of glob patterns of filepaths that if referenced in the conversation or Claude needs to do some work with files matched by those patterns, then it will activate the skill, as long as the description of the skill also matches the query in similarity.
+- `disable-model-invocation: true`: ensures that a skill should only run when you deliberately invoke it as a slash command: deploy, publish, invoice, anything outward-facing. You can still run it as a slash command, and other skills can still call it, but Claude will never launch it on its own.
+- `user-invocable: false` for the mirror case: background knowledge Claude should load when relevant, but that is not an action you would ever launch yourself.
 
 > [!NOTE]
 > **Skills can use `paths:` too**
@@ -671,6 +680,9 @@ In summary, this is how progressive disclosure works comapring `CLAUDE.md` and s
 | When to split             | As soon as it is bigger than it has to be. No official number | Docs say under 500 lines                            |
 
 
+
+
+
 #### Skill troubleshooting
 
 | What you see                   | What is actually wrong                   | Fix                                                   |
@@ -683,6 +695,7 @@ In summary, this is how progressive disclosure works comapring `CLAUDE.md` and s
 
 - **keep description small**: Keep the description under 1500 characters. Anything longer than that will be truncated by Claude.
 - **keep `SKILL.md` files below 500 lines of code**: keep your `SKILL.md` files small and focused.
+- **audit community skills with claude**: Do not read every skill in a repo by hand. Give Claude the repository link and ask what is worth taking for your setup. Once it knows your work and the skills you already have, it will tell you that you do not need most of it and point at the one or two pieces that fit. Remember that a skill can be excellent and still be useless to you. Someone else's setup, knowledge, and problems are not yours. That is not a bad skill, it is just not your skill.
 ### Add skills to claude code
 
 The easiest way to add simple `SKILL.md` files to claude code is to just include them in your system prompt and give the filepaths to the `SKILL.md` files:
@@ -728,6 +741,10 @@ Types: feat, fix, refactor, chore, docs, style, test. Subject under 60 character
 Trigger when I say "write a commit message", "generate a commit", "commit my changes", or run /commit-msg.
 ```
 
+### Converting CLIs to skills
+
+
+
 ### Skill marketplaces
 
 Some repos offer Entire collections of skills rather than just a single one. For this, you can go to CLAUDE code plugin marketplaces.
@@ -742,6 +759,191 @@ Then you can install specific plugins from that marketplace like so:
 /plugin install name
 ```
 
+### Skill examples
+
+#### `learn-ingest` skill
+
+The overall setup process:
+
+1. Dump a youtube transcript, text content, URL, etc. and invoke the `/learn-ingest` skill manually
+2. Setup google drive and a `RAW/` folder in your Obsidian vault and tell the AI to store raw transcripts and URL content you provide it.
+
+To setup `gog` correctly for your agent, refer to [[10-3rd-party-linux-tools#`gog` manage google ecosystem]].
+
+Here is how a conversation with the `/learn-ingest` skill works: 
+
+1. Invoke the skill and point the agent towards the raw resources available, either from a google drive folder or raw markdown or txt files.
+
+![](https://i.imgur.com/Eg6Td8X.jpeg)
+
+2. Select 1 out of 8 actions to do for processing the raw document.
+
+![](https://i.imgur.com/xlXSSJQ.jpeg)
+
+3. Run insights to see what actionable tips should get synced to google tasks and flagged for review
+
+
+![](https://i.imgur.com/AOXCVji.jpeg)
+
+4. Ensure an organizational structure
+
+
+![](https://i.imgur.com/dQ2tRs7.jpeg)
+
+#### Planning skill
+
+A poor boy's version of the grill-me skill by Matt Pocock
+
+```
+Use AskUserQuestion here too if there are genuine decision points in the implementation.
+
+### Phase 5: The Plan
+
+Only now write the actual plan. Structure it based on the domain:
+
+**For coding tasks:**
+- Files to create/modify (with specific paths)
+- Implementation sequence (what depends on what)
+- Testing strategy
+- Risks and mitigations
+
+**For content/creative tasks:**
+- Core concept and angle
+- Structure/outline with key beats
+- What makes this different from the obvious version
+- Production steps and dependencies
+
+**For business/admin tasks:**
+- Decision framework and criteria
+- Action items with owners and deadlines
+- Dependencies and blockers
+- Success metrics and review points
+
+**For any task:**
+- What we decided and why
+- What we explicitly chose NOT to do
+- Open questions that remain
+- First concrete next step
+
+## Tone Calibration
+
+**Default: Sparring partner.** Direct, opinionated, treats ideas as drafts.
+
+Phrases to use:
+- "I'd push back on that because..."
+- "There's a version of this that's simpler..."
+- "You're optimizing for X, but I think the real constraint is Y."
+- "What if we flipped this — instead of [A], what about [B]?"
+- "I notice you haven't mentioned [C]. Is that intentional, or a blind spot?"
+- "Before I agree with this direction, convince me that [D] won't be a problem."
+
+Phrases to avoid:
+- "Sure, I can help with that!"
+- "That's a great approach!"
+- "Whatever you prefer."
+- "Both options are valid." (take a side)
+
+## Handling $ARGUMENTS
+
+If Mark provides context with the command (e.g., `/marks-plan redesign the auth flow`), use that as the starting input for Phase 1. If no arguments, ask what he wants to plan.
+
+# Question Frameworks by Domain
+
+Reference patterns for AskUserQuestion. Each framework shows the **type of question**, example options with descriptions, and when to use it. Adapt these to the specific context — don't use them verbatim.
+
+## Universal Questions (Use for Any Domain)
+
+### Round 1: Problem Definition
+
+**"What's actually driving this?"** (Root cause vs symptom)
+- Options should distinguish between the surface request and deeper motivations
+- Example: "Build a dashboard" might really be "I need visibility into X" or "stakeholders keep asking me for Y"
+
+**"What does done look like?"** (Success criteria)
+- Options should be concrete and measurable, not vague
+- Bad option: "It works well" / Good option: "Users complete the flow in under 30 seconds"
+
+**"What have you already tried or ruled out?"** (Prior art)
+- Prevents re-exploring dead ends
+- Options: tried nothing yet / tried X and it failed / considered X but dismissed it / inherited someone else's approach
+
+### Round 2: Constraints
+
+**"What's the real constraint here?"** (Time, quality, scope, cost)
+- Most people say "all of them" — force a ranking
+- Options should make tradeoffs explicit: "Ship in 2 days with rough edges" vs "Take 2 weeks and do it right"
+
+**"Who else does this affect?"** (Blast radius)
+- Options: just me / my team / users / external stakeholders
+- Changes the approach significantly
+
+---
+
+## Coding & Architecture Questions
+
+### Scope & Approach
+- "Should this be a quick fix or a proper refactor?" — Options: patch it (fastest, debt later) / refactor the immediate area / redesign the subsystem / full rewrite of the module
+- "How confident are we in the current architecture?" — Options: it's solid, just extend it / it works but has known issues / it's fragile, changes are risky / it needs to be replaced
+- "What's the testing situation?" — Options: well-tested, just add cases / some tests, gaps in coverage / no tests, need to add them / tests exist but they're unreliable
+
+### Technical Decisions
+- "Where should this logic live?" — Options vary by codebase (frontend/backend/shared/new service)
+- "How should we handle the migration?" — Options: big bang / incremental with feature flag / parallel run / backward-compatible addition
+- "What's the error handling strategy?" — Options: fail fast and surface / retry with backoff / graceful degradation / queue for manual review
+
+### Scale & Performance
+- "What's the expected load?" — Options with specific ranges that change the architecture
+- "Do we need this to be real-time?" — Options: real-time / near-real-time (seconds) / eventually consistent (minutes) / batch is fine (hours)
+
+---
+
+## Content & Creative Questions
+
+### Concept & Angle
+- "What's the one thing a viewer should walk away with?" — Options should be competing takeaways, not variations of the same one
+- "Who is NOT the audience for this?" — Exclusion often clarifies better than inclusion
+- "What's the emotional arc?" — Options: curiosity → revelation / frustration → solution / skepticism → proof / confusion → clarity
+
+### Format & Structure
+- "How much does the viewer already know?" — Options: complete beginner / knows the basics / intermediate wanting depth / advanced wanting edge cases
+- "What's the hook strategy?" — Options tied to specific hook patterns (contrarian, confession, challenge, golden age)
+- "Long-form deep dive or punchy highlights?" — Options with specific time ranges and what gets cut
+
+### Differentiation
+- "What has everyone else already said about this?" — Forces awareness of the existing content landscape
+- "What's the contrarian take you could defend?" — Options should each be a genuinely surprising angle
+- "Is this a 'how' video or a 'why' video?" — Options: step-by-step tutorial / conceptual framework / opinion piece / case study
+
+---
+
+## Business & Admin Questions
+
+### Decision Framework
+- "What are we optimizing for?" — Options: speed to market / cost reduction / quality improvement / risk mitigation / team capability
+- "Who has veto power on this decision?" — Options: just me / my manager / the team / a committee / the client
+- "What's the cost of being wrong?" — Options: easily reversible / annoying but fixable / expensive to undo / catastrophic
+
+### Process Design
+- "Is this a one-time thing or recurring?" — Changes whether you build a process or just do the thing
+- "Where does this break first?" — Options should identify different failure modes
+- "What's the manual version of this look like?" — Forces clarity before automating
+
+### Evaluation & Prioritization
+- "If you could only do one part of this, which part?" — Forces ruthless prioritization
+- "What's the minimum viable version?" — Options should be genuinely different scopes, not just "less features"
+- "How will you know this was worth doing?" — Options should be specific metrics or outcomes
+
+---
+
+## Question Sequencing Strategy
+
+**Round 1** (always): Problem definition + success criteria + constraints
+**Round 2** (domain-specific): Technical decisions OR creative angle OR business framework
+**Round 3** (if needed): Stress-testing the emerging direction, edge cases, risks
+**Round 4** (rare): Only if a fundamental assumption shifted and we need to re-evaluate
+
+Between rounds, always share what you've synthesized so far. Don't just ask more questions — show that the previous answers changed your thinking.
+```
 ## Advanced claude tools
 
 ### Commands
@@ -965,18 +1167,9 @@ Use the Explore agent to map the data flow in this project. Where does the coin 
 
 #### Custom subagents
 
-Here is an example of the different types of subagent personalities you can create.
-
-![](https://i.imgur.com/36NkZ2h.jpeg)
-
-![more subagent ideas](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1767097337/image-clipboard-assets/fjxy7nax7x6yhoyv1dcl.webp)
-
-**subagents in claude code skills**
-
 You can specify skills that a subagent can access, as they don't inherit skills from the parent.
 
-```markdown
-# .claude/agents/code-reviewer/AGENT.md
+```markdown title=".claude/agents/code-reviewer/AGENT.md"
 ---
 name: code-reviewer
 description: Review code for quality and best practices
@@ -1005,6 +1198,16 @@ This section should clearly define the sub agent's role, capabilities, personali
 | `tools`       | No       | A comma-separated list of specific tools the agent can use. If omitted, it inherits all tools from the main agent, including any connected via MCP servers. |
 | `skills`      | No       | A command-separated list of skill names the agent can have access to.                                                                                       |
 
+#### Subagent ideas
+
+![](https://i.imgur.com/36NkZ2h.jpeg)
+
+![more subagent ideas](https://res.cloudinary.com/dsmvtmv8z/image/upload/v1767097337/image-clipboard-assets/fjxy7nax7x6yhoyv1dcl.webp)
+
+Here are other subagent use cases:
+
+- **research agent**: Start with research, not code. Ask for a subagent to go and find the best way to do the thing you are about to build, and to write what it finds into a file, for example `docs/research.md`. 
+- **refactoring, other work**: Ask for parallel subagents when the work splits cleanly into pieces that do not depend on each other. On the call: four pages, four subagents, all at once, off one shared design system so they matched.
 ## Claude with MCP
 
 ### Playwright MCP

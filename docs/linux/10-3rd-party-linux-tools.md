@@ -29,16 +29,25 @@ You can use a specific version with `nvm use <version>`:
 
 To use `gog`, you first need OAuth permissions. Follow these steps:
 
+
+![](https://i.imgur.com/sVkJJUi.jpeg)
+
+
  1. Go to the Google Cloud Console (https://console.cloud.google.com/apis).
  2. Create or select a project.                                                                                        
- 3. Enable the Gmail API and Google Calendar API:                                                                      
-     - Go to "APIs & Services" > Library.                                                                              
-     - Search for "Gmail API" and "Google Calendar API," then enable both.
- 4. Create OAuth 2.0 credentials:                                                                                      
+ 3. Create OAuth 2.0 credentials:                                                                                      
      - Go to "APIs & Services" > "Credentials."                                                                        
      - Click "Create Credentials" > "OAuth Client ID."                                                                 
      - Choose "Desktop App" or "Other" as the application type.
-     - Download the client_secret.json file after it’s created.
+
+
+![](https://i.imgur.com/yUJnDlM.jpeg)
+
+4. Go Go to the individual Google Drive API and Google Docs API pages and enable those APIs. This is required for GOG to be able to use them with your OAuth client ID. 
+5. Download the secret JSON after the client ID is successfully created: this is the credentials you use for permanent `gog` access. Then authenticate with it
+
+![](https://i.imgur.com/3uNE6iV.jpeg)
+
 
 ### Auth setup
 
