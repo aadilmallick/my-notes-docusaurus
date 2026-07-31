@@ -745,10 +745,32 @@ Types: feat, fix, refactor, chore, docs, style, test. Subject under 60 character
 Trigger when I say "write a commit message", "generate a commit", "commit my changes", or run /commit-msg.
 ```
 
-### Converting CLIs to skills
+### CLI vs MCP vs Skills
+
+CLIs are great for simple, stateless operations. MCP is better when you need persistent connections, OAuth flows, or Claude to use the tool autonomously during a conversation.
+
+#### Converting CLIs to skills
+
+Stripe, Notion, Slack, your internal tools. Any REST API with documentation can become a CLI in minutes. The pattern is universal.
 
 
+1. Point Claude Code at any API's documentation URL and tell it to build a CLI from that. In one prompt, you get argument parsing, authentication, error handling, and formatted output.
 
+```
+Build A CLI called Calendly that wraps the Calendly REST API. API docs are here.
+
+<Enter URL>
+
+ My Calendly API key is stored in the .env file, you can export it into the current shell session. Here are the commands I want. 
+
+<Enter commands here>
+```
+
+2. Once the CLI is created, ask claude to spin up subagents to smoke test the CLI in the background so that the bias form the current conversation doesn't leak into the its verification of how the script works.
+
+![](https://i.imgur.com/26Xs98L.jpeg)
+
+3. Create a skill that wraps the CLI
 ### Skill marketplaces
 
 Some repos offer Entire collections of skills rather than just a single one. For this, you can go to CLAUDE code plugin marketplaces.
@@ -1130,10 +1152,35 @@ exit 0
 
 Subagents in claude are just several different agents each with their own system prompt and context window that you can tell Claude to invoke, and then delegate prompt work to that subagent.
 
+Claude spins up and delegates three different types of subagents that is has built-in depending on certain use cases:
+
+- **explore**: subagents that use the `Read`, `Glob`, or `Grep` tools in order to gain context
+- **general purpose**: subagents that run off with their own context and process to act on a prompt that the main agent initializes them with.
+- **bash**: delegating thr process of running shell commands to a subagent and having the subagent report back when done.
+
+![](https://i.imgur.com/83vWzNP.jpeg)
+
+
+In each case, the subagent reports back when done.
+
+> [!NOTE]
+> Why subagents? Because having one agent complete one clear focused task is a lot better than context rot and bloat, where we constantly ask our main agent to context switch across different tasks.
+
+> [!IMPORTANT]
+> Focus on giving each agent one clear task
+
+
+To recap, here are the two main benefits to using subagents:
+
+1. **to prevent context rot and context switching**: Delegating tasks that are not tightly coupled with the main task, like searching up docs and reporting back findings can be delegated to a subagent.
+2. **To realize parallel work**: You can spin up multiple subagents with dumb models like claude haiku to do research in parallel or find bugs, etc. faster than you could do with one single agent.
+#### Creating subagents
+
 You can create subagents with the `/agents` command, and the agent specification is like so:
 
 - **storage**: agents are stored as markdown files in the `.claude/agents` folder in your project
 - **tools**: You can specify which tools the agent has access to.
+- **model**: You can specify which model the agent should run as.
 
 You can also set agents on the global level:
 
@@ -1201,6 +1248,12 @@ This section should clearly define the sub agent's role, capabilities, personali
 | `description` | Yes      | A natural language description of the agent’s purpose, used by Claude for automatic delegation.                                                             |
 | `tools`       | No       | A comma-separated list of specific tools the agent can use. If omitted, it inherits all tools from the main agent, including any connected via MCP servers. |
 | `skills`      | No       | A command-separated list of skill names the agent can have access to.                                                                                       |
+
+Here is the basic flow for creating a subagent and using them optimally:
+
+1. Create a subagent
+2. Create a hook that listens to the `SubAgentStop` hook and logs out the info so you have complete observability of what a subagent is doing.
+
 
 #### Subagent ideas
 
