@@ -1475,10 +1475,18 @@ refactor this for Readability and maintainability. Split it into focused ES modu
 
 #### Refactor to use zustand or context
 
-### Claude on your PRs
+### Claude on your PRs and issues
 
-Run the `/install-github-app` to install a claude code github action.
+Here is how to install claude as a github app that can be invoked upon PRs and issues:
 
-- By default, the Claude Code GitHub Action listens for comments or issues mentioning `@claude`.
+1. Run the `/install-github-app` to install a claude code github action.
+2. Choose how to authorize Claude and which repos to give it access to and install Claude in.
 
-This actions makes claude become a collaborator on your PRs for the current repo. You can now tag claude on issues, make it an assignee, etc.
+Once you have installed Claude into a repo, you have these three powerful ways you can use it:
+
+- **tag claude with `@claude`**: By default, the Claude Code GitHub Action listens for comments or issues mentioning `@claude`.
+- **add Claude as a PR reviewer**: You can add Claude as a PR reviewer so it reviews your PRs
+- **use claude in github actions**: You can use claude and run it in headless mode via github action workflows.
+
+> [!NOTE]
+> This actions makes claude become a collaborator on your PRs for the current repo. You can now tag claude on issues, make it an assignee, etc.
