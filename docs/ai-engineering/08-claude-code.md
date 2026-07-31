@@ -1011,143 +1011,6 @@ Bash(rm *)
 ```
 
 
-### Hooks
-
-Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
-
-> [!NOTE]
-> You can check all registered hooks with the `/hooks` command.
-
-If you want to create a claude command that can easily create hooks for you, use this command:
-
-```embed
-title: "automated-notebooklm/.claude/commands/create-hook.md at main · omril321/automated-notebooklm"
-image: "https://opengraph.githubassets.com/30cad5e5dd2202e9efcd80dbb8ad749500d60fdac65f49c94f599ffdb95a8c08/omril321/automated-notebooklm"
-description: "Automation around NotebookLM, with a monday.com board integration - omril321/automated-notebooklm"
-url: "https://github.com/omril321/automated-notebooklm/blob/main/.claude/commands/create-hook.md"
-favicon: ""
-aspectRatio: "50"
-```
-
-Here is a typescript SDK for creating claude commands:
-
-```embed
-title: "GitHub - johnlindquist/claude-hooks"
-image: "https://camo.githubusercontent.com/1ab28d1e589dba211bec354e41b81e747e793e34e472b57a3abdebfd7a354ba9/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f636c617564652d686f6f6b732e737667"
-description: "Contribute to johnlindquist/claude-hooks development by creating an account on GitHub."
-url: "https://github.com/johnlindquist/claude-hooks"
-favicon: ""
-aspectRatio: "25"
-```
-
-You can specify the events to listen to and a file to run on those events, and you do all this from a json file. These are the lifecycle hooks you can listen for:
-
-- **PreToolUse**: This hook runs _before_ a tool (like `edit_file` or `Bash`) is executed. It is the **most powerful point of control for preventative measures** and is the _only_ event that can proactively **block a tool’s execution**.
-- **PostToolUse**: This hook runs _after_ a tool has successfully completed. It’s ideal for reactive tasks like automatic formatting, running tests, or logging. It cannot block execution but can provide feedback to Claude.
-- **Notification**: This hook triggers whenever Claude Code sends a notification to the user, for example, when it’s waiting for input or has completed a long task. It is purely informational and cannot block execution.
-- **Stop**: This hook runs when the **main Claude Code agent finishes responding**. It can be configured to **prevent the agent from terminating**, forcing it to continue working until a specific condition is met.
-- **SubagentStop**: This hook runs when a sub-agent task completes its work. Like the `Stop` hook, it can block the sub-agent from stopping.
-
-You specify hooks in JSON in the `.claude/settings.local.json` under the `"hooks"` key:
-
-- `"matcher"`: the tools to match on
-- `"hooks"`: the files to run when matched
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq -r '\\(.tool_input.command) - \\(.tool_input.description // \"No description\")' >> ~/.claude/bash-command-log.txt"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Hooks receive JSON data via standard input (stdin) that provides session information and event-specific data, such as `session_id`, `transcript_path`, and `tool_name`. 
-
-They communicate status back to Claude Code primarily through **shell exit codes** and, for more advanced control, **structured JSON output** to stdout.
-
-- **Exit Code 0**: Indicates success. Any output to stdout is shown to the user in the transcript, but _not_ to the model.
-- **Exit Code 2**: Signals a **blocking error**. This tells Claude Code to halt the current action (for `PreToolUse` hooks) and processes the feedback from `stderr` as new input for Claude to understand the error and adjust its plan. It is crucial that error messages for blocking errors are sent to `stderr`.
-- **Other Non-Zero Exit Codes**: Indicate a non-blocking error. The hook failed, but execution continues. The error message from `stderr` is shown to the user, but not to Claude.
-
-> [!NOTE]
-> This means since hooks provide parameters in a deterministic format, we can programatically do stuff with those inputs in another program, like a python or bash script.
-
-
-For more examples on how to use hooks, look here:
-
-```embed
-title: "Claude Code Hooks | Developing with AI Tools | Steve Kinney"
-image: ""
-description: "Learn how to use event-driven hooks to provide deterministic control over Claude's behavior and automate development workflows"
-url: "https://stevekinney.com/courses/ai-development/claude-code-hooks"
-favicon: ""
-```
-
-
-**custom hook: deny dangerous commands**
-
-This hook is used to deny dangerous commands like `rm -rf` or curling to a non HTTPS string.
-
-```json title=".claude/settings.local.json"
-"hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/pre-bash-firewall.sh"
-          }
-        ]
-      }
-    ]
-  }
-```
-
-```bash title=".claude/hooks/pre-bash-firewall.sh"
-#!/usr/bin/env bash
-set -euo pipefail
-
-# stdin: JSON with .tool_input.command
-cmd=$(jq -r '.tool_input.command // ""')
-
-# Block list (add as needed)
-deny_patterns=(
-  'rm\s+-rf\s+/'
-  'git\s+reset\s+--hard'
-  'curl\s+http'
-)
-
-for pat in "${deny_patterns[@]}"; do
-  if echo "$cmd" | grep -Eiq "$pat"; then
-    echo "Blocked command: matches denied pattern '$pat'. Use a safer alternative or explain why it's necessary." 1>&2
-    exit 2
-  fi
-done
-
-exit 0
-
-```
-
-**custom hook: write bash commands to a log**
-
-```bash title=".claude/hooks/pre-bash-log.sh"
-#!/usr/bin/env bash
-set -euo pipefail
-cmd=$(jq -r '.tool_input.command // ""')
-printf '%s %s\n' "$(date -Is)" "$cmd" >> .claude/bash-commands.log
-exit 0
-```
 ### Subagents
 
 Subagents in claude are just several different agents each with their own system prompt and context window that you can tell Claude to invoke, and then delegate prompt work to that subagent.
@@ -1265,6 +1128,163 @@ Here are other subagent use cases:
 
 - **research agent**: Start with research, not code. Ask for a subagent to go and find the best way to do the thing you are about to build, and to write what it finds into a file, for example `docs/research.md`. 
 - **refactoring, other work**: Ask for parallel subagents when the work splits cleanly into pieces that do not depend on each other. On the call: four pages, four subagents, all at once, off one shared design system so they matched.
+
+### Hooks
+
+Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
+
+> [!NOTE]
+> You can check all registered hooks with the `/hooks` command.
+
+If you want to create a claude command that can easily create hooks for you, use this command:
+
+```embed
+title: "automated-notebooklm/.claude/commands/create-hook.md at main · omril321/automated-notebooklm"
+image: "https://opengraph.githubassets.com/30cad5e5dd2202e9efcd80dbb8ad749500d60fdac65f49c94f599ffdb95a8c08/omril321/automated-notebooklm"
+description: "Automation around NotebookLM, with a monday.com board integration - omril321/automated-notebooklm"
+url: "https://github.com/omril321/automated-notebooklm/blob/main/.claude/commands/create-hook.md"
+favicon: ""
+aspectRatio: "50"
+```
+
+Here is a typescript SDK for creating claude commands:
+
+```embed
+title: "GitHub - johnlindquist/claude-hooks"
+image: "https://camo.githubusercontent.com/1ab28d1e589dba211bec354e41b81e747e793e34e472b57a3abdebfd7a354ba9/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f636c617564652d686f6f6b732e737667"
+description: "Contribute to johnlindquist/claude-hooks development by creating an account on GitHub."
+url: "https://github.com/johnlindquist/claude-hooks"
+favicon: ""
+aspectRatio: "25"
+```
+
+You can specify the events to listen to and a file to run on those events, and you do all this from a json file. These are the lifecycle hooks you can listen for:
+
+- **PreToolUse**: This hook runs _before_ a tool (like `edit_file` or `Bash`) is executed. 
+	- It is the **most powerful point of control for preventative measures** and is the _only_ event that can proactively **block a tool’s execution**.
+- **PostToolUse**: This hook runs _after_ a tool has successfully completed. It’s ideal for reactive tasks like automatic formatting, running tests, or logging. 
+	- It cannot block execution but can provide feedback to Claude.
+- **Notification**: This hook triggers whenever Claude Code sends a notification to the user, for example, when it’s waiting for input or has completed a long task.
+	- It is purely informational and cannot block execution.
+- **Stop**: This hook runs when the **main Claude Code agent finishes responding**. 
+	- It can be configured to **prevent the agent from terminating**, forcing it to continue working until a specific condition is met.
+- **SubagentStop**: This hook runs when a sub-agent task completes its work. Like the `Stop` hook, it can block the sub-agent from stopping.
+
+
+
+![](https://i.imgur.com/GqErMmP.jpeg)
+
+#### JSON hooks
+
+You specify hooks in JSON in the `.claude/settings.local.json` under the `"hooks"` key:
+
+- `"matcher"`: the tools to match on
+- `"hooks"`: the files to run when matched
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '\\(.tool_input.command) - \\(.tool_input.description // \"No description\")' >> ~/.claude/bash-command-log.txt"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Hooks receive JSON data via standard input (stdin) that provides session information and event-specific data, such as `session_id`, `transcript_path`, and `tool_name`. 
+
+They communicate status back to Claude Code primarily through **shell exit codes** and, for more advanced control, **structured JSON output** to stdout.
+
+- **Exit Code 0**: Indicates success. Any output to stdout is shown to the user in the transcript, but _not_ to the model.
+- **Exit Code 2**: Signals a **blocking error**. This tells Claude Code to halt the current action (for `PreToolUse` hooks) and processes the feedback from `stderr` as new input for Claude to understand the error and adjust its plan. It is crucial that error messages for blocking errors are sent to `stderr`.
+- **Other Non-Zero Exit Codes**: Indicate a non-blocking error. The hook failed, but execution continues. The error message from `stderr` is shown to the user, but not to Claude.
+
+> [!NOTE]
+> This means since hooks provide parameters in a deterministic format, we can programatically do stuff with those inputs in another program, like a python or bash script.
+
+
+For more examples on how to use hooks, look here:
+
+```embed
+title: "Claude Code Hooks | Developing with AI Tools | Steve Kinney"
+image: ""
+description: "Learn how to use event-driven hooks to provide deterministic control over Claude's behavior and automate development workflows"
+url: "https://stevekinney.com/courses/ai-development/claude-code-hooks"
+favicon: ""
+```
+
+
+**custom hook: deny dangerous commands**
+
+This hook is used to deny dangerous commands like `rm -rf` or curling to a non HTTPS string.
+
+```json title=".claude/settings.local.json"
+"hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pre-bash-firewall.sh"
+          }
+        ]
+      }
+    ]
+  }
+```
+
+```bash title=".claude/hooks/pre-bash-firewall.sh"
+#!/usr/bin/env bash
+set -euo pipefail
+
+# stdin: JSON with .tool_input.command
+cmd=$(jq -r '.tool_input.command // ""')
+
+# Block list (add as needed)
+deny_patterns=(
+  'rm\s+-rf\s+/'
+  'git\s+reset\s+--hard'
+  'curl\s+http'
+)
+
+for pat in "${deny_patterns[@]}"; do
+  if echo "$cmd" | grep -Eiq "$pat"; then
+    echo "Blocked command: matches denied pattern '$pat'. Use a safer alternative or explain why it's necessary." 1>&2
+    exit 2
+  fi
+done
+
+exit 0
+
+```
+
+**custom hook: write bash commands to a log**
+
+```bash title=".claude/hooks/pre-bash-log.sh"
+#!/usr/bin/env bash
+set -euo pipefail
+cmd=$(jq -r '.tool_input.command // ""')
+printf '%s %s\n' "$(date -Is)" "$cmd" >> .claude/bash-commands.log
+exit 0
+```
+
+
+#### YAML hooks
+
+You can also create hooks with YAML syntax and then point to an "enforcer" code script that uses code to actually apply logic and side effects to the hooks
+
+![](https://i.imgur.com/R8Ajx2i.jpeg)
+
+
 ## Claude with MCP
 
 ### Playwright MCP
