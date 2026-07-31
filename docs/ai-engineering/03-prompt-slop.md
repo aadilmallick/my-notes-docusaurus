@@ -324,6 +324,254 @@ I want you to act as an expert with 10+ years of experience in software engineer
 
 ### Company deep research report prompt
 
+### SWOT analysis
+
+```
+You are tasked with generating a comprehensive SWOT analysis draft for a business. Follow the instructions below and use the provided variable placeholders throughout your response.
+
+Input Instructions:
+- Fill in the following details:
+  • Business Topic: [Topic]
+  • Business Strengths: [Strengths]
+  • Business Weaknesses: [Weaknesses]
+  • Business Opportunities: [Opportunities]
+  • Business Threats: [Threats]
+
+Output Format:
+Generate a SWOT analysis draft using the structure provided below. Format your response as organized bullet points and clear section headers.
+
+SWOT Analysis for [Topic]:
+1. Strengths:
+   - [Strengths]
+2. Weaknesses:
+   - [Weaknesses]
+3. Opportunities:
+   - [Opportunities]
+4. Threats:
+   - [Threats]
+
+Constraints and Requirements:
+- Provide a clear and concise analysis for each category.
+- Maintain a professional tone and organized layout.
+- Ensure all provided inputs (from the placeholders) are integrated accurately into the analysis.
+- Optionally, include a short summary or conclusion at the end summarizing your insights.
+
+--------------------------------------------------
+Bottom-of-Prompt Variables:
+--------------------------------------------------
+[Topic] = ''
+[Strengths] = ''
+[Weaknesses] = ''
+[Opportunities] = ''
+[Threats] = ''
+```
+
+### Product copywriting prompt
+
+````
+You are a professional copywriter tasked with creating a persuasive, customer-focused product description. Your output should artfully combine the product's features, benefits, and information about the target market to generate an engaging and informative description. Follow the instructions below:
+
+1. Read the provided product information carefully:
+   - [Product Name]: The name of the product.
+   - [Product Features]: A list of the key features of the product.
+   - [Product Benefits]: The advantages and value the product offers to customers.
+   - [Target Market Info]: Critical details about the intended audience or market segment.
+
+2. Write a product description that meets these criteria:
+   - Persuasive: Emphasize how the product solves problems or improves the customer's life.
+   - Customer-Focused: Address the target market directly with a friendly and confident tone.
+   - Informative: Clearly explain the features and benefits while painting a vivid picture of its usage.
+   - Concise: Keep the description clear and to the point, avoiding unnecessary jargon.
+
+3. Formatting and style requirements:
+   - Use a clear and conversational tone.
+   - Structure the description with short paragraphs or bullet points for readability.
+   - Include a compelling opening statement that grabs attention.
+   - Ensure the description flows smoothly from features to benefits, and ends with a strong call-to-action.
+
+4. Constraints and additional considerations:
+   - Do not exceed [Character Limit] characters.
+   - Avoid repetitive language or vague adjectives.
+   - Ensure accuracy: Only include information provided in the placeholders.
+   - Tailor the tone to match [Brand Voice] if specified.
+
+5. Final Output:
+   - Provide the final product description as a single, cohesive text block.
+   - Ensure the final text is free from grammatical and typographical errors.
+
+---
+
+### Variable Placeholders (configure as needed):
+
+[Product Name] = ''  
+[Product Features] = ''  
+[Product Benefits] = ''  
+[Target Market Info] = ''  
+[Character Limit] = ''  
+[Brand Voice] = ''  
+[Topic] = ''
+```
+````
+
+### Google ad generator
+
+````
+Please use the following details to generate an optimized Google ad copy. The ad should capture attention, clearly highlight the service benefits, and incorporate target keywords for high click-through rates. Follow these instructions:
+
+1. Input the following details:
+   - Service Details: [Service Details]
+   - Unique Selling Points: [Unique Selling Points]
+   - Target Keywords: [Target Keywords]
+   - Topic/Primary Focus: [Topic]
+   - (Optional) Specific Audience: [Target Audience]
+
+2. Create a concise Google ad text that includes:
+   - A catchy headline (ideally up to 30 characters) that features the primary topic.
+   - A compelling description (ideally up to 90 characters) that emphasizes the service details and unique selling points.
+   - Seamless inclusion of the target keywords within the ad text.
+
+3. Ensure the tone is persuasive, action-oriented, and easily understandable without technical jargon.
+
+4. The final ad copy should strictly follow this format:
+   - Headline: "Your [Topic] Solution"
+   - Description: "Experience [Service Details] with [Unique Selling Points]. Enjoy [Target Keywords] today!"
+
+5. Make sure that each variable placeholder is correctly replaced with user-specific information.
+
+Variable Placeholders:
+[Topic] = ''
+[Service Details] = ''
+[Unique Selling Points] = ''
+[Target Keywords] = ''
+[Target Audience] = ''
+```
+````
+
+### Facebook ad copy generator. 
+
+````
+Please generate a concise, catchy Facebook ad copy by following these instructions:
+
+1. Input Details:
+   - [ProductService Name]: The name of the product or service.
+   - [Target Audience]: A brief description of the target audience.
+   - [Key Benefits]: The primary benefits or advantages of the product/service.
+
+2. Context & Background:
+   - The ad copy should be designed for a Facebook advertisement, so it needs to be engaging, succinct, and tailored to attract clicks.
+   - Focus on highlighting the key benefits while addressing the needs of the target audience.
+  
+3. Output Format & Style:
+   - The final ad copy should be a short paragraph (1-3 sentences) that is both clear and compelling.
+   - Use a friendly yet persuasive tone.
+   - Ensure the copy includes a call-to-action (e.g., "Discover now!" or "Learn more today!").
+
+4. Constraints & Requirements:
+   - Do not exceed 3 sentences.
+   - Avoid jargon or overly technical language; the copy should be easily understood by a general audience.
+   - Make sure the [ProductService Name] and [Key Benefits] are incorporated naturally within the text, directly appealing to the [Target Audience].
+
+5. Instructions:
+   - Replace the placeholders [ProductService Name], [Target Audience], and [Key Benefits] with the specific details provided.
+   - Ensure the ad copy is both succinct and catchy, optimized for engagement on Facebook.
+
+---
+
+## Configurable Variables:
+- [ProductService Name] = ''
+- [Target Audience] = ''
+- [Key Benefits] = ''
+```
+````
+
+### FAW answer generator
+
+```
+You are an AI tasked with generating draft answers for an FAQ section based on a list of common questions and detailed product/service information. Follow these instructions carefully:
+
+1. Context & Background:
+   - You will be provided with a list of frequently asked questions related to [Topic].
+   - Detailed information about the product/service is supplied in [ProductService Details].
+   - Your goal is to generate clear, informative, and concise draft answers that accurately address each FAQ.
+
+2. Input Requirements:
+   - A list of FAQs should be provided in [FAQ Questions]. Each question is separated by a newline or a bullet point.
+   - Product or service details are provided under the variable [ProductService Details].
+
+3. Output Format & Style:
+   - Format each FAQ as a question followed by its draft answer.
+   - Each FAQ and its answer should be clearly separated (for example, by a newline or bullet points).
+   - The answers should be written in plain language, accessible to a general audience.
+   - Keep the tone professional yet friendly.
+
+4. Constraints & Considerations:
+   - Do not use overly technical language unless necessary to explain a feature of [Topic].
+   - Carefully refer to the context provided in [ProductService Details] to ensure accuracy.
+   - If a question seems unrelated or ambiguous, include a note stating that you require additional clarification.
+   - Ensure each answer is concise, ideally not exceeding two sentences unless the question demands a more detailed explanation.
+
+5. Example Structure:
+   - FAQ 1:
+      - Q: [FAQ Question 1]
+      - A: [Draft Answer for FAQ Question 1]
+   - FAQ 2:
+      - Q: [FAQ Question 2]
+      - A: [Draft Answer for FAQ Question 2]
+
+Begin generating the FAQ draft answers using the provided data.
+
+---
+
+Variable Placeholders:
+[Topic] = ''
+[ProductService Details] = ''
+[FAQ Questions] = ''
+```
+
+
+### Landing page headline generator
+
+```
+# Automated Landing Page Headline Creator Prompt
+
+You are a creative copywriter tasked with generating landing page headlines that are both attention-grabbing and aligned with the product or service offering. Use the following inputs to craft three distinct headline options for A/B testing.
+
+## Instructions:
+1. **Input Variables:**  
+   - [ProductService Name]: Name of the product or service.
+   - [Core Value Proposition]: The key benefit or solution the product or service offers.
+   - [Target Audience]: The specific group of users the product or service is aimed at.
+
+2. **Headline Requirements:**
+   - Each headline should be a concise, single-sentence statement.
+   - Ensure the headlines communicate the core value and appeal directly to the target audience.
+   - Use a tone that is engaging, professional, and persuasive.
+   - Keep the language clear and straightforward.
+
+3. **Output Format:**
+   - Provide exactly three headline options.
+   - Separate each option clearly (e.g., bullet points or numbered list).
+   - Ensure each headline incorporates the input variables effectively.
+
+4. **Constraints:**
+   - Do not exceed one sentence per headline.
+   - Ensure the headlines are unique and test different creative angles.
+
+## Example Template:
+Using the placeholders below, generate three headline options:
+- [ProductService Name]: ''
+- [Core Value Proposition]: ''
+- [Target Audience]: ''
+
+## Task:
+Generate three unique landing page headlines based on the above instructions. Each headline should integrate the provided information into a captivating message that encourages the target audience to learn more or take action.
+
+--------------------------------------------------
+
+[ProductService Name] = ''  
+[Core Value Proposition] = ''  
+[Target Audience] = ''
+```
 
 ## Learning prompts
 
@@ -1507,4 +1755,320 @@ Teach deeply.
 Help me prioritize.
 
 Help me turn ambition into reality.
+```
+
+## Blog post prompts
+
+### Make a blog post introduction
+
+```
+Instructions:
+1. Using the variables provided below, generate a draft introductory paragraph for a blog post.
+2. The introduction should clearly introduce the topic ([Topic]), engage the reader, and set the tone ([Tone]) to appeal specifically to the [Target Audience].
+3. Ensure the tone of the paragraph is consistent throughout, matching the given style (e.g., friendly, professional).
+4. The paragraph should be succinct, captivating, and informative, hinting at what the blog post will cover without revealing too much detail.
+5. Write in clear, concise language and maintain a logical flow from introduction to a subtle preview of main content areas.
+
+Context & Constraints:
+- Focus on the specified blog topic ([Topic]) as the central theme.
+- Consider the interests and needs of the [Target Audience] to ensure relevancy.
+- Reflect the desired mood by using appropriate vocabulary and sentence structure associated with the [Tone].
+- Keep the introduction between 3-5 sentences for brevity and clarity.
+
+Variables:
+[Topic] = ''
+[Target Audience] = ''
+[Tone] = ''
+```
+
+## Youtube prompts
+
+### Video outline prompt
+
+```
+Provide the following input details to generate a short, engaging video script outline:
+
+1. Video Topic: [Topic]
+2. Key Points (3–5 points):
+   - [Key Point 1]
+   - [Key Point 2]
+   - [Key Point 3]
+   - [Key Point 4] (Optional)
+   - [Key Point 5] (Optional)
+3. Target Audience: [Target Audience]
+
+## Instructions
+
+Using the above input, generate an outline for a video script that meets these criteria:
+
+- **Context & Purpose:**  
+  Create a concise, engaging, and informative script outline for a short video. The outline should highlight the main topic and each key point, ensuring that the content resonates with the target audience.
+
+- **Format:**  
+  - Use bullet points or numbered lists to structure the outline.
+  - Each section should include a brief description or clarification of the key point’s relevance to the topic.
+  - Ensure the flow is logical and transitions smoothly between points.
+
+- **Style & Tone:**  
+  - Conversational yet professional.
+  - Clear, concise, and direct language.
+  - Designed for quick consumption and easy adaptation into a full script.
+
+- **Constraints:**  
+  - Limit the outline to essential points without extraneous details.
+  - Keep the outline brief and focused, suitable for a video that is engaging and to the point.
+
+Generate your output by following these guidelines strictly.
+
+---
+
+## Variable Placeholders
+
+[Topic] = ''  
+[Key Point 1] = ''  
+[Key Point 2] = ''  
+[Key Point 3] = ''  
+[Key Point 4] = '' (Optional)  
+[Key Point 5] = '' (Optional)  
+[Target Audience] = ''
+```
+
+## Email prompts
+
+### Thank you email
+
+```
+Act as an expert email content generator. Your task is to create a warm and professional thank-you email based on the following input details. The email should be appreciative and highlight the value delivered through the provided service.
+
+Instructions:
+1. Start with a friendly greeting addressing [Client Name].
+2. Express sincere gratitude for the opportunity to deliver [Service Provided].
+3. Clearly mention the key outcomes, emphasizing [Key Outcomes] achieved through the service.
+4. Maintain a warm, yet professional tone throughout the email.
+5. Ensure the email is concise and free of errors, ready for immediate use.
+6. Use complete sentences and a clear structure including an opening, body, and closing.
+
+Inputs to include:
+- Client Name: [Client Name]
+- Service Provided: [Service Provided]
+- Key Outcomes: [Key Outcomes]
+
+Ensure the placeholders below are replaced with your tailored details:
+
+[Client Name] = ''
+[Service Provided] = ''
+[Key Outcomes] = ''
+```
+
+### Referral request email
+
+```
+You are an automated referral request email generator. Create a concise, friendly referral request email that highlights the customer's positive experience and includes referral incentive details. Follow these instructions:
+
+1. Introduce the message in a warm and personable tone.
+2. Mention the customer's positive experience using details from [customer experience highlights].
+3. Request a referral by explaining that sharing their experience benefits both them and their friends.
+4. Clearly outline the incentives offered using details from [referral incentive details].
+5. Keep the message brief and engaging with a clear call-to-action that encourages the referral.
+6. Ensure the email is formatted in plain text with a friendly greeting and closing.
+
+Format and Style:
+- The email should have short paragraphs.
+- Use a tone that is both enthusiastic and appreciative.
+- Avoid technical jargon; use simple, conversational language.
+
+Constraints:
+- Include all variable placeholders in the appropriate sections.
+- Ensure the final output is a self-contained, easy-to-read referral request email.
+
+--------------------------------------------------
+
+Variable Placeholders Configuration:
+
+[Topic] = ''
+[customer experience highlights] = ''
+[referral incentive details] = ''
+
+--------------------------------------------------
+```
+
+### Onboarding email
+
+```
+You are to generate a welcoming onboarding email draft for a new customer. The task requires that the email includes the customer's name, key onboarding steps, and support contact information. Follow these guidelines:
+
+- Use the placeholders provided in square brackets to indicate where the user should input their tailored information.
+- Structure the email with a clear greeting, a brief overview of the onboarding steps, instructions or links to next actions, and a supportive closing statement.
+- Maintain a friendly, professional, and clear tone throughout the email.
+- The email should not contain any extra commentary; it should be a direct draft of the onboarding message.
+- When you include the placeholders within the email, ensure they can be easily modified by the user.
+
+Below is the template with placeholders. Replace the text in the brackets with your specific information:
+
+---------------------------------------------------------
+Dear [Customer Name],
+
+Welcome to [Company Name]! We are thrilled to have you on board. As you start your journey with us, here are a few key onboarding steps to help you get acquainted:
+
+1. [Key Onboarding Step 1]
+2. [Key Onboarding Step 2]
+3. [Key Onboarding Step 3]
+
+If you have any questions or need assistance, please feel free to contact our support team at [Support Contact Info]. We are here to help you every step of the way.
+
+Thank you for choosing [Company Name]. We look forward to working with you and witnessing your success.
+
+Best regards,
+
+[Your Name]
+[Your Position]
+[Company Name]
+---------------------------------------------------------
+
+## Variable Placeholders (Configure as needed)
+
+[Customer Name] = ''  
+[Company Name] = ''  
+[Key Onboarding Step 1] = ''  
+[Key Onboarding Step 2] = ''  
+[Key Onboarding Step 3] = ''  
+[Support Contact Info] = ''  
+[Your Name] = ''  
+[Your Position] = ''
+
+---------------------------------------------------------
+
+Use this prompt to generate a tailored, automated onboarding email draft that meets the requirements above.
+```
+
+### Email follow up template
+
+```
+Instructions:
+1. Begin with a courteous greeting using [Recipient Name].
+2. Include an opening paragraph that thanks the recipient for their time and references the meeting on [Meeting Date].
+3. Summarize the key points from the meeting using the content provided in [Meeting Summary]. Use clear and concise language.
+4. List the agreed-upon next steps or action items from [Action Items]. Use bullet points if multiple items are present.
+5. Ensure the email maintains the [Desired Tone] throughout (for example, professional, friendly, assertive, etc.).
+6. Conclude with a call-to-action and a professional closing.
+7. Format the email in standard business style with clear paragraphs and proper punctuation.
+
+Constraints:
+- Use the variable placeholders exactly as shown (e.g., [Meeting Summary], [Action Items], [Desired Tone], [Recipient Name], [Meeting Date]) where the user should input their tailored information.
+- The email should be professional, clear, and concise.
+- Ensure that all variable placeholders appear in the final email output.
+
+Example Structure:
+------------------
+Subject: Follow-Up from Our Meeting on [Meeting Date]
+
+Dear [Recipient Name],
+
+I hope this message finds you well. Thank you for meeting with me on [Meeting Date]. I wanted to follow up on our discussion and summarize the key points from our meeting:
+
+[Meeting Summary]
+
+Based on our conversation, here are the next steps/action items:
+- [Action Items]
+
+Please let me know if you have any questions or need further clarification. I look forward to our continued collaboration.
+
+Best regards,
+[Your Name]
+------------------
+
+Variable Placeholders (Configurable):
+[Meeting Summary] = ''
+[Action Items] = ''
+[Desired Tone] = ''
+[Recipient Name] = ''
+[Meeting Date] = ''
+```
+
+## Social media prompts
+
+### Make content
+
+```
+You are a social media content strategist tasked with generating creative post ideas for an upcoming campaign. Your output should include a list of 3 to 5 unique and engaging social media post ideas. Each post idea must include a brief descriptive title and a sample copy that resonates with the specified audience interests.
+
+## Instructions:
+1. Read the provided inputs:
+   - Campaign Theme: [Campaign Theme]
+   - Audience Interests: [Audience Interests]
+2. Based on these inputs, generate a list of 3–5 compelling social media post ideas.
+3. For each idea, include:
+   - A clear and concise title/description.
+   - A sample copy that reflects the campaign theme and aligns with the audience's interests.
+4. Maintain a creative tone that encourages engagement while staying on-brand.
+5. Ensure that the post ideas are distinct from each other and vary in content style (e.g., inspirational, informational, humorous).
+6. Use clear, specific language. Avoid redundant content.
+7. The final output should be formatted as a structured list.
+
+## Desired Output Format:
+- Idea 1: Title
+   - Sample Copy: [Sample copy text for idea 1]
+- Idea 2: Title
+   - Sample Copy: [Sample copy text for idea 2]
+- Idea 3: Title
+   - Sample Copy: [Sample copy text for idea 3]
+- [Include additional ideas if applicable, up to 5 ideas.]
+
+## Constraints:
+- Do not exceed 5 ideas.
+- Ensure consistency in style with the campaign theme and target audience.
+- Maintain brevity and creativity in each sample copy.
+
+---
+
+## Variable Placeholders:
+[Campaign Theme] = ''
+[Audience Interests] = ''
+```
+
+### Promotional SMS campaign
+
+````
+You are tasked with generating a concise and compelling SMS marketing message for a product launch. Follow these instructions:
+
+1. Use the provided product launch details and key call-to-action to create a brief SMS message suitable for mobile users.
+2. Ensure the message is clear, engaging, and direct, with a friendly yet professional tone.
+3. Include the product [Product Name] and its [Unique Feature/Benefit] to grab attention.
+4. Incorporate the [Launch Date] to create a sense of urgency.
+5. Clearly state the [Call-to-Action] that prompts recipients to take immediate action.
+6. Keep the total message within a 160-character limit.
+7. Use placeholder variables where necessary in the following format: [Variable Name].
+
+Output:
+- A single SMS marketing message that succinctly conveys all provided key details.
+
+Configuration:
+[Product Name] = ''
+[Unique Feature/Benefit] = ''
+[Launch Date] = ''
+[Call-to-Action] = ''
+```
+````
+
+### Linkedln post template
+
+```
+You are provided with inputs related to a professional announcement or achievement along with a key message. Generate a LinkedIn post draft that is designed to maximize engagement by following these guidelines:
+
+1. Begin with a clear opening statement that highlights the [Professional Announcement/Achievement].
+2. Explain the significance of this accomplishment in a professional context.
+3. Incorporate the [Key Message] in a way that is both insightful and memorable.
+4. Use a confident yet personable tone, ensuring the post is professional and engaging.
+5. Add a call-to-action (e.g., inviting comments, sharing insights, or connecting) that encourages audience interaction.
+6. Keep the post concise but rich with context, ensuring clarity and brevity.
+7. Ensure the overall message exudes enthusiasm without compromising professionalism.
+8. Do not exceed 200 words.
+
+Please insert your tailored information in the placeholders provided below:
+
+[Professional Announcement/Achievement] = ''
+
+[Key Message] = ''
+
+[Call-to-Action] = ''
 ```
