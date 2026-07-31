@@ -16,6 +16,11 @@
 
 ### Keyboard shortcuts
 
+
+![](https://i.imgur.com/l3Sswbu.jpeg)
+
+
+
 #### Switching modes
 
 - **auto accept mode**: TO enter auto accept mode for edits, press `shift + tab` keyboard shortcut
@@ -547,6 +552,27 @@ You don't organize the `MEMORY.md` side. Claude picks the topics, writes the not
 > [!NOTE]
 > Your job is to review: read what Claude has saved, edit anything wrong, delete anything you don't want kept. Nothing more.
 
+### Context engineering guide
+
+Here are the 5 layers of how Claude loads context:
+
+1. **loaded at the start of every session**: project-scoped and user-scoped `CLAUDE.md` and `MEMORY.md` files will always be loaded.
+	- **use case**: important context about user preferences and what the project is about
+	- **token use**: Uses a lot of tokens (5000-7000)
+2. **loaded on navigation**: You can have nested CLAUDE.md files that, upon navigation into a directory, it reads instead of just having the root-level CLAUDE.md at the product group. You can also have CLAUDE rules that are only loaded into context concerning certain files that match glob patterns that you defined. 
+3. **loaded on demand**: Skills, MCP, and subagents use progressive disclosure so that Claude can orchestrate between them and delegate tasks to them, so they're only loaded on demand while their descriptions are the only things that live in context. 
+4. **loaded on trigger**: The only things that are loaded on trigger are hooks, which you manually set, and commands, which you manually invoke. 
+5. **ephemeral**: includes conversation history.
+
+
+![](https://i.imgur.com/twz258Z.jpeg)
+
+
+Here are the best practices for context engineering:
+
+- **keep the `CLAUDE.md` at 16 lines, not 160**: Since CLAUDE.md is loaded on every single request, you want to keep this file extremely small. At most 16 lines. 
+	- Your root CLAUDE.md should be a badge, not a textbook. Project identity, tech stack, one or two critical rules. Everything else belongs in rules or skills.
+
 ## Claude agent loop in depth
 
 
@@ -743,6 +769,38 @@ Create a project-scoped skill called commit-msg. The workflow:
 Types: feat, fix, refactor, chore, docs, style, test. Subject under 60 characters. Body bullets optional but encouraged. Never include a Co-Authored-By trailer.
 
 Trigger when I say "write a commit message", "generate a commit", "commit my changes", or run /commit-msg.
+```
+
+A `SKILL.md` should roughly follow this template:
+
+```md
+---
+name: my-skill
+description: |
+  What this skill does. Include specific use cases.
+  Use when: (1) first scenario, (2) second scenario
+---
+
+# My Skill
+
+Brief description.
+
+## Quick Reference
+
+- **Main workflow**: See instructions below
+- **Advanced**: See [ADVANCED.md](references/ADVANCED.md)
+
+## Workflow
+
+1. Parse the request
+2. Execute the appropriate action
+3. Validate results
+4. Return output
+
+## Reference Files
+
+- [API Documentation](references/api.md)
+- [Examples](references/examples.md)
 ```
 
 ### CLI vs MCP vs Skills
@@ -1037,6 +1095,13 @@ To recap, here are the two main benefits to using subagents:
 
 1. **to prevent context rot and context switching**: Delegating tasks that are not tightly coupled with the main task, like searching up docs and reporting back findings can be delegated to a subagent.
 2. **To realize parallel work**: You can spin up multiple subagents with dumb models like claude haiku to do research in parallel or find bugs, etc. faster than you could do with one single agent.
+
+However, there are also two main drawbacks to using subagents, where if you don't follow the best practices, you will fall into them:
+
+1. **visibility tradeoff**: By default, you won't see logs from a subagent, so it's hard to debug them and see if they're handling a task well or not.
+	- **mitigation**: add subagent hooks that provide functionality to print out their logs to a console.
+2. **context tradeoff**: Subagents don’t have access to the rich context of your conversation with Quad. 
+	- **mitigation**: use sub‑agents for what they were intended for. Quick one‑off tasks, which do not have tight coupling with the main conversation. 
 #### Creating subagents
 
 You can create subagents with the `/agents` command, and the agent specification is like so:
@@ -1081,7 +1146,40 @@ Use the Explore agent to map the data flow in this project. Where does the coin 
 
 #### Custom subagents
 
-You can specify skills that a subagent can access, as they don't inherit skills from the parent.
+Here is the basic template of how to create a subagent md file:
+
+```md
+---
+description: One-line description
+model: haiku|sonnet|opus
+allowed-tools: [tool list]
+hooks:
+  post_tool_use:
+    - matcher: ToolName
+      command: validation command
+---
+
+# Agent Name
+
+## Purpose
+Detailed explanation.
+
+## Input
+$ARGUMENTS - Expected input
+
+## Instructions
+1. Step one
+2. Step two
+3. Step three
+
+## Output Format
+How results should look.
+
+## Notes
+Edge cases, tips.
+```
+
+You can specify also skills that a subagent can access, as they don't inherit skills from the parent.
 
 ```markdown title=".claude/agents/code-reviewer/AGENT.md"
 ---
@@ -1091,19 +1189,6 @@ skills: pr-review, security-check
 ---
 ```
 
-Here's another example:
-
-```md
----
-name: your-sub-agent-name
-description: A clear description of when this sub agent should be used.
-tools: tool1, tool2 # Optional - inherits all tools from the main agent if omitted.
----
-
-Your sub agent's system prompt goes here.
-
-This section should clearly define the sub agent's role, capabilities, personality, and approach to solving problems. Include specific instructions, best practices, and any constraints the sub agent should follow.
-```
 
 | Field         | Required | Description                                                                                                                                                 |
 | ------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1111,6 +1196,7 @@ This section should clearly define the sub agent's role, capabilities, personali
 | `description` | Yes      | A natural language description of the agent’s purpose, used by Claude for automatic delegation.                                                             |
 | `tools`       | No       | A comma-separated list of specific tools the agent can use. If omitted, it inherits all tools from the main agent, including any connected via MCP servers. |
 | `skills`      | No       | A command-separated list of skill names the agent can have access to.                                                                                       |
+| `hooks`       | No       | Custom hooks to attach to the agent and the bash commands to run on those lifecycle hook triggers.                                                          |
 
 Here is the basic flow for creating a subagent and using them optimally:
 
@@ -1128,7 +1214,231 @@ Here are other subagent use cases:
 
 - **research agent**: Start with research, not code. Ask for a subagent to go and find the best way to do the thing you are about to build, and to write what it finds into a file, for example `docs/research.md`. 
 - **refactoring, other work**: Ask for parallel subagents when the work splits cleanly into pieces that do not depend on each other. On the call: four pages, four subagents, all at once, off one shared design system so they matched.
+- **security agent**: handles security and finds vulnerabilities in the app
+- **test creator or runner**: creates unit tests and runs them
 
+#### Subagent best practices
+
+- **have a clearly defined single purpose**: Subagents must follow the single responsibility principle else there is no point to them.
+
+```
+Good: "Reviews code for bugs"
+Bad:  "Reviews, tests, and documents"
+```
+
+- **specify output**: tell the subagent exactly how to format results.
+
+#### Subagent cookbook
+
+**Linting agent**
+
+```md
+---
+description: Runs linting, summarizes issues
+model: haiku
+allowed-tools: Bash, Read
+---
+
+# Lint Runner
+
+## Purpose
+Run linter, provide actionable summary.
+
+## Instructions
+1. Detect linter (eslint, ruff, etc.)
+2. Run on project or specified file
+3. Summarize errors vs warnings
+4. List top issues
+
+## Output
+## Lint Results
+**Tool**: [linter]
+### Summary
+- Errors: [n]
+- Warnings: [n]
+### Top Issues
+1. [rule]: [count] - [explanation]
+```
+
+**test runner subagent**
+
+```md
+---
+name: test-runner
+description: Runs tests and provides clear summary of results
+model: haiku
+allowed-tools: Bash, Read, Glob
+---
+
+# Test Runner Agent
+
+## Purpose
+Detect project's test framework, run tests, summarize results.
+
+## Input
+$ARGUMENTS - Optional: specific test file, pattern, or "all"
+
+## Instructions
+
+1. **Detect framework**
+   - `package.json` → npm test, jest, vitest
+   - `pytest.ini` / `pyproject.toml` → pytest
+   - `Cargo.toml` → cargo test
+   - `go.mod` → go test
+
+2. **Run tests**
+   - Target specific file if given
+   - Capture output and exit code
+
+3. **Summarize**
+   - Count passed/failed/skipped
+   - Extract failure messages
+   - Identify failed tests
+
+## Output Format
+
+## Test Results
+
+**Framework**: [name]
+**Command**: [command run]
+**Status**: PASSED | FAILED | ERROR
+
+### Results
+- Passed: [n]
+- Failed: [n]
+- Skipped: [n]
+
+### Failed Tests
+1. **[test name]**
+   Error: [message]
+   File: [location]
+
+### Next Steps
+[Suggestions if failures]
+```
+
+**code reviewer subagent**
+
+```md
+---
+name: code-reviewer
+description: Reviews code with clear, beginner-friendly feedback
+model: sonnet
+allowed-tools: Read, Glob, Grep
+---
+
+# Code Reviewer Agent
+
+## Purpose
+Review code and provide constructive feedback. Explain issues clearly without jargon.
+
+## Input
+$ARGUMENTS - File path, recent changes, or specific concern
+
+## Instructions
+
+1. **Identify target**
+   - File path → read that file
+   - "recent changes" → use `git diff`
+   - No target → ask what to review
+
+2. **Review for**
+   - Readability: Easy to understand?
+   - Bugs: Obvious errors or edge cases?
+   - Best Practices: Common patterns followed?
+   - Naming: Clear variable/function names?
+
+3. **Provide feedback**
+   - Simple language, no jargon
+   - Explain WHY, not just WHAT
+   - Suggest specific fixes
+   - Note what's done well
+
+## Output Format
+
+## Code Review Summary
+
+### What's Working Well
+- [Positive points]
+
+### Suggestions
+
+#### 1. [Category]
+**Where**: [file:line]
+**Issue**: [Clear explanation]
+**Why it matters**: [Impact]
+**Suggestion**: [Specific fix]
+
+### Quick Wins
+- [Easy improvements]
+```
+
+
+**document generator subagent**
+
+````
+---
+name: doc-generator
+description: Generates clear documentation from code
+model: sonnet
+allowed-tools: Read, Glob, Write
+---
+
+# Documentation Generator Agent
+
+## Purpose
+Generate clear documentation for code files or modules.
+
+## Input
+$ARGUMENTS - File path, function name, or "module" for overview
+
+## Instructions
+
+1. **Understand scope**
+   - Single file: Document purpose + key functions
+   - Function: Find and document that function
+   - Module: Create structure overview
+
+2. **Analyze code**
+   - Understand purpose and flow
+   - Identify public API vs helpers
+   - Note dependencies
+   - Check existing docs
+
+3. **Generate docs**
+
+   **For functions:**
+   - Purpose (one sentence)
+   - Parameters (name, type, description)
+   - Return value
+   - Example usage
+
+   **For files/modules:**
+   - Overview
+   - Key exports
+   - Usage examples
+   - Dependencies
+
+4. **Write documentation**
+   - Clear, simple language
+   - Include code examples
+   - Match existing doc style
+
+## Output Format
+
+```
+## Documentation Generated
+
+**Scope**: [what documented]
+**Output**: [where written]
+
+### Summary
+[What was documented]
+
+### Files Created/Modified
+- [list]
+```
+````
 ### Hooks
 
 Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
@@ -1174,7 +1484,6 @@ You can specify the events to listen to and a file to run on those events, and y
 
 ![](https://i.imgur.com/GqErMmP.jpeg)
 
-#### JSON hooks
 
 You specify hooks in JSON in the `.claude/settings.local.json` under the `"hooks"` key:
 
@@ -1222,7 +1531,7 @@ favicon: ""
 ```
 
 
-**custom hook: deny dangerous commands**
+#### **custom hook: deny dangerous commands**
 
 This hook is used to deny dangerous commands like `rm -rf` or curling to a non HTTPS string.
 
@@ -1267,7 +1576,7 @@ exit 0
 
 ```
 
-**custom hook: write bash commands to a log**
+#### **custom hook: write bash commands to a log**
 
 ```bash title=".claude/hooks/pre-bash-log.sh"
 #!/usr/bin/env bash
@@ -1277,13 +1586,842 @@ printf '%s %s\n' "$(date -Is)" "$cmd" >> .claude/bash-commands.log
 exit 0
 ```
 
+#### **custom hook: write subagent logs to a log**
 
-#### YAML hooks
+1. Set up the `.claude/settings.json` and target the `hooks.SubagentStop` hook, running a Python file on that hook trigger.
 
-You can also create hooks with YAML syntax and then point to an "enforcer" code script that uses code to actually apply logic and side effects to the hooks
+```json
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/subagent-logger.py"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+2. In the Python file run this code to create a log file and append logs to it
+
+```python
+#!/usr/bin/env python3
+"""
+SubagentStop Hook - Logs subagent activity to JSON file.
+Triggered when any subagent completes.
+Logs to: logs/subagent-activity.json
+"""
+
+import sys
+import json
+from pathlib import Path
+from datetime import datetime
+
+LOG_FILE = Path("logs/subagent-activity.json")
+
+
+def ensure_log_file():
+    """Create log file and directory if needed."""
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not LOG_FILE.exists():
+        LOG_FILE.write_text("[]")
+
+
+def append_log_entry(entry: dict):
+    """Append entry to log, keeping last 100."""
+    ensure_log_file()
+    try:
+        logs = json.loads(LOG_FILE.read_text())
+    except (json.JSONDecodeError, FileNotFoundError):
+        logs = []
+    logs.append(entry)
+    if len(logs) > 100:
+        logs = logs[-100:]
+    LOG_FILE.write_text(json.dumps(logs, indent=2))
+
+
+def main():
+    try:
+        hook_input = json.loads(sys.stdin.read())
+        session_id = hook_input.get("session_id", "unknown")
+        task = hook_input.get("task_description", hook_input.get("description", "Subagent task"))
+        result = hook_input.get("result", "")
+        if isinstance(result, dict):
+            result = result.get("summary", str(result)[:200])
+        elif isinstance(result, str) and len(result) > 200:
+            result = result[:200] + "..."
+        duration_ms = hook_input.get("duration_ms")
+        duration_sec = round(duration_ms / 1000, 1) if duration_ms else None
+        error = hook_input.get("error")
+        status = "error" if error else "completed"
+
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "session_id": session_id,
+            "task": task[:100] if task else "Unknown",
+            "status": status,
+            "duration_seconds": duration_sec,
+            "result_preview": result[:150] if result else None
+        }
+        if error:
+            entry["error"] = str(error)[:200]
+
+        append_log_entry(entry)
+    except Exception as e:
+        print(f"Subagent logger warning: {e}", file=sys.stderr)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+#### Full fledged hook library
+
+We can create our own CLAUDE code hooks library by first defining all the file paths we want to protect from reading and writing, and we can do that in YAML.
+
+Then we create a Python enforcer file that basically enforces that the current path is a secure one to read from and not in the block list. 
+
+1. Define the protected filepaths for reading and writing with YAML syntax and then point to an "enforcer" code script that uses code to actually apply logic and side effects to the hooks
 
 ![](https://i.imgur.com/R8Ajx2i.jpeg)
 
+```yaml
+# =============================================================================
+# Security Patterns Configuration
+# =============================================================================
+# Used by damage-control hooks to block dangerous operations
+# =============================================================================
+#
+# PROTECTION LEVELS:
+# ------------------
+# Each pattern can have one of two behaviors:
+#
+#   1. BLOCK (default) - Stops execution immediately
+#      - pattern: '\brm\s+-rf\b'
+#        reason: Recursive force delete
+#        # No "ask" field = BLOCKED
+#
+#   2. ASK - Prompts user for confirmation
+#      - pattern: '\bgit\s+checkout\s+\.'
+#        reason: Discards changes
+#        ask: true  # ← User can approve or deny
+#
+# To customize:
+#   - Add "ask: true" to any pattern to get confirmation prompts
+#   - Remove "ask: true" (or set to false) to enforce blocking
+#
+# See guides/protection-levels.md for full documentation.
+# =============================================================================
+
+# === BASH TOOL PATTERNS (~30 patterns) ===
+# Patterns that trigger blocking or confirmation for bash commands
+# Default behavior: BLOCK (unless "ask: true" is specified)
+bashToolPatterns:
+  # --- FILE DESTRUCTION (10 patterns) ---
+  - pattern: '\brm\s+(-[^\s]*)*-[rRf]'
+    reason: rm with recursive or force flags - could delete entire directories
+
+  - pattern: '\brm\s+-rf\s+/'
+    reason: rm -rf on root paths - extremely dangerous
+
+  - pattern: '\bfind\b.*-delete\b'
+    reason: find with -delete can remove many files silently
+
+  - pattern: '\bfind\b.*-exec\s+rm\b'
+    reason: find with rm execution - bulk deletion
+
+  - pattern: '\bshred\b'
+    reason: shred permanently destroys file contents
+    
+  - pattern: '\bdocker\s+system\s+prune\b.*-a'
+    reason: removes all unused Docker resources
+    ask: true
+    
+# === ZERO ACCESS PATHS ===
+# Never read, write, or execute - complete lockout
+zeroAccessPaths:
+  - ".env"
+  - ".env.*"
+  - "*.env"
+  - "~/.ssh/"
+  - "~/.aws/"
+  - "~/.gnupg/"
+  - "*.pem"
+  - "*.key"
+  - "*-adminsdk*.json"
+  - "firebase-adminsdk*.json"
+  - "service-account*.json"
+  - "credentials.json"
+  - "secrets.yaml"
+  - "secrets.json"
+  - ".npmrc"
+  - ".pypirc"
+
+# === READ ONLY PATHS ===
+# Can read, cannot modify
+readOnlyPaths:
+  - "/etc/"
+  - "~/.bashrc"
+  - "~/.zshrc"
+  - "~/.bash_profile"
+  - "~/.profile"
+  - "package-lock.json"
+  - "yarn.lock"
+  - "pnpm-lock.yaml"
+  - "Gemfile.lock"
+  - "poetry.lock"
+  - "Cargo.lock"
+  - "composer.lock"
+  - "*.lock"
+
+# === NO DELETE PATHS ===
+# Can read and modify, cannot delete
+noDeletePaths:
+  - ".claude/"
+  - ".git/"
+  - "README.md"
+  - "LICENSE"
+  - "CHANGELOG.md"
+  - ".gitignore"
+```
+
+2. Then you can create a hook that prevents writing to any of the `zeroAccessPaths` or `readOnlyPaths`:
+
+```python
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.8"
+# dependencies = ["pyyaml"]
+# ///
+"""
+Write Tool Guard - PreToolUse Hook
+
+Blocks writes to protected files (zeroAccess and readOnly paths).
+
+Exit codes:
+  0 = Allow
+  2 = Block
+"""
+
+import json
+import sys
+import re
+import os
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    sys.exit(0)
+
+
+def load_patterns():
+    script_dir = Path(__file__).parent
+    patterns_file = script_dir / "patterns.yaml"
+
+    if not patterns_file.exists():
+        return {}
+
+    with open(patterns_file, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def expand_path(path: str) -> str:
+    return os.path.expanduser(os.path.expandvars(path))
+
+
+def matches_protected_path(file_path: str, patterns: list) -> tuple:
+    file_path = expand_path(file_path)
+
+    for pattern in patterns:
+        expanded = expand_path(pattern)
+
+        if "*" in pattern:
+            regex_pattern = pattern.replace(".", r"\.").replace("*", ".*")
+            if re.search(regex_pattern, file_path, re.IGNORECASE):
+                return True, pattern
+        else:
+            if expanded in file_path or pattern in file_path:
+                return True, pattern
+            if file_path.endswith(pattern) or file_path.endswith(pattern.rstrip("/")):
+                return True, pattern
+
+    return False, None
+
+
+def main():
+    try:
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        sys.exit(0)
+
+    tool_name = input_data.get("tool_name", "")
+
+    if tool_name != "Write":
+        sys.exit(0)
+
+    tool_input = input_data.get("tool_input", {})
+    file_path = tool_input.get("file_path", "")
+
+    if not file_path:
+        sys.exit(0)
+
+    config = load_patterns()
+
+    # Check zero access paths
+    matched, pattern = matches_protected_path(file_path, config.get("zeroAccessPaths", []))
+    if matched:
+        print(f"BLOCKED: Cannot write to protected file matching: {pattern}", file=sys.stderr)
+        sys.exit(2)
+
+    # Check read-only paths
+    matched, pattern = matches_protected_path(file_path, config.get("readOnlyPaths", []))
+    if matched:
+        print(f"BLOCKED: Cannot write to read-only file matching: {pattern}", file=sys.stderr)
+        sys.exit(2)
+
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+3. And this one that protects from reading any of the. 
+
+```python
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.8"
+# dependencies = ["pyyaml"]
+# ///
+"""
+Edit Tool Guard - PreToolUse Hook
+
+Blocks edits to protected files (zeroAccess and readOnly paths).
+
+Exit codes:
+  0 = Allow
+  2 = Block
+"""
+
+import json
+import sys
+import re
+import os
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    sys.exit(0)
+
+
+def load_patterns():
+    script_dir = Path(__file__).parent
+    patterns_file = script_dir / "patterns.yaml"
+
+    if not patterns_file.exists():
+        return {}
+
+    with open(patterns_file, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def expand_path(path: str) -> str:
+    return os.path.expanduser(os.path.expandvars(path))
+
+
+def matches_protected_path(file_path: str, patterns: list) -> tuple:
+    """Check if file matches any protected pattern."""
+    file_path = expand_path(file_path)
+
+    for pattern in patterns:
+        expanded = expand_path(pattern)
+
+        if "*" in pattern:
+            regex_pattern = pattern.replace(".", r"\.").replace("*", ".*")
+            if re.search(regex_pattern, file_path, re.IGNORECASE):
+                return True, pattern
+        else:
+            if expanded in file_path or pattern in file_path:
+                return True, pattern
+            if file_path.endswith(pattern) or file_path.endswith(pattern.rstrip("/")):
+                return True, pattern
+
+    return False, None
+
+
+def main():
+    try:
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        sys.exit(0)
+
+    tool_name = input_data.get("tool_name", "")
+
+    if tool_name != "Edit":
+        sys.exit(0)
+
+    tool_input = input_data.get("tool_input", {})
+    file_path = tool_input.get("file_path", "")
+
+    if not file_path:
+        sys.exit(0)
+
+    config = load_patterns()
+
+    # Check zero access paths
+    matched, pattern = matches_protected_path(file_path, config.get("zeroAccessPaths", []))
+    if matched:
+        print(f"BLOCKED: Cannot edit protected file matching: {pattern}", file=sys.stderr)
+        sys.exit(2)
+
+    # Check read-only paths
+    matched, pattern = matches_protected_path(file_path, config.get("readOnlyPaths", []))
+    if matched:
+        print(f"BLOCKED: Cannot edit read-only file matching: {pattern}", file=sys.stderr)
+        sys.exit(2)
+
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+4. And this one that prevents from running any of the bash commands listed in the. 
+
+```python
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.8"
+# dependencies = ["pyyaml"]
+# ///
+"""
+Bash Tool Guard - PreToolUse Hook
+
+Blocks dangerous bash commands before execution.
+Checks: bashToolPatterns, zeroAccessPaths, readOnlyPaths, noDeletePaths
+
+Exit codes:
+  0 = Allow
+  0 + JSON {"decision": "ask"} = Request confirmation
+  2 = Block (stderr sent to Claude)
+"""
+
+import json
+import sys
+import re
+import os
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    print("PyYAML not installed. Run: pip install pyyaml", file=sys.stderr)
+    sys.exit(0)
+
+
+def load_patterns():
+    """Load patterns from patterns.yaml in same directory as script."""
+    script_dir = Path(__file__).parent
+    patterns_file = script_dir / "patterns.yaml"
+
+    if not patterns_file.exists():
+        return {}
+
+    with open(patterns_file, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def expand_path(path: str) -> str:
+    """Expand ~ and environment variables in path."""
+    return os.path.expanduser(os.path.expandvars(path))
+
+
+def matches_path_pattern(command: str, patterns: list) -> tuple:
+    """Check if command accesses any protected path. Returns (matched, pattern)."""
+    for pattern in patterns:
+        expanded = expand_path(pattern)
+
+        # Handle glob patterns
+        if "*" in pattern:
+            # Convert glob to regex
+            regex_pattern = pattern.replace(".", r"\.").replace("*", ".*")
+            if re.search(regex_pattern, command, re.IGNORECASE):
+                return True, pattern
+        else:
+            # Direct path match
+            if expanded in command or pattern in command:
+                return True, pattern
+
+    return False, None
+
+
+def check_command(command: str, config: dict) -> dict:
+    """
+    Check command against all patterns.
+    Returns: {"allow": True/False, "ask": True/False, "reason": str}
+    """
+    # Check bash tool patterns
+    for item in config.get("bashToolPatterns", []):
+        pattern = item.get("pattern", "")
+        reason = item.get("reason", "Matched blocked pattern")
+        ask = item.get("ask", False)
+
+        try:
+            if re.search(pattern, command, re.IGNORECASE):
+                if ask:
+                    return {"allow": False, "ask": True, "reason": reason}
+                else:
+                    return {"allow": False, "ask": False, "reason": reason}
+        except re.error:
+            continue
+
+    # Check zero access paths (block completely)
+    matched, pattern = matches_path_pattern(command, config.get("zeroAccessPaths", []))
+    if matched:
+        return {
+            "allow": False,
+            "ask": False,
+            "reason": f"Access to protected path blocked: {pattern}"
+        }
+
+    # Check read-only paths (block modifications)
+    modification_indicators = ["rm ", "mv ", ">", ">>", "tee ", "sed -i", "chmod ", "chown "]
+    for indicator in modification_indicators:
+        if indicator in command:
+            matched, pattern = matches_path_pattern(command, config.get("readOnlyPaths", []))
+            if matched:
+                return {
+                    "allow": False,
+                    "ask": False,
+                    "reason": f"Modification of read-only path blocked: {pattern}"
+                }
+
+    # Check no-delete paths
+    deletion_indicators = ["rm ", "rmdir ", "unlink ", "del "]
+    for indicator in deletion_indicators:
+        if indicator in command:
+            matched, pattern = matches_path_pattern(command, config.get("noDeletePaths", []))
+            if matched:
+                return {
+                    "allow": False,
+                    "ask": False,
+                    "reason": f"Deletion of protected path blocked: {pattern}"
+                }
+
+    return {"allow": True, "ask": False, "reason": ""}
+
+
+def main():
+    try:
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        sys.exit(0)  # Allow on parse error
+
+    tool_name = input_data.get("tool_name", "")
+
+    if tool_name != "Bash":
+        sys.exit(0)  # Only check Bash tool
+
+    tool_input = input_data.get("tool_input", {})
+    command = tool_input.get("command", "")
+
+    if not command:
+        sys.exit(0)
+
+    config = load_patterns()
+    result = check_command(command, config)
+
+    if result["allow"]:
+        sys.exit(0)
+    elif result["ask"]:
+        # Request user confirmation
+        output = {
+            "decision": "ask",
+            "reason": result["reason"]
+        }
+        print(json.dumps(output))
+        sys.exit(0)
+    else:
+        # Block the command
+        print(f"BLOCKED: {result['reason']}", file=sys.stderr)
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+5. This is a post‑tool‑use hook that verifies the output of a Bash command does not perform sensitive actions, such as leaking an API key. 
+
+```python
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.8"
+# ///
+"""
+Bash Output Validator - PostToolUse Hook
+
+Scans command output for accidentally exposed secrets/credentials.
+Provides rotation guidance when secrets are detected.
+
+Exit codes:
+  0 = Always (PostToolUse hooks observe, don't block)
+
+Output: Warning message to stderr when secrets detected
+"""
+
+import json
+import sys
+import re
+
+
+# Secret detection patterns with provider info
+SECRET_PATTERNS = [
+    {
+        "pattern": r"sk-ant-[A-Za-z0-9\-_]{20,}",
+        "name": "Anthropic API Key",
+        "rotate_url": "console.anthropic.com/settings/keys"
+    },
+    {
+        "pattern": r"sk-[A-Za-z0-9]{48,}",
+        "name": "OpenAI API Key",
+        "rotate_url": "platform.openai.com/api-keys"
+    },
+    {
+        "pattern": r"ghp_[A-Za-z0-9]{36}",
+        "name": "GitHub Personal Access Token",
+        "rotate_url": "github.com/settings/tokens"
+    },
+    {
+        "pattern": r"gho_[A-Za-z0-9]{36}",
+        "name": "GitHub OAuth Token",
+        "rotate_url": "github.com/settings/tokens"
+    },
+    {
+        "pattern": r"AKIA[A-Z0-9]{16}",
+        "name": "AWS Access Key ID",
+        "rotate_url": "console.aws.amazon.com/iam"
+    },
+    {
+        "pattern": r"-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
+        "name": "Private Key",
+        "rotate_url": "Generate new key pair and update all services"
+    },
+    {
+        "pattern": r"Bearer\s+[A-Za-z0-9\-_\.]{20,}",
+        "name": "Bearer Token",
+        "rotate_url": "Rotate at the issuing service"
+    },
+    {
+        "pattern": r"xox[baprs]-[A-Za-z0-9\-]{10,}",
+        "name": "Slack Token",
+        "rotate_url": "api.slack.com/apps"
+    },
+    {
+        "pattern": r"sq0[a-z]{3}-[A-Za-z0-9\-_]{22,}",
+        "name": "Square Access Token",
+        "rotate_url": "developer.squareup.com/apps"
+    },
+    {
+        "pattern": r"stripe[_-]?[a-z]*[_-]?key['\"]?\s*[:=]\s*['\"]?[a-zA-Z0-9_\-]{20,}",
+        "name": "Stripe API Key",
+        "rotate_url": "dashboard.stripe.com/apikeys"
+    },
+]
+
+# Generic patterns (lower confidence)
+GENERIC_PATTERNS = [
+    {
+        "pattern": r"['\"]?password['\"]?\s*[:=]\s*['\"][^'\"]{8,}['\"]",
+        "name": "Hardcoded Password",
+        "rotate_url": "Change the password immediately"
+    },
+    {
+        "pattern": r"['\"]?api[_-]?key['\"]?\s*[:=]\s*['\"][A-Za-z0-9\-_]{20,}['\"]",
+        "name": "Generic API Key",
+        "rotate_url": "Identify the service and rotate the key"
+    },
+]
+
+
+def scan_for_secrets(content: str) -> list:
+    """Scan content for secret patterns. Returns list of findings."""
+    findings = []
+
+    # High confidence patterns first
+    for item in SECRET_PATTERNS:
+        try:
+            if re.search(item["pattern"], content, re.IGNORECASE):
+                findings.append({
+                    "name": item["name"],
+                    "rotate_url": item["rotate_url"],
+                    "confidence": "high"
+                })
+        except re.error:
+            continue
+
+    # Generic patterns (only if no high-confidence matches)
+    if not findings:
+        for item in GENERIC_PATTERNS:
+            try:
+                if re.search(item["pattern"], content, re.IGNORECASE):
+                    findings.append({
+                        "name": item["name"],
+                        "rotate_url": item["rotate_url"],
+                        "confidence": "medium"
+                    })
+            except re.error:
+                continue
+
+    return findings
+
+
+def format_warning(findings: list) -> str:
+    """Format warning message with rotation guidance."""
+    lines = [
+        "",
+        "=" * 60,
+        "  SECURITY ALERT: Possible credentials exposed in output!",
+        "=" * 60,
+        "",
+        "Detected:",
+    ]
+
+    for f in findings:
+        lines.append(f"  - {f['name']} (confidence: {f['confidence']})")
+
+    lines.extend([
+        "",
+        "IMMEDIATE ACTIONS:",
+        "  1. Rotate this credential immediately",
+        "  2. Check if this was committed to git (git log -p | grep <key>)",
+        "  3. Review who has access to this terminal/logs",
+        "",
+        "ROTATION LINKS:",
+    ])
+
+    for f in findings:
+        lines.append(f"  - {f['name']}: {f['rotate_url']}")
+
+    lines.extend([
+        "",
+        "BEST PRACTICES:",
+        "  - Store secrets in .env files (add .env to .gitignore)",
+        "  - Use environment variables, not hardcoded values",
+        "  - Never commit secrets to version control",
+        "  - Use secret managers for production (AWS Secrets Manager, etc.)",
+        "",
+        "=" * 60,
+        ""
+    ])
+
+    return "\n".join(lines)
+
+
+def main():
+    try:
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        sys.exit(0)
+
+    tool_name = input_data.get("tool_name", "")
+
+    # Extract content based on tool type
+    if tool_name == "Bash":
+        tool_output = input_data.get("tool_output", {})
+        stdout = str(tool_output.get("stdout", ""))
+        stderr = str(tool_output.get("stderr", ""))
+        content = stdout + "\n" + stderr
+    elif tool_name == "Read":
+        tool_output = input_data.get("tool_output", {})
+        # Read tool output is typically a string (file content) or has a content field
+        if isinstance(tool_output, str):
+            content = tool_output
+        else:
+            content = str(tool_output.get("content", tool_output.get("output", "")))
+    else:
+        sys.exit(0)
+
+    if not content.strip():
+        sys.exit(0)
+
+    findings = scan_for_secrets(content)
+
+    if findings:
+        warning = format_warning(findings)
+        print(warning, file=sys.stderr)
+
+    # PostToolUse hooks always exit 0 (observe, don't block)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+And of course, this is what the overall hooks configuration settings looks like:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/damage-control/bash-tool-guard.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/damage-control/edit-tool-guard.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/damage-control/write-tool-guard.py",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/damage-control/bash-output-validator.py",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ## Claude with MCP
 
@@ -1376,6 +2514,7 @@ Here's an example of my favoriute MCP setuo:
 }
 },
 ```
+
 
 ## Claude code for coding
 
@@ -1475,12 +2614,207 @@ refactor this for Readability and maintainability. Split it into focused ES modu
 
 #### Refactor to use zustand or context
 
+### Spec-driven development with Claude
+
+Spec-driven development refers to having Claude make implementation plans, saving them to Markdown files, and then asking Claude to build a solution or feature from those implementation plans and verify wiith unit testing via vitest and E2E testing via playwright.
+
+This is basically what the creator of Claude Code, Boris Cherny does.
+
+
+![](https://i.imgur.com/dLqaj74.jpeg)
+
+
+
+But roughly this is how it works:
+
+1. **plan**: Use the `/EA-plan` command to create a spec file, and save that spec file in the project
+2. **build**: Tell claude to build out the plan with `/EA-build`
+3. **validator**: Create test runner subagents - one for unit tests and one for E2E tests - that get triggered on the agent's `PostToolUse` hook and then runs the test suite, returning the results to the main agent and then the main agent fixes the problems, and the loop keeps triggering the subagent until all tests pass and the main agent thinks it's good to go.
+
+```
+Agent does work
+      ↓
+Hook automatically validates
+      ↓
+Issues caught immediately
+      ↓
+Agent fixes problems
+      ↓
+You get quality output
+```
+
+4. **review**: spin up a subagent to review the code or run `/EA-review`
+5. **commit**: commit the code with `/EA-commit`
+
+To this end, we create custom commands, hooks, and sub‑agents to help us complete the spec‑driven development in this opinionated format. 
+
+```
+/EA-plan "Add search functionality to product list"
+/EA-build specs/todo/add-search.md
+/EA-validate
+/EA-review specs/done/add-search.md
+/EA-commit "feat: add product search functionality"
+```
+
+#### Step 1: planning and building
+
+
+Here's an example spec template:
+
+```md
+# [Feature Name]
+
+## Problem Statement
+
+[What problem does this feature solve? Why are we building it?]
+
+## Objectives
+
+1. [Primary objective]
+2. [Secondary objective]
+3. [Additional objectives if any]
+
+## Technical Approach
+
+### Overview
+
+[High-level description of how we'll solve this]
+
+### Architecture
+
+[Any architectural decisions or patterns we'll use]
+
+### Key Components
+
+1. **[Component 1]**: [Description]
+2. **[Component 2]**: [Description]
+3. **[Component 3]**: [Description]
+
+## Implementation Phases
+
+### Phase 1: [Phase Name]
+
+**Goal**: [What this phase accomplishes]
+
+**Steps**:
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Files to modify/create**:
+- `path/to/file1.ts` - [what changes]
+- `path/to/file2.ts` - [what changes]
+
+### Phase 2: [Phase Name]
+
+**Goal**: [What this phase accomplishes]
+
+**Steps**:
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Files to modify/create**:
+- `path/to/file.ts` - [what changes]
+
+## Testing Strategy
+
+### Manual Testing
+
+- [ ] [Test case 1]
+- [ ] [Test case 2]
+- [ ] [Test case 3]
+
+### Automated Tests
+
+- [ ] Unit tests for [component]
+- [ ] Integration tests for [flow]
+
+## Success Criteria
+
+- [ ] [Criterion 1 - specific and measurable]
+- [ ] [Criterion 2 - specific and measurable]
+- [ ] [Criterion 3 - specific and measurable]
+
+## Potential Challenges
+
+1. **[Challenge]**: [How we'll address it]
+2. **[Challenge]**: [How we'll address it]
+
+## Notes
+
+[Any additional context, references, or considerations]
+
+---
+
+*Created: [YYYY-MM-DD]*
+*Status: todo | in-progress | done*
+```
+
+Here you can find all the slash commands
+
+```embed
+title: "GitHub - aadilmallick/claude-core-workflow: forked this schaista"
+image: "https://opengraph.githubassets.com/f3352b33d819733c083adabe2ac1e4e4d9baaee02c5b63d3cebb9e546a98d74e/aadilmallick/claude-core-workflow"
+description: "forked this schaista. Contribute to aadilmallick/claude-core-workflow development by creating an account on GitHub."
+url: "https://github.com/aadilmallick/claude-core-workflow"
+favicon: ""
+aspectRatio: "50"
+```
+
+#### Step 2a: Validation - unit testing
+
+This is the key pattern that makes agents trustworthy:
+
+```
+Agent does work
+      ↓
+Hook validates output
+      ↓
+BLOCKED with feedback ←─────┐
+      ↓                      │
+Agent receives error message │
+      ↓                      │
+Agent fixes the issue        │
+      ↓                      │
+Hook validates again ────────┘
+      ↓
+PASS → Work complete
+```
+
+The agent **cannot finish** until validation passes. This creates self-correcting behavior.
+
+This is the basic workflow to follow when creating a validation loop:
+
+1. **Add test validation** (this module's `test-validator.py`)
+2. **Add build validation** (this module's `build-validator.py`)
+3. **Check logs** (validators write to `validators/*.log`)
+#### Step 2b: Validation - E2E testing
+
+#### Step 4: clear and reprime
+
+At the end of a conversation, when most of your contacts are filled up, here is the process to begin a new one:
+
+1. **store living documents**: Tell Claude to save memory, update living documents, etc. Save session memory and session content. 
+2. **clear the context**: Clear the context with the `/clear` command.
+3. **reprime**: A custom `/prime` command, which is essentially a Claude command you create, tells Quad to read a bunch of files to re‑prime itself on the project's context and what it should know. 
+
 ### Claude on your PRs and issues
 
 Here is how to install claude as a github app that can be invoked upon PRs and issues:
 
 1. Run the `/install-github-app` to install a claude code github action.
 2. Choose how to authorize Claude and which repos to give it access to and install Claude in.
+3. Claude asks which workflows to install:
+
+```
+Which workflows would you like to install?
+> [x] Claude Code (works on issues when @claude is mentioned)
+> [x] Claude Code Review (auto-reviews PRs)
+```
+
+4. **Recommendation**: Select both for the full experience.
+5. **create authentication token**: create a GHP token with Claude that Claude uses to authenticate with gh CLI and be installed as a Github app.
 
 Once you have installed Claude into a repo, you have these three powerful ways you can use it:
 
@@ -1490,3 +2824,483 @@ Once you have installed Claude into a repo, you have these three powerful ways y
 
 > [!NOTE]
 > This actions makes claude become a collaborator on your PRs for the current repo. You can now tag claude on issues, make it an assignee, etc.
+
+#### Claude with issues workflow
+
+Here's the high-level overview of how to use Claude in issues:
+
+1. Go to your repo's Issues tab
+2. Click **New issue**
+3. Title: "Test: Add a hello world function"
+4. Description: "Create a simple hello world function in any language"
+5. Click **Submit new issue**
+6. Add a comment: `@claude please implement this`
+7. Watch the issue comments for Claude's response
+
+And here's the in depth guide:
+
+1. Create a github issue and tag `@claude` asking it to make a plan to implement the feature
+
+```
+@claude please implement this
+
+Notes:
+- We're using Tailwind CSS for styling
+- The settings page is at src/pages/Settings.tsx
+- Use the existing Toggle component from src/components/ui/Toggle.tsx
+```
+
+2. Claude will post a plan in the comments. Review it, then reply:
+
+```
+@claude looks good, please proceed
+```
+
+3. Claude will continuously update his to‑do list of tasks that it made in the plan, and then will submit a PR once completed. 
+
+There are three follow-up actions you can take once a PR has been posted by Claude:
+
+- **request changes**
+
+```
+@claude the toggle should be bigger. Can you increase the size?
+```
+
+- **ask questions**
+
+```
+@claude why did you use CSS variables instead of a class toggle?
+```
+
+- **ask for a review**
+
+```
+@claude can you review the changes you made and make sure there are no bugs?
+```
+
+
+Here are the best practices you should follow when creating an issue in Github for claude to tackle:
+
+1. **be specific**: provide context with filepaths and spec files on what exactly you want Claude to do.
+
+```
+Add a logout button in the top-right corner of the header that
+calls the /api/auth/logout endpoint and redirects to /login, read CLAUDE.md to learn more.
+```
+
+```
+@claude please implement this
+
+Context:
+- Using Next.js 14 with App Router
+- Auth state managed by AuthContext in src/context/AuthContext.tsx
+- API calls should use the fetchWithAuth helper
+```
+
+2. **set clear acceptance criteria**: Acceptance criteria is necessary. Otherwise, the agent will run into an infinite loop because it does not have the entire context for a code base. 
+
+```
+Acceptance Criteria:
+- [ ] Button visible on all authenticated pages
+- [ ] Clicking button clears session
+- [ ] Redirects to login page
+- [ ] Shows loading state during logout
+```
+
+Here are examples of issues using best practices:
+
+**bug fix**
+
+```
+Title: Fix: Login button unresponsive on mobile
+
+Description:
+The login button on the homepage doesn't respond to taps on
+mobile devices (iOS Safari, Chrome Android).
+
+Steps to Reproduce:
+1. Open site on mobile browser
+2. Tap the login button
+3. Nothing happens
+
+Expected: Should navigate to /login
+```
+
+**feature request**
+
+```md
+Title: Add email notifications for new comments
+
+Description:
+Users should receive email notifications when someone comments
+on their posts.
+
+Requirements:
+- Configurable in user settings (on/off)
+- Maximum 1 email per hour (digest mode)
+- Include unsubscribe link
+```
+
+
+**refactoring**
+
+```md
+Title: Refactor: Extract form validation into reusable hook
+
+Description:
+Currently form validation is duplicated across LoginForm,
+SignupForm, and ContactForm.
+
+Goal:
+- Create useFormValidation hook
+- Migrate existing forms to use it
+- No functionality changes (just code organization)
+```
+
+#### Claude on PRs
+
+Claude reviews automatically when:
+
+- A new PR is opened
+- New commits are pushed to an existing PR
+- PR is re-opened after being closed
+
+Here's what claude can see
+
+- All changed files in the PR
+- Diff between base and head branch
+- PR title and description
+- Previous comments in the PR
+
+Here's what claude can't see
+
+- Files not changed in the PR (limited context)
+- External dependencies or runtime behavior
+- Private package implementations
+- Database state or API responses
+
+Here's a high-level overview of how you use Claude in PRs and what the process is.:
+
+1. Create a simple change on a new branch
+2. Open a Pull Request
+3. Claude automatically reviews within a few minutes
+4. Check the PR comments for the review
+
+Here are the best practices to follow:
+
+1. **write good PR descriptions**: CLAUDE has limited context, so you want to write the best PR description possible so it knows what to review and what to prioritize. 
+
+```
+## What
+Adds email verification for new user signups
+
+## Why
+Prevent spam accounts and ensure valid contact info
+
+## How
+- Added verification token generation
+- Created email sending service
+- Added /verify endpoint
+- Updated signup flow to require verification
+
+## Testing
+- Manually tested signup → email → verify flow
+- Added unit tests for token generation
+```
+
+2. **ask Claude to fix PR comments**: If Claude leaves comments on your PR, then ask Claude to fix them. 
+3. **ask for a specific review focus**: You can ask Quad to leave either a security- or performance-focused review, which helps Prime to find those bugs. 
+
+#### Claude Github Actions
+
+These are standard GitHub Actions that trigger Claude when needed.
+
+```
+.github/
+└── workflows/
+    ├── claude-code.yml         # Handles @claude in issues
+    └── claude-code-review.yml  # Auto-reviews PRs
+```
+
+- `claude-code.yml`: This workflow file triggers when an issue is opened or a comment mentions @CLAUDE. It checks out the code, runs CLAUDE code with the issue context, pushes commits, comments with progress, and submits a PR for the issue. 
+- `claude-code-review.yml`: This workflow file triggers when a new PR is opened or updated with new commits. It checks out the PR code, runs cloud code in review mode, and posts a review with code quality assessment, bug detection, notes, and security concerns. 
+
+#### Mobile workflow
+
+On GitHub mobile, the workflow is basically the same, but since you're typing, you want to keep your issues concise. 
+
+1. Follow this template for creating issues. 
+
+```
+Title: Add dark mode toggle
+
+What: Toggle switch in settings that switches between light/dark theme
+
+Where: Settings page, Display section
+
+Details:
+- Save preference to localStorage
+- Apply immediately (no refresh)
+```
+
+2. Add labels from mobile to help Claude understand priority:
+	- `bug` - Something broken
+	- `feature` - New functionality
+	- `urgent` - High priority
+	- `good-first-issue` - Simple task
+3. Comment to `@claude` to implement the issue, or create a plan and implement the issue
+	- `@claude please implement this`
+	- `@claude can you create a plan first?`
+	- `@claude please review and fix any issues`
+	- `@claude looks good, please proceed`
+
+Here are the best practices:
+
+- **keep issues single-responsibility focused**: Each issue should have only one responsibility, one feature, or one bug to address. 
+- **create issue templates**: Create predefined issue templates on GitHub so that you have a structured, repeatable way of creating issues. 
+
+#### Example workflows
+
+Go here to see more example workflows
+
+```embed
+title: "cc-fundamentals-08-github-integration/examples/github-workflow-examples.md at master · AllCytes/cc-fundamentals-08-github-integration"
+image: "https://opengraph.githubassets.com/0c462f54e590448862ec6cf47d6dbe4442fdb93028173a786a5bdf4aa4d7f717/AllCytes/cc-fundamentals-08-github-integration"
+description: "Contribute to AllCytes/cc-fundamentals-08-github-integration development by creating an account on GitHub."
+url: "https://github.com/AllCytes/cc-fundamentals-08-github-integration/blob/master/examples/github-workflow-examples.md"
+favicon: ""
+aspectRatio: "50"
+```
+
+
+**bug fix workflow**
+
+- **Issue Title:** Fix: Button text color unreadable in dark mode
+- **Issue Body:**
+
+```
+The "Submit" button on the contact form has dark text on a dark
+background when dark mode is enabled.
+
+Location: src/components/ContactForm.tsx
+
+Expected: White text on dark button
+Current: Dark gray text on dark button
+```
+
+- **Comment:**
+
+```
+@claude please fix this. The button uses Tailwind classes.
+```
+
+- **Claude's Response:**
+
+```
+I'll fix the button text color for dark mode.
+
+Plan:
+- [ ] Find the Submit button in ContactForm.tsx
+- [ ] Add dark mode text color class
+- [ ] Verify other buttons don't have same issue
+
+Starting...
+```
+
+**new feature workflow**
+
+- **Issue Title:** Add "Remember me" checkbox to login form
+
+- **Issue Body:**
+
+```
+## Feature Request
+
+Add a "Remember me" checkbox to the login form that:
+- Keeps the user logged in for 30 days when checked
+- Default: unchecked
+- Stores preference in localStorage
+
+## Location
+src/pages/Login.tsx
+
+## Acceptance Criteria
+- [ ] Checkbox visible below password field
+- [ ] Label: "Remember me for 30 days"
+- [ ] Checked state extends session cookie duration
+- [ ] Unchecked state uses default session (24 hours)
+```
+
+- **Comment:**
+
+```
+@claude please implement this. We're using NextAuth for authentication.
+The session configuration is in src/lib/auth.ts
+```
+
+**advanced multistep implementation**
+
+- **Issue Title:** Add comment system to blog posts
+
+- **Issue Body:**
+
+```
+## Phase 1: Data Model
+- Add Comment model to schema
+- Create API endpoints: GET /comments, POST /comment
+
+## Phase 2: UI Components
+- CommentList component
+- CommentForm component
+- Single Comment component with reply button
+
+## Phase 3: Integration
+- Add comment section to BlogPost page
+- Connect to API
+
+Please implement phase by phase and check in after each.
+```
+
+- **Comments:**
+
+```
+@claude please start with Phase 1
+```
+
+After Phase 1:
+
+```
+@claude Phase 1 looks good. Please continue with Phase 2.
+```
+
+After Phase 2:
+
+```
+@claude before Phase 3, can you add loading skeletons to CommentList?
+```
+
+**asking for implementation options**
+
+- **Issue Title:** Improve search performance
+
+- **Issue Body:**
+
+```
+Search is slow on the products page when we have >1000 products.
+Currently using filter() on the full array client-side.
+```
+
+- **Comment:**
+
+```
+@claude can you propose 2-3 different solutions with benefits and tradeoffs before implementing?
+Consider: server-side search, debouncing, virtual list, etc.
+```
+
+- **Claude's Response:**
+
+```
+Here are three options:
+
+**Option 1: Server-side Search (Recommended)**
+- Move filtering to API
+- Pros: Handles any data size, reduces client memory
+- Cons: Requires API changes, adds latency
+
+**Option 2: Debounced Client Search**
+- Add 300ms debounce to search input
+- Pros: Quick to implement, no API changes
+- Cons: Still slow with very large datasets
+
+**Option 3: Web Worker Search**
+- Offload search to background thread
+- Pros: Keeps UI responsive
+- Cons: More complex, still loads all data
+
+Which approach would you like me to implement?
+```
+
+## Power user tricks
+
+### Planning phase
+
+- **ask for mermaid diagrams for flowcharts**: Ask CLAUDE to use mermaid syntax to create flowchart diagrams. 
+
+#### Voice dump strategy
+
+1. One strategy you could do is use some AI voice dictation tool like Whisper Flow or Voquill to dump all your thoughts into a `voice-dump.md`. 
+2. Then ask CLAUDE to organize your thoughts, then create a structured implementation plan from that.
+	- That way, it's faster, and you don't have to spend 2 hours typing something when Claude could organize your plan for you before creating an implementation plan from that. 
+#### Use first order, second order, and third order planning
+
+For each feature, you should ask Quad to make a plan on what the sub-features are to implement. For example, for something like email verification, you would have first-order requirements: the UI and basic process. Then second-order requirements would be something like security, and third-order requirements would be things like observability and logging.
+
+By having these 3 different tiers of requirements, you can see what to do for the feature in the future. 
+
+#### Use HTML for planning
+
+HTML is a great and easy way of shifting your implementation plans to make it better for the human in the loop, rather than just rereading a dreary, boring Markdown file.
+
+Here are the main things you would want to add in your prompt to create the HTML file plan:
+
+- **split into phases**: To split a plan into different sections
+
+```
+Also split it into phases as well; I want to optimize this plan to be as modular as possible and have logical beginnings and ends for each phase. 
+```
+
+- **TLDR**: To have a quick summary of each plan phase
+
+```
+Create a TL;DR for each section of a planned approach of attack in plain English. 
+```
+
+- **add bold text**: To immediately notice important things
+
+```
+Bold the most pertinent parts to grab my attention, and your more opinionated parts of the approach. 
+```
+
+- **table of contents**: to easily navigate between sections of the plan.
+
+```
+Create a table of contents to different parts of the HTML.
+```
+
+### Video understanding
+
+Gemini and its APIs have video‑understanding models. If you download any MP4 or WebM file and direct it toward Gemini, it can understand what you’re doing in the video and reverse‑engineer it. 
+
+
+Here's the process:
+
+1. **record yourself**: The simplest way to capture a visual process is to screen record it. Loom, OBS, or any recorder works. You are creating raw material for AI analysis
+2. **feed the video to Gemini API**: Gemini can watch a video and describe every frame. Upload your screen recording and ask it to extract the design, the workflow, or the data structure. It sees what you see.
+3. **reverse engineer visual designs**: See a landing page you like? Record a scroll-through. Feed it to Gemini. Get back a structured description of every section, color, layout choice, and interaction pattern.
+4. **beyond design**: This technique works for anything visual. Record a bug, feed the video to Gemini, and get a detailed reproduction report. Record a competitor's app and get a feature comparison.
+
+Here are some example use cases:
+
+- **website design breakdown**: Screen-record yourself scrolling through a website you admire (30 seconds is enough). If you have Gemini API access, feed the video and ask for a design breakdown.
+- **recoding bug reproduction**: Record yourself reproducing a bug in your app. Feed the video to an AI model and ask it to write a structured bug report with reproduction steps.
+- **extracting color palette**: Screenshot three websites you like. Ask Claude or Gemini to extract the exact hex codes used for primary, secondary, and accent colors. Build a palette file for your project
+
+#### Ad workflow example
+
+Here is an example of how to use this to reverse-engineer ads:
+
+1. Record a video of what you want to do. For example, if you're on LinkedIn browsing other people's ads. 
+2. Give the video to Gemini and ask it to reverse engineer the process of how those ads are created. 
+3. Ask Claude to create a skill from the reverse‑engineered process that Gemini gave you, and then create a code pipeline to use the Gemini API to generate images and videos, etc., with Claude dictating the plan in code. 
+
+## Principles
+
+### Avoid hype and frameworks
+
+There is always a tax to adopting a Claude Code framework around memory and context engineering, and you will save yourself a lot of overhead of trying to fit a framework to deprecations and new optimizations and improvements in the Claude Code harness.
+
+>"The best framework is the one you built yourself, one rule at a time, from patterns that actually worked in your codebase."
+
+
+
+![](https://i.imgur.com/8NBD0I8.jpeg)
