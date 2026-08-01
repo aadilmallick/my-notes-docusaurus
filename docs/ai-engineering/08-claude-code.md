@@ -3267,6 +3267,16 @@ Bold the most pertinent parts to grab my attention, and your more opinionated pa
 Create a table of contents to different parts of the HTML.
 ```
 
+### Best Human-in-the-loop tips
+
+#### Mark sensitive or security-concerning code with comments
+
+Identify and mark functions that have a high security risk, such as authentication, authorization, and data handling. These functions should be reviewed and tested with extra care and in such a way that a human has comprehended the logic of the function in all its dimensions and is confident about its correctness and safety.
+
+Make this explicit with a comment like `//HIGH-RISK-UNREVIEWED` and `//HIGH-RISK-REVIEWED` to make sure that other developers are aware of the importance of these functions and will review them with extra care.
+
+Make sure that the AI is instructed to change the review state of these functions as soon as it changes a single character in the function.  
+Developers must make sure that the status of these functions is always correct.
 ### Video understanding
 
 Gemini and its APIs have video‑understanding models. If you download any MP4 or WebM file and direct it toward Gemini, it can understand what you’re doing in the video and reverse‑engineer it. 
