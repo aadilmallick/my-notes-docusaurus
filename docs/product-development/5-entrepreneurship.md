@@ -91,3 +91,4 @@ You can watch as many videos as you want, and every course imaginable, but none 
 
 > [!NOTE]
 > So start ugly now and put in the reps. The reps compound. Watching, sitting back on your couch, watching others, and trying to pseudo-learn do not. 
+
