@@ -1,19 +1,11 @@
 
-<<<<<<< HEAD
 ## Github Copilot
-=======
-### Github Copilot
->>>>>>> refs/remotes/origin/main
 
 You can also use copilot on the web here:
 
 [GitHub Copilot](https://github.com/copilot)
 
-<<<<<<< HEAD
 ### Main use cases
-=======
-#### Main use cases
->>>>>>> refs/remotes/origin/main
 
 - **fix with copilot**: You can highlight line(s), right click, and then use either **modify with copilot** or **review with copilot** to review the code, suggest any improvements, etc.
 - **regex**: you can ask copilot to do regex for you
@@ -21,11 +13,7 @@ You can also use copilot on the web here:
 
 
 
-<<<<<<< HEAD
 ### Attaching context
-=======
-#### Attaching context
->>>>>>> refs/remotes/origin/main
 
 You can attach context in the inline chat or in the chat sidebar by either manually adding files and images, or you can use these symbol prefixes to reference stuff in your codebase:
 
@@ -34,21 +22,13 @@ You can attach context in the inline chat or in the chat sidebar by either manua
 
 You can attach context in the **inline chat** by clicking `CTRL + I` twice to get a list of slash commands and available contexts.
 
-<<<<<<< HEAD
 ### Running terminal commands
-=======
-#### Running terminal commands
->>>>>>> refs/remotes/origin/main
 
 With the chat sidebar, you can first type `@terminal` to give github copilot access to your terminal context, and then it will write a command to run based on the prompt.
 
 You can also do `CTRL + I` in the terminal to popup an inline chat in the terminal to run commands there.
 
-<<<<<<< HEAD
 ### Slash commands
-=======
-#### Slash commands
->>>>>>> refs/remotes/origin/main
 
 Copilot has a variety of slash commands that make doing monotonous tasks like documentation, fixing code, and creating unit tests much much easier. You can view a list of slash commands by clicking `CTRL + I` twice or by typing them manually in the chat sidebar.
 
@@ -59,11 +39,7 @@ Here are the most useful ones:
 - `/doc`: creates documentation for the selected code, like JSdoc
 - `/tests`: creates unit tests for the selected code
 
-<<<<<<< HEAD
 ### Github copilot CLI
-=======
-#### Github copilot CLI
->>>>>>> refs/remotes/origin/main
 
 The gh copilot CLI can be installed like so:
 
@@ -77,11 +53,7 @@ You can then use it to generate terminal commands:
 gh copilot suggest "create a basic nextjs app"
 ```
 
-<<<<<<< HEAD
 ### Copilot Extensions
-=======
-#### Copilot Extensions
->>>>>>> refs/remotes/origin/main
 
 Copilot Extensions are 3rd party extensions that add additional context options with the `@`symbol to github copilot in your VSCode.
 
@@ -105,19 +77,11 @@ Provides an additional context for asking questions about neon db.
 
 [go here](https://github.com/settings/installations/68475406)
 
-<<<<<<< HEAD
 ### Copilot instruction files
 
 You can add copilot instruction files in the chat options, which apply to certain files or to all files. Think of these as a style guide and a way to let copilot know what your porject is about.
 
 ### Enabling mcp
-=======
-#### Copilot instruction files
-
-You can add copilot instruction files in the chat options, which apply to certain files or to all files. Think of these as a style guide and a way to let copilot know what your porject is about.
-
-#### Enabling mcp
->>>>>>> refs/remotes/origin/main
 
 1. Create a `.vscode/mcp.json`
 2. Specify mcp servers like so:
@@ -126,11 +90,7 @@ You can add copilot instruction files in the chat options, which apply to certai
 ![](https://i.imgur.com/N0ogxoG.jpeg)
 
 
-<<<<<<< HEAD
 ## COpilot CLI
-=======
-### COpilot CLI
->>>>>>> refs/remotes/origin/main
 
 The `copilot` command lets you pull up github copilot and use it like claude code. Everything there still applies.
 
@@ -140,11 +100,7 @@ Here are also some one-off prompts you can do:
 copilot "create a bash script to check for uncommitted changes and push if clean"
 ```
 
-<<<<<<< HEAD
 ### CLI options
-=======
-#### CLI options
->>>>>>> refs/remotes/origin/main
 
 - `-p <prompt>`: lets you do a one-off promp
 - `--allow-all-tools`: gives copilot access to all tools. Maybe you want to run this in a dev container.
@@ -161,7 +117,6 @@ Then you can use like so:
 cpcli "Explain each of these scripts and offer improvements" 
 ```
 
-<<<<<<< HEAD
 ### Use cases and example prompts:
 
 1. Review the project README to make it easier for newcomers to understand
@@ -169,15 +124,6 @@ cpcli "Explain each of these scripts and offer improvements"
 ## Gemini CLI
 
 ### CLI options
-=======
-#### Use cases and example prompts:
-
-1. Review the project README to make it easier for newcomers to understand
-2. What is taking up the most space on my own laptop?
-### Gemini CLI
-
-#### CLI options
->>>>>>> refs/remotes/origin/main
 
 You can get just the text content of prompting an AI using the `-p` option, which can be useful for some quick prompting or even just running an AI without the SDK:
 
@@ -242,11 +188,7 @@ gemini --yolo
 - **`--version`**:
     - Displays the version of the CLI.
 
-<<<<<<< HEAD
 ### Slash commands
-=======
-#### Slash commands
->>>>>>> refs/remotes/origin/main
 
 - `/docs`: brings up the Docs.
 
@@ -332,11 +274,7 @@ gemini --yolo
 
 
 
-<<<<<<< HEAD
 ### Memory
-=======
-#### Memory
->>>>>>> refs/remotes/origin/main
 
 You should use a `GEMINI.md` file kind of the same way as a cursor rule - type it to be full of rules that the AI should listen to, like info about the project PRD and the tech stack. 
 
@@ -349,21 +287,13 @@ Whenever you feel like memory is getting stale and the AI has lost the plot of y
 ```
 
 
-<<<<<<< HEAD
 ### Adding files to context
-=======
-#### Adding files to context
->>>>>>> refs/remotes/origin/main
 
 You can refer to specific files in context using the `@` prefix, which explicitly tells gemini to use file reading tools. By default, files and folders in your `.gitignore` are excluded from reading.
 
 - **Git-aware filtering:** By default, git-ignored files (like `node_modules/`, `dist/`, `.env`, `.git/`) are excluded. This behavior can be changed via the `fileFiltering` settings.
 
-<<<<<<< HEAD
 ### Settings
-=======
-#### Settings
->>>>>>> refs/remotes/origin/main
 
 Here is the complete documentation on how to configure your gemini CLI on the user level, system level, and project level. 
 
@@ -533,11 +463,7 @@ By far the most important properties are the ones enabling and disabling tools, 
 - **Default:** `false`
 - **Example:** `"sandbox": "docker`
 
-<<<<<<< HEAD
 #### Enabling MCP servers
-=======
-##### Enabling MCP servers
->>>>>>> refs/remotes/origin/main
 
 To enable MCP servers per project, you can add them through the `mcpServers` key like so:
 
@@ -564,11 +490,7 @@ To enable MCP servers per project, you can add them through the `mcpServers` key
 }
 ```
 
-<<<<<<< HEAD
 #### Blocking tool use
-=======
-##### Blocking tool use
->>>>>>> refs/remotes/origin/main
 
 You can restrict the shell commands that can be executed by the run_shell_command tool by using the tools.core and tools.exclude settings in your config file:
 
@@ -589,11 +511,7 @@ Here is an example config that allows git commands but blocks `git push` command
 ```
 
 
-<<<<<<< HEAD
 ### Using tools
-=======
-#### Using tools
->>>>>>> refs/remotes/origin/main
 
 You can use tools automatically with gemini through just its automatic tool selection capability, but you can also manually invoke them, which may be useful, by just invoking these bash methods:
 
@@ -610,11 +528,7 @@ web_fetch(
 google_web_search(query="Your query goes here.")
 ```
 
-<<<<<<< HEAD
 ### Sandboxing
-=======
-#### Sandboxing
->>>>>>> refs/remotes/origin/main
 
 There are three different ways to sandbox a one-off gemini CLI run or a TUI session into an isolated docker container:
 
@@ -638,11 +552,7 @@ gemini --prompt-interactive "explain this code"
 }
 ```
 
-<<<<<<< HEAD
 ### Agent skills
-=======
-#### Agent skills
->>>>>>> refs/remotes/origin/main
 
 You can add custom agent skills to gemini, which gemini will recognize in a `.agents/skills` folder or the `.gemini/skills` folder.
 
@@ -689,11 +599,7 @@ gemini skills enable my-expertise
 gemini skills disable my-expertise --scope workspace
 ```
 
-<<<<<<< HEAD
 ### Plan mode
-=======
-#### Plan mode
->>>>>>> refs/remotes/origin/main
 
 You can have gemini follow a plan by just telling it to plan out a feature:
 
@@ -711,11 +617,7 @@ favicon: ""
 aspectRatio: "56.38461538461539"
 ```
 
-<<<<<<< HEAD
 ### MCP
-=======
-#### MCP
->>>>>>> refs/remotes/origin/main
 
 You can enable mcp servers in the gemini settings JSON:
 
@@ -752,20 +654,12 @@ To verify connections, you can use the `/mcp` command:
 - `/mcp reload`: reloads the MCP server
 
 
-<<<<<<< HEAD
 ## CodeRabbit CLI
-=======
-### CodeRabbit CLI
->>>>>>> refs/remotes/origin/main
 
 - `coderabbit`: runs a normal code review session
 - `coderabbit --plain`: runs a normal code review session
 
-<<<<<<< HEAD
 ## OpenCode
-=======
-### OpenCode
->>>>>>> refs/remotes/origin/main
 
 Opencode comes with a bunch of free models on its Zen account and allows you to use other external providers as well:
 
