@@ -700,10 +700,47 @@ Here’s a four‑step cycle for creating an MVP. The main principle is to creat
 
 Follow this cycle to improve your product over time. 
 
-### Having users try the MVP
+#### Common mistakes
+
+The most common mistake founders have is being drawn by the fear of customers not liking your product. So you either never ask customers to try out your MVP, or you never iterate. Or you iterate too much, basically building your MVP without any customers asking you, or you delay by constantly asking customers what they think of your product. 
+
+The most important thing is not be drawn in by the fear. Even Steve Jobs had to iterate.
+
+#### What makes for a good MVP
+
+A good MVP is very fast to build; you can build it in weeks, has very limited functionality, and appeals to a small set of users. 
+
+> [!NOTE]
+> The most successful businesses are ones that a few users love rather than a lot of people just liking it, so it's better to target a core audience you want to satisfy and focus on pleasing them instead of trying to please everybody else in the world. 
+
+>It's far better to have 100 people love your product than a thousand people just kind of liking it. 
+#### How to build an MVP quickly
+
+1. **time box your spec**: it's always easier to work with a deadline and the work gets done more quickly
+2. **write your spec**: Consolidate the five or ten features that you want to add into your MVP and settle on that. 
+3. **cut your spec**: Ruthlessly cut out features that are not part of the minimum in the MVP. You only want to add the minimum so you can iterate quickly. 
+4. **don't fall in love with your MVP**: It's going to change and iterate, so don't get attached to it.
+
+> [!NOTE]
+> Don't fall in love with your MVP. Instead, fall in love with your users. Your MVP is crappy and will change. Your users will tell you how to constantly make your product better. 
+
+
+
+### Who should try out your MVP?
 
 > [!NOTE]
 > The best users to look for as your testflight customers are early adopters of technology because they will always want to try new products and they'll always give good feedback. 
+
+>You want to look for users who have their hair on fire. That way, even if you're selling them a brick, they would buy the brick from you just to smash it against their head to put out the fire. 
+
+Basically, you want to look for users who have a major pain point and are willing to try out your crappy startup product just to satisfy that pain point.  
+
+- **who you should pick**: You want to find users who are willing to use your non-perfect product to solve their problem, and they're desperate to do so
+- **Who you should not pick**: You do not want to pick just normal old users who expect perfection because even if they have good insight on what their problems are, they don't know how to solve them. That's your job as a founder. 
+
+
+
+### Having users try the MVP
 
 
 Now how shoild you conduct the MVP testflight trial?
@@ -711,11 +748,96 @@ Now how shoild you conduct the MVP testflight trial?
 1. **UX research**: What you should do is just tell them a goal for them to do in your app and then watch them click around and do it. This is to gauge the user experience and how new customers use something for the first time. 
 2. **maintain communication**: maintain direct communication with your testflight users
 
- 
+#### Surveys vs testflight trial
+
+Customer surveys might help you understand the pain customers have, but they will never help you figure out how to solve that pain. 
+
+The only way to understand pain and figure out how to solve it is by having users try the MVP, as learning from customers is easier with an MVP. 
+
+
+## How to launch
+
+You should always launch quickly, as soon as possible, because if you launch you get customer feedback and can iterate quickly. 
+
+The worst thing possible that could happen after you launch is that nobody cares. But that’s okay. The founders of Airbnb launched three times before their product actually took off, so you can launch more than once. 
+
+> "If you launch and no one notices, launch again. We launched 3 times."
+
+Keep launching and iterating over and over again until you have a core of users that really love you. 
+
+
+### Misconceptions about launching
+
+- **you can only launch once**: Big lie. Nobody cares about your launches. You can do it as many times as you'd like.
+
+>I should mention one sort of initial tactic that usually doesn't work: the Big Launch. I occasionally meet founders who seem to believe startups are projectiles rather than powered aircraft, and that they'll make it big if and only if they're launched with sufficient initial velocity. They want to launch simultaneously in 8 different publications, with embargoes. And on a tuesday, of course, since they read somewhere that's the optimum day to launch something.
+>
+>It's easy to see how little launches matter. Think of some successful startups. How many of their launches do you remember? All you need from a launch is some initial core of users. How well you're doing a few months later will depend more on how happy you made those users than how many there were of them. 
+>
+>So why do founders think launches matter? A combination of solipsism and laziness. They think what they're building is so great that everyone who hears about it will immediately sign up. Plus it would be so much less work if you could get users merely by broadcasting your existence, rather than recruiting them one at a time. But even if what you're building really is great, getting users will always be a gradual process — partly because great things are usually also novel, but mainly because users have other things to think about.
+>
+>Partnerships too usually don't work. They don't work for startups in general, but they especially don't work as a way to get growth started. It's a common mistake among inexperienced founders to believe that a partnership with a big company will be their big break. Six months later they're all saying the same thing: that was way more work than we expected, and we ended up getting practically nothing out of it. 
+>
+>It's not enough just to do something extraordinary initially. You have to make an extraordinary effort initially. Any strategy that omits the effort — whether it's expecting a big launch to get you users, or a big partner — is ipso facto suspect.
+
 
 ## How to get users
 
+### Do things that don't scale
 
+#### The manual work matters
+
+To get a startup to grow, you must manually do a lot of work to get users. There is no magic sauce that will make customers fly towards you to try out your product. You have to put in the manual effort at first.
+
+>Actually startups take off because the founders make them take off. There may be a handful that just grew by themselves, but usually it takes some sort of push to get them going. A good metaphor would be the cranks that car engines had before they got electric starters. Once the engine was going, it would keep going, but there was a separate and laborious process to get it going.
+
+
+>The most common unscalable thing founders have to do at the start is to recruit users manually. Nearly all startups have to. You can't wait for users to come to you. You have to go out and get them.
+
+Don't be afraid of customer discovery and searching for users.
+
+>There are two reasons founders resist going out and recruiting users individually. One is a combination of shyness and laziness. They'd rather sit at home writing code than go out and talk to a bunch of strangers and probably be rejected by most of them. But for a startup to succeed, at least one founder (usually the CEO) will have to spend a lot of time on sales and marketing.
+
+
+Always talk to enough customers to shoot for a 10% weekly growth rate, and measure success by your weekly growth rate.
+
+>The other reason founders ignore this path is that the absolute numbers seem so small at first. This can't be how the big, famous startups got started, they think. The mistake they make is to underestimate the power of compound growth. We encourage every startup to measure their progress by weekly [growth rate](http://paulgraham.com/growth.html). If you have 100 users, you need to get 10 more next week to grow 10% a week. And while 110 may not seem much better than 100, if you keep growing at 10% a week you'll be surprised how big the numbers get. After a year you'll have 14,000 users, and after 2 years you'll have 2 million.
+
+>Airbnb is a classic example of this technique. Marketplaces are so hard to get rolling that you should expect to take heroic measures at first. In Airbnb's case, these consisted of going door to door in New York, recruiting new users and helping existing ones improve their listings. When I remember the Airbnbs during YC, I picture them with rolly bags, because when they showed up for tuesday dinners they'd always just flown back from somewhere.
+
+
+#### All startups are fragile at first
+
+All startups are fragile at first and seem like it's not possible for them to grow at all and that they'll never make it, but that's how everybody is at first.
+
+Most important thing is for you to never give up if you believe in your idea. 
+
+>Airbnb now seems like an unstoppable juggernaut, but early on it was so fragile that about 30 days of going out and engaging in person with users made the difference between success and failure.
+>
+>That initial fragility was not a unique feature of Airbnb. Almost all startups are fragile initially. And that's one of the biggest things inexperienced founders and investors (and reporters and know-it-alls on forums) get wrong about them. They unconsciously judge larval startups by the standards of established ones. They're like someone looking at a newborn baby and concluding "there's no way this tiny creature could ever accomplish anything."
+>
+>It's harmless if reporters and know-it-alls dismiss your startup. They always get things wrong. It's even ok if investors dismiss your startup; they'll change their minds when they see growth. The big danger is that you'll dismiss your startup yourself. I've seen it happen. 
+>
+>I often have to encourage founders who don't see the full potential of what they're building. Even Bill Gates made that mistake. He returned to Harvard for the fall semester after starting Microsoft. He didn't stay long, but he wouldn't have returned at all if he'd realized Microsoft was going to be even a fraction of the size it turned out to be.
+
+#### Make your users happy (even if it doesn't scale)
+
+>You should take extraordinary measures not just to acquire users, but also to make them happy. For as long as they could (which turned out to be surprisingly long), Wufoo sent each new user a hand-written thank you note. Your first users should feel that signing up with you was one of the best choices they ever made. And you in turn should be racking your brains to think of new ways to delight them.
+
+>Why do we have to teach startups this? Why is it counterintuitive for founders? Three reasons, I think.
+>
+>One is that a lot of startup founders are trained as engineers, and customer service is not part of the training of engineers. You're supposed to build things that are robust and elegant, not be slavishly attentive to individual users like some kind of salesperson. Ironically, part of the reason engineering is traditionally averse to handholding is that its traditions date from a time when engineers were less powerful — when they were only in charge of their narrow domain of building things, rather than running the whole show. You can be ornery when you're Scotty, but not when you're Kirk.
+>
+>Another reason founders don't focus enough on individual customers is that they worry it won't scale. But when founders of larval startups worry about this, I point out that in their current state they have nothing to lose. Maybe if they go out of their way to make existing users super happy, they'll one day have too many to do so much for. That would be a great problem to have. See if you can make it happen. And incidentally, when it does, you'll find that delighting customers scales better than you expected. Partly because you can usually find ways to make anything scale more than you would have predicted, and partly because delighting customers will by then have permeated your culture.
+>
+>I have never once seen a startup lured down a blind alley by trying too hard to make their initial users happy.
+>
+>But perhaps the biggest thing preventing founders from realizing how attentive they could be to their users is that they've never experienced such attention themselves. Their standards for customer service have been set by the companies they've been customers of, which are mostly big ones. Tim Cook doesn't send you a hand-written note after you buy a laptop. He can't. But you can. That's one advantage of being small: you can provide a level of service no big company can.
+
+
+#### COnsulting
+
+>Sometimes we advise founders of B2B startups to take over-engagement to an extreme, and to pick a single user and act as if they were consultants building something just for that one user. The initial user serves as the form for your mold; keep tweaking till you fit their needs perfectly, and you'll usually find you've made something other users want too. Even if there aren't many of them, there are probably adjacent territories that have more. As long as you can find just one user who really needs something and can act on that need, you've got a toehold in making something people want, and that's as much as any startup needs initially.
 ### What is marketing
 
 You could have the best company in the world, but it won't matter if no one hears or cares about it. It's only worth it if people know about it.
