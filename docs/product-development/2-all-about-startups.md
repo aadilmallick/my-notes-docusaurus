@@ -611,12 +611,17 @@ Users will keep you honest. They are the only stakeholders paying you anything.
 
 ### How to run customer discovery interviews
 
-For customer discovery interviews, Your main goal is to just figure out what pain point or problem a customer has and hear them out and listen to them. You’re not trying to sell to them. 
+For customer discovery interviews, Your main goal is to just figure out what pain point or problem a customer has and hear them out and listen to them. You’re not trying to sell them the solution or even think about the solution.
+
+> [!IMPORTANT]
+> Just. Understand. The. Problem.
 
 Here are the main steps on how to conduct a customer discovery interview:
 
 1. Call the customer and then build a report with them. Basically, you just want to have a nice conversation, ask them about their problems. 
-2. Do not introduce your product until the very end. You don't want to make this appear like a sales pitch. Instead, have a nice conversation with them. Ask about their problems and what they're looking for. Then introduce your product. 
+2. Ask them open ended questions to drive the dialogue forward, never just yes/no questions.
+3. Take notes during the meeting, record it.
+4. Do not talk about your product or try to sell them on it. You don't want to make this appear like a sales pitch. Instead, have a nice conversation with them. Ask about their problems and what they're looking for. Then introduce your product. 
 
 During the call, frame the interview around a customer's pain point and ask them questions about it. Here are the 6 questions you should ask in exact order as to gain a complete understanding of the customer's pain point and what your solution could do to fix it.
 
@@ -629,6 +634,8 @@ During the call, frame the interview around a customer's pain point and ask them
 
 > [!NOTE]
 > Honestly, the best tip is to ask them to screen share and show you what they do for their current problem. This gives you the most context as to actually how to solve the problem. 
+
+
 
 #### Common mistakes
 
@@ -653,10 +660,58 @@ Users generally have good problems (real, marketable) but they often come up wit
 > The main goal of a customer discovery interview is to think about the problems, not to try to come up with solutions. It's all about understanding the problem rather than coming up with a solution, because users are good at conveying their problem, but not good at coming up with solutions. 
 > 
 > - **customer job**: convey the problem
-> - **your job**: understand the problem, think of a solution
+> - **your job**: understand the problem
 
 
 
+
+### After customer discovery interviews
+
+After you have done 5 to 10 customer discovery interviews, now you can start to think about the solution. But until then, don't think of the solution. 
+
+Here is what you want to do now to think of the solution:
+
+1. **synthesize your learnings**: synthesize your learnings from the notes you took during the meeting.
+2. **brainstorm a solution/hypothesis**: Now is the time to start thinking about the solution based on the problem. 
+3. **Create an MVP**
+
+### Figuring out if the problem is valuable
+
+A problem is valuable if people would pay for solutions. To figure out if a problem is valuable, ask these three questions:
+
+1. Are people paying money for solutions in this space today?
+2. Have you tried to solve this problem on your own? 
+	- Is it better than someone using a google spreadsheet? They're not going to pay hundreds of dollars per month for something they could almost easily do in a spreadsheet. 
+	- If you have a card app, it can easily be replaced by an Excel spreadsheet. So you need to make the user experience of your app far better than just a spreadsheet. 
+3. How easy is it to sell to your audience or ICP?
+	- Some people will be easier to sell to than others.
+	- For example, old school programmers and linux heads are stingy and want everything to be free, and finance bros will drop thousands every night on ten shots of vodka so you know they don't care about dropping hundreds of months on your product.
+
+## Creating an MVP
+
+### How to create an MVP
+
+Here’s a four‑step cycle for creating an MVP. The main principle is to create quickly and then iterate. The fast response and feedback cycle is what you’re looking for. 
+
+1. **launch quickly**: create an MVP
+2. **get initial customers**
+3. **talk to customers and get feedback**
+4. **iterate (improve the product)**
+
+Follow this cycle to improve your product over time. 
+
+### Having users try the MVP
+
+> [!NOTE]
+> The best users to look for as your testflight customers are early adopters of technology because they will always want to try new products and they'll always give good feedback. 
+
+
+Now how shoild you conduct the MVP testflight trial?
+
+1. **UX research**: What you should do is just tell them a goal for them to do in your app and then watch them click around and do it. This is to gauge the user experience and how new customers use something for the first time. 
+2. **maintain communication**: maintain direct communication with your testflight users
+
+ 
 
 ## How to get users
 
