@@ -609,6 +609,53 @@ Users will keep you honest. They are the only stakeholders paying you anything.
 > [!NOTE]
 > The best opportunity is creating personal connections with your users, so that you create a product for the users, not finding users for your product.
 
+### How to run customer discovery interviews
+
+For customer discovery interviews, Your main goal is to just figure out what pain point or problem a customer has and hear them out and listen to them. You’re not trying to sell to them. 
+
+Here are the main steps on how to conduct a customer discovery interview:
+
+1. Call the customer and then build a report with them. Basically, you just want to have a nice conversation, ask them about their problems. 
+2. Do not introduce your product until the very end. You don't want to make this appear like a sales pitch. Instead, have a nice conversation with them. Ask about their problems and what they're looking for. Then introduce your product. 
+
+During the call, frame the interview around a customer's pain point and ask them questions about it. Here are the 6 questions you should ask in exact order as to gain a complete understanding of the customer's pain point and what your solution could do to fix it.
+
+1. Tell me how you do x today. 
+2. What is the hardest thing about doing x? 
+3. Why is it hard?
+4. How often do you have to do x? 
+5. Why is it important for your company to do x? 
+6. What do you do to solve this problem?
+
+> [!NOTE]
+> Honestly, the best tip is to ask them to screen share and show you what they do for their current problem. This gives you the most context as to actually how to solve the problem. 
+
+#### Common mistakes
+
+Whatever you do, do not ask these questions:
+
+- **"Will you use our product?"**
+- **"What features could I add to make my product better?"**
+- **"How would a better product look like to you"**
+
+The reason you should not ask these questions is because you'll get a biased answer. Most importantly, your job is to figure out the customer's pain point, not pitch them something.
+
+You're not supposed to build features around what people think would be good. Rather, you build features around the pain point and solve the customer's pain point. 
+
+This is because even though users know what pain they have, they often do not have good solutions they can come up with. You should not ask them what solution they would like to see. Instead, find out what the problem is, and then make the solution afterward. 
+
+Users generally have good problems (real, marketable) but they often come up with bad solutions. Here are the reasons why:
+
+- **users don't say no to features**: Users don't really have an incentive to say no to features because it doesn't cost them anything to add features. But it costs you, the founder, to add features. So you have to be more selective with what features you put in the app, but users don't. 
+- **users aren't product managers or founders**: Users don't often know how a product works, so how would they know what a good solution looks like? 
+
+> [!NOTE]
+> The main goal of a customer discovery interview is to think about the problems, not to try to come up with solutions. It's all about understanding the problem rather than coming up with a solution, because users are good at conveying their problem, but not good at coming up with solutions. 
+> 
+> - **customer job**: convey the problem
+> - **your job**: understand the problem, think of a solution
+
+
 
 
 ## How to get users
