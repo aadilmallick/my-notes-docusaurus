@@ -377,6 +377,7 @@ But here are three ways to search for ideas:
 >
 >One way to ensure you do a good job solving other people's problems is to make them your own. When Rajat Suri of E la Carte decided to write software for restaurants, he got a job as a waiter to learn how restaurants worked. That may seem like taking things to extremes, but startups are extreme. We love it when founders do such things.
 
+
 ### Maker vs Manager schedule
 
 The only real cognitive work can get done with **deep work**, like programming, writing, or practicing music. To manage large amounts of deep work and get real things done, switch into **maker mode** so you context switch less and are able to do important work without getting interrupted.
@@ -405,7 +406,213 @@ So here are the actionable steps you must do:
 
 >Successful people are abnormally autistic about protecting their time and blocking social media, because if you don't the world will steal your time from you.
 
+## Idea valuation
+
+### Main principles
+
+- **nobody knows who will be successful**: Most people don’t know who will actually be successful in the end. That's why investors always try to find talent and make bets.
+- **the best startup ideas solve problems, not search for them**: The best startup idea is a solution you came up with to solve a real problem you or somebody else has.
+- **Founder market fit is king**: If you have good founder‑market fit for an idea, you’re much more likely to succeed because investors want to invest in founders who have good founder‑market fit, meaning they have expertise in the problem they’re trying to solve.  
+- **It’s often hard to know what the best startup idea is**: the only way to find if a startup idea is good or not is to build it and find out.
+
+### Avoid SISP, fall in love with a problem
+
+Avoid solutions in search of a problem (SISP), for example, thinking of what you can do with AI just because AI is cool and you have to use it.
+
+Solutions and the search for a problem just end up being a plausible, made‑up problem rather than a real problem that people actually care about. And if people don’t care about the problem, they will not care about your solution. 
+
+Instead of doing SISP, you should fall in love with a problem and focus on solving that problem.
+
+### Avoid tarpit ideas
+
+So maybe you found a problem that you really want to solve instead of finding a solution in search of a problem.
+
+But now you want to avoid **tarpit ideas**. 
+
+Tarpit ideas are widespread problems that lots of potential founders encounter and can't really solve. They seem easy and plausible to solve at first, but are actually deceptively difficult.
+
+For example, something like Stripe might be a tarpit idea. Payments have always been a pain, and they're the only ones who've been able to do it successfully. So you don't really want to go down that route. 
+
+To avoid tarpit ideas, follow these steps:
+
+1. **google it**: Always save yourself the pain by googling your solution to see if other people have tried it before, how difficult it was for them, or if they’re too good in the space and you can’t compete with them. 
+2. **evaluate the idea**: Always evaluate the idea with a competition before jumping into it. 
+
+### Don't wait for the perfect idea
+
+There is no such thing as a perfect startup idea. Just think of it as a good starting point that will morph over time.
+
+### 10 questions to ask about your startup idea
+
+1. **Do you have good founder market fit?**: Are you the right person or team to work on this idea? Do you have expertise that lends itself to this topic?
+	- **founder market fit** is the most important predictor of success for your idea.
+2. **How big is the market?**: In order to have a good startup idea that will grow, you need to be in one of these two markets: either a market that is already big or a market that is small but rapidly growing. 
+3. **how acute is this problem?**: Is your problem something that people actually care about? It has to be something that people would care about and need.
+4. **do you have competition?**: If you have competition, it means that your idea is validated; you're doing something right. If you have no competition, that should be a red flag. 
+	- Most startup ideas should have good competition, but if you have really big competition with big players in the field, you need an extra insight to differentiate yourself. 
+5. **do you want this?**: If you don't personally want to use your idea, and if it's not software that you would use every day, then it's not a good idea. If nobody else wants to use your idea, then it's probably not a good idea. 
+	- If the answer to both the questions of “do you want to use this?” and “do other people want to use this?” are no, then it’s not a good idea. 
+6. **Did this only recently become possible or recently become necessary?**: If the answer to either of these is yes, then you’re in an emerging market that is small but rapidly growing, and this is the best time to take advantage of it. 
+	- With the advent of AI, an example would be something like sandboxes where A can act freely, or something like human‑in‑the‑loop APIs, which prevents AIs from acting based on predefined rules. 
+7. **Are there good proxies for this business?**: A proxy is a large company similar to your business idea, but it is not a direct competitor. Having proxies is a good sign your idea would work.
+8. **Is this an idea you’d want to work on for years?**: If the answer is yes, then you will likely have high success with it. But ideas can also grow on you if the answer is no. 
+9. **Is this a scalable business?**: If you have pure software, then it's very scalable. You want to avoid any idea that needs high-skilled human labor in order to serve customers. 
+10. **Is this a good idea space?**: An idea space is one level of abstraction beyond a startup idea. It’s like a class of software startup ideas, like "software for medicine" or "infra monitoring".
+	- The main idea is that different idea spaces have different probabilities of your startup being successful.
+	- If your idea space is AI, then investors want to invest in it, and you will have a very high probability of the startup getting big. But if the idea space is something investors don't really care about right now, like quantum, then it's a lower probability. 
+	- A good idea space is something that you can expect to have reasonable growth and also you have good founder market fit. 
+	- If you're in a good idea space, it's easy to pivot into something people actually want, but if you're in a bad idea space, the probability of finding a good problem to solve is very low.
+
+### The three things the best startup ideas have
+
+
+The best startup ideas have these three attributes. 
+
+1. **hard to get started**: The best ideas are ones that have high barriers to entry and nobody wants to do because they're so hard.
+	- **case study**: Stripe succeeded because it was the only good option in a market that desperately had a problem that needed to be solved, namely automating payments via code. Stripe had to go through all sorts of hurdles, like tax and bank information, and government compliance, which nobody else wanted to deal with.
+2. **in a boring space**: Great ideas are ones that nobody else is willing to do because they're boring, but there's still a market for them.
+	- People think that working on a boring idea will be boring, but they fail to realize that working on an interesting idea will also be boring after a while, after the initial excitement wears off and fades away.
+	- Because at the end of the day, it's the same from day to day, just working on your idea, constantly executing on it, and talking to customers. It's all the same.
+	- So don't have any illusions that a boring idea is somehow a lot more boring than an exciting one. They're both about the same, but boring ideas have more opportunity.
+3. **existing competitors**: Most good startup ideas have existing competitors, counterintuitively. If a startup idea has no competitors, it's because nobody wants the product or it's not a real problem people have. 
+	- The best opportunity when you have existing competitors is if you have an insight that all of them have missed, or they all just kind of suck. 
+	- **case study (DropBox)**: When Dropbox first launched in 2007, there were already 20 other file-based cloud storage providers on the market. 
+		- But Dropbox had the unique insight that the user experience for all of them sucked. So Dropbox wanted to create automatic syncing with the host operating system, which no other competitor had, because they noticed that most people were not really using the other 20 cloud providers. There was a gap in the market that Dropbox could fill. 
+		- If they had not realized it and were initially discouraged by the 20 other competitors, they would have never been a billion-dollar company. 
+
+### How to come up with ideas
+
+Seventy percent of all YC startups have their ideas made organically because they started with a problem they wanted to solve with some solution, and that's how they came up with their idea. 
+
+>So you want to arrive at a solution organically by starting off with the problem first. 
+
+> [!WARNING]
+> The main problem people have if they try to inorganically come up with a startup idea It’s that they tend to think of bad ones and get stuck in tar pit ideas.
+
+So instead of trying to artificially generate startup ideas, here’s a playbook to develop them organically. If you follow the steps, you'll have a higher chance of serendipity actually organically coming up with an idea:
+
+1. **become an expert on something valuable**: If you have expertise on a subject, you'll have unique insight into the field and the problem it has, and be able to come up with an idea that people haven't thought of before, or unique insight that you bring to a market that nobody else has. 
+2. **work at a startup**: Working at a startup lets you see what kind of problems exist in this space and how people are trying to solve them. 
+3. **build things that interest you**: If you're a programmer, build things that interest you; they'll turn into ideas over time. 
+
+### 7 recipes of startup ideas
+
+1. **Ask what your team is especially good at**: This pattern of finding ideas is based on founder-market fit, where if you have a good founder-market fit, you’ll probably come up with good ideas. Think of ideas that take advantage of your expertise. 
+	- **benefit**: Any ideas you come up with will automatically have good founder-market fit. 
+	- **con**: If you're young, you may have not developed the expertise necessary to develop taste in the field. 
+2. **Start with a problem you've personally encountered**: This is the classic organic way of coming up with ideas. It's even better if you're uniquely and unusually in a position to see this problem that nobody else has.
+3. **Think of things you personally wish existed**: This is also the classic organic way of coming up with an idea, but it's also prone to falling into tar pit ideas. 
+	- **warning**: To avoid falling into a tarpit idea, you have to ask yourself, is there a reason why this doesn’t exist yet? If not, then you found a unicorn. But if there is, then you found a tarpit.
+4. **Look for things in the world that have changed recently**: If there is some global or national event that changes things in the world, that's a great opportunity to make a business. For example, Zoom popped off during Covid as the defacto way for online meetings because they had unique insight into the future of async class and meetings, so they offered group annotation tools and meeting codes to mesh with that idea.
+5. **Look for new variants of successful companies**: Insert yourself into a market with good proxies and good founder market fit and create a variation of those proxies in an untapped market, like another country
+6. **Talk to people and ask what problems they have.**: First, pick a fertile idea space and then start talking to people within that idea space. If you go down this route, you need to talk to customers and founders in this idea space, ask them for advice, and learn why they chose their ideas.  
+7. **Look for big industries that are broken**: This one checks all the boxes - big competition and unique insight or gap in the market, which lets you take advantage of it and grow big in the space.
+
+### Evaluating ideas
+
+To evaluate your ideas, you can give them numerical values.
+
+Here are 4 criteria you can use to evaluate your idea on a scale from 1 to 10:
+
+1. **scale**: How big is the idea on a scale from one to 10? Could this be publicly traded?
+	- Should be a 10 if it has Tesla scale opportunity, 9 if any random publicly traded company.
+2. **founder market fit**: How good is your founder market fit on a scale from 1 to 10? 
+	- 10 if you have expertise in the domain
+	- 0 if you have no idea what you're doing
+3. **ease**: How easy is it to get started on the idea and create an MVP for it on a scale from 1 to 10? 
+	- Ideas that are easy to start and build are highly recommended.
+	- Finding ideas that are easy to get started with are just as important as the idea itself.
+4. **feedback**: How good is the early market feedback you're getting from customers on a scale from 1 to 10? 
+	- 10 if people want this immediately and sales are straightforward.
+	- 0 if nobody wants to use it.
+
+
+Then, average those to get an overall score from 1 to 10. 
+
+- If it's a high score above 5, you should go ahead with this idea. 
+- If it's below 5, you should pivot. 
+
+### When you should pivot
+
+You should pivot if you have an idea that isn’t working and the opportunity cost of continuing to work on that idea is greater than pivoting. 
+
+
+![](https://i.imgur.com/TwbVE1a.jpeg)
+
+If you've worked on something for many months and it's not growing, that's a sign it's time to pivot. 
+
+In more detail, here are four good reasons to pivot:
+
+1. **You hate working on it**: No point if you hate on an idea you're working on, then just go back and get back a normal job.
+2. **It's not growing**
+3. **You don't have founder market fit for this idea**
+4. **You are relying on an external factor outside of your control to make your startup take off**: If its success is based on luck, it’s not a good idea. You should definitely pivot.
+5. **You're out of ideas on what to do differently to make it start working**: If you have no creativity left and ideas to try to make your startup work, then you should pivot. 
+
+You should pivot as soon as possible if these things happen:
+
+1. You have launched and have been trying to get users for weeks or months, and it feels hopeless.
+2. The idea is impossible to get started on because it takes too many years of building capital.
+3. You know in your heart it is not going to work. 
+
+### When you should not pivot
+
+You should not pivot if it's your first time trying to follow through on an idea. If you're the type of guy who changes ideas all the time and gets discouraged, it's actually good for you to try to follow something through. 
+
+### How to pivot
+
+The first rule behind pivoting is to pivot early and to muster up the courage to pivot. 
+
+Here's the main reason why people don't pivot early enough or don't want to pivot.
+
+- **sunk cost fallacy or loss aversion**: You think that just because you have sunk so much time into your initial startup idea, continuing with it is a big fallacy, and it will cause you to lose a lot more time. 
+- **a little traction**: A little traction on your startup is dangerous because you think that your idea works if you have a little traction. But in reality, that's probably the maximum traction you'll ever have. 
+- **they believe in never giving up**: They believe in never giving up and that they have to follow through with their idea even though nobody else believes in them. But nobody else believes in your idea; that’s a sign it’s not really a good idea. 
+	- There are a lot of anecdotes about people who just believed hard enough and got through despite hundreds of rejections. But you're probably not one of those, so stop betting your entire career on one anecdote you heard. 
+
+
+> [!NOTE]
+> Don't think of pivoting as a slight against your creativity or your value as a human being. Instead, you should play with the statistics of the idea game and pick the best idea based on factors like founder-market fit, how acute a problem is, and the market. 
+
+#### Ambitious ideas are better
+
+Counterintuitively, the more ambitious a new idea is, the more excited you’ll be to work on it, and the better pivot it will be. 
+
+> [!NOTE]
+> If an idea is not inspiring to you, then you won’t be excited to work on it, and it will end up being a worse product as a result because you aren’t going to want to put the work in. 
+
+
+
+
+#### Founder market fit is king
+
+The only way to have a successful pivot is to pivot into an idea or an idea space where you have great founder market fit. 
+
+### Should your idea be VC funded
+
+Not all ideas have to have venture capital. Most companies don't really need venture capital. Venture capital is more so just for businesses that investors think can generate billions in net revenue per year or have that chance.
+
+If you don't think your company will ever get to that level, then there's no need to force yourself to try to get VC funding and try to get an idea that should be VC-funded. 
+
+> [!TIP]
+> A good rule of thumb to decide if you're worthy of VC funding is to ask yourself, can you imagine this company as a publicly traded company? Would people want stocks in it? If the answer is no, it doesn't need VC. 
+
+## Customer discovery and how to talk to users
+
+
+### Create a personal connection with users
+
+The best founders talk to their users and potential customers before even creating the product because they want to find out how to best solve a user's problem. 
+
+Users will keep you honest. They are the only stakeholders paying you anything.
+
+> [!NOTE]
+> The best opportunity is creating personal connections with your users, so that you create a product for the users, not finding users for your product.
+
+
+
 ## How to get users
+
 
 ### What is marketing
 
