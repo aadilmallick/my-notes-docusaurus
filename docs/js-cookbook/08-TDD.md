@@ -1382,6 +1382,88 @@ Here are the main principles and tradeoffs of mocking:
 - **con: not predictive of real behavior**: Mocks can give **false confidence**: your test passes against a mock that doesn't behave like the real thing.
 - **Rule of thumb:** Mock at the _seam_ (interfaces you own), not at the library boundary. Wrap third-party deps in your own adapter, mock the adapter.
 
-#### Basic mocking
+#### Mocking functions
 
-#### Type hinting for mocking
+These are the different ways to you can mock a function using `jest.fn()`
+
+```ts
+const sendEmail = jest.fn();        // returns undefined
+const getUser = jest.fn().mockReturnValue({ id: 1 });
+const fetchUser = jest.fn().mockResolvedValue({ id: 1 }); // promise
+const boom = jest.fn().mockRejectedValue(new Error('nope'));
+```
+
+If the function you're mocking has a return value or is asynchronous, chain it with these mock wrapper functions:
+
+- `jest.fn().mockReturnValue(val)`: creates a mock function that returns the specified value
+- `jest.fn().mockResolvedValue(val)`: creates a  mock function that returns a promise that resolves to the specified value.
+- `jest.fn().mockRejectValue(err)`: creates a mock function that returns a promise that rejects to the specified `Error` instance.
+
+And this is how you would provide typescript types for them:
+
+```ts
+import type { SendEmail } from './email';
+
+const sendEmail = jest.fn() as jest.MockedFunction<typeof sendEmail>;
+// or with explicit signature:
+const sendEmail = jest.fn<(to: string, body: string) => Promise<boolean>>();
+```
+#### Spying
+
+You can implement spying in Jest by just having some expect assertion calls that basically just count the number of times a mock function has been called. 
+
+It follows this syntax:
+
+```
+expect(mockFn).<spyFn>()
+```
+
+Here are the different spying expectation assertion methods you have access to:
+
+- `expect(mockFn).toHaveBeenCalled()`: asserts true if the mock function was invoked
+- `expect(mockFn).toHaveBeenCalledTimes(n)`: asserts true if the mock function was invoked `n` times
+- `expect(mockFn).toHaveBeenCalledWith(...args)`: asserts true if the mock function was invoked with the specific arguments you passed in.
+
+```ts
+sendEmail('a@b.com', 'hi');
+sendEmail('c@d.com', 'yo');
+
+expect(sendEmail).toHaveBeenCalled();
+expect(sendEmail).toHaveBeenCalledTimes(2);
+expect(sendEmail).toHaveBeenCalledWith('a@b.com', 'hi');
+expect(sendEmail).toHaveBeenLastCalledWith('c@d.com', 'yo');
+expect(sendEmail).toHaveBeenNthCalledWith(1, 'a@b.com', 'hi');
+```
+
+You can further spy on a function by inspecting its invocation history through the `mockFn.mock` object:
+
+- `mockFn.mock.calls`: Returns a list of parameter tuples that was passed to each invocation
+- `mockFn.mock.returns`: Returns a list of return values or errors thrown from each invocation
+- `mockFn.mock.instance`: Returns a list of the `this` contexts for each invocation.
+
+```ts
+sendEmail.mock.calls;        // [['a@b.com','hi'], ['c@d.com','yo']]
+sendEmail.mock.results;      // [{type:'return', value:true}, ...]
+sendEmail.mock.instances;    // `this` contexts
+```
+
+#### Resetting mocks
+
+| Method | Clears calls | Resets impl to default | Restores original (spies only) |
+|---|---|---|---|
+| `mockClear()` | ✅ | ❌ | ❌ |
+| `mockReset()` | ✅ | ✅ (returns undefined) | ❌ |
+| `mockRestore()` | ✅ | ✅ | ✅ (un-spies) |
+
+This is the most common lifecycle hook you'll use before each test
+
+```ts
+beforeEach(() => {
+  jest.clearAllMocks();   // most common
+  // jest.resetAllMocks();
+  // jest.restoreAllMocks();
+});
+```
+
+> [!NOTE]
+> **Gotcha:** `clearAllMocks` keeps your `mockReturnValue` setups; `resetAllMocks` wipes them. Most teams want `clearAllMocks`.
