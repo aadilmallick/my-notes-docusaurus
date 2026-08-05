@@ -155,7 +155,7 @@ Design beautiful apps, practice Test-Driven Development, write outstanding techn
 | What do you want to learn? | Where to find it on this site | Description / Key Highlights |
 | :--- | :--- | :--- |
 | **Clean Code Guides** | [Software Development: Clean Code](./software-development/01-clean-code.md) | Function design, code smell eradication, readability, and modular design. |
-| **Test-Driven Development (TDD)**| [Software Development: TDD](./software-development/08-TDD.md) | Writing robust, regression-free units by practicing red-green refactoring. |
+| **Test-Driven Development (TDD)**| [Software Development: TDD](08-TDD.md) | Writing robust, regression-free units by practicing red-green refactoring. |
 | **Technical Writing Guide** | [Software Development: Technical Writing](./software-development/10-technical-writing-guide.md) | Keep things simple, punchy, and structured for your reader. |
 | **Figma Basics** | [Software Development: Figma](./software-development/09-figma.md) | Mastering shortcut keys, layout frames, and components. |
 | **Career & Startups** | [Product Development: All About Startups](./product-development/2-all-about-startups.md) | Launching digital products, finding market fit, and landing tech jobs. |

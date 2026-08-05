@@ -1032,3 +1032,273 @@ There are two main benefits to this approach:
 
 - Focuses the snapshot on relevant data.
 - Prevents snapshot failures due to expected variability.
+
+## Jest
+
+### ES Modules support
+
+1. Install jest as a dev dependency
+
+```bash
+npm install --save-dev jest
+```
+
+2. Set the package JSON type as a module. 
+
+```bash
+npm pkg set type="module"
+```
+
+3. After installing Jest, update your `package.json` file to include a test script:
+
+```json
+{
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/.bin/jest"
+  }
+}
+```
+
+These steps ensure Jest runs in ESM mode since Jest's ESM support is still experimental.
+
+Now with ES module support you can import files via relative paths and use other JavaScript modules, like so:
+
+```js title="__tests__/math.test.js"
+import { add } from "../math.js";
+
+describe("add function", () => {
+  it("should return 3 when adding 1 and 2", () => {
+    expect(add(1, 2)).toBe(3);
+  });
+});
+```
+
+#### Mocking in ES modules
+
+```ts
+import { readFile } from "fs/promises";
+
+export async function readFileContent(filePath) {
+  try {
+    const content = await readFile(filePath, "utf-8");
+    return content.trim();
+  } catch (error) {
+    throw new Error(`Failed to read file: ${error.message}`);
+  }
+}
+
+```
+
+Now, create a test file for this function. When working with ES Modules, Jest requires a special approach for mocking:
+
+```ts
+import { jest } from "@jest/globals";
+
+jest.unstable_mockModule("fs/promises", () => ({
+  readFile: jest.fn(),
+}));
+
+const { readFileContent } = await import("../fileReader.js");
+const { readFile } = await import("fs/promises");
+
+describe("readFileContent function", () => {
+  it("should read and return the content from a file", async () => {
+    // Mock the implementation of readFile to return a specific value
+    readFile.mockResolvedValue("Mocked file content");
+
+    // Call the function with a file path
+    const content = await readFileContent("text-content.txt");
+
+    // Verify the mock was called with the correct arguments
+    expect(readFile).toHaveBeenCalledTimes(1);
+    expect(readFile).toHaveBeenCalledWith("text-content.txt", "utf-8");
+
+    // Check that the function returns the mocked content
+    expect(content).toBe("Mocked file content");
+  });
+});
+
+```
+
+Unlike CommonJS, ES Modules require a different mocking approach.
+
+Here, `jest.unstable_mockModule()` replaces the real `fs/promises` module with a mock version before importing `fileReader.js`. This ensures that when `readFileContent()` is executed, it relies on the mocked `readFile` function instead of making actual file system calls.
+
+The mock implementation of `readFile` returns a Promise that resolves to `"Mocked file content"`, allowing the test to control the function’s behavior without accessing the file system.
+
+This approach makes the test:
+
+- Eliminates file I/O operations.  
+    
+- Avoids issues related to file existence or permissions.  
+    
+- Always returns the expected output.
+
+#### Setup and teardown hooks
+
+Jest offers four main setups and teardown hooks, each with specific use cases:
+
+- `beforeEach`: Runs before each test, ideal for resetting state or creating fresh test data
+- `afterEach`: Runs after each test, perfect for cleanup operations
+- `beforeAll`: Runs once before all tests in a describe block, good for expensive setup operations
+- `afterAll`: Runs once after all tests in a describe block, useful for final cleanup
+
+For example, when working with database connections or other expensive resources, you might prefer `beforeAll` and `afterAll` to avoid repeated setup costs:
+
+```ts
+describe("Database operations", () => {
+  beforeAll(async () => {
+    // Connect to database once for all tests
+    await db.connect();
+  });
+
+  afterAll(async () => {
+    // Disconnect after all tests complete
+    await db.disconnect();
+  });
+
+  // Your tests here
+});
+
+```
+
+Here is a complete example:
+
+```ts
+import { jest } from "@jest/globals";
+
+jest.unstable_mockModule("fs/promises", () => ({
+  readFile: jest.fn()
+}));
+
+// Import the modules after mocking
+const { readFileContent } = await import("../fileReader.js");
+const { readFile } = await import("fs/promises");
+
+describe("readFileContent function", () => {
+  beforeEach(() => {
+    // Reset mock before each test
+    jest.clearAllMocks();
+
+    // Set up default mock behavior
+    readFile.mockResolvedValue("Mocked file content");
+  });
+
+  it("should read and return the content from a file", async () => {
+    // Remove the readFile.mockResolvedValue("Mocked file content"); line
+    // Call the function with a file path
+    const content = await readFileContent("text-content.txt");
+
+    // Verify the mock was called with the correct arguments
+    expect(readFile).toHaveBeenCalledTimes(1);
+    expect(readFile).toHaveBeenCalledWith("text-content.txt", "utf-8");
+
+    // Check that the function returns the mocked content
+    expect(content).toBe("Mocked file content");
+  });
+});
+
+```
+
+### Running tests
+
+Now to run those tests, run this command:
+
+```
+npx jest
+```
+
+Or if you want to run the tests in watch mode, add the `--watchAll` flag:
+
+```
+npx jest -- --watchAll
+```
+
+In watch mode, you can access different filtering options by pressing:
+
+- `p` to filter by filename pattern
+- `t` to filter by test name pattern
+- `f` to run only failed tests
+- `o` to run only tests related to changed files
+
+> [!TIP]
+> The double dash `--` passes the subsequent arguments to Jest rather than npm. This command runs all tests with "add function" in their description.
+
+If you want to run tests in a specific test file instead of all tests in the codebase, you can specify as a second argument the filepath of the test file to run:
+
+```bash
+npm test -- __tests__/math.test.js
+```
+### Test filtering
+
+Just like in Vitest, you have the ability to skip tests or only run them, and do the same with test suites.
+
+**filtering for individual tests**
+
+- skip tests with `test.only()`
+- skip test with `test.skip()`
+- mark a test as to-do with the `test.todo()`
+
+```ts
+describe("add function", () => {
+  it.only("should return 3 when adding 1 and 2", () => {
+    expect(add(1, 2)).toBe(3);
+  });
+  it("should return 5 when adding 2 and 3", () => {
+    expect(add(2, 3)).toBe(5);
+  });
+  it.skip("should return 3 when adding 1 and 2", () => {
+    expect(add(1, 2)).toBe(3);
+  });
+});
+```
+
+**filtering for test suites**
+
+- `describe.skip(testStr, testFn)`: creates a test suite that is skipped.
+- `describe.only(testStr, testFn)`: runs only this test suite
+
+```ts
+describe("add function", () => {
+  ...
+});
+
+describe.skip("subtract function", () => {
+  // All tests in this suite will be skipped
+  ...
+});
+```
+
+
+Jest offers powerful command-line options to filter tests without modifying your code—ideal for CI/CD pipelines or selective testing.
+
+Let's use this example:
+
+```ts
+import { add } from "../math.js";
+
+describe("add function", () => {
+  it("should return 3 when adding 1 and 2", () => {
+    expect(add(1, 2)).toBe(3);
+  });
+
+  it("should return 5 when adding 2 and 3", () => {
+    expect(add(2, 3)).toBe(5);
+  });
+});
+
+```
+
+Here's all the way to run specific test suites via the command line.
+
+-  **Target test suite description text**: To run only test suites containing specific text in their description, use the `-t` or `--testNamePattern` flag for performing a regex search against test suite descriptions
+
+```
+npm test -- -t "add function"
+```
+
+-  **Target test  description text**: To run only tests containing specific text in their description, use the `-t` or `--testNamePattern` flag for performing a regex search against individual test descriptions
+
+```
+npm test -- -t "should return 3"
+```
