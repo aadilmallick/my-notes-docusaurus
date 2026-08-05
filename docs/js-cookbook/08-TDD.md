@@ -1408,7 +1408,7 @@ const sendEmail = jest.fn() as jest.MockedFunction<typeof sendEmail>;
 // or with explicit signature:
 const sendEmail = jest.fn<(to: string, body: string) => Promise<boolean>>();
 ```
-#### Spying
+#### Mocking + Spying
 
 You can implement spying in Jest by just having some expect assertion calls that basically just count the number of times a mock function has been called. 
 
@@ -1447,6 +1447,46 @@ sendEmail.mock.results;      // [{type:'return', value:true}, ...]
 sendEmail.mock.instances;    // `this` contexts
 ```
 
+You can also just do normal spying without mocking a function. It follows the same syntax as the mocking + spying:
+
+```ts
+const logger = { log: (msg: string) => console.log(msg) };
+
+it('logs the message', () => {
+  const spy = jest.spyOn(logger, 'log');
+  doWork(logger);
+  expect(spy).toHaveBeenCalledWith('done');
+  spy.mockRestore();
+});
+```
+
+You can also create a spy and a mock at the same time by stubbing out implementations:
+
+```ts
+jest.spyOn(logger, 'log').mockImplementation(() => 'stubbed');
+jest.spyOn(logger, 'log').mockReturnValue('stubbed');
+jest.spyOn(logger, 'log').mockImplementationOnce(() => 'once');
+```
+
+> [!NOTE]
+> Spying is less invasive than mocking modules — the real implementation still works if you don't override it. Prefer `spyOn` over replacing entire modules when you only need to assert a call was made.
+
+
+#### Mocking modules
+
+You can mock entire modules using `jest.mock('path')` since it replacezs the **entire module** with auto-generated mocks (all exports become `jest.fn()`). It's **hoisted** to the top of the file by Jest's babel transform.
+
+```ts
+import { sendEmail } from './email';
+jest.mock('./email');   // sendEmail is now jest.fn()
+
+it('sends email', async () => {
+  jest.mocked(sendEmail).mockResolvedValue(true);
+  await notify('user');
+  expect(sendEmail).toHaveBeenCalled();
+});
+```
+
 #### Resetting mocks
 
 | Method | Clears calls | Resets impl to default | Restores original (spies only) |
@@ -1467,3 +1507,5 @@ beforeEach(() => {
 
 > [!NOTE]
 > **Gotcha:** `clearAllMocks` keeps your `mockReturnValue` setups; `resetAllMocks` wipes them. Most teams want `clearAllMocks`.
+
+
