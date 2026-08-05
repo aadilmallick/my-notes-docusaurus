@@ -39,6 +39,13 @@ The three things that make starting a startup less risky are the dead-obvious th
 > [!NOTE]
 > Trying to keep multiple career paths open (like keeping a job at _Google_ while starting a company) is often counterproductive; founders who commit fully are more likely to compete effectively against those splitting their focus.
 
+
+### Why founders fail
+
+1. **isolation**: they're doing it all alone
+2. **not enough feedback**
+3. **lost momentum**
+4. **don't know what's next**
 ## Paul Graham Essays
 
 ### Why to Not start a startup
