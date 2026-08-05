@@ -1474,7 +1474,7 @@ jest.spyOn(logger, 'log').mockImplementationOnce(() => 'once');
 
 #### Mocking modules
 
-You can mock entire modules using `jest.mock('path')` since it replacezs the **entire module** with auto-generated mocks (all exports become `jest.fn()`). It's **hoisted** to the top of the file by Jest's babel transform.
+You can mock entire modules using `jest.mock('path')` since it replaces the **entire module** with auto-generated mocks (all exports become `jest.fn()`). It's **hoisted** to the top of the file by Jest's babel transform.
 
 ```ts
 import { sendEmail } from './email';
