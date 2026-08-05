@@ -1302,3 +1302,86 @@ npm test -- -t "add function"
 ```
 npm test -- -t "should return 3"
 ```
+
+### Expect basics
+
+```ts
+expect(2 + 2).toBe(4);                    // strict equality (===)
+expect({a: 1}).toEqual({a: 1});            // deep equality
+expect(arr).toContain('x');                // arrays/strings
+expect(obj).toHaveProperty('id', 5);       // key/value
+expect(fn).toHaveBeenCalledWith(1, 2);     // mock assertions
+expect(() => { throw new Error('x'); }).toThrow('x');
+expect(value).toBeNull();
+expect(value).toBeUndefined();
+expect(value).toBeDefined();
+expect(value).toBeTruthy();
+expect(value).toBeFalsy();
+expect(n).toBeGreaterThan(5);
+expect(arr).toHaveLength(3);
+```
+
+### Setup and teardown
+
+You have 4 hooks:
+
+- `beforeAll` — expensive one-time setup (DB connection, server start). Use sparingly; it couples tests.
+- `beforeEach` — restore state between tests. The default for most setup.
+- `afterEach` — clean up mocks, restore spies, reset modules.
+- `afterAll` — close connections.
+
+Hooks can also be scoped, where if run at the top-level of the test file, they apply to all tests, but if invoked within a test suite, they only are applied for that individual test suite lifecycle.
+
+```
+beforeAll(async () => { /* runs once before all tests in this block */ });
+beforeEach(async () => { /* runs before each test */ });
+afterEach(async () => { /* runs after each test */ });
+afterAll(async () => { /* runs once after all tests */ });
+```
+
+#### Global setup and teardown
+
+In the `jest.config.ts` you can add these options in order to add global setup and teardown hooks by invoking javascript in files instead of manually creating the hooks yourself.
+
+```ts
+// jest.config.js
+module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  globalSetup: '<rootDir>/global-setup.ts',
+  globalTeardown: '<rootDir>/global-teardown.ts',
+};
+```
+
+- `setupFilesAfterEnv` — runs after Jest is loaded but before tests; perfect for `import '@testing-library/jest-dom'`.
+- `globalSetup/Teardown` — runs once per Jest invocation, not per file.
+
+> [!WARNING]
+> **Trade-off:** Global setup creates hidden coupling. Prefer per-file setup unless it's truly global (e.g., test DB seeding)
+
+
+### Mocking
+
+Strictly speaking, the testing community distinguishes:
+
+- **Dummy** — passed but never used (just to satisfy a signature).
+- **Stub** — returns canned answers.
+- **Spy** — records calls (and optionally delegates or overrides).
+- **Mock** — pre-programmed with expectations; fails if expectations aren't met.
+
+Jest collapses these into one API. `jest.fn()` creates a "mock function" that's all of the above depending on how you configure it. `jest.spyOn` creates a mock that _wraps_ a real implementation.
+
+Here are the three main reasons why to mock:
+
+1. **Isolate the system under test (SUT)** from dependencies (DB, network, file system, time).
+2. **Force failure modes** that are hard or dangerous to trigger for real.
+3. **Verify interactions** ("did we call `logger.error`?").
+
+Here are the main principles and tradeoffs of mocking:
+
+- **con: tight coupling**: Mocks make tests fast but **couple them to implementation details**. If you mock `db.query` and later refactor to use an ORM, your test breaks even if behavior is correct.
+- **con: not predictive of real behavior**: Mocks can give **false confidence**: your test passes against a mock that doesn't behave like the real thing.
+- **Rule of thumb:** Mock at the _seam_ (interfaces you own), not at the library boundary. Wrap third-party deps in your own adapter, mock the adapter.
+
+#### Basic mocking
+
+#### Type hinting for mocking
