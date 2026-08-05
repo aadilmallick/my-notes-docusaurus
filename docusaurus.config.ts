@@ -15,8 +15,8 @@ import { themes as prismThemes } from "prism-react-renderer";
 export default async function createConfigAsync() {
   const { remarkAlert } = await import("remark-github-blockquote-alert");
   const config = {
-    title: "Threejs Journey notes",
-    tagline: "My notes",
+    title: "Aadil Mallick's Notes",
+    tagline: "Personal notes by Aadil Mallick",
     favicon: "img/favicon.ico",
     stylesheets: [
       {
@@ -150,9 +150,9 @@ export default async function createConfigAsync() {
           //... other Algolia params
         },
         navbar: {
-          title: "My Site",
+          title: "Aadil Mallick's Notes",
           logo: {
-            alt: "My Site Logo",
+            alt: "Aadil Mallick's Notes Logo",
             src: "img/logo.svg",
           },
           items: [
