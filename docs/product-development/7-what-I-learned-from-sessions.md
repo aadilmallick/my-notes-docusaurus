@@ -62,6 +62,80 @@ Validate your top ICP segment by listing **50 specific real-world individuals or
 > [!NOTE]
 > _Rule of thumb:_ If you cannot name 50 actual targets, the definition of your ICP is still too broad or vague.
 
+### Customer discovery call framework
+
+```embed
+title: "Notion | Where teams and agents work together"
+image: "https://app.notion.com/images/meta/default.png"
+description: "A collaborative AI workspace, built on your company context. Build and orchestrate agents right alongside your team's projects, meetings, and connected apps."
+url: "https://alifbuild.notion.site/Customer-Interview-Script-3586f56c65b080799329e88585687b94"
+favicon: ""
+aspectRatio: "52.083333333333336"
+```
+
+Customer discovery calls should be 30 to 45 minutes and be live on video. 
+
+> [!NOTE]
+> The purpose of a customer discovery call is to **validate problems**, not sell solutions
+
+#### **before the call**
+
+- [ ] Send calendar invite with video link
+- [ ] Confirm they're in your target ICP
+- [ ] Have this script open with notes ready
+
+#### **opening of the call**
+
+Establish that this is not a sales call, you just want to get to know their day-to-day life
+
+> "Hey `[Name]`, thanks for making time.
+> 
+> Quick context: **This is NOT a sales call.** I'm not pitching anything.
+> 
+> I'm exploring `[one-sentence description]` and talking to `[their role]` to understand real challenges. Best thing you can do is be brutally honest — even if that means telling me my idea sucks.
+> 
+> Mind if I record so I can focus on the conversation?"
+
+
+#### Part 1: gathering context 
+
+- Q1: "Walk me through your typical `[day/week]` when it comes to `[problem area]`."
+	- Follow-ups: "Give me a specific example from last week?" / "What tools are you using?"
+- Q2: "What's the most frustrating part about how you handle `[problem]` today?"
+	- Follow-ups: "Tell me about the last time that happened?" / "What was the impact?"
+
+#### Part 2: Problem validation 
+
+- Q3: "How are you currently solving `[problem]`?"
+	- Follow-ups: "Give me a specific example from last week?" / "What tools are you using?"
+- Q4: "What would happen if you didn't solve this?"
+	- Follow-ups: "Are you actively working on this now?" / "What's the cost of inaction?"
+- Q5: "On a scale of 1-10, how painful is this right now?"
+	- If 7+: "What makes it a `[number]` and not a 3?"
+	- If < 7: "What would make this a higher priority?"
+- Q6: "Have you spent money trying to solve this? How much?"
+	- Follow-ups: "Was it worth it?" / "What would you have paid for something that actually worked?"
+
+
+#### Part 3: solution exploration
+
+- Q7: "If you could wave a magic wand and solve this perfectly, what does that look like?"
+	- Follow-ups: "What outcomes would you expect?" / "How would you measure success?"
+- Q8: "What's the ONE thing that would make the biggest difference?"
+	- Follow-up: "Why that over `[other thing they mentioned]`?"
+
+#### Part 4: commitment
+
+- Q9: "I'm building something for this. Would you be open to being an early tester?"
+	- If yes: "What would you need to see to try it? Would you pay `[price]` if it delivers `[outcome]`?"
+	- If hesitant: "What concerns do you have?"
+- Q10: "Who else do you know who deals with this same problem?"
+	- Follow-up: "Would you be open to making an intro?"
+#### Part 5: closing
+
+> "Super helpful — thank you. Quick recap of what I heard: `[top 2-3 pain points]`. Did I get that right?
+> 
+> I'll `[next step]` and would love to keep you in the loop. Can I reach out in `[timeframe]`?"
 ### Homework
 
 - 5 customer interviews run using the script.
