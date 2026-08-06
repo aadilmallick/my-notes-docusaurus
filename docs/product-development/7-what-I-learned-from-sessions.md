@@ -175,6 +175,84 @@ Follow this template to consolidate your findings from the interview
 
 **Pursue as ICP?** Yes / No / Maybe
 ```
+
+### Concierge test
+
+In relation to [[2-all-about-startups#Do things that don't scale]], a **concierge test** is all about manually delivering a service or workflow to your customers in the beta phase before automating it so you understand how the workflow works, how to automate it in the future, and what customers really want.
+
+```embed
+title: "Notion | Where teams and agents work together"
+image: "https://app.notion.com/images/meta/default.png"
+description: "A collaborative AI workspace, built on your company context. Build and orchestrate agents right alongside your team's projects, meetings, and connected apps."
+url: "https://alifbuild.notion.site/Concierge-Test-Checklist-50d6f56c65b082e28527010414510ef1"
+favicon: ""
+aspectRatio: "52.083333333333336"
+```
+
+
+> [!NOTE]
+> **what's a concierge test?**
+> ***
+> Manually deliver your promised outcome to early customers to prove **three** things:
+> 
+> 1. People will pay for this
+> 2. You can actually deliver the result
+> 3. You understand the real workflow before automating it
+> 
+> **Example:** You promise "AI-powered lead qualification." In the concierge version, you qualify leads yourself using AI tools + your own judgment. Customer gets the outcome. You learn the actual process.
+
+#### Step 1: define the offer
+
+>**"We will manually `[deliver outcome]` for `[ICP]` in `[timeframe]` for $`[price]`"**
+
+_Ex: "We will manually qualify and book 5 sales meetings for B2B SaaS founders in 2 weeks for $1,500"_
+
+Here's a quick sanity check:
+
+- [ ] Specific outcome (not "help with marketing")
+- [ ] Time-bound delivery
+- [ ] Clear price
+- [ ] You can actually do this by hand
+- [ ] Valuable enough to charge $500+
+
+#### Step 2: build the landing page
+
+Use your landing page template but tweak the framing:
+
+- **Headline:** "We'll `[outcome]` for you — done-for-you service"
+- **Pricing:** "$`[X]` per `[outcome]` | Limited beta spots"
+- **Honesty clause (optional):** "We're personally handling every client during beta. You get white-glove service at beta pricing."
+
+#### Step 3: use a cold outreach template
+
+> Hey `[Name]`,
+> 
+> Running a beta where we `[specific outcome]` for `[ICP]` in `[timeframe]`.
+> 
+> Looking at `[their company]`, you'd be a great fit because `[reason]`.
+> 
+> We're doing everything manually during beta — white-glove service, beta pricing at $`[X]` (normally $`[Y]`), only taking `[3]` partners this month.
+> 
+> Worth a 15-min call?
+
+
+#### How to make a landing page
+
+```embed
+title: "2-Hour Landing Page Build"
+image: "https://app.notion.com/images/meta/default.png"
+description: "A collaborative AI workspace, built on your company context. Build and orchestrate agents right alongside your team's projects, meetings, and connected apps."
+url: "https://alifbuild.notion.site/2-Hour-Landing-Page-Build-3586f56c65b08064a18cc32eaff1c148"
+favicon: ""
+aspectRatio: "52.083333333333336"
+```
+
+The main page structure for the landing page should be like so:
+
+Hero → Problem → Solution Tease → How It Works → Social Proof → CTA → FAQ → Final CTA
+
+
+
 ### Homework
 
 - 5 customer interviews run using the script.
