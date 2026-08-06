@@ -1384,7 +1384,13 @@ Here are the main principles and tradeoffs of mocking:
 
 #### Mocking functions
 
-These are the different ways to you can mock a function using `jest.fn()`
+These are the different ways to you can mock a function using `jest.fn()`, which creates a mockl function:
+
+```ts
+const mockFn = jest.fn()
+```
+
+For example, you can mock return values, or resolved or rejected values if mocking an asynchronous function.
 
 ```ts
 const sendEmail = jest.fn();        // returns undefined
@@ -1393,11 +1399,11 @@ const fetchUser = jest.fn().mockResolvedValue({ id: 1 }); // promise
 const boom = jest.fn().mockRejectedValue(new Error('nope'));
 ```
 
-If the function you're mocking has a return value or is asynchronous, chain it with these mock wrapper functions:
+Here are all the mocking functions you have available to use in Jest. 
 
-- `jest.fn().mockReturnValue(val)`: creates a mock function that returns the specified value
-- `jest.fn().mockResolvedValue(val)`: creates a  mock function that returns a promise that resolves to the specified value.
-- `jest.fn().mockRejectValue(err)`: creates a mock function that returns a promise that rejects to the specified `Error` instance.
+- `mockFn.mockReturnValue(val)`: creates a mock function that returns the specified value
+- `mockFn.mockResolvedValue(val)`: creates a  mock function that returns a promise that resolves to the specified value.
+- `mockFn.mockRejectValue(err)`: creates a mock function that returns a promise that rejects to the specified `Error` instance.
 
 And this is how you would provide typescript types for them:
 
@@ -1407,6 +1413,12 @@ import type { SendEmail } from './email';
 const sendEmail = jest.fn() as jest.MockedFunction<typeof sendEmail>;
 // or with explicit signature:
 const sendEmail = jest.fn<(to: string, body: string) => Promise<boolean>>();
+```
+
+And you can use this syntax by passing in a callback into the `jest.fn()` function in order to provide a mock implementation for it. 
+
+```ts
+const mockFnWImplementation = jest.fn(() => console.log("hello"))
 ```
 #### Mocking + Spying
 
@@ -1487,6 +1499,29 @@ it('sends email', async () => {
 });
 ```
 
+But besides mocking an entire module, here are the three ways to mock with modules:
+
+**Technique 1: mocking individual exports**
+
+You can also mock a real export by following these steps:
+
+1. Import an function from another module
+2. Create a mock of that object or function by wrapping it in `jest.mocked()`
+
+```ts
+jest.mocked(realExport).mockReturnValue(1);   // typed access
+```
+
+**Technique 2: mocking only a few implementations of the module**
+
+You can also use `jest.requireActual(module_path)` in conjunctions with `jest.mock()` in the factory format to mock only the desired exports from the module and leaving all other exports as actual things to test.
+
+```ts
+jest.mock('lodash', () => {
+  const actual = jest.requireActual('lodash');
+  return { ...actual, debounce: jest.fn((fn) => fn) };  // make debounce call-through immediately
+});
+```
 #### Resetting mocks
 
 | Method | Clears calls | Resets impl to default | Restores original (spies only) |
