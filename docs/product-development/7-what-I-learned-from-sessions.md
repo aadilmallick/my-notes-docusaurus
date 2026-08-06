@@ -136,6 +136,45 @@ Establish that this is not a sales call, you just want to get to know their day-
 > "Super helpful — thank you. Quick recap of what I heard: `[top 2-3 pain points]`. Did I get that right?
 > 
 > I'll `[next step]` and would love to keep you in the loop. Can I reach out in `[timeframe]`?"
+
+
+#### Post inverview debrief
+
+Follow this template to consolidate your findings from the interview
+
+```
+## Post-Interview Debrief (Complete within 24 hrs)
+
+**Name:** ___ | **Company:** ___ | **Role:** ___ | **Date:** ___
+
+### Pain Validation:
+
+### Key Quotes:
+
+> "[Exact quote about the problem]"
+"[Exact quote about what they want]"
+> 
+
+### Red Flags:
+
+- [ ]  Said "interesting" but not "I need this"
+- [ ]  No specific recent example
+- [ ]  No budget or authority
+- [ ]  Problem isn't top 3 priority
+- [ ]  Wouldn't commit to next step
+
+### Green Flags:
+
+- [ ]  Described problem emotionally
+- [ ]  Shared examples unprompted
+- [ ]  Asked "when can I get this?"
+- [ ]  Offered to pay or pre-order
+- [ ]  Referred others
+
+**Overall: ⭐⭐⭐⭐⭐ (1-5)**
+
+**Pursue as ICP?** Yes / No / Maybe
+```
 ### Homework
 
 - 5 customer interviews run using the script.
