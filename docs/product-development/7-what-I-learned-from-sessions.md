@@ -236,7 +236,9 @@ Use your landing page template but tweak the framing:
 > Worth a 15-min call?
 
 
-#### How to make a landing page
+
+
+### How to make a landing page
 
 ```embed
 title: "2-Hour Landing Page Build"
