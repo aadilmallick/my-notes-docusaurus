@@ -626,7 +626,35 @@ The most important attribute to tell whether someone would be a good co-founder 
 
 - **your network**: choose people in college or your coworkers to be your cofounder.
 
-###
+### How to behave with cofounders
+
+The most important part of being a co-founder is to have trust in other people and to have people trust you. These are three ways to build trust:
+
+1. **trust people by default**: The alternative is to always mistrust people, and that never ends well. 
+2. **If you say you'll do something then do it**: Say that if you're not going to do something, then communicate that early. 
+3. **create space for mistakes**
+4. **spend time together in person**
+
+Here are some useful habits and structures in order to create a good bond and relationship with your co-founder. 
+
+1. Have regularly scheduled one-on-ones. 
+2. Have bi-directional feedback, both constructive, which is positive and also negative. 
+3. Don't delay hard conversations. The thing about problems is that they're easier to solve when they're small.  
+4. Never commit personal tax against your founder, never comment on who they are as a person Unless it's positive. 
+
+## All about hiring
+
+You should only start hiring when your post-product market fit, meaning that you know people love your product and now you need to scale up in order to satisfy demand. 
+
+Most startups are pre-product market fit, meaning that they haven't found enough customers or demand for the product and supply how paces demand. That's when you should not hire and instead just continue building out the company to be as best as possible with the people you already have.
+
+### Who to hire and when to hire them
+
+Hire smart people that are specialists, and hire them after an insurmountable problem becomes apparent and you're currently dealing with it.
+
+Always hire intelligent people. Have high standards.
+
+>Every hire should always increase the average IQ of the company.
 
 ## Customer discovery and how to talk to users
 
