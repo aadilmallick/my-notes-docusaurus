@@ -979,3 +979,42 @@ All you need to do to reach $1 million in revenue while in phase three is to jus
 ### Common mistakes
 
 1. Pitching instead of asking pain points: Instead ask them about their pain points and what their day to day looks like
+
+## KPIs and how to prioritize your time
+
+### What are KPIs
+
+- **KPIs**: are **key performance indicators**, aka a measurable metric that you track. 
+- **prioritization**: prioritizing the most important work first and getting that done'
+
+Time is finite, so you must choose the most important work to do each day that actually move the needle forward. 
+
+> [!NOTE]
+> For example, you should base your prioritization off of tasks that move you towards your KPIs faster.
+
+
+### What to NOT prioritize
+
+You should not prioritize or do work on anything that does not move the needle forward. Here are four examples:
+
+1. **unnecessary perfectionism**: stop at good enough
+2. **premature optimization**: do not build for performance at the start just wait until you actually have a problem to start optimizing
+3. **not building what your users want**: a big mistake you can make is building some random feature that users don't want or don't really care about and instead doing something that you're excited about. No. always service the users
+
+### How to set KPIs and move towards them
+
+Here is a multi-step process to move towards your KPIs by setting goals for them:
+
+1. **write down ideas that may help**: and then rank them in order of what moves the needle the most.
+2.  **do the highest priority task**: From the list that you just wrote down, choose the few highest priority tests that would actually move that KPI and do them. 
+3. **reflect**: After a while, if the tests that you used and worked on to move your KPI did not work out and moving them, then reflect upon it and be super honest why it didn't work. 
+
+> [!NOTE]
+> The most important part of this process is this reflection. The definition of insanity is doing the same thing over and over again and expecting different results. You always have to reflect and change something and make small adjustments to get to where you want to be and learning from your mistakes.
+
+### How to prioritize
+
+ 1. **identify top KPIs**: If you've launched, then your primary KPI should be revenue growth, something vague and abstract.
+ 2. **identify top KPIs for this week**: Identify what your top KPIs for this week are. For example, getting 10 new paying customers by next week. Ideally, weekly top KPIs should be connected to long-term KPIs, like revenue growth.
+	 - **why weekly KPIS**: Weekly KPIs are a concrete goal to achieve top KPIs for your business. And they help with velocity and acceleration by always having a weekly goal to shoot for. 
+ 3. **identify biggest bottleneck in top KPIs**: Identify any stalling in the top KPIs and create goals around fixing those. 
