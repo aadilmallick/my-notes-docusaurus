@@ -604,6 +604,30 @@ If you don't think your company will ever get to that level, then there's no nee
 > [!TIP]
 > A good rule of thumb to decide if you're worthy of VC funding is to ask yourself, can you imagine this company as a publicly traded company? Would people want stocks in it? If the answer is no, it doesn't need VC. 
 
+## Cofounders
+
+### Why need a cofounder
+
+Being a solo founder is pretty difficult. Co-founders help that process out both in emotional support and making the development process a lot faster. 
+
+Here are multiple reasons why cofounders are great:
+
+1. **productivity and speed**: Two people are 2x the speed than one, 4 people have 4x the velocity of one. 
+2. **emotional support**: good company helps you out.
+3. **empirical evidence**: most good companies that are now valued at billions started out with cofounders. 
+
+Also, if you're a solo founder you're a lot less likely to get funded by YC because of the top 100 YC companies only 4 were made by solo founders.
+
+The main pattern that underlies all successful solo founders is that they did everything by themselves. They were able to create the MVP and get users on their own and scale the MVP. 
+
+### WHere to find a cofounder
+
+The most important attribute to tell whether someone would be a good co-founder with you or not is if you would like them as a friend. 
+
+- **your network**: choose people in college or your coworkers to be your cofounder.
+
+###
+
 ## Customer discovery and how to talk to users
 
 
