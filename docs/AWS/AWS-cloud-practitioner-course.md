@@ -544,6 +544,44 @@ However, since there are so few public IPv4 addresses in the world, there are so
 
 Instead of using elastic IP, it's better, cheaper, and more robust to attach a DNS record mapping a domain name to your public instance, for which the domain name is unchanging and unaffected by constantly changing IP addresses.
 
+#### EC2 lifecycle
+
+EC2 pricing is on-demand by default, meaning that you pay for the compute for when the EC2 instance runs, and the EC2 instance runs 24/7 by default.
+
+If you stop or pause the instance you won't pay for the compute anymore because the instance won't be running, but you will still be paying for the EBS volume attached.
+
+- Stopping an instance halts compute charges but storage costs for the hard drive and snapshots still apply.
+- Stopping and then starting an instance moves it to a new physical server, which can resolve hardware-related connection issues.
+- Rebooting an instance is faster but keeps it on the same physical server.
+
+#### EC2 snapshots
+
+EC2 snapshots are a way to save the current state of any EC2 instance and anything that is installed so that you can reboot that instance again and again without having to manually reinstall the same packages and the same code and the same configuration. 
+
+Here are the steps to create a snapshot from another EC2 instance and then create an isntance from that snapshot:
+
+1. Go to **actions** → **image and templates** → **create image** to create a reusable AMI tempalte.
+
+
+![](https://i.imgur.com/D1l5uh7.jpeg)
+
+2. When creating an image, make sure to check the reboot instance checkbox option because otherwise, AWS will attempt to take a snapshot of the instance while it is still running. And that may have unintended consequences. 
+3. Once the AMI is created, you can click on it and then click on the **launch instance from AMI** button to create an EC2 instance from a snapshot of another instance.
+
+
+![](https://i.imgur.com/zGijvE9.jpeg)
+
+
+> [!NOTE]
+> It's important to reboot the instance during image creation to avoid issues with snapshotting a running hard drive.
+
+
+Here's a look forward as to how EC2 snapshots can help with load balancing and auto-scaling groups:
+
+- You can launch new instances from the AMI in different availability zones and use the same security group to maintain consistent settings.
+- Cloning instances this way helps handle traffic spikes by scaling horizontally or restoring a server to a previous state if needed.
+
+
 ### EC2 pricing
 
 
@@ -649,30 +687,10 @@ However, there are differences between security groups and NACLs:
 - **security groups** use a **stateful firewall** (always allows network responses back from an allowed request) while NACLs use a **stateless firewall** (needs explicit rules for both ingress and egress traffic)
 - **NACLs** are firewalls for entire subnets (less fine-grained) while security groups are firewalls for individual ec2 instances (more fine-grained)
 
-**NACL in depth**
-
-NACLs are stateless firewalls you can configure with standard layer 3 and 4 security rules, and are applied to entire subnets at a time, applying the firewall settings to the subnet itself rather than the individual instances.
-
-Because NACLs are stateless, you need to define explicit rules for both egress and ingress traffic, which can be annoying to do.
-
-#### VPC peering
-
-VPC peering allows you to connect two VPCs together so devices in different VPCs can communicate with each other. If you need cross-VPC communication across more than 2 VPCs, then you should use **transit gateways**
-
-- **VPC peering**: allows devices in two different VPCs to communicate with each other by connecting two VPCs together.
-- **transit gateway**: 
-
-#### AWS privatelink
-
-If you want to securely use other AWS services like S3 in your instance, then instead of having to expose your instances publicly by having them connect to the internet,  you can take advantage of AWS's private WAN across the globe to use VPC endpoints, a way to connect to AWS services without going through the internet.
-
-**AWS privatelink** is the service that intercepts network requests destined for AWS services and replaces those internet requests with AWS private WAN requests by requesting the VPC endpoint for that service instead.
 
 
-#### Creating a VPC
 
-- **default VPC**: by default, AWS creates a VPC for you in every single region. 
-	- This is called the default VPC, but it is not very secure, so don't use it!
+
 
 
 ### Load balancing
@@ -1613,6 +1631,32 @@ Here are the core benefits:
 
 - **helps with inter-app communication**: referring to services by name via cloudmap helps different services in a microservice architecture communicate with one another. 
 
+## AWS networking in depth
+
+### Security group in depth
+
+
+### **NACL in depth**
+
+NACLs are stateless firewalls you can configure with standard layer 3 and 4 security rules, and are applied to entire subnets at a time, applying the firewall settings to the subnet itself rather than the individual instances.
+
+Because NACLs are stateless, you need to define explicit rules for both egress and ingress traffic, which can be annoying to do.
+
+### VPC peering
+
+VPC peering allows you to connect two VPCs together so devices in different VPCs can communicate with each other. If you need cross-VPC communication across more than 2 VPCs, then you should use **transit gateways**
+
+- **VPC peering**: allows devices in two different VPCs to communicate with each other by connecting two VPCs together.
+- **transit gateway**: 
+
+### AWS privatelink
+
+If you want to securely use other AWS services like S3 in your instance, then instead of having to expose your instances publicly by having them connect to the internet,  you can take advantage of AWS's private WAN across the globe to use VPC endpoints, a way to connect to AWS services without going through the internet.
+
+**AWS privatelink** is the service that intercepts network requests destined for AWS services and replaces those internet requests with AWS private WAN requests by requesting the VPC endpoint for that service instead.
+
+
+
 ## Batch jobs
 
 ### AWS batch
@@ -1832,7 +1876,7 @@ Resource Access Manager service allows you to create cloud resources like a VPC 
 AWS config is a service that enforces AWS service configurations and permissions across AWS accounts, so it also works for resources shared via the resource access manager.
 
 
-## Infrastructure as Code and Code Pipelines
+## Code Pipelines
 
 ### The main code pipeline
 
@@ -1885,10 +1929,3 @@ CodeDeploy is a managed deployment service that allows you to configure deployme
 
 
 
-### CloudFormation
-
-CloudFormation is a Terraform way for spinning up AWS resources declaratively.
-
-AWS services for deploying multiple services at once use CloudFormation behind the scenes, like Elastic Beanstalk.
-
-### AWS CDK
