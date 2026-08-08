@@ -99,7 +99,7 @@ If you want to opt for the hybrid approach where you use both cloud providers an
 
 Since the major con of using a VPN is that it's both slow and there is still an attack vector of serving traffic over the internet, if you can get a physical WAN connection to a cloud provider, that's the best option.
 
-AWS offers a physical WAN connection service called Direct Connect
+AWS offers a physical WAN connection service called Direct Connect that's expensive, but also secure and fast.
 
 ### Shared responsibility Model
 
@@ -535,14 +535,19 @@ Here are some more details on the optional components:
 
 #### Elastic IP addresses
 
-When instances terminate and then start up again, they are automatically assigned a random available public IP address. If you don't want this behavior and instead want your instance to have a fixed IP address, you can use the **elastic IP service**, which gives you ownership of a static IP that you can assign to an instance, unchanging.
+When instances terminate and then start up again, they are automatically assigned a random available public IP address. 
+
+If you don't want this behavior and instead want your instance to have a fixed IP address, you can use the **elastic IP service**, which gives you ownership of a static IP that you can assign to an instance, unchanging.
 
 However, since there are so few public IPv4 addresses in the world, there are some disadvantages to elastic IP:
 
 - **cost**: Amazon charges you for unused IPs to discourage you from taking the valuable fixed IP addresses.
 - **scarcity**: Since public IPv4 addresses are so scarce, you can only have a few elastic IPs per region and account.
 
-Instead of using elastic IP, it's better, cheaper, and more robust to attach a DNS record mapping a domain name to your public instance, for which the domain name is unchanging and unaffected by constantly changing IP addresses.
+> [!TIP]
+> Instead of using elastic IP, it's better, cheaper, and more robust to attach a DNS record mapping a domain name to your public instance, for which the domain name is unchanging and unaffected by constantly changing IP addresses.
+
+
 
 #### EC2 lifecycle
 
@@ -622,8 +627,15 @@ You only pay for an EC2 instance if it is up and running, but even when you stop
 
 ### VPCs
 
+#### Intro
+
 VPCs (Virtual private clouds) allow you to create a logically isolated section of the AWS cloud where you can launch and manage regional AWS resources in a customized network environment.
 
+
+![](https://i.imgur.com/N9zRUWS.jpeg)
+
+
+- You should think of VPCs as an LAN with a switch, where devices within the same VPC don't need to traverse the internet in order to talk with each other.
 - You can define IP address ranges, subnets, route tables, stateful firewalls via **security groups** and stateless firewalls via **NACL**s to protect entire subnets.
 
 > [!NOTE]
@@ -640,9 +652,30 @@ Here are the core components of a VPC:
 	- **NACL**: a stateless firewall that controls ingress and egress traffic rules for the entire subnet.
 - **individual instances**: Each individual instance has a security group (stateful firewall) to determine ingress and egress rules for that individual instance.
 
-The largest CIDR address subnet mask a VPC can have is `/16`
+> [!TIP]
+> The largest CIDR address subnet mask a VPC can have is `/16`
 
-#### Subnets
+**complete example**
+
+Walk through a complete networking example with VPCs, subnets, and individual instances. 
+
+- **VPCs**: Suppose your VPC has the CIDR block `10.0.0.0/16`. This means your VPC can have IP addresses from `10.0.0.0` to `10.0.255.255` (about 65,534 usable addresses).
+- **Subnets:** Within this VPC, you create two subnets:  
+	- A **public subnet** with CIDR `10.0.1.0/24` (addresses `10.0.1.0` to `10.0.1.255`), which is connected to an Internet Gateway allowing internet access.
+	- A **private subnet** with CIDR `10.0.2.0/24` (addresses `10.0.2.0` to `10.0.2.255`), which has no direct internet access
+- **Instances:**  
+	- An EC2 instance in the public subnet might have a private IP like `10.0.1.10` and also be assigned a public IP (e.g., Elastic IP) so it can communicate over the internet.
+	- An EC2 instance in the private subnet might have a private IP like `10.0.2.10` but no public IP, so it can only communicate within the VPC or through a NAT gateway if configured.
+
+**complete example 2**
+
+
+
+![](https://i.imgur.com/D5pyBcc.jpeg)
+
+
+
+#### Subnets, internet gateway, and NAT gateway
 
 
 All instances can communicate with all other instances within the same VPC, but to manage stuff like internet connection or communicating with other VPCs, we group instances inside a VPC into **subnets**, either public or private to grant them access to the internet or not.
@@ -652,12 +685,14 @@ All instances can communicate with all other instances within the same VPC, but 
 
 An **internet gateway** is a component that enables communication between resources in your VPC and the internet, allowing EC2 instances within a VPC to send stateful ingress and egress traffic to the internet.
 
-To enable an internet gateway for your VPC, you should attach it to a specific subnet, making that subnet public, and then you will be granted a public IP address and the route table will become an edge router for your VPC, taking on the public IP address and making it the default gateway.
+To enable an internet gateway for your VPC, you should attach it to a specific subnet, which makes that subnet a **public subnet**, and then you will be granted a public IP address and the route table will become an edge router for your VPC, taking on the public IP address and making it the default gateway.
 
 Here are general rules of subnets:
 
 - **a way to have private subnets send egress traffic to the internet**: To allow instances within a private subnet to perform egress traffic to make internet traffic (but not allow ingress traffic), you can add a **NAT gateway** so that instances within a private subnet can still make egress internet traffic.
-- **all devices within the same VPC can communicate with each other**: Even if devices are in different subnets, they can all communicate with each other if they are in the same VPC, but they have to go through two layers of defense: 1) the route table and 2) the NACL for the subnet
+- **all devices within the same VPC can communicate with each other**: Even if devices are in different subnets, they can all communicate with each other if they are in the same VPC, but they have to go through two layers of defense:
+	1. the route table
+	2. the NACL for the subnet
 
 
 Each subnet will be placed in an availability zone, and you can create multiple subnets and thus have them be assigned to multiple availability zones, ensuring high availability for your instances.
@@ -668,7 +703,7 @@ Each subnet will be placed in an availability zone, and you can create multiple 
 
 For example, if you have two public subnets, you can place them in two different AZs.
 
-- This arrangement allows resources in those subnets to remain operational even if one AZ experiences issues.
+This arrangement allows resources in those subnets to remain operational even if one AZ experiences issues.
 
 #### Security groups and NACLs
 
@@ -687,11 +722,25 @@ However, there are differences between security groups and NACLs:
 - **security groups** use a **stateful firewall** (always allows network responses back from an allowed request) while NACLs use a **stateless firewall** (needs explicit rules for both ingress and egress traffic)
 - **NACLs** are firewalls for entire subnets (less fine-grained) while security groups are firewalls for individual ec2 instances (more fine-grained)
 
+#### Default VPC
 
+In the default VPC that AWS creates for you, it includes a private IP range for your network, but to allow internet traffic, you need to have an **internet gateway** attached and assign public IP addresses to your instances or resources that need internet access. 
 
+The default VPC is set up to support this, but the public IPs are not automatically assigned to the VPC's gateway itself. 
 
+- Instead, your instances within the VPC can have public IPs to communicate over the internet.
+- This setup helps keep your internal network private while enabling controlled internet access where needed.
 
+#### Terminology summary
 
+- **VPC**: Virtual private cloud, acting as an LAN for EC2 instances facilitating communication between instances within the VPC without internet traffic.
+- **public subnet**: A logically-segmented subnet within a VPC that allows both ingress and egress traffic.
+- **internet gateway**: a stateful firewall that allows both ingress and egress traffic, and is attached to a subnet to make it a public subnet.
+- **NACL**: stateless firewalls for an entire subnet.
+- **private subnet**: A logically-segmented subnet within a VPC that forbids both egress and ingress traffic.
+- **NAT gateway**: a stateful firewall dedicated that can be attached to private subnets to let them perform stateful egress traffic to the internet but forbid all ingress traffic.
+	- **use case**: business computers should be in a private subnet so it forbids ingress traffic, but egress traffic should be allowed for stuff like web querying.
+- **security group**: stateful firewall attached to individual EC2 instances.
 
 ### Load balancing
 
@@ -705,13 +754,16 @@ We can also use load balancing EC2 instances as a way to horizontally scale our 
 1. **EC2 auto scaling**: automatically adds or removes EC2 instances based on certain conditions, like traffic, always scaling to accommodate load.
 2. **Elastic Load Balancer**: service used to distribute load evenly across available instances, to make sure no single instance reaches max capacity and fails.
 
-There are two types of load balancers:
+There are three types of load balancers:
 
-- **application load balancer**: allows you to programmatically inspect network traffic and decide how to intercept those requests and distribute them across instances. Ideal for HTTP traffic.
-	- **when to use**: for most HTTP-based apps like web servers
-- **network load balancer**: A lean, simple load balancer with limited configuration options, and has a fixed IP address. 
-	- Ideal for non-HTTP traffic and when you have a fixed number of instances you want to distribute traffic to and you don't want to implement auto-scaling.
+- **application load balancer**: allows you to programmatically inspect network traffic and decide how to intercept those requests and distribute them across instances. It only routes layer 7 traffic like HTTP or HTTPS
+	- **feature 1 (programmatic routing)**: offers advanced rules and programmatic decision-making for choosing where to route ingress HTTP traffic
+	- **feature 2 (SSL termination)**: capable of handling encrypted HTTPS ingress traffic, decrypting it, and then forwarding that decrypted data to the individual instances in the target group.
+	- **when to use**: for horizontally scaling most HTTP-based apps like web servers
+- **network load balancer**: A lean, simple load balancer with limited configuration options, and has a fixed IP address. It routes at the layer 4 level, load balancing different protocols like TCP, UDP, SSH, etc.
+	- **use case**: Ideal for non-HTTP traffic and when you have a fixed number of instances you want to distribute traffic to and you don't want to implement auto-scaling.
 	- **when to use**: for most non-HTTP based apps like cron jobs running some process.
+- **gateway load balancer**: enterprise-specific use case load balancer for directing traffic towards non-AWS infrastructure.
 
 Both load balancer types have two important components:
 
@@ -1633,9 +1685,18 @@ Here are the core benefits:
 
 ## AWS networking in depth
 
-### Security group in depth
+### Security groups in depth
 
+Security groups are stateless firewalls that you can define the inbound and outbound traffic rules for a single EC2 instance and then reuse that security group for other EC2 instances. 
 
+Here are the types of traffic you can control:
+
+- **inbound SSH traffic**: which traffic can request your server via SSH on port 22
+	- By default, inbound SSH traffic via port 22 is open to all IP addresses
+- **inbound network traffic**: which domains and on which ports and for which layer 7 protocols (HTTP, HTTPS) are allowed to make a network request to this server.
+	- By default, all IP addresses are allowed to make inbound HTTP traffic to port 80 of the EC2 instance.
+- **outbound network traffic**: which origins can this EC2 instance make outbound requests to?
+	- By default, this is all IP addresses, meaning this server can make requests to any website or server on the internet.
 ### **NACL in depth**
 
 NACLs are stateless firewalls you can configure with standard layer 3 and 4 security rules, and are applied to entire subnets at a time, applying the firewall settings to the subnet itself rather than the individual instances.
