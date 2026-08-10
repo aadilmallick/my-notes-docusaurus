@@ -654,11 +654,6 @@ To verify connections, you can use the `/mcp` command:
 - `/mcp reload`: reloads the MCP server
 
 
-## CodeRabbit CLI
-
-- `coderabbit`: runs a normal code review session
-- `coderabbit --plain`: runs a normal code review session
-
 ## OpenCode
 
 Opencode comes with a bunch of free models on its Zen account and allows you to use other external providers as well:
