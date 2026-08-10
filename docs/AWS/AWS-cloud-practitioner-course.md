@@ -849,6 +849,9 @@ Here is how an application load balancer works:
 4. Healthy targets in one or more target groups receive traffic based on the load balancing algorithm, and the routing rules you specify in the listener.
 
 
+**part 1: create an application load balancer**
+
+
 Here are the steps to create an application load balancer:
 
 1. Select whether the application load balancer should be Internet-facing or internal. 
@@ -876,6 +879,8 @@ Here are the steps to create an application load balancer:
 ![](https://i.imgur.com/JHZDqb0.jpeg)
 
 
+**part 2: create a target group and register targets**
+
 Here are the steps to create a target group:
 
 1. Select **target type** and **traffic origin destination**:
@@ -887,8 +892,20 @@ Here are the steps to create a target group:
 
 
 2. **VPC of targets**: Then you should select the same VPC that the load balancer is in. 
-3. **Select instances**: Select the instances to add to the target group
+3. **Select instances**: Select the instances to add to the target group, they should be in the same availability zones you selected that the load balancer will install its listeners to.
 
+![](https://i.imgur.com/wzyDDLd.jpeg)
+
+
+4. Create the target group
+
+**part 3: register the target group for targeting**
+
+1. Back in the ALB creation page, select the target group you want the load balancer to direct traffic to.
+
+![](https://i.imgur.com/ZIEZbkA.jpeg)
+
+2. Create the load balancer
 
 
 #### Creating an application load balancer with auto-scaling and launch templates
@@ -930,6 +947,16 @@ The next steps are to associate an elastic load balancer with the auto-scaling g
 4. **Attach a security group to the load balancer** for stateful firewall security for the load balancer.
 	- The most common use case is to use the exact same security group that you use for the instances in the target group so that everything has the same network settings.
 5. **Choose a routing action for a target group**: You have the choice to either forward traffic to the routing group, forward traffic to some other URL, or send back a fixed HTTP response you craft.
+
+#### Load balancer + Route 53
+
+
+1. Go to the Load Balancer Details page and then copy the DNS name of the load balancer. It should be an A record. 
+
+
+![](https://i.imgur.com/1Fh5UJ9.jpeg)
+
+2. Go to Route 53 then to **registered domains** and then buy a domain
 
 ### Storage on EC2 instances
 
