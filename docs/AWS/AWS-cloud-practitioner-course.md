@@ -887,6 +887,7 @@ Here are the steps to create a target group:
 
 
 2. **VPC of targets**: Then you should select the same VPC that the load balancer is in. 
+3. **Select instances**: Select the instances to add to the target group
 
 
 
