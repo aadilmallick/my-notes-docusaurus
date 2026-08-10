@@ -121,7 +121,7 @@ When specifying an ARN in a resource, you can target an ARN pattern through the 
 | A specific CloudFront distribution | `arn:aws:cloudfront::123456789012:distribution/E1A2B3C4D5E6F7` |
 | All resources (dangerous)          | `*`                                                            |
 
-#### Principal of least privilege
+#### Principle of least privilege
 
 Here are some common mistakes:
 
