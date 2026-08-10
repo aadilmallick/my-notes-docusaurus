@@ -246,3 +246,9 @@ Here's an example `netlify.toml` and what each key means:
 ```
 
 The `[[redirects]]` key lets  you query the `/api/users` route from your frontend and then redirects that to invoke the function code at `/.netlify/functions/users`.
+
+### Netlify functions
+
+#### Basic functions
+
+1. 
