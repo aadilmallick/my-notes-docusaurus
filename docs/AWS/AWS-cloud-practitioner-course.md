@@ -1340,6 +1340,10 @@ Here is what you can configure with the Elasticache service:
 - **network settings**: the specific VPC and subnet to host the cache DB in.
 - **hardware profile**: the instance type and specs of the instance running the cache service behind the scenes.
 
+### DocumentDB
+
+Basically MongoDB
+
 ### DynamoDB
 
 #### Primer
@@ -1355,6 +1359,10 @@ DynamoDB consists of 4 primary components:
 - **Primary Key:** Unlike other databases where you can query by any column easily out of the box, DynamoDB _forces_ you to define how you will look up your data upfront. Your primary key can be one of two setups:
     1. **Partition Key (PK) only:** A single unique attribute (like `userId`) used to hash and distribute data across physical storage drives.
     2. **Partition Key + Sort Key (SK):** Also known as a _composite primary key_. This lets you group items under the same Partition Key but sort/filter them uniquely by the Sort Key (e.g., `PK: "USER#123"`, `SK: "ORDER#2026-06-12"`).
+
+
+![](https://i.imgur.com/y0CU2Fw.jpeg)
+
 
 
 > [!TIP]
@@ -1522,7 +1530,7 @@ There are two ways you can design the behavior of your lambda invocation to be:
 
 ## Containers with AWS
 
-### ECS and EKS
+### Container orchestration
 
 Container orchestration is the act of managing a variable amount of **container instances** and assigning them to **container hosts.**
 
@@ -1536,26 +1544,64 @@ Container orchestration is the act of managing a variable amount of **container 
 
 ECS and EKS are unmanaged container orchestration systems for scaling applications in clusters with two main differences:
 
-- **ECS**: uses AWS's custom container deployment and orchestration solution
-- **EKS**: uses kubernetes for orchestration and deployment
+- **ECS** is simpler and easier to use, great for quickly starting containerized applications using AWS-managed orchestration.
+- **EKS** runs Kubernetes, which is more complex but widely popular and portable across cloud providers and on-premises, so you’re not locked into AWS.
 
-For both ECS and EKS, you manage container hosts (EC2 instances), choosing the hardware, instance type, etc. that the containers will be running on. 
+For both ECS and EKS, you configure container hosts, choosing the hardware, instance type, etc. that the containers will be running on, and then AWS handles those container hosts for you.
 
-AWS handles and manages the deployment of containers you push to EKR (the AWS container registry) and uses them to deploy the fleet of containers across the container hosts.
+AWS also handles and manages the deployment of containers you push to ECR (the AWS container registry) and uses them to deploy the fleet of containers across the container hosts.
 
-1. Upload a container image to a container registry server, ECR in AWS.
-2. Use ECS to choose a **container host** EC2 instance to actually run the container image and choose configuration options like cluster size (how many container replicas), etc
+### ECS 
 
-By default, an **ECS cluster** uses an auto-scaling group to add more **nodes** (container hosts) and uses a load balancer to perform container orchestration across all those nodes.
+ECS is a container orchestration service that allows you to run individual containers and scale and orchestrate them across container hosts. Here is some terminology you should know:
 
-EKS (elastic kubernetes service) is a managed service for kubernetes pods.
+- **task definition**: Defines how a container host should run containers, and the minimum and maximum capacity for how many containers can run within a single container host.
+- **launch type**: Defines the type of container host you can use for ECS, of which there are two:
+	- **EC2 container host**: containers live and run in EC2 instances, and since EC2 instances are persistently running, so are the containers that live in EC2 container hosts.
+	- **Fargate**: containers are managed by Fargate, which treats containers as ephemeral things to spin up and down.
+
+![](https://i.imgur.com/sjwdFMi.jpeg)
+
+By default, an **ECS cluster** uses an auto-scaling group to add more **nodes** (container hosts) and uses a load balancer to perform container orchestration across all those nodes, placing containers intelligently across container hosts.
+
+Here’s the difference between Fargate and EC2 container hosts in AWS ECS:  
+  
+
+- **EC2 launch type** means you create and manage your own cluster of EC2 instances (virtual servers) that run your containers continuously. This is great for backend services that need to be always on and handle lots of incoming requests with low latency.  
+      
+    
+- **Fargate launch type** is serverless and runs containers on demand without you managing servers. It’s ideal for tasks that run briefly and then stop, like processing a single job. You pay only for the time the container runs, which can save costs if your containers don’t need to run all the time.
+#### EC2 launch type
+
+Here are the steps to deploying a fleet of containers with ECS using EC2 as the launch type.
+
+1. **Upload image to ECR**: Upload a container image to a container registry server, ECR in AWS.
+2. **Configure container host**: Use ECS to choose a **container host** EC2 instance to actually run the container image and choose configuration options like cluster size (how many container replicas), etc
+3. **Define the task definition**: Choose the image that the containers should be built from, how those containers should run, the maximum and minimum capacity of containers within a container host, what exec commands to run on those containers, etc.
 
 
-### Fargate
+![](https://i.imgur.com/WDFdjlh.jpeg)
 
-If you don't want to manage container hosts, choose the managed service version of running containers, Fargate. 
 
-With Fargate, all you manage is the container image and AWS manages the orchestration and container host.
+#### Fargate launch type
+
+If you don't want to manage container hosts, choose the managed service version of running containers, Fargate, which spins up containers ephemerally.
+
+
+![](https://i.imgur.com/uAYlVoN.jpeg)
+
+
+> [!NOTE]
+> Use Fargate as the launch type for an ECS cluster if you want the containers to be ephemeral and not long-lived, meaning that once a container is done executing, it is removed.
+> 
+> - **ideal use case**: a finite job that runs and then exits
+> - **anti use case**: a long lived connection like a web server or hosted database
+
+Fargate is great for saving money if your containers are small enough to not suffer from large cold starts, btu if your containers execute for long times then you'll honestly save more money by moving to an EC2 instance launch type
+
+### EKS
+
+
 
 ## CloudWatch
 
@@ -2101,7 +2147,7 @@ THese are the two main storage solutions for data analytics.
 	- **use case**: great for business intelligence, reporting, and visualizations.
 
 
-#### Redshift
+### Redshift
 
 Redshift is a data warehouse solution that is SQL-based, meaning you can store structure data in there and also query data in it.
 
