@@ -835,10 +835,11 @@ Here are the high-level steps to creating an auto-scaling elastic load balancer 
 
 1. Create an auto-scaling group
 2. Create an elastic load balancer and connect it to the auto-scaling group so that new instance replicas are added to the target group. 
-3. Create a scaling policy to configure the contract for scaling in and out.
+3. Create a scaling policy to configure the contract for scaling in and out
 
 
-#### Creating an application load balancer with auto-scaling
+
+#### Creating application load balancer to distribute traffic
 
 Here is how an application load balancer works:
 
@@ -846,6 +847,52 @@ Here is how an application load balancer works:
 2. The listeners in your load balancer receive requests matching the protocol and port that you configure.
 3. The receiving listener evaluates the incoming request against the rules you specify, and if applicable, routes the request to the appropriate target group. You can use an HTTPS listener to offload the work of TLS encryption and decryption to your load balancer.
 4. Healthy targets in one or more target groups receive traffic based on the load balancing algorithm, and the routing rules you specify in the listener.
+
+
+Here are the steps to create an application load balancer:
+
+1. Select whether the application load balancer should be Internet-facing or internal. 
+	- If you are trying to load balance traffic to web servers and distribute traffic that way then you want it to be Internet-facing because it would use a layer 7 protocol like HTTP or HTTPS. 
+
+
+![](https://i.imgur.com/oZxkPbm.jpeg)
+
+
+2. Select the VPC and the availability zones for which instances are going to be placed and that the load balancer should have access to. 
+
+
+![](https://i.imgur.com/9KjKxpL.jpeg)
+
+
+3. Create a security group that handles HTTP or HTTPS traffic and allows all ingress traffic and then you can decide whatever for egress traffic. 
+
+
+![](https://i.imgur.com/Ylu8QeU.jpeg)
+
+
+4. Define which port and layer 7 protocol the listener will distribute traffic to for each instance in the target group and then create or choose a target group. 
+
+
+![](https://i.imgur.com/JHZDqb0.jpeg)
+
+
+Here are the steps to create a target group:
+
+1. Select **target type** and **traffic origin destination**:
+	- **traffic type**: You first want to select whether you're load balancing to a Lambda function, another application load balancer, IP addresses, or instances. Most of the time you will be load balancing to EC2 instances so that's what you want the target type to be.
+	- **traffic origin destination**: Then you will need to select the origin that the instances will be available on and for the load balancer to distribute traffic to. 4
+
+
+![](https://i.imgur.com/xao6uyk.jpeg)
+
+
+2. **VPC of targets**: Then you should select the same VPC that the load balancer is in. 
+
+
+
+#### Creating an application load balancer with auto-scaling and launch templates
+
+
 
 Here's some terminology:
 
