@@ -956,7 +956,15 @@ The next steps are to associate an elastic load balancer with the auto-scaling g
 
 ![](https://i.imgur.com/1Fh5UJ9.jpeg)
 
-2. Go to Route 53 then to **registered domains** and then buy a domain
+2. For a specific domain you have registered in route 53, see [[#Domain names with Route 53]],  click on the hosted zone details and then add a DNS record, (A record for a load balancer) with the value being the domain of the load balancer, make sure to toggle the **Alias** switch on, since you want to send traffic to an AWS service with an IP address rather than just any old IP address
+
+![](https://i.imgur.com/G8KKCgp.jpeg)
+
+3. Create a `www` alias for the domain by creating a new record but having the record name (the subdomain) be `www`, point it to the load balancer DNS A record, alias to the load balancer.
+
+
+![](https://i.imgur.com/b19V0Sz.jpeg)
+
 
 ### Storage on EC2 instances
 
@@ -1035,6 +1043,47 @@ FSx is the same thing as EFS but specifically purposed towards high performance 
 Route53 allows you to create DNS records where you can buy a domain through route53 or prove that you own one, and then connect that domain via DNS records.
 
 AWS provides a special capability that instead of supplying a target IPv4 address for A records, you can map a domain name to a specific AWS service and provide custom routing instructions.
+
+
+### Domain names with Route 53
+
+#### Buying a domain name
+
+1. Go to Route 53 then to **registered domains** and then buy a domain, the `.click` ones are $3/year.
+
+#### Connecting a domain name
+
+1. Create a hosted zone and type in your domain name
+
+
+![](https://i.imgur.com/Wy9w7aG.jpeg)
+
+
+2.After you have finished creating the hosted zone, click on it to see its details, and then copy over its nameservers into your domain provider DNS configuration for that domain.
+
+
+![](https://i.imgur.com/dhkd96j.jpeg)
+
+Now to actually connect your domain to an IP address, you have two options:
+
+- **A record**: an external IP address to route traffic to.
+- **aliased A record**: Use this if you want to route traffic to an AWS service that has an IP address.
+
+**load balancer connection example**
+
+To point the domain towards an application load balancer you have on AWS, follow these steps:
+
+1. click on the hosted zone details and then toggle the **Alias** switch on to signal that you want to reference an AWS resource with an IP address by the specific service instead of the IP address
+2. Select the specific AWS resource that exposes an A record that you want to route traffic to.
+
+![](https://i.imgur.com/G8KKCgp.jpeg)
+
+
+3. Create the record, and optionally create extra records with subdomains that fill the record name value with `www` or `app`, etc. and alias it to the same AWS resource.
+
+![](https://i.imgur.com/YzU6eBs.jpeg)
+
+
 
 ### CDNs with CloudFront
 
