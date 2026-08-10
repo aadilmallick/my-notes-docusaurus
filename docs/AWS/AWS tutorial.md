@@ -559,18 +559,32 @@ You can connect through a web shell to the EC2 instance using EC2 instance conne
 
 ### EBS
 
-###
+#### Creating an EBS volume and mounting it
+
+
+
+1. Go to **EC2** then to **EBS** tab and create a new EBS volume.
+2. Place the EBS Volume in the same Availability Zone as the EC2 Instance you want to attach it to. 
+
+
+![](https://i.imgur.com/qQ9dQxR.jpeg)
+
+3. Attach the EBS volume to a running instance and choose its mount path on linux
+
+
+![](https://i.imgur.com/srPxM87.jpeg)
+
+
+
+> [!NOTE]
+> It is important to realize that since EBS is a regional service, it must be in both the same region and the same availability zone as any EC2 instances you want to attach it to. 
 
 ### EFS
 
 #### Creating an EFS volume and mounting it
 
-The first step is to actually create the EFS volume:
-
-1. **select hardware requirements**
-2. **set networking settings**: Choose the VPC to place the EFS block in and then select **mount targets**, which is one NIC per availability zone for the EFS block to plug into.
-
-Then you need to take steps to attach the EFS volume to an instance.
+1. Create the EFS volume by going to **Amazon EFS** then to **File systems**.
+2. Attach the EFS volume via the instructions
 
 #### Accessing an EFS volume
 

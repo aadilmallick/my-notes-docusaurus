@@ -1,7 +1,7 @@
 
-## AWS CLI
+## AWS CLI Basics
 
-### Authentication
+### Normal Authentication
 
 Run `aws configure` to set up your default profile:
 
@@ -105,6 +105,36 @@ If you get an error like `The security token included in the request is invalid
 > [!NOTE]
 > Run `aws sts get-caller-identity` any time you’re unsure which credentials the CLI is using. It’s especially useful when you have multiple profiles and want to confirm you’re not accidentally running commands against your production account.
 
+
+### SSO Authentication
+
+SSO configuration with AWS is actually preferred now because you're not dealing with long-lived access keys anymore and it's more secure. 
+
+1. Configure SSO for AWS CLI login by running this command, which boots up the AWS SSO wizard.
+
+```bash
+aws configure sso
+```
+
+2. Go to the AWS Access Portal to find out your SSO settings for your AWS account, then using that information complete the SSO wizard
+
+You can periodically refresh your SSO authentication using the `aws sso login` command, specifying a specific profile with `--profile` flag if need be.
+
+```bash
+PROFILE=someprofile
+
+aws sso login --profile $PROFILE
+```
+
+### Profile vs default actions
+
+For all AWS CLI commands you can always use the `--profile` flag in order to scope the actions to a specific profile instead of the default profile. 
+
+Without this flag all the actions just go to the currently logged in AWS profile, which is the default one. 
+
+
+## AWS CLI
+
 ### IAM
 
 #### Creating policies
@@ -183,6 +213,46 @@ aws iam create-policy \
   --policy-document file://deploy-bot-policy.json \
   --region us-east-1 \
   --output json
+```
+
+### s3 cli
+
+#### Bucket management
+
+**listing buckets**
+
+
+- `aws s3api list-buckets`: lists buckets for a profile
+- `aws s3 ls`: lists buckets for a profile
+
+```
+aws s3api list-buckets --profile someprofile
+aws s3 ls
+```
+
+#### Object management
+
+**uploading an object to a bucket**
+
+To upload an object to a bucket, use the `aws s3 cp` command and you specify the file path of the file you want to upload and the S3 object key URL it would go under. 
+
+```bash
+FILEPATH=image.png
+S3_OBJECT_KEY=s3://myuniquebucket/images/image.png
+
+
+aws s3 cp $FILEPATH $S3_OBJECT_KEY
+```
+
+**uploading a folder and syncing it to a bucket**
+
+Use the `aws s3 sync` command to upload an entire directory to S3 and automate using the filepaths and converting that to their respective object keys, maintaining subdirectory paths.
+
+```bash
+FOLDERPATH=images/
+BUCKETURL=s3://myuniquebucketname/
+
+aws s3 sync $FOLDERPATH $BUCKETURL
 ```
 
 ## AWS SDK

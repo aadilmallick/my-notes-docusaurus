@@ -983,6 +983,20 @@ These are the benefits of EBS:
 - **encryption and durability**: EBS provides file-encryption for security and snapshots of volume storage so that data can be restored at any time.
 - **performance**: EBS is fast.
 
+EBS has two core primitives:
+
+- **volumes**: these are individual hard drives you can attach to instances and they store data.
+- **snapshots**: these are snapshots of an EBS volume at a point in time, capturing all the data in the hard drive at that point.
+
+> [!NOTE]
+> EBS vs AMI
+> ***
+> An EBS snapshot is a backup of just the hard drive (volume) attached to your EC2 instance—it captures the data on that specific drive at a point in time. An AMI (Amazon Machine Image), on the other hand, includes everything needed to launch a new instance: the EBS snapshot plus the configuration of the instance like the operating system, settings, and software. 
+> 
+> - An EBS snapshot is like a snapshot of your data drive
+> - An AMI is a complete image of your server ready to be relaunched.
+
+
 Here are the core properties of EBS:
 
 - **able to change storage capacity**: You can either change storage capacity manually or even dynamically if needed.
@@ -2171,3 +2185,8 @@ CodeDeploy is a managed deployment service that allows you to configure deployme
 
 
 
+## Secrets Manager
+
+## Parameter Store
+
+## KMS
