@@ -496,7 +496,7 @@ Here are the steps to creating an EC2 instance using the AWS console:
 4. **select network settings**: choose how to expose your EC2 instance to the world, either through SSH only or include HTTP traffic and which IP addresses to allow connecting to the instance.
 5. **configure storage**: configure disk storage capacity
 
-### Connecting to an Instance
+### Run a webserver on an instance
 
 There are two ways to connect to an instance:
 
@@ -550,12 +550,65 @@ Here are all the steps in detail to have it work in VSCode:
 ssh -i /path/to/awsdemo.pem ec2-user@your-ec2-public-ip
 ```
 
-#### Connecting via EC2 instance connect
+#### EC2 User data
 
-You can connect through a web shell to the EC2 instance using EC2 instance connect.
+The user data script for EC2 is a list of bash commands that EC2 runs upon starting the instance. You can use this to immediately start up a web server or install necessary packages.
+
+Here is an example of a user data script that installs Nginx and then starts it on port 80:
+
+```bash
+#!/bin/bash
+set -euxo pipefail
+
+# Wait for cloud-init networking
+sleep 30
+
+# Update package metadata
+apt-get update -y
+
+# Install nginx
+DEBIAN_FRONTEND=noninteractive apt-get install -y nginx
+
+# Enable and start nginx
+systemctl enable nginx
+systemctl restart nginx
+
+# Simple test page
+cat > /var/www/html/index.html <<'EOF'
+<html>
+<body>
+<h1>NGINX is running on EC2</h1>
+</body>
+</html>
+EOF
+```
+
+#### EC2 IAM policies
+
+If you want to access AWS resources programmatically via the CLI or SDK and you want that to run on an EC2 instance, you have two options for doing so:
+
+1. **put AWS access keys on the EC2 instance**: This is how you access AWS resources normally on your machine, so it works the same for an EC2 instance.
+	- **pro**: super simple, the exact same as if you would do it on your personal machine.
+	- **con**: extremely insecure. If someone hacks your EC2 instance, they can now obtain the AWS access keys that live on the EC2 instance.
+2. **Attach an IAM role to the EC2 instance**: if you want to give an EC2 instance access to AWS resources temporarily without using access keys and storing that on the instance, you can attach an IAM role to the EC2 instance to temporarily give access to AWS services. 
+
+Here are the steps to create an IAM role that allows an EC2 instance to access the S3 API programmatically:
+
+1. Go to IAM and create a new role, and select the trusted entity type to be an AWS service and choose EC2 as the service.
 
 
-1. `sudo apt update`: upgrade all services and optionally the kernel.
+![](https://i.imgur.com/xhwaPEB.jpeg)
+
+2. Add the `AmazonS3FullAccess` permission to the role.
+3. Scope the policy JSON to add read/write permissions to a single specific bucket resource instead of all buckets.
+4. Go to the instance you want to attach the policy to, then go to **security** then to **modify IAM role** and select the role you just created, then apply that role.
+
+
+![](https://i.imgur.com/V30bGd2.jpeg)
+
+
+
+
 
 ### EBS
 
