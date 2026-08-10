@@ -1108,7 +1108,8 @@ CloudFront uses AWS's edge locations to decide what resources and requests to ca
 - **content origins**: Content origins are the specific AWS service you want to cache content for, caching requests from a region-based service like Lambda, S3, EC2, or a load balancer and then distributing the cache globally via edge locations.
 - **cache policies**: You can create cache policies to decide how content gets cached and connect different caching policies to different distribution patterns.
 
-The great thing about cloudfront is that it works with any AWS service that produces a public IP, like lambda, S3, load balancers, route 53, etc. so you can not only cache bucket objects but also server requests.
+> [!NOTE]
+> The great thing about cloudfront is that it works with any AWS service that produces a public IP, like lambda, S3, load balancers, route 53, etc. so you can not only cache bucket objects but also server requests.
 
 #### Creating a cloudfront distribution
 
@@ -1205,7 +1206,7 @@ You can encrypt bucket data automatically so that if a bucket somehow gets leake
 
 ## Databases
 
-### Overview
+### AWS Database as a Service
 
 Database services are regional and most of them have to be scoped into a specific subnet within a specific VPC because they run on EC2 instances behind the scenes.
 
@@ -1215,7 +1216,9 @@ There are three types of managed cloud database services AWS offers:
 2. **Elasticache**: caching DB like Redis. It is Regional,  so you must scope it to a specific subnet.
 3. **DynamoDB**: AWS custom NoSQL DB that can be regional or global, but the actual database is managed for you behind the scenes so all you control are specific tables, nothing like hardware profile or network connectivity settings.
 
-These managed database services mean that you don't manage the OS nor the database engine. The shared responsibility model applies here:
+These managed database services mean that you don't manage the OS nor the database engine, as opposed to unmanaged EC2.
+
+The shared responsibility model applies here:
 
 **what you're responsible for**
 
@@ -1228,6 +1231,11 @@ Because this a managed service, that means you do not have access to the underly
 
 - **hardware and OS**: AWS automatically performs OS patches, failure detection, and recovery to make sure the instances running the DBs are healthy and that the DB is always up.
 - **database management**: AWS automatically performs backups, database engine updates, and common database administration tasks.
+
+> [!NOTE]
+> The main reason why you would use the database as a service like RDS instead of just installing MySQL and using that on EC2 is because AWS takes care of a lot more stuff for you. Since it's a managed service you don't have to deal with the underlying instance. 
+> 
+> You don't have to worry about OS patches or keeping the OS up to date or hardening the OS network. You just worry about the database and making queries with it. 
 
 #### Database backups
 
@@ -1255,7 +1263,9 @@ These databases also have an option to be replicated across availability zones, 
 
 #### Intro
 
-RDS (relational database service) is a managed service where AWS manages an EC2 instance that runs a relational database to your configuration. You have three main categories of configuration options:
+RDS (relational database service) is a managed service where AWS manages an EC2 instance that runs a relational database to your configuration. It handles backups, engine upgrades, failover replication, and infrastructure management, freeing you from many administrative tasks.
+
+You have three main categories of configuration options:
 
 1. **database engine and version**: You can choose which specific flavor of SQL and which version to run
 2. **hardware and network configuration**: You can choose the instance type and specs of the instance that will host the database, and then choose to host the database instance in a specific subnet within a VPC and then attach a security group to apply firewall settings for ingress traffic to the database.
@@ -1264,6 +1274,10 @@ RDS (relational database service) is a managed service where AWS manages an EC2 
 	- **high availability**: replicate the database across availability zones for high availability.
 	- **monitoring**: observability for database events
 	- **encryption and backup settings**
+
+Here are some properties of RDS in AWS:
+
+- **scaling up vs scaling down**: - Scaling up is straightforward, but scaling down (especially storage) requires creating a new smaller instance and migrating data.
 
 #### Database security
 
@@ -1275,9 +1289,42 @@ Picture a scenario where we have a server running an on EC2 instance and it quer
 
 - **EC2 instance**: since the web server should be publicly accessible, put the EC2 instance in a public subnet by exposing an internet gateway to the subnet that contains it.
 - **Database**: put the database in a private subnet so no public internet ingress traffic can reach it, but connect it to the public subnet via a NAT gateway so that the database and the EC2 instance can communicate with each other.
-####  Amazon Aurora
+###  Amazon Aurora
 
-Amazon Aurora is a MySQL and PostgreSQL compatible RDS database that offers better performance and higher availability than standard SQL RDS instances.
+Amazon Aurora is a serverless MySQL and PostgreSQL compatible RDS database that offers better performance and higher availability than standard SQL RDS instances.
+
+Because it's serverless, it's not a regional service and it's not tied down to live in an EC2 instance, making it flexible and simple but expensive.
+
+- **advantages of serverless DB**: serverless databases are great when you need to instantly scale up or down to match capacity and it's great for infrequently accessed data or low or variable traffic. 
+- **cons of serverless DB**: However for predictable workloads it can be more expensive than a managed DB instance.
+
+#### Scaling
+
+ Database capacity for the Aurora database is measured in Aurora capacity units, also called ACUs.
+ 
+ One ACU provides 2 GB of memory and corresponding compute. You will be asked to set the minimum capacity of ACUs and maximum capacity of ACUs for your database in order to define the bounds of the scaling.
+
+ - **If minimum capacity = 0 ACUs**: you won't be charged anything when nobody's using your database, but you will suffer cold starts.
+ - **If minimum capacity = 1 ACUs**: you will still be charged 24/7 for the database being constantly up and consuming 2gb of memory but you won't have any cold starts.
+
+#### Networking and security
+
+To access Aurora securely, you can place it inside a VPC and grant it private access to an EC2 instance.
+
+If you want, you can also make Aurora publicly available over a public IP address but then that increases the attack surface.
+
+#### Connecting to Aurora
+
+Follow these steps for a basic use case of connecting to Aurora via the CLI or SDK:
+
+1. Find the created database credentials secret from AWS secrets manager and copy its ARN
+2. Copy the **reader** and **writer** database URLs Aurora created
+3. Connect to the database by pasting in the secrets manager ARN for the database credentials.
+
+
+![](https://i.imgur.com/KHDdzpE.jpeg)
+
+
 
 
 

@@ -333,14 +333,25 @@ S3 tags are used to manage **Attribute-based access control (ABAC)** to scale ac
 ### Creating a public bucket
 
 1. When creating your bucket, start with the default settings but then **disable the 'Block all public access'** option to allow public access.
-2. After the bucket is created, go into the bucket's permissions and adjust the **Access Control List (ACL)** or bucket policy to grant public read access to the files you want to share.
-3. Remember, the default is to block public access for security, so you must explicitly allow it.
+2. Upload a file, but notice that the Object URL of the object actually gives you a forbidden error because you don't have the policy enabling any principal to read any object from the bucket.
+
+
+![](https://i.imgur.com/KHGuUkm.jpeg)
+
+
+3. After the bucket is created, go into the bucket's permissions and adjust the **Access Control List (ACL)** or bucket policy to grant public read access to the files you want to share.
+4. Remember, the default is to block public access for security, so you must explicitly allow it.
 
 
 ![](https://i.imgur.com/XdOz4Rb.jpeg)
 
 
 4. Create a bucket policy that allows anybody to read files in the bucket, which is specified by the `"s3:GetObject"` and `"s3:GetObjectVersion"` permissions.
+
+
+
+![](https://i.imgur.com/QP6Dcm0.jpeg)
+
 
 ```json
 {
@@ -426,6 +437,19 @@ Here is an example of a bucket policy that makes all objects within the bucket n
   ]
 }
 ```
+
+## CloudFront
+
+### CloudFront with public bucket
+
+Let's say that you have a public S3 bucket that you want to provide a CDN for using CloudFront. Here are the steps to set that up once you have a public bucket:
+
+1. **Choose origin type**: Choose S3 as the origin type for cloudfront, meaning that a specific S3 bucket will act as the origin server and then CloudFront will cache resources from that origin server (the regional S3 bucket) and cache it at edge locations across the world for distribution.
+
+
+![](https://i.imgur.com/QYOY2oQ.jpeg)
+
+2. Deploy the cloudfront distribution.
 ## DynamoDB
 
 ### Intro
