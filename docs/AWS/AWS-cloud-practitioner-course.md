@@ -1285,14 +1285,63 @@ Unlike traditional relational databases that use multiple related tables with fo
 
 DynamoDB supports flexible schemas and stores data as items (rows) with attributes (columns), similar to JSON documents, whereas relational databases require a fixed schema.
 
-**indexing**
 
-It uses primary keys (partition and optional sort keys) and secondary indexes (local and global) to optimize queries, differing from SQL indexes.
+
+#### Relational vs Dynamo DB
+
+- **row vs item**: in traditional relational databases a single record is called a row while in DynamoDB it is called an **item**. 
+- **column vs attribute**: in DynamoDB an **attribute** is the no-SQL equivalent of a column. 
+- **index vs secondary index**: in DynamoDB since the combination of the primary key and partition key is the primary index, we call all other indices that you set as a **secondary index**. 
+- **view vs GSI**: in relational databases a view is a snapshot of a certain reusable table query but in DynamoDB that same thing is called a GSI or a **global secondary index** that you can query in a reusable fashion. 
+
+#### Indices
+
+There are two types of indices in DynamoDB, both of which make querying faster:
+
+- **local secondary index**: Queries data over a single partition, and can only be set at table initialization.
+	- **pro**: it's faster because you're performing a query over a smaller subset of the table. 
+	- **con**: it's less flexible because it can only be set once at the first time you create a table. 
+- **global secondary index**: Queries data across all partitions of the entire table and can be added or deleted at any time.
+	- **pro**: it's flexible and can be added and deleted at any time. 
+	- **con**: it's slower since it performs searches over all partitions of the table. 
+
+
 
 
 #### Streaming
 
+A DynamoDB stream is a data stream that captures each and every data change made to any item in the table. 
 
+You can listen to DynamoDB streams with the lambda that gets triggered on a certain filtering of data getting modified from the stream. 
+
+#### TTL
+
+DynamoDB also allows you to set a TTL on items to basically expire them and delete them from the table automatically after a certain amount of time. 
+
+#### Transactions
+
+By default NoSQL databases like DynamoDB are not ACID compliant but DynamoDB offers a feature called Amazon DynamoDB Transactions, which provides ACID properties to create transactional workloads. 
+
+A DynamoDB transaction provides an all-or-nothing atomic operation change to multiple items both within and across DynamoDB table
+
+#### DAX
+
+DAX, which stands for Amazon DynamoDB Accelerator, is an in-memory cache for Amazon DynamoDB that is fully managed and highly available and delivers fast response times for accessing eventually consistent data. 
+
+#### Scaling
+
+DynamoDB performance is measured with these two metrics:
+
+- **RCU (read capacity unit)**: how many units per millisecond DynamoDB is able to read
+- **WCU (write capacity unit)**: how many units per millisecond DynamoDB is able to write
+
+DynamoDB offers two modes to control scaling and the cost of scaling:
+
+1. **provisioned capacity mode**: this is suitable if your application has predictable traffic that doesn't vary over time and it costs less because you predict the traffic amount of time. 
+	- The trade-off is that now you have to set explicit auto-scaling rules and predict the desired RCU and WCU of your DynamoDB table. 
+	- You're also at risk of over provisioning or under provisioning. 
+2. **on-demand capacity mode**: this is suitable for applications with inconsistent traffic or varying access patterns where you want scaling to be immediate and quick and you can't really predict a standard RCU or WCU for your DynamoDB table. 
+	- The trade-off is that this is more expensive because scaling is automatic and very quick. 
 
 ## Lambda
 
