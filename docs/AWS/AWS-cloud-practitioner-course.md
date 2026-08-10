@@ -840,6 +840,13 @@ Here are the high-level steps to creating an auto-scaling elastic load balancer 
 
 #### Creating an application load balancer with auto-scaling
 
+Here is how an application load balancer works:
+
+1. Clients make requests to your application.
+2. The listeners in your load balancer receive requests matching the protocol and port that you configure.
+3. The receiving listener evaluates the incoming request against the rules you specify, and if applicable, routes the request to the appropriate target group. You can use an HTTPS listener to offload the work of TLS encryption and decryption to your load balancer.
+4. Healthy targets in one or more target groups receive traffic based on the load balancing algorithm, and the routing rules you specify in the listener.
+
 Here's some terminology:
 
 - **launch template**: a reusable template to create individual EC2 instances or use in an auto-scaling group
@@ -859,7 +866,7 @@ The next steps are to associate an elastic load balancer with the auto-scaling g
 7. Create listeners (which port and which protocol to listen for network traffic) that redirect and distribute traffic to an autoscaling group.
 8. Create a **scaling policy** that is a criteria threshold for which auto-scaling should kick in after, like a certain amount of CPU utilization for an instance or a certain amount of ingress or egress network traffic threshold is crossed.
 
-**creating the network load balancer**
+**creating the application load balancer**
 
 1. Once you create the target group, go to **actions -> associate with load balancer** to create a load balancer for this target group.
 
@@ -869,8 +876,9 @@ The next steps are to associate an elastic load balancer with the auto-scaling g
 2. **Choose load balancer type**: Select whether the load balancer should be internet facing or internal.
 	- Choose **internet facing** if you are distributing traffic across web servers that people can make inbound internet traffic to. If your load balancer is internet facing, it must have a public IPV4 address.
 	- Choose **internal** if you are making a load balancer for a database.
-3. **Choose the VPC the NLB should be placed in.** 
+3. **Choose the VPC and availability zones the NLB should be placed in.** 
 	- This should be the same VPC the instances you're trying to distribute traffic to are located in.
+	- You should choose the same availability zones the target instances will run in, as specified in the launch template.
 4. **Attach a security group to the load balancer** for stateful firewall security for the load balancer.
 	- The most common use case is to use the exact same security group that you use for the instances in the target group so that everything has the same network settings.
 5. **Choose a routing action for a target group**: You have the choice to either forward traffic to the routing group, forward traffic to some other URL, or send back a fixed HTTP response you craft.
