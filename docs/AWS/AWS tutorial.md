@@ -557,7 +557,9 @@ You can connect through a web shell to the EC2 instance using EC2 instance conne
 
 1. `sudo apt update`: upgrade all services and optionally the kernel.
 
+### EBS
 
+###
 
 ### EFS
 
