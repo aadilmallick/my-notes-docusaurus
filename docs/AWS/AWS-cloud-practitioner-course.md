@@ -1642,7 +1642,7 @@ Logs are stored in **log groups** you create, and you can configure a log group 
 Once we create a log group, we can store application logs in that log group and even query that log group and create alarms based off the logs in the log group.
 
 
-### Creating Alarms
+### Creating Alarms examples
 
 Cloudwatch Alarms are ways to trigger events based on metrics of other AWS services or log patterns you emit into a log group. More in depth:
 
@@ -1656,6 +1656,38 @@ You can create a lambda function that triggers on a schedule by using a special 
 1. Go to **Cloudwatch -> Events -> Rules -> Create Rules**
 2. Choose the **schedule** option for creating a rule
 3. Choose a lambda you want to execute for the target.
+
+#### EC2 CPU utilization alarm
+
+One use case for cloud watch alarms is to monitor EC2 CPU utilization and then do something like send you an email or text message via an SNS topic. 
+
+1. Got o **Cloudwatch > Metrics > All metrics**
+
+
+![](https://i.imgur.com/Ws4OIDH.jpeg)
+2. Click on EC2
+
+
+![](https://i.imgur.com/bYaBgfN.jpeg)
+
+3. Choose the CPU utilization metric and click on the alarm bell icon to set up a cloudwatch alarm for that metric and timeframe
+
+
+![](https://i.imgur.com/IiR4vVZ.jpeg)
+
+4. Choose the **metric**, **period**, and **threshold** value for configuring the alarm. 
+	- In the below example, the alarm will trigger if the metric value is greater than the threshold and it will check this once during the recurring interval of the 5 minute period.
+
+
+![](https://i.imgur.com/Hx5jU2M.jpeg)
+5. Choose the alarm state trigger to be one of **in alarm**, **ok**, or **insufficient data**, and then choose or create an SNS topic that will get triggered on the alarm state trigger, like sending an email on the alarm state trigger.
+
+
+![](https://i.imgur.com/Kzhagsf.jpeg)
+
+
+
+6. Create the alarm
 
 ## CloudTrail
 
@@ -2006,7 +2038,7 @@ If you want to securely use other AWS services like S3 in your instance, then in
 
 
 
-## Batch jobs
+## Managing fleets of compute
 
 ### AWS batch
 
@@ -2016,6 +2048,11 @@ It consists of two main steps:
 
 1. **create job definitions**: define the container image to use along with its configuration of hardware, permissions, user data script, and file systems.
 2. **execute jobs**: Determine when to execute a job, either on recurring basis via cron job or at a specific time and how many container instances to spin up.
+
+
+
+![](https://i.imgur.com/TBlYqdd.jpeg)
+
 
 ### Compute Optimizer
 
@@ -2277,9 +2314,32 @@ CodeDeploy is a managed deployment service that allows you to configure deployme
 - You can retry or roll back deployments.
 
 
+## Secrets and app config
+### Secrets Manager
 
-## Secrets Manager
+### Parameter Store
 
-## Parameter Store
+### KMS
 
-## KMS
+## Security on AWS
+
+### WAF (Web Application Firewall)
+
+This AWS service is just a web firewall, allowing you to define stateless firewall rules for ingress and egress traffic to your website, which is useful if you're not using an EC2 instance and instead you're running your web app on a managed service like a Lambda, Lightsail, Cloudfront, etc.
+
+### Shield
+
+AWS Shield is a service that helps mitigate against DDoS attacks. 
+
+
+### Guard Duty
+
+Searches your server logs and performance to see if it is compromised or if anything seems out of place or there are any vulnerabilities
+
+### Inspector
+
+Searches for vulnerabilities in your AWS account and notifies you on how to fix those issues, like a full scan for your AWS account
+
+### Macie
+
+This service searches all of your AWS resources and services for any potentially sensitive information that you might be exposing publicly and warns you about it. 
