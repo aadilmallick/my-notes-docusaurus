@@ -2323,23 +2323,135 @@ CodeDeploy is a managed deployment service that allows you to configure deployme
 
 ## Security on AWS
 
-### WAF (Web Application Firewall)
+### Attack surfaces
 
-This AWS service is just a web firewall, allowing you to define stateless firewall rules for ingress and egress traffic to your website, which is useful if you're not using an EC2 instance and instead you're running your web app on a managed service like a Lambda, Lightsail, Cloudfront, etc.
+In AWS there are four attack surfaces that you need to be aware of and thus four security areas that you and your team should be aware of and actively improving upon:
 
-### Shield
+![](https://i.imgur.com/6e2CTLg.jpeg)
 
-AWS Shield is a service that helps mitigate against DDoS attacks. 
+1. **Account protection**: ensuring the principle of least privilege and making sure that IAM users do not have excessive privileges to stage high-privilege attacks against your account 
+2. **Application protection**: this is about securing your application and hosting software vulnerabilities, checking ports, detecting insecure configurations, and investigating security issues and incidents through logs. 
+3. **Network protection**: this is about securing your application using firewalls and protecting against DDoS attacks. 
+4. **Data protection**: it's about encrypting data at rest and in transit and protecting code secrets and making sure that there's role-based access control for secrets and an audit trail. 
 
+And here are all the AWS services that fit into those four security areas:
+
+![](https://i.imgur.com/Y6uEGfD.jpeg)
+
+### Account protection
+#### Cloudtrail
+
+Cloudtrail is an account-wide audit trail that lets you monitor all your IAM users and roles and what actions they executed using their permissions.
+
+> [!NOTE]
+> Think of CloudTrail as a security camera that records everything happening inside your AWS environment, like who made changes or used your access keys. It helps you spot any unusual or unauthorized activity early.
 
 ### Guard Duty
 
-Searches your server logs and performance to see if it is compromised or if anything seems out of place or there are any vulnerabilities
+Guard duty uses machine learning to detect and surface issues across your AWS account. It's basically an intelligent way to synthesize data from your AWS account, look at the audit trails, and then give you a friendly way to surface those vulnerabilities and tell you how to fix them. 
 
-### Inspector
 
-Searches for vulnerabilities in your AWS account and notifies you on how to fix those issues, like a full scan for your AWS account
 
-### Macie
+### App protection
+#### Inspector
 
-This service searches all of your AWS resources and services for any potentially sensitive information that you might be exposing publicly and warns you about it. 
+Inspector is an automated vulnerability management service that performs account-wide vulnerability scanning and surfaces issues and vulnerabilities across all of your AWS resources.
+
+You'll get detailed insights for instances and containers and inspector will notify you to patch containers or instances to fix surfaced vulnerabilities
+
+#### Detective
+
+Detective is an incident management service that explores AWS resources and the actions they take to surface automatic findings and incidents that happened.
+
+An example is that if in the audit trail somewhere a request to an unrecognized or strange IP address was sent somewhere in an AWS service like EC2, then Detective will be able to find that incident and notify you.
+
+- AWS Detective helps investigate security breaches by analyzing logs and CloudTrail data to find suspicious activity.
+- It identifies which AWS users or resources made unusual API calls and what they were trying to do.
+### Network protection
+
+#### WAF and Network Firewall
+
+The Web Application Firewall (WAF) service that AWS provides is an intelligent layer 7 firewall service that looks at the layer 7 level and inspects the request payload and headers in order to determine whether something is malware or not. 
+
+- Can detect XSS and SQL injections
+- Lets you analyze metadata and request bodies
+- Lets you manually define rules and heuristics for blocking traffic
+
+The network firewall service that AWS has is a firewall that works at the layer 3 and layer 4 level, allowing you to inspect the requesters' ports, origin, what protocol they're using, and with more detail and control than just something as simple as a security group or network access control list. 
+
+- Lets you define both stateful or stateless rules for blocking traffic
+- Analyze both layer 3 and layer 4 ingress and egress traffic
+
+
+
+![](https://i.imgur.com/8ndB9vs.jpeg)
+
+#### AWS firewall manager
+
+The AWS Firewall Manager Service allows you to manage both the web app firewall and network firewall for your resources globally in one unified interface. 
+#### Shield
+
+AWS Shield is a service that helps mitigate against DDoS attacks. 
+
+**AWS shield standard** is free and enabled by default, which protects against DDoS protection based on network flow and analyzing well-known traffic patterns characteristic of past DDoS attacks.
+
+What it doesn't protect from is anomaly detection. 
+
+For that you need the AWS Shield Advanced service for $3000/month, which offers these features:
+
+1. support from an AWS team
+2. customizable protection rules
+3. anomaly detection
+### Data protection
+
+#### Encrypting data at rest or in transit
+
+Encyrption at rest can be achieved with **KMS** or **CloudHSM** services. Here are the differences between the two:
+
+- **KMS**: allows you to use AWS's provided encryption keys for encrypting your data. 
+- **CloudHSM**: allows you to bring your own encryption keys and use that for encrypting your data.
+
+> [!NOTE]
+> Most AWS services have encryption features built in, using KMS behind the scenes to encrypt your data at rest.
+
+
+To encrypt data in transit, use ACM (AWS Certificate Manager) to acquire free SSL certificates and use HTTPS to encrypt data in traffic. You can then use this with services like Cloudfront or ALB.
+
+
+#### Secrets manager
+
+THis service allows you to securely store secret values with secrets manager and rotate secrets.
+
+Some services like RDS automatically interface and have integrations with secrets manager to automatically pull secrets from that service and rotate secrets regularly.
+
+#### Macie
+
+This service uses machine learning to search all of your AWS resources and services for any potentially sensitive information that you might be exposing publicly and warns you about it. 
+
+Here's some things that the Macie service lets you do:
+
+- **customization**: You can add custom rules and data types that you want to mark as sensitive and then Macie will take in your rules and considerations in its machine learning process to highlight sensitive values that were accidentally made public. 
+- **schedule security scans**: You can scan data on demand or on a schedule. 
+- **detect unencrypted data**: You can use Macie to detect unencrypted data. 
+
+### Security Hub
+
+Security Hub acts like a control center that gathers alerts from different security tools into one place, so you can easily see and manage potential security issues without jumping between multiple systems.
+
+## Well-architected framework
+
+### Intro
+
+This framework is all about giving you a framework that describes best practices for creating cloud architecture and analyzing your infrastructure with 6 pillars.
+
+The Well-Architected Framework is all about constantly coming back to these six pillars and adjusting your cloud infrastructure and architecture to make sure that you're satisfying each of the demands of the six pillars. 
+
+1. **operational excellence**: all about logging and monitoring to get feedback and then iterating on that feedback to improve your architecture.
+2. **security**: using cloud technology to prote3ct accounts, data, network, and applications.
+3. **reliability**: ensuring uptime and consistent workloads via lambdas, load balancing, and auto-scaling.
+4. **performance efficiency**: Using computing resources efficiently and not wasting compute or over-provisioning it.
+5. **cost optimization**: Optimizing cost and keeping track of spending, challenging whether you need to use a service or if there's a better, cost-friendly alternative.
+6. **sustainability**: optimizing energy consumption and improving efficiency, not running compute when it's not necessary.
+
+
+For example, it encourages you to design your system so it can handle failures smoothly by spreading resources across different zones, use automation to manage your infrastructure like code, and optimize costs by matching resources to actual needs. Following this framework helps you create applications that are secure, reliable, scalable, and cost-effective—important skills as you move toward backend development on AWS.
