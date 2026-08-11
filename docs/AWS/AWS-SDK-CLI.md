@@ -217,6 +217,11 @@ aws iam create-policy \
 
 ### s3 cli
 
+For future reference, this is how we define the variables:
+
+- **bucket URI**: Like `s3://myuniquebucketname`
+- **object URI**: Like `s3://myuniquebucketname/filename.txt`
+
 #### Bucket management
 
 **listing buckets**
@@ -230,6 +235,11 @@ aws s3api list-buckets --profile someprofile
 aws s3 ls
 ```
 
+**creating buckets**
+
+```sh
+aws s3 mb $BUCKET_URI
+```
 #### Object management
 
 **uploading an object to a bucket**
@@ -255,6 +265,42 @@ BUCKETURL=s3://myuniquebucketname/
 aws s3 sync $FOLDERPATH $BUCKETURL
 ```
 
+
+**upload or download objects from bucket**
+
+The `aws s3 mv` command lets you upload a local file to its corresponding object key in S3, uploading it, or download an S3 object URL to a local file here:
+
+Here is how you would upload a local file:
+
+```sh
+aws s3 mv $FILEPATH $OBJECT_URI
+```
+
+Here is how you would download an S3 object url to a local file
+
+```sh
+aws s3 mv $OBJECT_URL $FILEPATH
+```
+
+**deleting an object from a bucket**
+
+Use the `aws s3 mv` command to remove an object from an S3 bucket via its object URL. 
+
+**list the objects of a bucket**
+
+```sh
+aws s3 ls $BUCKET_URI 
+```
+
+#### Presigned URLs
+
+Signed URLs are a way to make a certain S3 object resource public via its URL for a limited amount of time - say, like an hour - so it can be accessed securely.
+
+The below example is how we create a pre-signed URL for a specific object in an S3 bucket and make that URL expire in 30 minutes. 
+
+```sh
+aws s3 presign $OBJECT_URI --expires-in 30
+```
 ## AWS SDK
 
 Most SDK helpers use the **command pattern** to provide a simple, unified API for accessing AWS services programmatically.
