@@ -754,3 +754,150 @@ function MyFormComponent() {
   );
 }
 ```
+
+### Some bullshit
+
+Like wtf is this AI just be cooking lowkey
+
+```ts
+/**
+ * This is a file for abstractions over zod validations and parsing zod errors,
+ * can be added to any package, so it is best to put this in its own "utils" package in the future
+ */
+
+import { AnyZodObject, z, ZodError, ZodIssue } from 'zod'
+
+interface ParsedZodIssue {
+  path: string
+  message: string
+  code: string
+}
+
+interface ParsedZodError {
+  errors: ParsedZodIssue[]
+}
+
+function parseZodError(error: ZodError): ParsedZodError {
+  return {
+    errors: error.errors.map((issue: ZodIssue) => ({
+      path: issue.path.join('.'),
+      message: issue.message,
+      code: issue.code,
+    })),
+  }
+}
+
+export class ZodValidation<T extends AnyZodObject> {
+  constructor(public schema: T) {}
+
+  createObjectWithAutocomplete(obj: z.infer<T>) {
+    return obj
+  }
+
+  isOfType(value: unknown): value is z.infer<T> {
+    return this.schema.safeParse(value).success
+  }
+
+  validateSchema(value: unknown) {
+    return this.schema.parse(value)
+  }
+
+  validateSchemaWithAutcomplete(value: z.infer<T>) {
+    return this.schema.parse(value) as z.infer<T>
+  }
+
+  pick(value: unknown, keys: (keyof z.infer<T>)[]) {
+    const obj: Partial<Record<keyof z.infer<T>, true>> = {}
+    for (const key of keys) {
+      obj[key] = true
+    }
+    return this.schema
+      .pick(obj as unknown as Parameters<T['pick']>[0])
+      .parse(value)
+  }
+
+  omit(value: unknown, keys: (keyof z.infer<T>)[]) {
+    const obj: Partial<Record<keyof z.infer<T>, true>> = {}
+    for (const key of keys) {
+      obj[key] = true
+    }
+    return this.schema
+      .omit(obj as unknown as Parameters<T['omit']>[0])
+      .parse(value)
+  }
+
+  static isZodError(error: unknown) {
+    const isZodError =
+      error instanceof ZodError ||
+      (error instanceof Error && error.message.includes('ZodError'))
+    return isZodError
+  }
+
+  static getZodErrorInfo(error: unknown) {
+    const isZodError = this.isZodError(error)
+    if (isZodError) {
+      return parseZodError(error as ZodError)
+    }
+    if (error instanceof Error) {
+      return {
+        message: error.message,
+      }
+    }
+    return null
+  }
+}
+
+```
+
+```ts
+import {
+  OpportunitySchema,
+  integrationJobLockSchema,
+  integrationJobSchema,
+  vendorCommsJobDetailSchema,
+} from '@bidscale/select-entity'
+import z from 'zod'
+import { ZodValidation } from './ZodValidation'
+
+export const integrationJobValidators = {
+  integrationJobErrorValidator: new ZodValidation(
+    integrationJobSchema.IntegrationJobError
+  ),
+  opportunityDetailValidator: new ZodValidation(
+    vendorCommsJobDetailSchema.PublishOpportunityDetail
+  ),
+}
+
+type ParsedType<M, K extends keyof M> = M[K] extends ZodValidation<infer Schema>
+  ? z.infer<Schema>
+  : never
+
+export function createQuickParser<M extends Record<string, ZodValidation<any>>>(
+  validators: M
+) {
+  return function quickParse<K extends keyof M>(key: K, obj: ParsedType<M, K>) {
+    return validators[key].validateSchemaWithAutcomplete(obj)
+  }
+}
+
+export const ijParse = createQuickParser(integrationJobValidators)
+
+export function parseOpportunity(opportunity: OpportunitySchema.Opportunity) {
+  return OpportunitySchema.OpportunitySchema.parse(opportunity)
+}
+
+export function parseIntegrationJob(
+  integrationJob: integrationJobSchema.IntegrationJob
+) {
+  return integrationJobSchema.IntegrationJobSchema.parse(integrationJob)
+}
+
+export function parseIntegrationJobLock(
+  integrationJobLock: integrationJobLockSchema.IntegrationJobLock
+) {
+  return integrationJobLockSchema.IntegrationJobLockSchema.parse(
+    integrationJobLock
+  )
+}
+
+```
