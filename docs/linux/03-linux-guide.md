@@ -434,6 +434,8 @@ The `sed` command uses regex to substitute text in a file or string. The basic u
 sed '<sed-command>' <file>
 ```
 
+- `'<sed-command>'`: sed command pattern including regex that must be in single quotes for sed to recognize the substitution patterns as regex
+
 There are several types of sed commands that do different things.
 
 **replacing old text with new text**
@@ -458,7 +460,6 @@ You essentially have 4 components in the “sed string” you have to pass in, e
 - `newtext` : the text or regex pattern to replace the oldtext with
 - `g` : any regex flags, like g for global
 	- `g`: global
-	- ``
 
 You can use different delimiters instead of `/`, which is useful when the pattern or replacement contains slashes:
 
@@ -479,7 +480,6 @@ It's very important to use the `-E` option to enable extended regular expression
 **deleting text**
 
 - `sed 's/.*Disconnected from//'`: deletes everything containing the string 'Disconnected from', because it searches for that pattern and then replaces that pattern with an empty string.
-- 
 #### `awk`
 
 AWK allows you to split text into an array and then print out the specific parts you want. The `awk -F<separator>` command basically splits the string on a specific separator. Then you can do a `{print $1}` to print the first part of the string resulting from the split.
@@ -543,12 +543,16 @@ Here are some basic options you have with grep:
 - `-n` : given line numbers
 - `-v`: returns everything except what the pattern matches. Useful for removing text you don't want.
 
-**recursive search**
+**recursive search in a directory**
 
-Using the `-r` option with grep searches rescursively throughout the entire folder for occurrences of the pattern, checking all subfolders and subfiles.
+Using the `-r` option with grep searches recursively throughout the entire folder for occurrences of the pattern, checking all subfolders and subfiles.
 
 ```bash
 grep -r <pattern> <folder>
+```
+
+```bash
+grep -rn "mom"
 ```
 
 **grep with regex**
@@ -557,7 +561,7 @@ When passing in a pattern to grep, you can also just pass in regex by putting th
 
 However, the `grep` command only provides basic regex functionality, and is actually very limited. Characters like the `+` , `?` , `(` and `)` lose all their meaning.
 
-To go into **extended regex mode** which gives you the full pwoer of all regex symbols at your disposal, use the `-E` option with grep:
+To go into **extended regex mode** which gives you the full power of all regex symbols at your disposal, use the `-E` option with grep:
 
 ```bash
 grep -E <pattern> <filename>
@@ -566,7 +570,7 @@ grep -E <pattern> <filename>
 - `-E` : enables extended regex syntax.
 - `-o`: returns only what the regular expression matches
 
-**egrep**
+#### **egrep**
 
 `egrep` is an extension of the grep tool that has extended regex functionality built in.
 
@@ -821,6 +825,10 @@ grep "bruh" < <(echo "bruh")
 
 ## Dealing with processes
 
+### List processes
+
+#### `ps`
+
 You can see all current processes running with the `ps` command. 
 
 - `ps`: lists all currently running processes in the current shell along with their pid (process identifier)
@@ -830,11 +838,18 @@ You can see all current processes running with the `ps` command.
 	- `PPID`: the parent process's process id
 	- `C`: the CPU utilization percentage of this process.
 
+#### `jobs`
 
 You can see all **background processes** running with the `jobs` command:
 
 - `jobs`: lists all currently running background processes
-- `jobs -l`: lists all currently running background processes along with their PID.
+- `jobs -l`: lists all currently running background processes along with their PID
+
+
+#### `top` and `htop`
+
+- `top`: realtime dashboard for viewing all currently running processes on the machine.
+- `htop`: even cooler realtime dashboard for viewing all currently running processes on the machine and then also gives capabilities for filtering and sorting processes.
 
 ### How to run background processes
 
@@ -861,6 +876,8 @@ You can kill any process in the foreground with `CTRL + D`, but you can also use
 ```
 kill <pid>
 ```
+
+You also have these flags available at your disposal:
 
 - `kill -9 <pid>`: ungracefully kills a process via a `SIGKILL` signal, specified by the process id
 - `kill -l`: see options for the `kill` command
@@ -894,14 +911,18 @@ You can see file permissions, which are described by the 10 characters you get w
 
 ![](https://i.imgur.com/CECOCTT.png)
 
-- The first character describes the file type.
-  - `-` : normal file
-  - `d` : folder
-- The other nine characters relate to permissions for the file owner, group owner, and the rest of the world.
-- Three characters are devoted to each category of owner. Group, and world. These are the read permission. The write permission, and the execute permission in order respectively.
-  - `r` for read permission granted, `-` if not granted.
-  - `w` for write permission granted, `-` if not granted.
-  - `x` for execute permission granted, `-` if not granted.
+
+
+The first character describes the file type, of which there are three:
+
+  1. `-` : normal file
+  2. `d` : folder
+
+The other nine characters relate to permissions for the file owner, group owner, and the rest of the world, of which for each group, 3 characters each are devoted to describing the permission set for that group on that file:
+
+  1. **first character (read permission)**: `r` for read permission granted, `-` if not granted.
+  2. **second character (write permission)**: `w` for write permission granted, `-` if not granted.
+  3. **third character (execute permission)**: `x` for execute permission granted, `-` if not granted.
 
 Let's go into the different modes:
 
@@ -909,14 +930,15 @@ Let's go into the different modes:
 
 **read mode**
 
-- If a file is in read mode, that means that it can be read.
-- If a directory is in read mode, that means its contents can be listed.
+- **how read permissions affect files**: If a file is in read mode, that means that it can be read.
+- **how read permissions affect directories**: If a directory is in read mode, that means its contents can be listed.
 
 **write mode**
 
-If a file is in write mode, you can write to the file.
-
-If a folder is in write mode, the directory’s contents can be modified but only if the folder is also in executable mode. If a directory is not in write mode, you can’t add or remove files. But if the individual files are in write mode, you can modify them.
+- **how write permissions affect files**: If a file is in write mode, you can write to the file.
+- **how write permissions affect directories**: If a folder is in write mode, the directory’s contents can be modified but only if the folder is also in executable mode. 
+	- If a directory is not in write mode, you can’t add or remove files. 
+	- But if the individual files within that directory are in write mode, you can modify them.
 
 **execute mode**
 
@@ -951,6 +973,17 @@ The mode is a three character combination that decides to which organization to 
 - **2nd character**: `+` to add a permission, `-` to remove a permission, `=` to add a permission and remove all other permissions.
 - **3rd character**: `r` for read, `w` for write, `x` for execute
 
+```bash
+# adds write permission for the group on foo.txt
+chmod g+w foo.txt
+```
+
+
+
+![](https://i.imgur.com/GNBmqeA.jpeg)
+
+
+
 You can also refer to the permission level via octal syntax:
 
 ![](https://i.imgur.com/EbGkY4a.png)
@@ -964,8 +997,8 @@ There are two widely-used commands that you can use to get info about the curren
 
 You also have these tricks when it comes to permissions.
 
-- To see the permissions of all the directories and files, you can use `ls -l`.
-- You can see all the registered users on your linux system by running `cat /etc/passwd` to see the contents of the `/etc/passwd` file.
+- **find file permissions**: To see the permissions of all the directories and files, you can use `ls -l`.
+- **list all users**: You can see all the registered users on your linux system by running `cat /etc/passwd` to see the contents of the `/etc/passwd` file.
 
 #### Adding new users and groups
 
@@ -984,7 +1017,7 @@ You can add groups with these commands:
 
 #### Changing ownership
 
-The `chown` command changes ownership of a file to the specified user, but you might have to have to use the `sudo` command to override if you get permission denied errors.
+The `chown` command changes ownership of a file to the specified user
 
 ```bash
 chown <username>:<groupname> <file-or-folder>
@@ -995,6 +1028,10 @@ There are also three simple ways to change ownership of a file or folder for jus
 - `chown :<GROUP> <file>` : changes the group ownership of the specified file or file(s) to the specified group.
 - `chown <USER> <file>` : changes the ownership of the specified file or file(s) to the specified user.
 - `chown <USER>:<GROUP> <file>` : changes the ownership of the specified file(s) for both the user and the group.
+
+
+> [!NOTE]
+> If you want to change the ownership of a file to the root user, the only way to do that is to temporarily assume superuser privileges via `sudo`.
 
 ## Working with the shell environment
 
@@ -1025,7 +1062,7 @@ Then to persist changes to the path, you need to put this code in a startup prof
 
 The `source` command basically loads in a bash script and runs it in the context of a shell session. You can use this to restart your `~/.zshrc`, load in new variables, and other stuff/
 
-### Creating the shell environment
+### customizing the shell environment
 
 When booting up the shell, the shell looks at different files called **startup files** for customization and lets you do the following use cases:
 
@@ -1033,11 +1070,43 @@ When booting up the shell, the shell looks at different files called **startup f
 - Customize the command prompt's look and feel
 - Echo certain things on shell startup
 
+#### PS1
+
 For example, the `$PS1` variable is what is displayed on the command prompt, and you can modify it for quality of life stuff like showing the date and time, displaying the current git branch, and much more.
 
 The default PS1 variable is something like this: `WaadlPenguin@DESKTOP-IJFUEC4 MINGW64 ~` , where the command prompt reflects our username and current location.
 
 We can change it in the startup files.
+
+```bash
+# Jeff's favorite prompt
+
+PS1='\[\e[01;35m\]\W\[\e[m\] ❯ '
+
+# Minimal
+
+PS1='\u:\W $ '
+
+# Minimal with git branch
+
+PS1='\W$(__git_ps1 " (%s)") $ '
+
+# Two line prompt with git branch
+
+PS1='\n\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\] $(__git_ps1 "(%s)")\n\$ '
+
+# Colorful prompt
+
+PS1='\[\033[01;32m\]\u\[\033[00m\]@\[\033[01;36m\]\h\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\] \[\033[01;33m\][\t]\[\033[00m\] \[\033[01;31m\]$(if [[ $? == 0 ]]; then echo "✓"; else echo "✗"; fi)\[\033[00m\]\n\$ '
+
+# Retro Style
+
+PS1='\[\033[01;32m\][\[\033[01;36m\]\u\[\033[01;32m\]@\[\033[01;36m\]\h\[\033[01;32m\]] \[\033[01;34m\]\w\[\033[00m\] \$ '
+
+# Customized based on time of day with emojis
+
+PS1='$(if [ $(date +%H) -lt 12 ]; then echo "🌅"; elif [ $(date +%H) -lt 18 ]; then echo "☀️"; else echo "🌙"; fi) \[\033[01;32m\]\u\[\033[00m\] in \[\033[01;34m\]\w\[\033[00m\] \$ '
+```
 
 **mac**
 
@@ -1285,3 +1354,16 @@ plot-%.png: %.dat plot.py           # directive
 - `$@`: name of the target, like name of the output file.
 
 The main advantage of `make` is that it only reruns the process if and only if the dependencies change.
+
+
+### Package managers
+
+A package manager is an online repository of source code that users can download via the internet so that they don't have to download it themselves every single time and build it from the source. 
+
+#### `apt`
+
+`apt` is the package manager built int for Ubuntu.
+
+- `sudo apt update`: update the package manager
+- `sudo apt install <package>`: install a specific package
+

@@ -86,3 +86,17 @@ To run the playbook already authenticated as the superuser, run the `ansible-pla
 ```bash
 ansible-playbook -k neovim.yaml
 ```
+
+## Cookbook
+
+### Ansible on EC2 instance
+
+1. Create three EC2 instances and then make one of them the control plane on which you're going to SSH into and download Ansible. 
+2. SSH into the control plane EC2 and then run these commands, or make this a user data script:
+
+```bash
+#!/bin/bash
+
+sudo apt update
+sudo apt install ansible -y
+```
