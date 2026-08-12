@@ -1178,19 +1178,32 @@ If you want aliases to persist, put them in the `.bashrc` or `.bash_profile` fil
 
 ## SSH
 
+### How SSH works
+
+SSH lives on TCP protocol 22 and it is a way to connect to a remote server without a password. 
+
+![](https://i.imgur.com/xhbILrZ.jpeg)
+
+
+#### **creating ssh keys**
+
 For any virtual computer you want to connect to, make sure it has an `authorized_keys` file living in the `~/.ssh` directory.
 
 This will be where you store all your public keys, and then when sshing, you will connect using the private key pair that matches up with one of those public keys.
 
-**creating ssh keys**
-
----
-
-You can create public and private key pairs using this command:
+You can create public and private key pairs using the `ssh-keygen` command:
 
 ```bash
-ssh-keygen -t rsa # creates a RSA-encrypted key in the ~/ .ssh directory
+# creates a RSA-encrypted key in the ~/.ssh directory
+ssh-keygen -t rsa -C "aadil.mallick@unisonglobal.com"
 ```
+
+- `-t`: the algorithm to use, of which you have two choices: 
+	- `rsa`: use the RSA algorithm
+	- `ed25519`: whatever tf this is
+- `-C`: stands for "comment", which lets you add your email as metadata to easily identify the key pair.
+
+![](https://i.imgur.com/JesX57v.jpeg)
 
 ### SFTP
 
