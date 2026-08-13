@@ -233,6 +233,13 @@ The `mv` command does both renaming and moving of files and directories, but the
 - `cp SOURCE... DESTINATION` : copies multiple files at once to the same destination.
 - `cp -r <folder> <destination>` : copies the directory recursively to the new destination.
 
+### Advanced file navigation
+
+```bash
+pushd /tmp           # Push directory onto stack and change to it
+popd                 # Pop directory from stack and change to it
+```
+
 ## Random commands
 
 ### `tar`
@@ -1060,7 +1067,115 @@ Then to persist changes to the path, you need to put this code in a startup prof
 
 ### Sourcing
 
-The `source` command basically loads in a bash script and runs it in the context of a shell session. You can use this to restart your `~/.zshrc`, load in new variables, and other stuff/
+The `source` command basically loads in a bash script and runs it in the context of a shell session. You can use this to restart your `~/.zshrc`, load in new variables, and other stuff.
+
+On Linux or WSL:
+
+```bash
+source ~/.bashrc
+```
+
+
+On Mac:
+
+```bash
+source ~/.zshrc
+```
+
+### ZSH vs Bash
+
+When you choose between these shells, you affect how efficiently you work daily and how easily your scripts run on different systems. Each shell was built with different goals in mind, so they fit different users and situations better.
+
+Here are the key differences you should think about:
+
+| Feature                     | Zsh                                          | Bash                                           |
+| --------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| Default installation        | macOS (since Catalina), optional on Linux    | Most Linux distributions, macOS (pre-Catalina) |
+| Configuration files         | ~/.zshrc, ~/.zprofile, ~/.zshenv             | ~/.bashrc, ~/.bash_profile, ~/.bash_login      |
+| Tab completion              | Enhanced, context-aware with menu selection  | Basic, improved in newer versions              |
+| Themeable prompt            | Built-in support via prompt themes           | Limited, requires manual configuration         |
+| Plugin frameworks           | Oh My Zsh, Prezto, Zinit                     | Bash-it, some external tools                   |
+| Globbing (pattern matching) | Extended globbing by default                 | Requires enabling extended globbing            |
+| Directory navigation        | Auto cd, directory stacks, named directories | Basic directory navigation                     |
+| Command history             | Shared history, substring search             | Sequential history                             |
+| Scripting compatibility     | Highly compatible with Bash                  | POSIX-compliant, widely supported              |
+| Spelling correction         | Built-in                                     | Not available natively                         |
+| Path expansion              | Smart path expansion and completion          | Basic path expansion                           |
+| Array indexing              | Zero-based                                   | Zero-based                                     |
+| Customization complexity    | Simpler with frameworks, more options        | More manual, fewer options                     |
+| Performance                 | Slightly more resource-intensive             | Lightweight                                    |
+| Community resources         | Growing community, extensive themes/plugins  | Established documentation, widespread examples |
+
+
+
+#### `~/.bashrc` basics
+
+```bash
+# ~/.bashrc - for interactive non-login shells
+# This file contains most of your personal configuration
+
+# Add colorized output for ls command
+alias ls='ls --color=auto'
+
+# Custom command prompt with username, hostname, and current directory
+PS1='\u@\h:\w\$ '
+
+# Set command history size
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# Add custom directory to PATH
+export PATH=$PATH:$HOME/bin
+
+# ~/.bash_profile - for login shells
+# Often just sources ~/.bashrc plus environment variables
+
+if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+fi
+
+export EDITOR=vim
+
+```
+
+#### `~/.zshrc` basics
+
+1. Install the **Oh my Zsh** library first creating a `~/.oh-my-zsh/.oh-my-zsh` file which has these contents, installing the library:
+
+```zsh
+# Example of installing Oh My Zsh
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# Edit ~/.zshrc to choose themes and plugins
+ZSH_THEME="agnoster"
+plugins=(git docker python vscode)
+```
+
+```zsh
+# ~/.zshrc - primary configuration file
+
+# Load Oh My Zsh framework
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git docker kubectl macos)
+source $ZSH/oh-my-zsh.sh
+
+# Custom aliases beyond what plugins provide
+alias zshconfig="vim ~/.zshrc"
+alias ohmyzsh="vim ~/.oh-my-zsh"
+
+# Enable case-insensitive auto-completion
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+
+# Directory shortcuts
+hash -d projects=~/Documents/Projects
+hash -d docs=~/Documents
+
+# Custom functions
+mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
+```
 
 ### customizing the shell environment
 
@@ -1069,6 +1184,13 @@ When booting up the shell, the shell looks at different files called **startup f
 - Add certain files to the path
 - Customize the command prompt's look and feel
 - Echo certain things on shell startup
+
+Different shell languages have different startup files:
+
+- **ZSH**: The ZSH shell uses these startup files:
+	- `~/.zshrc`: runs on shell startup
+- **Bash**: The bash shell has these startup files:
+	- `~/.bashrc`: runs on shell startup
 
 #### PS1
 
@@ -1321,7 +1443,30 @@ get <remote-file-path>
 get <remote-file-path> <local-file-path>
 ```
 
-## Cron
+## Advanced Linux
+
+This is an assortment of topics that build on each other, including the Linux file system and system control services in Linux. 
+
+### Learning the Linux Filesystem
+
+here are the folders that come preinstalled in the linux filesystem
+
+- `/bin` - Essential command binaries
+- `/sbin` - Essential system binaries, usually to be run by root
+- `/dev` - Device files, special files that often are interfaces to hardware devices
+- `/etc` - Host-specific system-wide configuration files
+- `/home` - Home directories for users in the system
+- `/lib` - Common libraries for system programs
+- `/opt` - Optional application software
+- `/sys` - Contains information and configuration for the system (covered in the [first lecture](https://missing.csail.mit.edu/2020/course-shell/))
+- `/tmp` - Temporary files (also `/var/tmp`). Usually deleted between reboots.
+- `/usr/` - Read only user data
+    - `/usr/bin` - Non-essential command binaries
+    - `/usr/sbin` - Non-essential system binaries, usually to be run by root
+    - `/usr/local/bin` - Binaries for user compiled programs
+- `/var` - Variable files like logs or caches
+
+### Cron
 
 Cron jobs run on a schedule and allow you to run command line tasks and run programs based on a schedule.
 
@@ -1351,7 +1496,7 @@ crontab -l
 > [!NOTE]
 > There are also special cron files that already have hardcoded intervals: You can specify commands to run in the `/etc/cron.daily` , `/etc/cron.weekly`, `/etc/cron.monthly`, `/etc/cron.hourly` files. However, this may only be on ubuntu distros.
 
-### Cron job syntax
+#### Cron job syntax
 
 The basic cron syntax is based on 5 numbers, like so:
 
@@ -1379,32 +1524,48 @@ Here are some useful examples:
 0 7 * * 1-5 # runs a job at 7:00 am every weekday
 ```
 
-### Running cron jobs
+#### Managing cron jobs
+
+**checking cron status**
+
+```
+sudo systemctl status cron
+```
+
+**Running cron jobs**
 
 Cron jobs do not have the ability to print to stdout, so if they fail, the fail silently. The best practice is to redirect all stdout from a cron job into a file and also redirect stderr into a file.
 
-## Advanced Linux
+### ZSH tips and tricks
 
-### Learning the Linux Filesystem
+```embed
+title: "Zsh vs. Bash | Better Stack Community"
+image: "https://betterstack.com/og-image/zsh-vs-bash.png"
+description: "Learn the key differences between Zsh and Bash—two powerful Unix shells. Discover which is better for scripting, performance, customization, and productivity in your terminal workflow."
+url: "https://betterstack.com/community/guides/linux/zsh-vs-bash/"
+favicon: ""
+aspectRatio: "52.5"
+```
 
-here are the folders that come preinstalled in the linux filesystem
 
-- `/bin` - Essential command binaries
-- `/sbin` - Essential system binaries, usually to be run by root
-- `/dev` - Device files, special files that often are interfaces to hardware devices
-- `/etc` - Host-specific system-wide configuration files
-- `/home` - Home directories for users in the system
-- `/lib` - Common libraries for system programs
-- `/opt` - Optional application software
-- `/sys` - Contains information and configuration for the system (covered in the [first lecture](https://missing.csail.mit.edu/2020/course-shell/))
-- `/tmp` - Temporary files (also `/var/tmp`). Usually deleted between reboots.
-- `/usr/` - Read only user data
-    - `/usr/bin` - Non-essential command binaries
-    - `/usr/sbin` - Non-essential system binaries, usually to be run by root
-    - `/usr/local/bin` - Binaries for user compiled programs
-- `/var` - Variable files like logs or caches
+#### Filesystem navigation in ZSH
 
-### MakeFiles
+```zsh
+# Enhanced directory navigation in Zsh
+cd /p/t/d<Tab>       # Smart completion to "/path/to/directory"
+cd ...<Tab>          # Expands to "../.." (grandparent directory)
+/u/l/b<Tab>          # Expands to "/usr/local/bin"
+```
+
+```zsh
+# Directory operations
+take new/nested/dir  # Creates and enters directory in one command
+d                    # Show directory stack with numbers for quick access
+cd -<Tab>            # Interactive selection from directory history
+```
+
+
+## MakeFiles
 
 All linux systems come equipped with the `make` command, which you can think of as a generic process-watcher hot reload system.
 
