@@ -1373,10 +1373,47 @@ The main advantage of `make` is that it only reruns the process if and only if t
 
 A package manager is an online repository of source code that users can download via the internet so that they don't have to download it themselves every single time and build it from the source. 
 
+| Distribution Family                           | Package Manager        | Package Format   |
+| --------------------------------------------- | ---------------------- | ---------------- |
+| Debian, Ubuntu, Linux Mint, Pop!_OS, Kali     | **APT**                | `.deb`           |
+| RHEL, Fedora, Rocky, AlmaLinux, CentOS Stream | **DNF** (formerly YUM) | `.rpm`           |
+| RHEL/CentOS 7 and older                       | **YUM**                | `.rpm`           |
+| openSUSE, SUSE Linux Enterprise               | **Zypper**             | `.rpm`           |
+| Arch Linux, Manjaro                           | **Pacman**             | `.pkg.tar.zst`   |
+| Alpine Linux                                  | **APK**                | `.apk`           |
+| Gentoo                                        | **Portage (emerge)**   | Source-based     |
+| NixOS                                         | **Nix**                | Nix packages     |
+| Any distro                                    | **Snap**               | Snap packages    |
+| Any distro                                    | **Flatpak**            | Flatpak packages |
+
 #### `apt`
 
 `apt` is the package manager built int for Ubuntu.
 
-- `sudo apt update`: update the package manager
-- `sudo apt install <package>`: install a specific package
+Here are the commands you can use to maintain the package manager itself
 
+- `sudo apt update`: update the package manager to fetch the latest version of all its registered source code repositories
+- `sudo apt upgrade`: upgrade all installed packages
+- `sudo apt full-upgrade`: perform update and upgrade
+
+And here is how you can manage installed packages:
+
+- `sudo apt install <package>`: install a specific package
+- `sudo apt remove <package>`: uninstall a specific package
+
+#### `yum`
+
+`yum` is the package manager for enterprise red hat linux:
+
+Here are the commands yum offers to maintain the package manager:
+
+- `sudo yum check-update`: check for updates
+- `sudo yum update`: update the package manager
+
+
+And here is how you can manage installed packages:
+
+- `sudo yum install <package>`: install a specific package
+- `sudo yum remove <package>`: uninstall a specific package
+- `yum search <package>`: search for a package
+- `yum info <package>`: get info on a package

@@ -1,3 +1,12 @@
+
+## Making a basic server and deploying it
+
+### Create the instance then connecting it
+
+After creating an EC2 instance and then generating a key pair, let's walk through how to use that key pair to connect to the EC2 instance:
+
+
+
 ## NGINX
 
 ### Basics
