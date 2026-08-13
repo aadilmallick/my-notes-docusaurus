@@ -1176,7 +1176,7 @@ You can temporarily write aliases to the shell session by putting these aliases 
 
 If you want aliases to persist, put them in the `.bashrc` or `.bash_profile` file.
 
-## SSH
+## Connecting to remote servers
 
 ### How SSH works
 
@@ -1184,12 +1184,11 @@ SSH lives on TCP protocol 22 and it is a way to connect to a remote server witho
 
 ![](https://i.imgur.com/xhbILrZ.jpeg)
 
+1. Generate an SSH key pair, which generates a public and private key:
+	- **public key**: used to encrypt any message
+	- **private key**: used to decrypt any message encrypted by the public key
 
 #### **creating ssh keys**
-
-For any virtual computer you want to connect to, make sure it has an `authorized_keys` file living in the `~/.ssh` directory.
-
-This will be where you store all your public keys, and then when sshing, you will connect using the private key pair that matches up with one of those public keys.
 
 You can create public and private key pairs using the `ssh-keygen` command:
 
@@ -1205,6 +1204,7 @@ ssh-keygen -t rsa -C "aadil.mallick@unisonglobal.com"
 
 ![](https://i.imgur.com/JesX57v.jpeg)
 
+
 #### connecting to SSH
 
 The basic syntax for connecting via SSH is like so:
@@ -1219,6 +1219,47 @@ You use the `-i` flag (stands for "input") to use a `.pem` private key-pair as e
 
 ```
 ssh -i <path-to-pem-file> user@your.ip.address
+```
+
+#### Managing SSH connections
+
+For any virtual computer you want to connect to, make sure it has an `authorized_keys` file living in the `~/.ssh` directory.
+
+This will be where you store all your public keys, and then when sshing, you will connect using the private key pair that matches up with one of those public keys.
+
+In summary, the `~/.ssh` directory has these important files available:
+
+- `~/.ssh/authorized_keys`: stores list of public keys
+- `~/.ssh/known_hosts`: stores log of all SSH connections to this server
+- `~/.ssh/config`: stores host connection information and stores connection configuration details so you can easily connect to hosts without specifying a passphrase or private key path each and every time.
+
+Here is what an example ssh config looks like:
+
+```bash
+# Personal GitHub Account
+Host github.com-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_personal_aadilmallick
+```
+
+- `Host`: the regex pattern of the host DNS or IP address to target, you can also use the `*` wildcard.
+	- `HostName`: the DNS or IP address
+	- `User`: the user to use for connecting with SSH
+	- `IdentityFile`: the filepath to the private key to use for connecting securely
+	- `AddKeysToAgent`: allows for automatically adding the SSH keys to the SSH agent, if you supply the value of `yes` to it.
+	- `UseKeychain`: allows for using the keychain for secure SSH connections, if you supply the value of `yes` to it.
+
+
+**adding key pair connections on MAC**
+
+To automatically add public and private key connections into your `~/.ssh/config` so that you don't ahve to specify them over and over again, you can use the `ssh-add` command like so:
+
+
+![](https://i.imgur.com/EO0UD4n.jpeg)
+
+```
+ssh-add --apple-use-keychain <path-to-public-key>
 ```
 ### SFTP
 
@@ -1475,3 +1516,38 @@ Drawbacks:
 
 - Larger packages
 - Slower startup for some applications
+
+## Networking with linux
+
+### Basic networking commands
+
+
+![](https://i.imgur.com/5mVWUPY.jpeg)
+
+#### `ping`
+
+With the `ping` command, you can either a ping an IP address or a domain name to check the status of that network host.
+
+```bash
+ping $HOST
+```
+
+#### `traceroute`
+
+Prints out the hop list from your IP address to the destination host IP address.
+
+```bash
+traceroute $HOST
+```
+
+#### `netstat`
+
+Netstat displays all open ports, IP addresses currently connected, local processes running on ports, and provides detailed information about TCP and UDP connections
+
+```bash
+netstat -lt
+```
+
+
+
+### Firewalls
