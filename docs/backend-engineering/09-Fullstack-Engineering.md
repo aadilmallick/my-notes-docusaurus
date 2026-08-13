@@ -3,9 +3,40 @@
 
 ### Create the instance then connecting it
 
-After creating an EC2 instance and then generating a key pair, let's walk through how to use that key pair to connect to the EC2 instance:
+After creating an EC2 instance and then generating a key pair, let's walk through how to use that key pair to connect to the EC2 instance, where you can refer to [[AWS tutorial#Connecting via SSH]] for more details.
+
+1. Make sure your EC2 instance's security group allows for SSH on port 22 from any source IP.
+2. Run the `whoami` command in the EC2 instance cloud connect, and you'll see the name of the user of the EC2 instance being `ec2-user`. That's the username you will SSH as.
+3. Download the `.pem` key pair and then run this ssh command:
+
+```
+ssh -i PATH_TO_PEM ec2-user@<public-ip-address>
+```
 
 
+![](https://i.imgur.com/w4o4zNq.jpeg)
+
+### Adding basic NGINX
+
+1. Install nginx with the package manger on your VPS. For EC2 amazon AMI, it will be `yum`, so install nginx like so:
+
+```bash
+sudo yum install nginx -y
+```
+
+2. start the nginx service, which automatically starts up on HTTP port 80 
+
+```
+sudo systemctl start nginx
+sudo systemctl enable nginx
+sudo systemctl status nginx
+```
+
+3. Check if nginx is running on port 80:
+
+```
+lsof -i:80
+```
 
 ## NGINX
 

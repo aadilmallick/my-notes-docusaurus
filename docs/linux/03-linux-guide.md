@@ -1205,6 +1205,21 @@ ssh-keygen -t rsa -C "aadil.mallick@unisonglobal.com"
 
 ![](https://i.imgur.com/JesX57v.jpeg)
 
+#### connecting to SSH
+
+The basic syntax for connecting via SSH is like so:
+
+```
+ssh user@your.ip.address
+```
+
+For example, if the user is `root`, then you would connect with root access.
+
+You use the `-i` flag (stands for "input") to use a `.pem` private key-pair as extra security to authenticate with the EC2 instance securely:
+
+```
+ssh -i <path-to-pem-file> user@your.ip.address
+```
 ### SFTP
 
 **SFTP** stands for secure file transfer protocol, which is a way of transferring files form your host computer to a virtual machine. By default when you set up ssh, you also set up an sftp connection between your host machine and the virtual machine.
@@ -1369,7 +1384,7 @@ plot-%.png: %.dat plot.py           # directive
 The main advantage of `make` is that it only reruns the process if and only if the dependencies change.
 
 
-### Package managers
+## Package managers
 
 A package manager is an online repository of source code that users can download via the internet so that they don't have to download it themselves every single time and build it from the source. 
 
@@ -1386,7 +1401,7 @@ A package manager is an online repository of source code that users can download
 | Any distro                                    | **Snap**               | Snap packages    |
 | Any distro                                    | **Flatpak**            | Flatpak packages |
 
-#### `apt`
+### `apt`
 
 `apt` is the package manager built int for Ubuntu.
 
@@ -1401,7 +1416,7 @@ And here is how you can manage installed packages:
 - `sudo apt install <package>`: install a specific package
 - `sudo apt remove <package>`: uninstall a specific package
 
-#### `yum`
+### `yum`
 
 `yum` is the package manager for enterprise red hat linux:
 
@@ -1417,3 +1432,46 @@ And here is how you can manage installed packages:
 - `sudo yum remove <package>`: uninstall a specific package
 - `yum search <package>`: search for a package
 - `yum info <package>`: get info on a package
+
+### `apk`
+
+`apk` is the package manager for alpine linux.
+
+Here are the commands yum offers to maintain the package manager:
+
+- `sudo apk update`: update the package manager
+- `sudo yum update`: update the package manager
+
+And here is how you can manage installed packages:
+
+- `sudo apk add <package>`: install a package
+- `sudo apk del <package>`: delete a package
+- `sudo apk search <package>`: search for a package
+- `sudo apk info <package>`: get information of a package
+
+### Nix
+
+A unique package manager providing reproducible builds, atomic upgrades, and easy rollbacks.
+
+- `nix search nixpkgs <package>`: search for a specific package 
+- `nix profile install nixpkgs#<package>`: install a specific package
+- `nix profile remove nginx`: remove a specific package
+
+### `snap`
+
+`snap` is a universal package manager that can be installed and is already shipped with many distros. It is meant for installing user-facing apps like VSCode, not really packages.
+
+- `sudo snap install code`: install vscode
+- `sudo snap remove code`: uninstall vscode
+- `snap list`: list all apps installed.
+
+Advantages:
+
+- Cross-distro
+- Automatic updates
+- Sandboxed
+
+Drawbacks:
+
+- Larger packages
+- Slower startup for some applications
