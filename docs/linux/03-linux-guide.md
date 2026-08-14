@@ -1,0 +1,1919 @@
+## Keyboard shortcuts
+
+- `CTRL + A `– takes you to the beginning of the line
+- `CTRL + E` – takes you to the end of the line
+- `CTRL + K` – delete (yank) everything after the cursor
+- `CTRL + U` – delete (yank) everything before the cursor
+- `CTRL + Y` - "paste" everything you yanked (paste in quotes because it doesn't actually go into your system clipboard, only your bash clipboard).
+- `CTRL + L` - clear the screen
+- `CTRL + R` – reverse search through history
+- `CTRL + D` - exit bash shell
+
+## Editors
+
+### Nano
+
+To open up a file in the nano code editor, just use the `nano` command:
+
+```bash
+nano <filename>
+```
+
+Here are some keyboard shortcuts that nano provides:
+
+- **ctrl + g :** to see all possible shortcuts and get help
+- **alt :** undo last action
+
+### Vim
+
+To open vim, run the `vim <textfile.txt>` command to open up a specific command in vim.
+
+To quit vim, first get into **command mode** by hitting `esc` twice, and then type and run `:q`. To quit no matter what, run `:q!` .
+
+Vim has two modes: insert (typing text) and edit (for commands) mode. Here is how to get to them:
+
+- **insert mode:** press `i` to enter insert mode
+- **edit mode:** press `esc` to enter edit mode
+
+Basic commands:
+
+- `esc` : toggles between typing mode and command mode. In typing mode you can make changes to your text file. In command mode you can type vim commands
+- `:q` : quit vim
+- `:w` : save file
+- `:wq` : save and exit
+- `:qa!` : quit no matter what.
+
+#### Navigating a file
+
+- `Arrow keys` - move the cursor around
+- `j, k, h, l` - move the cursor down, up, left and right (similar to the arrow keys)
+- `^ (caret)` - move cursor to beginning of current line
+- `$` - move cursor to end of the current line
+- `nG` - move to the `n`th line (eg 5G moves to 5th line)
+- `G` - move to the last line
+- `w` - move to the beginning of the next word
+- `nw` - move forward n word (eg 2w moves two words forwards)
+- `b` - move to the beginning of the previous word
+- `nb` - move back n word
+- `{` - move backward one paragraph
+- `}` - move forward one paragraph
+
+#### Text editing
+
+Here are commands that you have while in command mode that let you edit text quickly:
+
+- `:d100`: deletes the next 100 lines. Obviously, you can change the number like `:d50` to delete 50 lines.
+- `x` - delete a single character
+- `nx` - delete n characters (eg 5x deletes five characters)
+- `dd` - delete the current line
+
+#### Important commands
+
+- `set nu`: turns on line numbers for a file
+- `u`: undo last action
+
+## Bash History
+
+You can use the `history` command to see a record of all your bash history.
+
+## Learning about commands
+
+These are helper commands that help you learn about other commands:
+
+- `help <command>`: shows the MAN page for the specified command.
+- `which <command>`: shows the file location for the specified command.
+- `type <command>`: tells which type a specified command is.
+
+For the `type` command, there are 4 types of things a command could be:
+
+1. executable “bin” commands
+2. built-in shell command
+3. shell function
+4. alias
+
+## Dealing with files
+
+### Getting file info
+
+
+#### File metadata commands
+
+The commands are used to get specific metadata about a file or folder
+
+- `file <filepath>`: returns the type of file the specified file is, like a directory, file, or symlink.
+- `du <filepath>`: returns the filesize for the file or folder.
+
+
+**`file` command**
+
+To get information about the what resource a filepath actually is, use the `file` command:
+
+- `file <filepath>`: describes whether the filepath is a symlink, file, or directory.
+
+**file size commands**
+
+You also have these commands to get file size info
+
+- `df -h` : displays the disk usage information for the laptop
+- `du -h <folder>` : displays the disk usage info for the specified folder
+
+**file timestamps**
+
+Unix filesystems track three distinct metadata timestamps for each file: ctime, mtime, and atime.
+
+- `ctime`: latest timestamp when permissions were changed for the file
+- `mtime`: latest timestamp when the file was modified
+- `atime`: latest timestamp when the file was accessed or read.
+
+#### Filepath commands
+
+These commands are used for manipulating filepaths
+
+- `realpath <filepath>`: returns the absolute path version of the relative filepath
+- `basename <filepath>`: returns the basename (filename including extension) from the filepath
+- `dirname <filepath>`: returns the directory path of the directory that contains the specified file (filepath excluding filename).
+
+
+**`basename` command**
+
+To parse the basename of a file, you can use the `basename` command:
+
+The `basename <file>` command gets back only the filename (including extension) from a filepath. You can add these options to further customize the command:
+
+- `--suffix=SUFFIX` : if specified, removes the suffix from the basename, like a file extension name like `.sh`.
+
+### Reading files
+
+You can use the `cat` command to print out the contents of a file, or have a nice time reading the file using `less`.
+
+```bash
+cat <filename> # prints out file contents to stdout
+less <filename> # shows file content in dedicated reader
+```
+
+#### `cat`
+
+Here is basic usage of the `cat` commandL
+
+- `cat <filename>` : prints out the content of the file.
+- `cat FILES...` : concatenates the contents in all the specified files and prints them all out at once.
+
+You also have options on this command:
+
+- `-n` : prints out line numbers along with text
+
+#### `less`
+
+You have these navigation commands while in the `less` reader:
+
+- `q` to quit
+- `space bar` to go down a page
+- `b` to go up a page
+- `/<pattern>` to search for a pattern
+
+You also have these options:
+
+- `-N` : displays line numbers along with text
+
+#### `head` and `tail`
+
+- `head <filename>` : prints out the first 10 lines of a file
+- `tail <filename>` : prints out the last 10 lines of a file
+- `head -n NUMLINES FILENAME` : prints out the first numlines lines of a file.
+- `tail -n NUMLINES FILENAME` : prints out the last numlines lines of a file.
+
+### Creating folders and files
+
+There are multiple ways to create folders and files. To make a folder, you would use the `mkdir` command:
+
+- `mkdir -p`: the `-p` option creates all subdirectories in the directory path.
+
+```bash
+mkdir new_dir
+mkdir -p new_dir/sub_dir/even_more_sub_dir
+```
+
+To create files, you would use the `touch` command or you would use redirection to a file:
+
+```bash
+touch <filename>
+```
+
+### Deleting folders and files
+
+To delete folders and files, you use the `rm` command, and you can pair that with extra options:
+
+```bash
+rm FILENAME...
+```
+
+- `rm <filepath>` : deletes the specified file or folder permanently
+- `rm -d <foldername>` : removes the empty directory
+- `rm -r <foldername>` : recursively deletes the directory and its contents.
+  - Pair the `-r` option with `-i` for extra safety, for the shell to prompt you for confirmation before deleting each file.
+  - Pair the `-r` option with `-f` to force deletion, to skip confirmation. Obviously be careful with this.
+- `rm -i <filepath>` : prompts the user for confirmation before deleting.
+- `rm -f <filepath>` : skips user confirmation when deleting.
+
+### Moving/Renaming folders and files
+
+The `mv` command does both renaming and moving of files and directories, but the key difference is that renaming only exists when using the `mv` command on one source at a time.
+
+- `mv <source> <destination>` : moves the specified file to the specified destination
+- `mv SOURCE... DESTINATION` : moves multiple files into the same folder at once
+- `mv <folder> <destination>` : moves the specified folder to the specified destination.
+  - The folders and destination must exist, otherwise it just renames folders.
+- `mv FOLDERS... DESTINATION` : moves multiple folders to the specified destination at once.
+  - The folders and destination must exist, otherwise it just renames folders.
+
+### Copying folders
+
+- `cp <source> <destination>` : copies the specified file to the specified destination.
+  - If destination does not exist, it will rename the copy.
+- `cp SOURCE... DESTINATION` : copies multiple files at once to the same destination.
+- `cp -r <folder> <destination>` : copies the directory recursively to the new destination.
+
+### Advanced file navigation
+
+```bash
+pushd /tmp           # Push directory onto stack and change to it
+popd                 # Pop directory from stack and change to it
+```
+
+## Random commands
+
+### `tar`
+
+The `tar` command takes in a bunch of files and folders and compresses them into a single `.tar.gz` file.
+
+**compressing to tar**
+
+With the below command, you can zip an arbitrary amount of files and folders into a single tar file.
+
+```bash
+tar -zcf <tarfile_name> FILES_AND_FOLDERS...
+```
+
+- `-z`: does the actual file compressions with the GZIP algorithm, returning a `.tar.gz` file
+- `-cf`: takes in an arbitrary number of files and folders to zip together
+- `-v`: verbose mode
+
+> [!NOTE]
+> The tarfile name you pass must have a `.tar.gz` extension
+
+**decompressing from tar**
+
+To unzip a tar file to specific directory, you would run this command using the `-x` option to extract from a tarball.
+
+```bash
+tar -xzf <tarfile> -C <destination-dir>
+```
+
+- `<tarfile>`: the specified `.tar.gz` file to unzip
+- `<destination-dir>`: the specified empty directory to put the unzipped contents.
+
+**listing files in a tar ball**
+
+The `-t` option is used to sneak peek inside the tarball and list all files living inside it:
+
+```bash
+tar -tf <tarball>
+```
+
+### `gzip`
+
+The `gzip` command in linux allows you to compress files losslessly with the **GZIP** compression algorithm.
+
+- `gzip <filepath>`: compresses the specified file with the GZIP algorithm and outputs the compressed copy version with a `.gz` extension.
+- `gzip -d <gz-filepath>`: decompresses a GZipped file that ends in the `.gz` extension to what it originally was.
+
+### `zip`
+
+- `zip -r <zip-file-name> <folder>` : zips the folder you want into a zip file with the specified file name.
+- `unzip <zip-file>` : unzips the zip file into the current directory.
+
+### `wget`
+
+The `wget` command downloads the contents of an online url and saves it to your local filesystem as a file. The syntax is as follows:
+
+```bash
+wget <url>
+```
+
+You also have some useful options here:
+
+- `-pk` : downloads an entire website to work offline by downloading all assets and turning them into local assets in a folder.
+
+### `curl`
+
+`curl` is like `wget` in that it downloads content from the internet, but instead of putting it into a file, it simply outputs it into the console. This makes it compatible with things like piping, redirection, etc.
+
+Basic usage is like so:
+
+```bash
+curl <url>
+```
+
+To write the response from the url to the specified file, you would use the `-o` option.
+
+```bash
+curl <url> -o <file>
+```
+
+**redirects**
+
+By default, curl won’t follow any redirects if you fetch an old url and the website is trying to redirect you to the new page.
+
+To manually make curl follow redirects, pass the `-L` option to it.
+
+**HTTP verbs**
+
+By using the `-X <VERB>` syntax, you can use different HTTP verbs with the url you’re requesting, like so:
+
+```bash
+curl -X POST <url>
+```
+
+You can then send request bodies with the `-d <data>` syntax, where data is a string.
+
+```bash
+curl -X POST -d "this is the post body" <url>
+```
+
+```bash
+curl -X POST http://localhost:30000/api/website \
+-H "Content-Type: application/json" \
+-d '{"name": "test", "url": "https://www.google.com"}'
+```
+
+**cookies**
+
+The `-b` option allows you to create cookies with `-b "key=value"` type of synax. You can reuse this option several times to add several cookies.
+
+```bash
+curl -X POST -b "I_am_going_to_die_a_virgin=true" <url>
+```
+
+**headers**
+
+The `-H` option specifies a single header to attach to the request. You can reuse this option multiple times to attach multiple headers.
+
+```bash
+curl -H "Content-type: application/json"
+	 -H "Authorization: Bearer pleasegodwhyamisoalone"
+```
+
+### `date`
+
+The `date` command prints out the current date, but there are some useful modifiers you should know:
+
+- `date %s`: prints out number of seconds since Jan 1st, 1970
+
+### text based commands
+
+#### `sort`
+
+the `sort <filename>` command sorts the file alphabetically and outputs it.
+
+> [!NOTE]
+> Lowercase alphabetically comes before uppercase
+
+Here are the options
+
+- `-r` : reverses the output
+- `-n` : numeric sort
+- `-u` : sort, and output only unique values. Remove all the duplicates.
+
+**advanced sorting**
+
+---
+
+advanced sorting is based on sorting by columns. You can make columns by separating text with a space.
+
+- `sort -n -k<num-column> <filename>` : sorts numerically by the specified column
+
+#### `wc`
+
+The `wc` command tells us the number of words, lines, or bytes in a file or text content from stdin
+
+- `wc <filename>` : outputs three numbers, where first is **number of lines**, **number of words**, and **number of bytes**.
+
+You also have these options:
+
+- `-l` : only outputs number of lines.
+- `-w` : only outputs word count
+
+#### `nl`
+
+The `nl` command is used to number lines of a file or text content from stdin.
+
+- `nl <file>` : numbers each line, outputs the file
+- `nl -s <text>` : The `-s` command handles a number suffix. outputs the file with line numbers, but puts the specified text after each number.
+- `nl -w <padding>` : The `-w` command adds a specified number of spaces before line numbers.
+
+#### `uniq`
+
+The `uniq <file>` command displays only unique lines of text.
+
+Here is an example of sorting lines alphabetically and then removing duplicates, and counting the number of duplicates for a line.
+
+```bash
+cat filename.txt | sort | uniq -c
+```
+
+- `-c`: displays duplicate counts for each line
+#### `tr`
+
+The `tr` command either changes characters or deletes them. It gets its input from standard input, so it can only be used with piping or the stdin redirection operator.
+
+- `tr <oldchar> <newchar>` : replaces the old character with the new character.
+- `tr -d <char-to-delete>` : deletes the specified character.
+
+```bash
+tr a-z A-Z   # replaces all lowercase letters with uppercase letters
+```
+
+#### `sed`
+
+The `sed` command uses regex to substitute text in a file or string. The basic use is like so:
+
+```bash
+sed '<sed-command>' <file>
+```
+
+- `'<sed-command>'`: sed command pattern including regex that must be in single quotes for sed to recognize the substitution patterns as regex
+
+There are several types of sed commands that do different things.
+
+**replacing old text with new text**
+
+The most basic way is to replace old text with new text:
+
+```bash
+sed 's/oldtext/newtext' example.txt
+```
+
+```bash
+sed 's/oldtext/newtext/g' example.txt
+```
+
+You essentially have 4 components in the “sed string” you have to pass in, each separated by a delimiter.
+
+> [!NOTE]
+> The delimiter can be any character, we just typically use something uncommon, like a forward slash, but any delimiter can be used as long as it's consistent.
+
+- `s` : use sed for substitution
+- `oldtext` : the text to replace, or a regex pattern to match
+- `newtext` : the text or regex pattern to replace the oldtext with
+- `g` : any regex flags, like g for global
+	- `g`: global
+
+You can use different delimiters instead of `/`, which is useful when the pattern or replacement contains slashes:
+
+```bash
+echo "/path/to/file" | sed 's#/path/to#/new/path/to#'
+```
+
+Here is another example of using regex with sed:
+
+- Replaces all strings with `path: ` in it with `path: $(pwd)/mongodb-pv`, showcasing the power of programmatic replacement.
+
+```sh
+cat file.yaml | sed -E 's|path: .*|path: $(pwd)/mongodb-pv|'
+```
+
+It's very important to use the `-E` option to enable extended regular expression mode, which works with more modern syntax.
+
+**deleting text**
+
+- `sed 's/.*Disconnected from//'`: deletes everything containing the string 'Disconnected from', because it searches for that pattern and then replaces that pattern with an empty string.
+#### `awk`
+
+AWK allows you to split text into an array and then print out the specific parts you want. The `awk -F<separator>` command basically splits the string on a specific separator. Then you can do a `{print $1}` to print the first part of the string resulting from the split.
+
+```bash
+FILETOCOPY="$1"
+echo $FILETOCOPY
+
+# gets back something like dummy.txt, and returns dummy
+F_BASENAME="$(basename ${FILETOCOPY} | awk -F. '{print $1}')"
+# extracts the extension name
+EXTNAME="${FILETOCOPY##*.}"
+NEWFILE="${F_BASENAME}-$(date -I).${EXTNAME}"
+echo "copying to $NEWFILE"
+cp $FILETOCOPY $NEWFILE
+echo 'done copying'
+```
+
+#### `cut`
+
+The `cut` command is used to extract a substring from each line of text. We can use the cut command either on a file or piping from standard in. We can use it two ways:
+
+**susbtrings**
+
+The `-c <range>` option allows us to specify an indexed range from which to extract the substring.
+
+The below example extracts the 2nd-9th characters of each line (indexing starts at 1).
+
+```bash
+cut -c 2-9 <file>
+```
+
+**splitting and extracting**
+
+We can split on a delimiter using the `-d <delimiter>` option and then use the `--fields=<FIELDS_LIST>` to select the specified numbered fields to return back. The default delimiter is the tab character.
+
+```bash
+cut -d ' ' --fields=2 people.txt
+```
+
+The above example splits the text on spaces, and returns the 2nd group after the split for each line of text.
+
+#### `grep`
+
+The grep command is used for text-searching based on regex. Here is the basic usage, although any text content can be piped to it:
+
+```bash
+grep <pattern> <filename>
+```
+
+**basic options**
+
+Here are some basic options you have with grep:
+
+- `-i` : case insensitive
+- `-w` : only matches full words instead of substrings.
+- `-c` : returns the count of the number of matches
+- `-A <num-lines>` : for each occurrence, outputs a specified number of lines after the occurrence for context.
+- `-B <num-lines>` : for each occurrence, outputs a specified number of lines before the occurrence for context.
+- `-C <num-lines>` : for each occurrence, outputs a specified number of lines before and after for context.
+- `-n` : given line numbers
+- `-v`: returns everything except what the pattern matches. Useful for removing text you don't want.
+
+**recursive search in a directory**
+
+Using the `-r` option with grep searches recursively throughout the entire folder for occurrences of the pattern, checking all subfolders and subfiles.
+
+```bash
+grep -r <pattern> <folder>
+```
+
+```bash
+grep -rn "mom"
+```
+
+**grep with regex**
+
+When passing in a pattern to grep, you can also just pass in regex by putting the pattern in single quotes `''` , which forces grep to treat the pattern as regex.
+
+However, the `grep` command only provides basic regex functionality, and is actually very limited. Characters like the `+` , `?` , `(` and `)` lose all their meaning.
+
+To go into **extended regex mode** which gives you the full power of all regex symbols at your disposal, use the `-E` option with grep:
+
+```bash
+grep -E <pattern> <filename>
+```
+
+- `-E` : enables extended regex syntax.
+- `-o`: returns only what the regular expression matches
+
+#### **egrep**
+
+`egrep` is an extension of the grep tool that has extended regex functionality built in.
+
+```bash
+egrep <regex> <file>
+egrep 'or|is|go' mysampledata.txt
+```
+
+> [!IMPORTANT]
+> Keep in mind the regex portion should be in single quotes to escape any metacharacters.
+
+## Shell specific syntax
+
+### Redirection
+
+In linux, you have three concepts of input, output, and error:
+
+- **Standard output** controls where the output of a command goes, like to the terminal, a file, or a printer.
+- **Standard error** controls where any errors from a command goes, and you can redirect that stream to somewhere else.
+- **standard input** is where a program gets the commands from.
+  - By default, you type in commands through your keyboard, but it can come from a program or something else.
+
+#### Basic redirection
+
+**stdout redirection**
+
+---
+
+To redirect to standard output, you would use the `>` operator:
+
+```bash
+command > filename
+```
+
+In the above example, whatever command was run, the output would be piped into the specified file instead of standard output.
+
+> [!NOTE]
+> Basic redirection using `>` will overwrite the file each time and create it if it doesn’t exist.
+
+If you don't want to override the file and instead just append to it, use the `>>` operator, which is the append redirection operator.
+
+```bash
+command >> filename
+```
+
+**stdin redirection**
+
+some commands like `cat` when used without an argument look for standard input as an argument. For example, this works, where the `<` operator looks for text on the right hand side to pass as standard input to the command on the left hand side.
+
+```
+cat < things.txt
+```
+
+**stderr redirection**
+
+---
+
+By default, stdout redirection with `>` only redirects the output of the command, not if it errors out. If you also want to get the contents of the error and redirect that, then you must use stderr redirection, which has its own operator.
+
+You can also redirect just the error output of a command to a file. In fact, stdout, stderr, and stdin can also be referred to by certain numbers:
+
+- standard input - **0**, with operator `<` or `0<`
+- standard output - **1**, with operator `>` or `1>`. This does not redirect standard error as well.
+- standard error - **2**, with operator `2>`
+
+You also have the appending operators for both the stdout and stderr streams:
+
+- **append to stderr**: `2>>`
+- **append to stdout**: `1>>`
+
+In fact, all these commands work:
+
+```bash
+echo "brrruuuuh" 1> bruh.txt # redirects to stdout
+echodod "bruh" 2>> errorlog.txt # appends to stderr
+```
+
+- `command 2> filename` : redirects the error stream to the specified file.
+- `command 2>> filename` : appends the error stream to the specified file.
+
+#### Combined redirection
+
+You can combine redirecting from stdin and redirecting to stdout to form these interesting chains:
+
+- `command < inputfile > outputfile` : takes the output from the command applied on the input file and redirects it to the output file, overwriting the file.
+- `command < inputfile >> outputfile` : takes the output from the command applied on the input file and redirects it to the output file, appending to the file.
+
+In fact, this is what a poor man's copy would look like:
+
+```bash
+cat < things.txt > things2.txt
+```
+
+I would think of this command as these two steps happening in sequence:
+
+1. `cat < things.txt` means that the contents of `things.txt` get redirected as stdin and sucked into the `cat` command. Think of `<` as a vacuum that sucks up the content of whatever is on the right hand side and pipes as input to the command on the left hand side.
+2. Then the output of `cat < things.txt` will get redirected to the `things2.txt` file.
+
+**redirecting stdout and stderr**
+
+#### The `&>` operator
+
+`&>` is the operator used for redirecting both standard output and error at once. It is syntactic sugar over this sort of code:
+
+```bash
+ls -l video.mpg blah.foo > myoutput.log 2>&1
+```
+
+Obviously, this syntax is neater
+
+- `command &> file` : redirects both the standard output and error streams to the specified file. Overwrites the file.
+- `command &>> file` : redirects both the standard output and error streams to the specified file. Appends to the file.
+
+### Piping
+
+Piping redirects standard input and output from one command to the other. Piping is done via the `|` character and is used to chain commands together.
+
+#### Teeing
+
+If you want to pipe a command to another command while also redirecting the contents to stdout, you can do so with the `tee` command. It essentially copies the stdout stream so that one copy continues in the piping chain while the other gets redirected to a file:
+
+The `tee` command redirects standard input to both a pipe and a file.
+
+```bash
+command1 | tee <filename> | command2
+```
+
+- redirects the output of `command1` to the specified file while also piping the output to `command2` .
+
+#### `xargs`
+
+The `xargs` command is used to bundle output into input for commands that don’t usually accept standard input. For example, using `xargs` you can pipe to commands like `ls` , which don’t accept standard input.
+
+`xargs` takes stdin, separates by spaces or by lines, and transforms that into a list of arguments.
+
+Here are some examples:
+
+- `find -name "*pen15*" | xargs ls` : finds all files with “pen15” somewhere in them and runs `ls` on the output.
+- `echo {hello,world} | xargs mkdir` : gets the strings “hello” and “world” and makes folders with their names.
+
+
+
+### Meta characters
+
+**metacharacters**
+
+Metacharacters in bash shells are special characters that have meaning and do stuff in the bash shell.
+
+- `;` : command separator
+- `*` : wildcard for any amount of characters
+- `?` : wildcard for a single character
+- `$` : used to evaluate variables
+- `$?`: prints the exit code of the most recently-run command.
+- `\` : used to escape metacharacters
+- `&` : makes any preceding commands run in the background.
+
+**quoting**
+
+- **double quotes:** Allows metacharacters to be used. If you want to use metacharacters as actual text, you will need to escape them with a backslash.
+- **single quotes:** Escapes everything literally.
+
+### Character Expansion
+
+There are certain special symbols in the shell language that have programmatic meaning, and have different behaviors in these types:
+
+- **pathname expansion**: symbols related to pathnames, like `*`, `~`.
+- **brace expansion**: string generation within curly brace `{...}`
+- **arithmetic expansion**: doing math inside of `$(( ))` and getting the result as a string redirected to stdin
+- **command expansion**: evaluates a command inside of `$()` and returns its output as a string redirected to stdin.
+- **variable expansion**: interpolates an environment or user variables with the `$VARIABLE_NAME` syntax.
+
+When using these special symbols in a string, there is an important difference between double quotes and single quotes:
+
+- **double quotes**: lets the special symbols be substituted for their programmatic meaning. Escapes everything except these characters: `$`, the backtick, and the backslash `\`.
+- **single quotes**: completely escapes all special symbols and treats the string as a raw string.
+
+#### Pathname expansion
+
+There are certain special symbols in the shell language that have programmatic meaning, like wildcards, which have special meaning when dealing with listing pathnames on the filesystem.
+
+- `*` : matches any character for any number of characters
+- `~`: matches the home directory
+- `?` : matches exactly one single character
+
+**ranges**
+
+---
+
+you can specify a range of characters to match inside brackets `[]` . Here are some basic rules:
+
+- Within the range, you can also add a hyphen `-` for a shorthand range.
+- Adding a `^` in front of the range tells to not match on that range.
+
+And here are examples:
+
+- `[123]` : will match 1,2,3.
+- `[^123]` : will not match 1,2,3.
+- `[0-9]` : matches all numbers between 0 and 9
+
+#### Brace expansion
+
+Brace expansion inside the `{}` will generate arbitrary strings. You can pass in a list of values or a range to the brace expansion.
+
+- **list**: to pass in a list of values, comma-separate them - **no spaces**
+- **range**: to pass in a range of values, you use the range operator for brace expansion, which is `..`.
+
+Here are some basic examples:
+
+```bash
+echo {1,2,3} # generates 1,2,3
+echo Monday{1,2,3} # generates Monday1, Monday2, Monday3
+```
+
+And you would generate a range using the `..` syntax:
+
+```bash
+{START..END}  # range from start to end
+{START..END..SKIP} # range from start to end, skipping SKIP number of values
+```
+
+- `{a..z}` : matches all characters a-z
+- `{a..z..2}` : matches all characters a-z but skips every other character
+- `{z..a}` : matches all characters from z-a
+
+#### arithmetic substitution
+
+You can evaluate arithmetic expressions in the command line by wrapping it in `$(())`
+
+- `echo $((3+5))` : returns 8
+
+#### Command substitution
+
+If you wrap a command in `$()`, it will output it as a string, thus `$(command)` will output the result of the command as a string.
+
+```bash
+touch "$(date)".txt # Thu Jun  5 09:51:09 EDT 2025.txt
+```
+
+#### Process substitution
+
+Process substitution is useful in bash scripts where a command needs to read from stdin. The basic operator syntax looks like so, where you wrap a command in `<()`.
+
+```bash
+<(command)
+```
+
+Here is an example of using process substitution to feed in stdin into `grep`:
+
+```bash
+grep "bruh" < <(echo "bruh")
+```
+
+## Dealing with processes
+
+### List processes
+
+#### `ps`
+
+You can see all current processes running with the `ps` command. 
+
+- `ps`: lists all currently running processes in the current shell along with their pid (process identifier)
+- `ps -ef`: lists all currently running processes in the system and details the following info for each process:
+	- `PID`: the process id
+	- `UID`: the user that owns/initiated the process
+	- `PPID`: the parent process's process id
+	- `C`: the CPU utilization percentage of this process.
+
+#### `jobs`
+
+You can see all **background processes** running with the `jobs` command:
+
+- `jobs`: lists all currently running background processes
+- `jobs -l`: lists all currently running background processes along with their PID
+
+
+#### `top` and `htop`
+
+- `top`: realtime dashboard for viewing all currently running processes on the machine.
+- `htop`: even cooler realtime dashboard for viewing all currently running processes on the machine and then also gives capabilities for filtering and sorting processes.
+
+### How to run background processes
+
+By putting an `&` after a command, it makes that command run in the background.
+
+- For example, `sleep 10 &` will make the `sleep` command run in the background, which you can check by using the `ps` command to check all running processes.
+
+However, using the `&` to put the job in the background will not print out the stdout, so if you want to, you can redirect to stdout in the background.
+
+- For example, `echo "bruuuhh" > bruh.txt &` will run the command redirection in the background.
+
+You can check current background jobs running with the `jobs` command, and then based on the index of the background job, you can toggle between running that process in the foreground or background.
+
+- `bg <index>`: brings the specified job back to the background
+- `fg <index>`: brings the specified background job to the foreground
+
+> [!TIP ]
+> You can use the `CTRL + Z` shortcut to exit out of the foreground of a process and let it run in the background. This command does not straight up cancel the process.
+
+### Killing processes
+
+You can kill any process in the foreground with `CTRL + D`, but you can also use the `kill` command to kill processes specified by their process id, which sends a `SIGTERM` signal to politely signal to the process to stop and die.
+
+```
+kill <pid>
+```
+
+You also have these flags available at your disposal:
+
+- `kill -9 <pid>`: ungracefully kills a process via a `SIGKILL` signal, specified by the process id
+- `kill -l`: see options for the `kill` command
+
+## Permissions
+
+Unix and Unix-like operating systems allow multiple users to access their computer with their own accounts, files, etc. Multiple users can actually be logged in at the same time.
+
+Here are the main rules of the permissions:
+
+- One user cannot view the files of another user.
+- If something is shared across all users, like the root directory, then every user can access it.
+- Some files are special and cannot be accessed.
+
+By default on linux, you don't run on root user, and for good reason. Here are the dangerous things the root user can do:
+
+- Modify, delete, change, and execute all files and folders that are owned either by `root` or any other user.
+- Install packages, change users, delete other users.
+
+These things are obviously dangerous, so we can't be the root user. Imagine we unconsciously or impulsively delete our filesystem? By leveraging the **principle of least power**, we can instead get temporary, intentional access through the `sudo` command:
+
+```bash
+sudo <command>
+```
+
+The `sudo` keyword runs any command as the root user, requiring you to enter the root user password to authenticate yourself.
+
+### File permissions
+
+You can see file permissions, which are described by the 10 characters you get when you use `ls -l` .
+
+![](https://i.imgur.com/CECOCTT.png)
+
+
+
+The first character describes the file type, of which there are three:
+
+  1. `-` : normal file
+  2. `d` : folder
+
+The other nine characters relate to permissions for the file owner, group owner, and the rest of the world, of which for each group, 3 characters each are devoted to describing the permission set for that group on that file:
+
+  1. **first character (read permission)**: `r` for read permission granted, `-` if not granted.
+  2. **second character (write permission)**: `w` for write permission granted, `-` if not granted.
+  3. **third character (execute permission)**: `x` for execute permission granted, `-` if not granted.
+
+Let's go into the different modes:
+
+![](https://i.imgur.com/AwXgv4v.png)
+
+**read mode**
+
+- **how read permissions affect files**: If a file is in read mode, that means that it can be read.
+- **how read permissions affect directories**: If a directory is in read mode, that means its contents can be listed.
+
+**write mode**
+
+- **how write permissions affect files**: If a file is in write mode, you can write to the file.
+- **how write permissions affect directories**: If a folder is in write mode, the directory’s contents can be modified but only if the folder is also in executable mode. 
+	- If a directory is not in write mode, you can’t add or remove files. 
+	- But if the individual files within that directory are in write mode, you can modify them.
+
+**execute mode**
+
+- If a file is in executable mode, it can be treated as a program to be executed.
+- If a folder is in executable mode, it can be “cd”ed into.
+
+### SUDO: root user
+
+The root user, also called **superuser** on linux has all permissions available to do anything they want, like modify any files, install any applications, etc.
+
+- The superuser has the user id of 1
+- The superuser's username is `root`
+
+However, since the root user is very powerful, it violates the principle of least privilege, so OSs like Mac and Ubuntu by default disable you logging in as the root user.
+
+However, you can still access root user powers by using `sudo` to temporarily assume the role of the superuser and execute a command.
+
+> [!NOTE]
+> The idea is that when you use `sudo` it’s more likely to be intentional that you’re going to execute a superuser-level action that could potentially be dangerous.
+
+To switch to the superuser role temporarily past a single command, you can use the following commands:
+
+- `sudo su -`: switches to superuser
+
+### Changing permissions with `chmod`
+
+The `chmod <mode> <filepath>` command changes the specified mode of the file or folder.
+
+The mode is a three character combination that decides to which organization to set permissions for, whether to add or remove a permission, and which permission to remove or add.
+
+- **1st character**: `g` for group, `u` for user/owner, `o` for others/world, and `a` for all of the above, like everyone.
+- **2nd character**: `+` to add a permission, `-` to remove a permission, `=` to add a permission and remove all other permissions.
+- **3rd character**: `r` for read, `w` for write, `x` for execute
+
+```bash
+# adds write permission for the group on foo.txt
+chmod g+w foo.txt
+```
+
+
+
+![](https://i.imgur.com/GNBmqeA.jpeg)
+
+
+
+You can also refer to the permission level via octal syntax:
+
+![](https://i.imgur.com/EbGkY4a.png)
+
+### User permissions
+
+There are two widely-used commands that you can use to get info about the current user:
+
+- `whoami` : returns the current user’s username
+- `id` : returns the users id
+
+You also have these tricks when it comes to permissions.
+
+- **find file permissions**: To see the permissions of all the directories and files, you can use `ls -l`.
+- **list all users**: You can see all the registered users on your linux system by running `cat /etc/passwd` to see the contents of the `/etc/passwd` file.
+
+#### Adding new users and groups
+
+- `sudo useradd <username>` : creates a new user
+- `sudo <username> passwd` : creates a new password for the user
+- `sudo usermod -aG sudo <username>` : adds the user to the sudo group, meaning you can now do any root commands by prefixing `sudo`
+  - The `-a` commands `--append`, or append
+  - The `-G` command means `--group` , or append to groups when paired with `-a`
+
+You can add groups with these commands:
+
+- `groups` : shows all the groups that the currently logged in user is a part of.
+- `groups <username>` : shows all the groups that the specified user is a part of.
+- `addgroup <groupname>` : creates a new group with the specified name.
+- `adduser USER GROUP` : adds the specified user to the specified group.
+
+#### Changing ownership
+
+The `chown` command changes ownership of a file to the specified user
+
+```bash
+chown <username>:<groupname> <file-or-folder>
+```
+
+There are also three simple ways to change ownership of a file or folder for just the user:
+
+- `chown :<GROUP> <file>` : changes the group ownership of the specified file or file(s) to the specified group.
+- `chown <USER> <file>` : changes the ownership of the specified file or file(s) to the specified user.
+- `chown <USER>:<GROUP> <file>` : changes the ownership of the specified file(s) for both the user and the group.
+
+
+> [!NOTE]
+> If you want to change the ownership of a file to the root user, the only way to do that is to temporarily assume superuser privileges via `sudo`.
+
+## Working with the shell environment
+
+### Environment variables
+
+A quick crash course: you can access variables with `$VARIABLE_NAME` in bash, set variables with `export VARIABLE_NAME=<value>`, and access these special things:
+
+You can set environment variables using the `export` command. This makes the variable available to all subsequent commands and scripts executed in the current shell and its child processes.
+
+You have access to these two commands to view a list of environment variables:
+
+- `printenv`: prints all environment variables pairs in the shell session.
+- `env`: also shows all env variables.
+
+### Adding to path
+
+- `$PATH`: a list of all folders added to path
+
+Adding to the path is as easy as this, where you separate each directory path with a colon.
+
+```bash
+expoprt PATH="path/to/folder:$PATH"
+```
+
+Then to persist changes to the path, you need to put this code in a startup profile file, like `.bashrc` for linux and `.zshrc` for mac.
+
+### Sourcing
+
+The `source` command basically loads in a bash script and runs it in the context of a shell session. You can use this to restart your `~/.zshrc`, load in new variables, and other stuff.
+
+On Linux or WSL:
+
+```bash
+source ~/.bashrc
+```
+
+
+On Mac:
+
+```bash
+source ~/.zshrc
+```
+
+### ZSH vs Bash
+
+When you choose between these shells, you affect how efficiently you work daily and how easily your scripts run on different systems. Each shell was built with different goals in mind, so they fit different users and situations better.
+
+Here are the key differences you should think about:
+
+| Feature                     | Zsh                                          | Bash                                           |
+| --------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| Default installation        | macOS (since Catalina), optional on Linux    | Most Linux distributions, macOS (pre-Catalina) |
+| Configuration files         | ~/.zshrc, ~/.zprofile, ~/.zshenv             | ~/.bashrc, ~/.bash_profile, ~/.bash_login      |
+| Tab completion              | Enhanced, context-aware with menu selection  | Basic, improved in newer versions              |
+| Themeable prompt            | Built-in support via prompt themes           | Limited, requires manual configuration         |
+| Plugin frameworks           | Oh My Zsh, Prezto, Zinit                     | Bash-it, some external tools                   |
+| Globbing (pattern matching) | Extended globbing by default                 | Requires enabling extended globbing            |
+| Directory navigation        | Auto cd, directory stacks, named directories | Basic directory navigation                     |
+| Command history             | Shared history, substring search             | Sequential history                             |
+| Scripting compatibility     | Highly compatible with Bash                  | POSIX-compliant, widely supported              |
+| Spelling correction         | Built-in                                     | Not available natively                         |
+| Path expansion              | Smart path expansion and completion          | Basic path expansion                           |
+| Array indexing              | Zero-based                                   | Zero-based                                     |
+| Customization complexity    | Simpler with frameworks, more options        | More manual, fewer options                     |
+| Performance                 | Slightly more resource-intensive             | Lightweight                                    |
+| Community resources         | Growing community, extensive themes/plugins  | Established documentation, widespread examples |
+
+
+
+#### `~/.bashrc` basics
+
+```bash
+# ~/.bashrc - for interactive non-login shells
+# This file contains most of your personal configuration
+
+# Add colorized output for ls command
+alias ls='ls --color=auto'
+
+# Custom command prompt with username, hostname, and current directory
+PS1='\u@\h:\w\$ '
+
+# Set command history size
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# Add custom directory to PATH
+export PATH=$PATH:$HOME/bin
+
+# ~/.bash_profile - for login shells
+# Often just sources ~/.bashrc plus environment variables
+
+if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+fi
+
+export EDITOR=vim
+
+```
+
+#### `~/.zshrc` basics
+
+1. Install the **Oh my Zsh** library first creating a `~/.oh-my-zsh/.oh-my-zsh` file which has these contents, installing the library:
+
+```zsh
+# Example of installing Oh My Zsh
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# Edit ~/.zshrc to choose themes and plugins
+ZSH_THEME="agnoster"
+plugins=(git docker python vscode)
+```
+
+```zsh
+# ~/.zshrc - primary configuration file
+
+# Load Oh My Zsh framework
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git docker kubectl macos)
+source $ZSH/oh-my-zsh.sh
+
+# Custom aliases beyond what plugins provide
+alias zshconfig="vim ~/.zshrc"
+alias ohmyzsh="vim ~/.oh-my-zsh"
+
+# Enable case-insensitive auto-completion
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+
+# Directory shortcuts
+hash -d projects=~/Documents/Projects
+hash -d docs=~/Documents
+
+# Custom functions
+mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
+```
+
+### customizing the shell environment
+
+When booting up the shell, the shell looks at different files called **startup files** for customization and lets you do the following use cases:
+
+- Add certain files to the path
+- Customize the command prompt's look and feel
+- Echo certain things on shell startup
+
+Different shell languages have different startup files:
+
+- **ZSH**: The ZSH shell uses these startup files:
+	- `~/.zshrc`: runs on shell startup
+- **Bash**: The bash shell has these startup files:
+	- `~/.bashrc`: runs on shell startup
+
+#### PS1
+
+For example, the `$PS1` variable is what is displayed on the command prompt, and you can modify it for quality of life stuff like showing the date and time, displaying the current git branch, and much more.
+
+The default PS1 variable is something like this: `WaadlPenguin@DESKTOP-IJFUEC4 MINGW64 ~` , where the command prompt reflects our username and current location.
+
+We can change it in the startup files.
+
+```bash
+# Jeff's favorite prompt
+
+PS1='\[\e[01;35m\]\W\[\e[m\] ❯ '
+
+# Minimal
+
+PS1='\u:\W $ '
+
+# Minimal with git branch
+
+PS1='\W$(__git_ps1 " (%s)") $ '
+
+# Two line prompt with git branch
+
+PS1='\n\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\] $(__git_ps1 "(%s)")\n\$ '
+
+# Colorful prompt
+
+PS1='\[\033[01;32m\]\u\[\033[00m\]@\[\033[01;36m\]\h\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\] \[\033[01;33m\][\t]\[\033[00m\] \[\033[01;31m\]$(if [[ $? == 0 ]]; then echo "✓"; else echo "✗"; fi)\[\033[00m\]\n\$ '
+
+# Retro Style
+
+PS1='\[\033[01;32m\][\[\033[01;36m\]\u\[\033[01;32m\]@\[\033[01;36m\]\h\[\033[01;32m\]] \[\033[01;34m\]\w\[\033[00m\] \$ '
+
+# Customized based on time of day with emojis
+
+PS1='$(if [ $(date +%H) -lt 12 ]; then echo "🌅"; elif [ $(date +%H) -lt 18 ]; then echo "☀️"; else echo "🌙"; fi) \[\033[01;32m\]\u\[\033[00m\] in \[\033[01;34m\]\w\[\033[00m\] \$ '
+```
+
+**mac**
+
+On mac, the default shell is **zsh**, and therefore the code will look a bit different. The two files that handle shell startup are `~/.zshrc` and `~/.zprofile`. This is how the code will look to display the current git branch on shell startup.
+
+```zsh title="~/.zshrc"
+# Function to display current git branch
+git_branch() {
+    branch=$(git symbolic-ref HEAD 2>/dev/null | sed -e 's|^refs/heads/||')
+    if [ -n "$branch" ]; then
+        echo "(%F{green}$branch%f)"  # Add color to branch name
+    else
+        echo "(%F{red}none%f)"  # Add color to indicate no branch
+    fi
+}
+
+# Add git branch to PS1 prompt with proper zsh syntax
+setopt PROMPT_SUBST  # Enable prompt substitution
+PS1="${PS1}$(git_branch) "
+```
+
+**linux**
+
+On linux, the default shell is bash, and the startup files are in `~/.bashrc` and `~/.bash_profile`
+
+```bash title="~/.bashrc"
+parse_git_branch() {
+    local branch
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+    if [ -n "$branch" ]; then
+        echo -e "(\033[32m$branch\033[0m)"
+    else
+        echo -e "(\033[31mnone\033[0m)"
+    fi
+}
+
+# Simple, reliable prompt definition
+PS1='\u@\h:\w $(parse_git_branch)\$ '
+```
+
+**git bash**
+
+On git bash, the only startup file that is respected is `~/.bash_profile`.
+
+### Aliases
+
+Aliases in linux are used as ways to shorten commands by pointing a made up command to other existing commands, and is great for simplifying typing and other things.
+
+The basic syntax is like so: using the keyword `alias` and then a key value pair:
+
+```bash
+alias alias_name='commands here'
+```
+
+Here are examples for creating aliases to reduce typing:
+
+```bash
+alias kgd='kubectl get deployment'
+alias kdd='kubectl describe deployment'
+alias kgp='kubectl get pod'
+alias kdp='kubectl describe pod'
+alias kgs='kubectl get service'
+alias kds='kubectl describe service'
+```
+
+You can temporarily write aliases to the shell session by putting these aliases in a bash script that can be arbitrarily named `aliases.bash` and then running `source aliases.bash` to load that code into the shell session.
+
+If you want aliases to persist, put them in the `.bashrc` or `.bash_profile` file.
+
+## Connecting to remote servers
+
+### How SSH works
+
+SSH lives on TCP protocol 22 and it is a way to connect to a remote server without a password. 
+
+![](https://i.imgur.com/xhbILrZ.jpeg)
+
+1. Generate an SSH key pair, which generates a public and private key:
+	- **public key**: used to encrypt any message
+	- **private key**: used to decrypt any message encrypted by the public key
+
+#### **creating ssh keys**
+
+You can create public and private key pairs using the `ssh-keygen` command:
+
+```bash
+# creates a RSA-encrypted key in the ~/.ssh directory
+ssh-keygen -t rsa -C "aadil.mallick@unisonglobal.com"
+```
+
+- `-t`: the algorithm to use, of which you have two choices: 
+	- `rsa`: use the RSA algorithm
+	- `ed25519`: whatever tf this is
+- `-C`: stands for "comment", which lets you add your email as metadata to easily identify the key pair.
+
+![](https://i.imgur.com/JesX57v.jpeg)
+
+
+#### connecting to SSH
+
+The basic syntax for connecting via SSH is like so:
+
+```
+ssh user@your.ip.address
+```
+
+For example, if the user is `root`, then you would connect with root access.
+
+You use the `-i` flag (stands for "input") to use a `.pem` private key-pair as extra security to authenticate with the EC2 instance securely:
+
+```
+ssh -i <path-to-pem-file> user@your.ip.address
+```
+
+#### Managing SSH connections
+
+For any virtual computer you want to connect to, make sure it has an `authorized_keys` file living in the `~/.ssh` directory.
+
+This will be where you store all your public keys, and then when sshing, you will connect using the private key pair that matches up with one of those public keys.
+
+In summary, the `~/.ssh` directory has these important files available:
+
+- `~/.ssh/authorized_keys`: stores list of public keys
+- `~/.ssh/known_hosts`: stores log of all SSH connections to this server
+- `~/.ssh/config`: stores host connection information and stores connection configuration details so you can easily connect to hosts without specifying a passphrase or private key path each and every time.
+
+Here is what an example ssh config looks like:
+
+```bash
+# Personal GitHub Account
+Host github.com-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_personal_aadilmallick
+```
+
+- `Host`: the regex pattern of the host DNS or IP address to target, you can also use the `*` wildcard.
+	- `HostName`: the DNS or IP address
+	- `User`: the user to use for connecting with SSH
+	- `IdentityFile`: the filepath to the private key to use for connecting securely
+	- `AddKeysToAgent`: allows for automatically adding the SSH keys to the SSH agent, if you supply the value of `yes` to it.
+	- `UseKeychain`: allows for using the keychain for secure SSH connections, if you supply the value of `yes` to it.
+
+
+**adding key pair connections on MAC**
+
+To automatically add public and private key connections into your `~/.ssh/config` so that you don't ahve to specify them over and over again, you can use the `ssh-add` command like so:
+
+
+![](https://i.imgur.com/EO0UD4n.jpeg)
+
+```
+ssh-add --apple-use-keychain <path-to-public-key>
+```
+### SFTP
+
+**SFTP** stands for secure file transfer protocol, which is a way of transferring files form your host computer to a virtual machine. By default when you set up ssh, you also set up an sftp connection between your host machine and the virtual machine.
+
+Run `sftp <user>@<ip-address>` to connect to the virtual machine using the SFTP protocol, similar to ssh. This brings up an **SFTP shell** you can use to run file transfer related commands.
+
+You can exit the `sftp` shell by typing `bye` command.
+
+#### SFTP commands
+
+When working with the sftp shell, you have to constantly context switch between your local shell and the remote shell. In the SSH remote shell, you're dealing with a remote filesystem, while you're also still in the local filesystem on your host machine. SFTP solves this problems with prefixing local commands with an `l` or an `!` - both work:
+
+- **remote commands**: commands that will run on the remote shell will NOT have a prefix. For example, `ls` will list all files remotely.
+- **local commands**: commands that will run on the local shell will be prefixed with `l` for local or `!`. For example, `lls` will list all files locally and `!ls` will do the same.
+
+However, the `l` prefix only works for certain commands. In most cases, you just want to use the `!` prefix, which escapes to the local shell.
+
+- You can run commands on your local computer by prefixing all your commands with a `!`, like `!cat dog.txt`
+- You can also prefix commands with `l` to run the local version, like `lls` to run `ls` locally.
+
+Just to solidify the concepts:
+
+- `pwd` : prints the current directory on the remote machine
+- `lpwd` : prints the current directory on your local machine
+- `ls` : ls for remote
+- `lls` : ls for local
+
+#### `put`
+
+The `put` command is used to move files over from your local machine to the remote machine.
+
+You have two examples: one where you simply move the file over to the corresponding equivalent path on the remote machine, and another where you can specify a remote filepath to transfer the file to.
+
+```bash
+put <local-file-path>
+```
+
+```bash
+put <local-file-path> <remote-file-path>
+```
+
+Here are some examples:
+
+```bash
+put file.txt # transfers file.txt from local to remote
+put file.txt newfile.txt # transfers file.txt from local to remote, renames it
+```
+
+#### `get`
+
+You can use the opposite of the `put` command, which is `get` to download files from the remote vm onto your machine. It syntactically works the same way as `put`.
+
+```bash
+get <remote-file-path>
+```
+
+```bash
+get <remote-file-path> <local-file-path>
+```
+
+## Advanced Linux
+
+This is an assortment of topics that build on each other, including the Linux file system and system control services in Linux. 
+
+### Learning the Linux Filesystem
+
+here are the folders that come preinstalled in the linux filesystem
+
+- `/bin` - Essential command binaries
+- `/sbin` - Essential system binaries, usually to be run by root
+- `/dev` - Device files, special files that often are interfaces to hardware devices
+- `/etc` - Host-specific system-wide configuration files
+- `/home` - Home directories for users in the system
+- `/lib` - Common libraries for system programs
+- `/opt` - Optional application software
+- `/sys` - Contains information and configuration for the system (covered in the [first lecture](https://missing.csail.mit.edu/2020/course-shell/))
+- `/tmp` - Temporary files (also `/var/tmp`). Usually deleted between reboots.
+- `/usr/` - Read only user data
+    - `/usr/bin` - Non-essential command binaries
+    - `/usr/sbin` - Non-essential system binaries, usually to be run by root
+    - `/usr/local/bin` - Binaries for user compiled programs
+- `/var` - Variable files like logs or caches
+
+### systemd
+
+In Linux, when the kernel boots up, it starts the very first user-space process: **PID 1** (Process ID 1), historically known as the **init system**. PID 1 is the parent or ancestor of every other process that runs on the system.
+
+Traditionally, Linux used **SysVinit** or **Upstart**. SysVinit relied heavily on sequential shell scripts located in `/etc/init.d/`, which were slow, hard to manage, and lacked dependency tracking.
+
+**systemd** was introduced to replace SysVinit. It is an init system and system manager designed to:
+
+- **Parallelize service startup:** Start services concurrently rather than sequentially, vastly improving boot times.
+    
+- **Track processes reliably:** Use Linux **cgroups (control groups)** so a daemon cannot escape supervision even if it forks multiple child processes.
+    
+- **Handle dynamic hardware & events:** Dynamically start or stop services when hardware is plugged in, network connections change, or sockets receive traffic.
+
+#### Units
+
+In systemd, everything it manages is called a **Unit**. Units represent system resources and services. Each unit type has a specific file extension:
+
+- **`.service`**: Background daemons and applications (e.g., `nginx.service`, `sshd.service`).
+    
+- **`.socket`**: IPC or network sockets for on-demand socket activation (e.g., systemd listens on port 80 and only launches the web server when a request arrives).
+    
+- **`.target`**: Logical groupings of units used to create boot states (replaces traditional SysV _runlevels_). For example, `multi-user.target` represents a multi-user text-mode console, while `graphical.target` launches a GUI desktop.
+    
+- **`.timer`**: Schedules tasks to run periodically (modern alternative to `cron`).
+    
+- **`.mount` / `.automount`**: Manages filesystem mount points.
+    
+- **`.path`**: Triggers other units when files/directories change (using inotify).
+
+#### Unit files
+
+Systemd reads configuration files from three main locations, with higher priority directories overriding lower priority ones:
+
+```
+[Highest Priority]   /etc/systemd/system/    (System administrator configurations & custom units)
+        ▲
+        │            /run/systemd/system/    (Runtime dynamically generated units)
+        │
+[Lowest Priority]    /lib/systemd/system/    (Ve
+```
+
+1. `/lib/systemd/system`: the most general unit files with the lowest priority. You shouldn't modify the files in this directory.
+2. `/run/systemd/system`: the runtime unit configuration. These files change unit behavior at runtime. They are created dynamically and exist only for the actual boot session.
+3. `/etc/systemd/system`: unit files with the highest priority. If you need to change a unit configuration, you will typically edit the files in this directory.
+
+The structure of a unit file is precisely defined. Each one is divided into _sections_, and each section consists of _directives_.
+
+Unit files use a TOML-like syntax that is split into three sections:
+
+```ini
+[Unit]
+Description=My Custom Web App
+After=network.target
+Wants=redis.service
+
+[Service]
+Type=simple
+User=appuser
+WorkingDirectory=/var/www/app
+ExecStart=/usr/bin/node /var/www/app/server.js
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+- **`[Unit]`**: Metadata and dependencies and its relations to the other units.
+    
+    - `After=`: Ensures this unit starts _after_ `network.target` has initialized (defines ordering, not a hard requirement).
+        
+    - `Requires=` / `Wants=`: Defines hard/soft dependencies.
+        
+- **`[Service]`**: Defines process execution details and configuration of the service unit
+    
+    - `Type=`: How systemd tracks readiness (`simple`, `forking`, `oneshot`, `notify`).
+        
+    - `ExecStart=`: The exact command to run.
+        
+    - `Restart=`: Restart behavior (`on-failure`, `always`, `no`).
+        
+- **`[Install]`**: Defines what happens when you **enable** the unit with `systemctl enable`. `WantedBy=multi-user.target` creates a symlink inside `/etc/systemd/system/multi-user.target.wants/`.
+
+### `systemctl`
+
+**`systemctl`** is the primary command-line interface used to inspect, control, and manage the systemd system and service manager.
+
+For a unit like `nginx`, here is how you can use `systemctl` to manage that unit:
+
+- `systemctl status nginx.service`: Check the detailed status of a service, displays PID, memory usage, cgroup tree, and recent logs.
+- `systemctl is-active nginx`: check if the service is active
+- `systemctl is-enabled nginx`: check if the service is enabled
+- `systemctl is-failed nginx`: check if the service is failed
+
+And here is how you can list all registered services:
+
+- `systemctl list-units --type=service`: lists running services
+- `systemctl list-unit-files --type=service`: list all installed unit files and their enabled/disabled state
+
+These commands manage the active running state of a service in the **current session**:
+
+- `sudo systemctl start nginx`: starts a service
+- `sudo systemctl stop nginx`: stops a service
+- `sudo systemctl restart nginx`: restarts a service
+- `sudo systemctl reload nginx`: reload the configuration of a service without stopping the process
+
+
+These commands control whether a service starts **automatically at boot** by managing symlinks:
+
+- `sudo systemctl enable nginx`: Enable a service to start on boot
+- `sudo systemctl disable nginx`: Disable a service from starting on boot
+- `sudo systemctl enable --now nginx`: Enable and start immediately in one command
+
+If you want to prevent a service from starting under any circumstances (manually, via dependencies, or at boot), you can **mask** it. Masking creates a symlink pointing the unit file to `/dev/null`.
+
+- `sudo systemctl mask nginx`: mask a service to prevent it from starting
+- `sudo systemctl unmask nginx`: unmask a service
+
+#### Reloading systemd daemon
+
+Whenever you create a new unit file or modify an existing one in `/etc/systemd/system/`, tell systemd to scan the disk for changes:
+
+```
+sudo systemctl daemon-reload
+```
+
+
+#### Summary Reference Table
+
+| **Action**           | **Command**                            | **Scope / Effect**                                |
+| -------------------- | -------------------------------------- | ------------------------------------------------- |
+| **Start / Stop**     | `sudo systemctl start/stop <name>`     | Affects current runtime session only.             |
+| **Restart / Reload** | `sudo systemctl restart/reload <name>` | Reboots daemon / re-reads config on the fly.      |
+| **Enable / Disable** | `sudo systemctl enable/disable <name>` | Configures symlinks for automatic boot startup.   |
+| **Mask / Unmask**    | `sudo systemctl mask/unmask <name>`    | Links to `/dev/null` to make starting impossible. |
+| **Inspect**          | `systemctl status <name>`              | Shows state, PID, cgroups, memory, and logs.      |
+| **Refresh Config**   | `sudo systemctl daemon-reload`         | Re-reads all unit files from disk into memory.    |
+
+### Cron
+
+**Cron** is the standard time-based job scheduler in Unix-like operating systems. It runs as a background daemon (typically named `cron` or `crond`) that wakes up every minute to check whether any scheduled tasks—known as **cron jobs**—are due to run.
+
+Common use cases include:
+
+- Running automated database or file backups.
+    
+- Rotating, archiving, or clearing old log files.
+    
+- Synchronizing data with external APIs or remote servers.
+    
+- Executing periodic health checks and maintenance scripts.
+
+#### how Cron works
+
+- **The Daemon (`cron` / `crond`):** Starts at system boot and remains running in the background. Every minute, it scans system directories and user tables for scheduled jobs.
+    
+- **The Configuration Table (`crontab`):** A configuration file (or table) where scheduled tasks and their timing expressions are defined.
+    
+- **Execution Environment:** When cron executes a job, it runs with a very limited environment (minimal `$PATH`, no interactive shell profile, and no display).
+
+#### cronjob syntax
+
+Here is where you can go to for getting cron syntax correct:
+
+```embed
+title: "Crontab.guru - The cron schedule expression generator"
+image: "https://og.cronitor.io/api/blog?title=*%20*%20*%20*%20*%20%0ACrontab%20Guru"
+description: "An easy to use editor for crontab schedules."
+url: "https://crontab.guru/"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+The basic cron syntax is based on 5 numbers, like so:
+
+```
+┌───────────── Minute (0 - 59)
+ │ ┌─────────── Hour (0 - 23)
+ │ │ ┌───────── Day of the Month (1 - 31)
+ │ │ │ ┌─────── Month (1 - 12 or JAN - DEC)
+ │ │ │ │ ┌───── Day of the Week (0 - 6 or SUN - SAT, 0 and 7 are Sunday)
+ │ │ │ │ │
+ * * * * *  /path/to/command
+```
+
+![](https://i.imgur.com/6bzzVde.png)
+
+- **1st number**: represents the minute number at which to run, from 0 to 59
+- **2nd number**: represents the hour number at which to run in military time, from 0-23
+- **3rd number**: represents the day number at which to run, from 1-31
+- **4th number**: represents the month number at which to run, from 1-12
+- **5th number**: represents the day of the week which to run, from 0-6, starting with 0 as sunday.
+
+
+The main issue with the cronjob syntax is that it only runs at specific hard-coded times and not at an interval, but there is also special syntax that lets you specify intervallic jobs:
+
+- `*`: signifies "every" or "at all"
+- `-`: use this to signify a range of values, like 1-4.
+- `,`: use this to signify a list of values, like 5,6
+- `*/`: use this to signify a step values and therefore intervals, like `*/5`
+
+Here are some useful examples:
+
+```bash
+* * * * * <command> # runs command every minute
+0 * * * * <command> # runs command every hear on the dot, like 3:00, 4:00
+*/5 * * * * <command> # runs command every 5 minutes
+0 7 * * 1-5 # runs a job at 7:00 am every weekday
+```
+
+| **Operator** | **Meaning**          | **Example**    | **Explanation**                           |
+| ------------ | -------------------- | -------------- | ----------------------------------------- |
+| `*`          | **Wildcard (Every)** | `* * * * *`    | Runs every minute of every day.           |
+| `,`          | **Value List**       | `0 9,17 * * *` | Runs at 09:00 and 17:00.                  |
+| `-`          | **Range**            | `0 9-17 * * *` | Runs every hour from 09:00 through 17:00. |
+| `/`          | **Step Intervals**   | `*/15 * * * *` | Runs every 15 minutes.                    |
+
+**special string shortcuts**
+
+Instead of 5 time fields, cron supports special predefined keywords:
+
+- `@reboot` — Runs once when the system starts up.
+    
+- `@hourly` — Equivalent to `0 * * * *` (once an hour at minute 0).
+    
+- `@daily` or `@midnight` — Equivalent to `0 0 * * *` (once a day at 00:00).
+    
+- `@weekly` — Equivalent to `0 0 * * 0` (once a week on Sunday at midnight).
+    
+- `@monthly` — Equivalent to `0 0 1 * *` (first day of each month at midnight).
+    
+- `@yearly` or `@annually` — Equivalent to `0 0 1 1 *` (January 1st at midnight).
+
+#### crontab
+
+You can add cronjobs to a crontab file by editing it with the `crontab` command, which opens the file in a temporary buffer, checks syntax upon saving, and installs the updated table
+
+```bash
+crontab -e
+```
+
+You can list all active cronjobs with the `-l` option:
+
+```bash
+crontab -l
+```
+
+You can delete cronjobs with confirmation with the `-ri` option:
+
+```bash
+crontab -r -i
+```
+
+
+There are three types of crontab files that you have access to, with different behaviors for how they manage cron  jobs:
+
+
+
+#### Managing cron jobs
+
+**checking cron status**
+
+Since cron is a service unit managed by systemd, you can manage it with `systemctl`
+
+```
+sudo systemctl status cron
+```
+
+**Running cron jobs**
+
+Cron jobs do not have the ability to print to stdout, so if they fail, the fail silently. The best practice is to redirect all stdout from a cron job into a file and also redirect stderr into a file.
+
+## ZSH tips and tricks
+
+```embed
+title: "Zsh vs. Bash | Better Stack Community"
+image: "https://betterstack.com/og-image/zsh-vs-bash.png"
+description: "Learn the key differences between Zsh and Bash—two powerful Unix shells. Discover which is better for scripting, performance, customization, and productivity in your terminal workflow."
+url: "https://betterstack.com/community/guides/linux/zsh-vs-bash/"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+
+#### Filesystem navigation in ZSH
+
+```zsh
+# Enhanced directory navigation in Zsh
+cd /p/t/d<Tab>       # Smart completion to "/path/to/directory"
+cd ...<Tab>          # Expands to "../.." (grandparent directory)
+/u/l/b<Tab>          # Expands to "/usr/local/bin"
+```
+
+```zsh
+# Directory operations
+take new/nested/dir  # Creates and enters directory in one command
+d                    # Show directory stack with numbers for quick access
+cd -<Tab>            # Interactive selection from directory history
+```
+
+
+## MakeFiles
+
+All linux systems come equipped with the `make` command, which you can think of as a generic process-watcher hot reload system.
+
+Every `make` command runs and watches a `MakeFile` in the current directory, which looks like so, which is a list of **directives**.
+
+```bash
+paper.pdf: paper.tex plot-data.png. # directive
+	pdflatex paper.tex              # rule
+	
+plot-%.png: %.dat plot.py           # directive
+	./plot.py -i $*.dat -o $@       # rule
+```
+
+- `%`: placeholder for some wildcard text. Think of this as the same as a regex capturing group.
+- `$*`: reference substitution to whatever was captured by `%`. Think of this as the same as regex capturing group reference.
+- `$@`: name of the target, like name of the output file.
+
+The main advantage of `make` is that it only reruns the process if and only if the dependencies change.
+
+
+## Package managers
+
+A package manager is an online repository of source code that users can download via the internet so that they don't have to download it themselves every single time and build it from the source. 
+
+| Distribution Family                           | Package Manager        | Package Format   |
+| --------------------------------------------- | ---------------------- | ---------------- |
+| Debian, Ubuntu, Linux Mint, Pop!_OS, Kali     | **APT**                | `.deb`           |
+| RHEL, Fedora, Rocky, AlmaLinux, CentOS Stream | **DNF** (formerly YUM) | `.rpm`           |
+| RHEL/CentOS 7 and older                       | **YUM**                | `.rpm`           |
+| openSUSE, SUSE Linux Enterprise               | **Zypper**             | `.rpm`           |
+| Arch Linux, Manjaro                           | **Pacman**             | `.pkg.tar.zst`   |
+| Alpine Linux                                  | **APK**                | `.apk`           |
+| Gentoo                                        | **Portage (emerge)**   | Source-based     |
+| NixOS                                         | **Nix**                | Nix packages     |
+| Any distro                                    | **Snap**               | Snap packages    |
+| Any distro                                    | **Flatpak**            | Flatpak packages |
+
+### `apt`
+
+`apt` is the package manager built int for Ubuntu.
+
+Here are the commands you can use to maintain the package manager itself
+
+- `sudo apt update`: update the package manager to fetch the latest version of all its registered source code repositories
+- `sudo apt upgrade`: upgrade all installed packages
+- `sudo apt full-upgrade`: perform update and upgrade
+
+And here is how you can manage installed packages:
+
+- `sudo apt install <package>`: install a specific package
+- `sudo apt remove <package>`: uninstall a specific package
+
+### `yum`
+
+`yum` is the package manager for enterprise red hat linux:
+
+Here are the commands yum offers to maintain the package manager:
+
+- `sudo yum check-update`: check for updates
+- `sudo yum update`: update the package manager
+
+
+And here is how you can manage installed packages:
+
+- `sudo yum install <package>`: install a specific package
+- `sudo yum remove <package>`: uninstall a specific package
+- `yum search <package>`: search for a package
+- `yum info <package>`: get info on a package
+
+### `apk`
+
+`apk` is the package manager for alpine linux.
+
+Here are the commands yum offers to maintain the package manager:
+
+- `sudo apk update`: update the package manager
+- `sudo yum update`: update the package manager
+
+And here is how you can manage installed packages:
+
+- `sudo apk add <package>`: install a package
+- `sudo apk del <package>`: delete a package
+- `sudo apk search <package>`: search for a package
+- `sudo apk info <package>`: get information of a package
+
+### Nix
+
+A unique package manager providing reproducible builds, atomic upgrades, and easy rollbacks.
+
+- `nix search nixpkgs <package>`: search for a specific package 
+- `nix profile install nixpkgs#<package>`: install a specific package
+- `nix profile remove nginx`: remove a specific package
+
+### `snap`
+
+`snap` is a universal package manager that can be installed and is already shipped with many distros. It is meant for installing user-facing apps like VSCode, not really packages.
+
+- `sudo snap install code`: install vscode
+- `sudo snap remove code`: uninstall vscode
+- `snap list`: list all apps installed.
+
+Advantages:
+
+- Cross-distro
+- Automatic updates
+- Sandboxed
+
+Drawbacks:
+
+- Larger packages
+- Slower startup for some applications
+
+## Networking with linux
+
+### Basic networking commands
+
+
+![](https://i.imgur.com/5mVWUPY.jpeg)
+
+#### `ping`
+
+With the `ping` command, you can either a ping an IP address or a domain name to check the status of that network host.
+
+```bash
+ping $HOST
+```
+
+#### `traceroute`
+
+Prints out the hop list from your IP address to the destination host IP address.
+
+```bash
+traceroute $HOST
+```
+
+#### `netstat`
+
+Netstat displays all open ports, IP addresses currently connected, local processes running on ports, and provides detailed information about TCP and UDP connections
+
+```bash
+netstat -lt
+```
+
+
+
+### Firewalls
+
+#### `ufw`
