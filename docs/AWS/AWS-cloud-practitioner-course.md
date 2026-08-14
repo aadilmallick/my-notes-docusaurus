@@ -1119,6 +1119,29 @@ CloudFront uses AWS's edge locations to decide what resources and requests to ca
 The result is a domain name that cloudfront provides that basically copies requests from the content origin to all edge locations around the world.
 
 
+### SSL with ACM
+
+The Amazon Certificate Manager service allows you to create SSL certificates and attach them to AWS services or external instances. 
+
+#### SSL with EC2
+
+Here is an example of creating an SSL certificate for a domain:
+
+1. Create A records for the domain you own and pointing that towards the public IPV4 address of the instance, do that for all additional subdomains as well.
+
+![](https://i.imgur.com/Rlj2uBP.jpeg)
+
+2. Go to ACM and answer these questions:
+	- **domains and subdomains**: The domains and subdomains you own and want to create the certificate for.
+	- **allow export**: If disabled, then you can only attach SSL certificates to AWS services like EC2, a hosted zone, or a load balancer.
+	- **key algorithm**: which cryptographic algorithm to use to create the public and private key pair.
+
+
+![](https://i.imgur.com/TGApzcg.jpeg)
+
+
+3. Add the records to Route 53, and if that doesn't work, then go to the next step:
+4. Install the `certbot` CLI tool to create SSL certificates, more information here:
 #### SSL with cloudfront
 
 You can also enable SSL with cloudfront by using the Amazon Certificate Manager (ACM) service to create a certificate and then using that certificate for SSL encryption with a cloudfront record.

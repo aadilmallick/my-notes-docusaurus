@@ -18,6 +18,8 @@ ssh -i PATH_TO_PEM ec2-user@<public-ip-address>
 
 ### Adding basic NGINX
 
+#### On EC2 with AMI
+
 1. Install nginx with the package manger on your VPS. For EC2 amazon AMI, it will be `yum`, so install nginx like so:
 
 ```bash
@@ -36,6 +38,45 @@ sudo systemctl status nginx
 
 ```
 lsof -i:80
+```
+
+#### On EC2 with Ubuntu
+
+The difference between setting up Nginx on Ubuntu and something different like CentOS or Red Hat or EC2 is that you have to deal with the firewall for Ubuntu. By default all traffic on port 80 and 443 is blocked on Linux and SSH is the only open port on an Ubuntu instance. You need to configure the firewall in order to make the ports actually open. 
+
+- On Linux, SSH to port 22 is the only open port exposed form the instance by default
+- To open closed ports like HTTP 80 or HTTPS 443, you need to use the linux `ufw` firewall command to configure that.
+
+So here are the steps:
+
+1. Install nginx with the package manger on your VPS. For EC2 amazon AMI, it will be `yum`, so install nginx like so:
+
+```bash
+sudo yum install nginx -y
+```
+
+2. start the nginx service, which automatically starts up on HTTP port 80 
+
+```
+sudo systemctl start nginx
+sudo systemctl enable nginx
+sudo systemctl status nginx
+```
+
+3. Use the `ufw` tool to check the status of all currently running processes that can expose themselves on a port. This is what the output of listing the apps will look like:
+
+```bash
+ufw status
+ufw app list
+```
+
+
+![](https://i.imgur.com/TVxooau.jpeg)
+
+4. Choose to allow the `Nginx Full` application, which exposes NGINX for HTTP on port 80 and HTTPS on port 443
+
+```
+ufw allow 'Nginx Full'
 ```
 
 ## NGINX
