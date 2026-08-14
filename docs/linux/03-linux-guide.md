@@ -1916,10 +1916,7 @@ netstat -lt
 
 #### `ufw`
 
-### SSL
-
-
-#### certbot
+### SSL with Certbot
 
 Certbot is a Linux package that can be universally installed via snap or other package managers and it's used to create free SSL certificates for domains you own. 
 
@@ -1934,4 +1931,34 @@ Here are the steps to follow:
 sudo apt-get remove certbot
 ```
 
-3. 
+3. Install certbot with snap
+
+```
+sudo snap install --classic certbot
+```
+
+4. Create a symlink
+
+```
+sudo ln -s /snap/bin/certbot /usr/local/bin/certbot
+```
+
+5. Run this command to get a certificate and have Certbot edit your nginx configuration automatically to serve it, turning on HTTPS access in a single step.
+
+```
+sudo certbot --nginx
+```
+
+#### Manual Certbot
+
+The Certbot packages on your system come with a cron job or systemd timer that will renew your certificates automatically before they expire. You will not need to run Certbot again, unless you change your configuration. You can test automatic renewal for your certificates by running this command:
+
+```
+sudo certbot renew --dry-run
+```
+
+The command to renew certbot is installed in one of the following locations:
+
+- `/etc/crontab/`
+- `/etc/cron.*/*`
+- `systemctl list-timers`
