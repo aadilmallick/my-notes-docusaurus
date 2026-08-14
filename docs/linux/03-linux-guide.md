@@ -1885,7 +1885,6 @@ Drawbacks:
 
 ### Basic networking commands
 
-
 ![](https://i.imgur.com/5mVWUPY.jpeg)
 
 #### `ping`
@@ -1913,7 +1912,26 @@ netstat -lt
 ```
 
 
-
 ### Firewalls
 
 #### `ufw`
+
+### SSL
+
+
+#### certbot
+
+Certbot is a Linux package that can be universally installed via snap or other package managers and it's used to create free SSL certificates for domains you own. 
+
+Here are the steps to follow:
+
+1. Point domains to your server and then SSH into it
+2. **Remove any pre-installed certbot packages**: You only want the snap version, since that works automatically with NGINX. 
+	- If you have any Certbot packages installed using an OS package manager like `apt`, `dnf`, or `yum`, you should remove them before installing the Certbot snap to ensure that when you run the command `certbot` the snap is used rather than the installation from your OS package manager. 
+	- The exact command to do this depends on your OS, but common examples are `sudo apt-get remove certbot`, `sudo dnf remove certbot`, or `sudo yum remove certbot`
+
+```
+sudo apt-get remove certbot
+```
+
+3. 
