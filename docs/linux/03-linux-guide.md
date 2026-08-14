@@ -1466,9 +1466,168 @@ here are the folders that come preinstalled in the linux filesystem
     - `/usr/local/bin` - Binaries for user compiled programs
 - `/var` - Variable files like logs or caches
 
+### systemd
+
+In Linux, when the kernel boots up, it starts the very first user-space process: **PID 1** (Process ID 1), historically known as the **init system**. PID 1 is the parent or ancestor of every other process that runs on the system.
+
+Traditionally, Linux used **SysVinit** or **Upstart**. SysVinit relied heavily on sequential shell scripts located in `/etc/init.d/`, which were slow, hard to manage, and lacked dependency tracking.
+
+**systemd** was introduced to replace SysVinit. It is an init system and system manager designed to:
+
+- **Parallelize service startup:** Start services concurrently rather than sequentially, vastly improving boot times.
+    
+- **Track processes reliably:** Use Linux **cgroups (control groups)** so a daemon cannot escape supervision even if it forks multiple child processes.
+    
+- **Handle dynamic hardware & events:** Dynamically start or stop services when hardware is plugged in, network connections change, or sockets receive traffic.
+
+#### Units
+
+In systemd, everything it manages is called a **Unit**. Units represent system resources and services. Each unit type has a specific file extension:
+
+- **`.service`**: Background daemons and applications (e.g., `nginx.service`, `sshd.service`).
+    
+- **`.socket`**: IPC or network sockets for on-demand socket activation (e.g., systemd listens on port 80 and only launches the web server when a request arrives).
+    
+- **`.target`**: Logical groupings of units used to create boot states (replaces traditional SysV _runlevels_). For example, `multi-user.target` represents a multi-user text-mode console, while `graphical.target` launches a GUI desktop.
+    
+- **`.timer`**: Schedules tasks to run periodically (modern alternative to `cron`).
+    
+- **`.mount` / `.automount`**: Manages filesystem mount points.
+    
+- **`.path`**: Triggers other units when files/directories change (using inotify).
+
+#### Unit files
+
+Systemd reads configuration files from three main locations, with higher priority directories overriding lower priority ones:
+
+```
+[Highest Priority]   /etc/systemd/system/    (System administrator configurations & custom units)
+        ▲
+        │            /run/systemd/system/    (Runtime dynamically generated units)
+        │
+[Lowest Priority]    /lib/systemd/system/    (Ve
+```
+
+1. `/lib/systemd/system`: the most general unit files with the lowest priority. You shouldn't modify the files in this directory.
+2. `/run/systemd/system`: the runtime unit configuration. These files change unit behavior at runtime. They are created dynamically and exist only for the actual boot session.
+3. `/etc/systemd/system`: unit files with the highest priority. If you need to change a unit configuration, you will typically edit the files in this directory.
+
+The structure of a unit file is precisely defined. Each one is divided into _sections_, and each section consists of _directives_.
+
+Unit files use a TOML-like syntax that is split into three sections:
+
+```ini
+[Unit]
+Description=My Custom Web App
+After=network.target
+Wants=redis.service
+
+[Service]
+Type=simple
+User=appuser
+WorkingDirectory=/var/www/app
+ExecStart=/usr/bin/node /var/www/app/server.js
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+- **`[Unit]`**: Metadata and dependencies and its relations to the other units.
+    
+    - `After=`: Ensures this unit starts _after_ `network.target` has initialized (defines ordering, not a hard requirement).
+        
+    - `Requires=` / `Wants=`: Defines hard/soft dependencies.
+        
+- **`[Service]`**: Defines process execution details and configuration of the service unit
+    
+    - `Type=`: How systemd tracks readiness (`simple`, `forking`, `oneshot`, `notify`).
+        
+    - `ExecStart=`: The exact command to run.
+        
+    - `Restart=`: Restart behavior (`on-failure`, `always`, `no`).
+        
+- **`[Install]`**: Defines what happens when you **enable** the unit with `systemctl enable`. `WantedBy=multi-user.target` creates a symlink inside `/etc/systemd/system/multi-user.target.wants/`.
+
+### `systemctl`
+
+**`systemctl`** is the primary command-line interface used to inspect, control, and manage the systemd system and service manager.
+
+For a unit like `nginx`, here is how you can use `systemctl` to manage that unit:
+
+- `systemctl status nginx.service`: Check the detailed status of a service, displays PID, memory usage, cgroup tree, and recent logs.
+- `systemctl is-active nginx`: check if the service is active
+- `systemctl is-enabled nginx`: check if the service is enabled
+- `systemctl is-failed nginx`: check if the service is failed
+
+And here is how you can list all registered services:
+
+- `systemctl list-units --type=service`: lists running services
+- `systemctl list-unit-files --type=service`: list all installed unit files and their enabled/disabled state
+
+These commands manage the active running state of a service in the **current session**:
+
+- `sudo systemctl start nginx`: starts a service
+- `sudo systemctl stop nginx`: stops a service
+- `sudo systemctl restart nginx`: restarts a service
+- `sudo systemctl reload nginx`: reload the configuration of a service without stopping the process
+
+
+These commands control whether a service starts **automatically at boot** by managing symlinks:
+
+- `sudo systemctl enable nginx`: Enable a service to start on boot
+- `sudo systemctl disable nginx`: Disable a service from starting on boot
+- `sudo systemctl enable --now nginx`: Enable and start immediately in one command
+
+If you want to prevent a service from starting under any circumstances (manually, via dependencies, or at boot), you can **mask** it. Masking creates a symlink pointing the unit file to `/dev/null`.
+
+- `sudo systemctl mask nginx`: mask a service to prevent it from starting
+- `sudo systemctl unmask nginx`: unmask a service
+
+#### Reloading systemd daemon
+
+Whenever you create a new unit file or modify an existing one in `/etc/systemd/system/`, tell systemd to scan the disk for changes:
+
+```
+sudo systemctl daemon-reload
+```
+
+
+#### Summary Reference Table
+
+| **Action**           | **Command**                            | **Scope / Effect**                                |
+| -------------------- | -------------------------------------- | ------------------------------------------------- |
+| **Start / Stop**     | `sudo systemctl start/stop <name>`     | Affects current runtime session only.             |
+| **Restart / Reload** | `sudo systemctl restart/reload <name>` | Reboots daemon / re-reads config on the fly.      |
+| **Enable / Disable** | `sudo systemctl enable/disable <name>` | Configures symlinks for automatic boot startup.   |
+| **Mask / Unmask**    | `sudo systemctl mask/unmask <name>`    | Links to `/dev/null` to make starting impossible. |
+| **Inspect**          | `systemctl status <name>`              | Shows state, PID, cgroups, memory, and logs.      |
+| **Refresh Config**   | `sudo systemctl daemon-reload`         | Re-reads all unit files from disk into memory.    |
+
 ### Cron
 
-Cron jobs run on a schedule and allow you to run command line tasks and run programs based on a schedule.
+**Cron** is the standard time-based job scheduler in Unix-like operating systems. It runs as a background daemon (typically named `cron` or `crond`) that wakes up every minute to check whether any scheduled tasks—known as **cron jobs**—are due to run.
+
+Common use cases include:
+
+- Running automated database or file backups.
+    
+- Rotating, archiving, or clearing old log files.
+    
+- Synchronizing data with external APIs or remote servers.
+    
+- Executing periodic health checks and maintenance scripts.
+
+#### how Cron works
+
+- **The Daemon (`cron` / `crond`):** Starts at system boot and remains running in the background. Every minute, it scans system directories and user tables for scheduled jobs.
+    
+- **The Configuration Table (`crontab`):** A configuration file (or table) where scheduled tasks and their timing expressions are defined.
+    
+- **Execution Environment:** When cron executes a job, it runs with a very limited environment (minimal `$PATH`, no interactive shell profile, and no display).
+
+#### cronjob syntax
 
 Here is where you can go to for getting cron syntax correct:
 
@@ -1481,24 +1640,17 @@ favicon: ""
 aspectRatio: "52.5"
 ```
 
-You can add cronjobs to a crontab file by editing it with the `crontab` command
-
-```bash
-crontab -e
-```
-
-You can list all active cronjobs with the `-l` option:
-
-```bash
-crontab -l
-```
-
-> [!NOTE]
-> There are also special cron files that already have hardcoded intervals: You can specify commands to run in the `/etc/cron.daily` , `/etc/cron.weekly`, `/etc/cron.monthly`, `/etc/cron.hourly` files. However, this may only be on ubuntu distros.
-
-#### Cron job syntax
-
 The basic cron syntax is based on 5 numbers, like so:
+
+```
+┌───────────── Minute (0 - 59)
+ │ ┌─────────── Hour (0 - 23)
+ │ │ ┌───────── Day of the Month (1 - 31)
+ │ │ │ ┌─────── Month (1 - 12 or JAN - DEC)
+ │ │ │ │ ┌───── Day of the Week (0 - 6 or SUN - SAT, 0 and 7 are Sunday)
+ │ │ │ │ │
+ * * * * *  /path/to/command
+```
 
 ![](https://i.imgur.com/6bzzVde.png)
 
@@ -1507,6 +1659,7 @@ The basic cron syntax is based on 5 numbers, like so:
 - **3rd number**: represents the day number at which to run, from 1-31
 - **4th number**: represents the month number at which to run, from 1-12
 - **5th number**: represents the day of the week which to run, from 0-6, starting with 0 as sunday.
+
 
 The main issue with the cronjob syntax is that it only runs at specific hard-coded times and not at an interval, but there is also special syntax that lets you specify intervallic jobs:
 
@@ -1524,9 +1677,59 @@ Here are some useful examples:
 0 7 * * 1-5 # runs a job at 7:00 am every weekday
 ```
 
+| **Operator** | **Meaning**          | **Example**    | **Explanation**                           |
+| ------------ | -------------------- | -------------- | ----------------------------------------- |
+| `*`          | **Wildcard (Every)** | `* * * * *`    | Runs every minute of every day.           |
+| `,`          | **Value List**       | `0 9,17 * * *` | Runs at 09:00 and 17:00.                  |
+| `-`          | **Range**            | `0 9-17 * * *` | Runs every hour from 09:00 through 17:00. |
+| `/`          | **Step Intervals**   | `*/15 * * * *` | Runs every 15 minutes.                    |
+
+**special string shortcuts**
+
+Instead of 5 time fields, cron supports special predefined keywords:
+
+- `@reboot` — Runs once when the system starts up.
+    
+- `@hourly` — Equivalent to `0 * * * *` (once an hour at minute 0).
+    
+- `@daily` or `@midnight` — Equivalent to `0 0 * * *` (once a day at 00:00).
+    
+- `@weekly` — Equivalent to `0 0 * * 0` (once a week on Sunday at midnight).
+    
+- `@monthly` — Equivalent to `0 0 1 * *` (first day of each month at midnight).
+    
+- `@yearly` or `@annually` — Equivalent to `0 0 1 1 *` (January 1st at midnight).
+
+#### crontab
+
+You can add cronjobs to a crontab file by editing it with the `crontab` command, which opens the file in a temporary buffer, checks syntax upon saving, and installs the updated table
+
+```bash
+crontab -e
+```
+
+You can list all active cronjobs with the `-l` option:
+
+```bash
+crontab -l
+```
+
+You can delete cronjobs with confirmation with the `-ri` option:
+
+```bash
+crontab -r -i
+```
+
+
+There are three types of crontab files that you have access to, with different behaviors for how they manage cron  jobs:
+
+
+
 #### Managing cron jobs
 
 **checking cron status**
+
+Since cron is a service unit managed by systemd, you can manage it with `systemctl`
 
 ```
 sudo systemctl status cron
@@ -1536,7 +1739,7 @@ sudo systemctl status cron
 
 Cron jobs do not have the ability to print to stdout, so if they fail, the fail silently. The best practice is to redirect all stdout from a cron job into a file and also redirect stderr into a file.
 
-### ZSH tips and tricks
+## ZSH tips and tricks
 
 ```embed
 title: "Zsh vs. Bash | Better Stack Community"
