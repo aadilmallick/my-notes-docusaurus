@@ -1885,7 +1885,7 @@ Drawbacks:
 
 ### Basic networking commands
 
-![](https://i.imgur.com/5mVWUPY.jpeg)
+![hello world](https://i.imgur.com/5mVWUPY.jpeg)
 
 #### `ping`
 
@@ -1911,6 +1911,25 @@ Netstat displays all open ports, IP addresses currently connected, local process
 netstat -lt
 ```
 
+### DNS
+
+
+![hello world](https://i.imgur.com/Pb7gFqa.jpeg)
+
+#### Linux commands
+
+
+The `nslookup <domain>` command looksup the nameservers for a domain 
+
+```
+nslookup frontendmasters.com
+```
+
+The `dig <domain>` command looks up the DNS records for a domain, showing the record types and what values they have.
+
+#### Debugging
+
+Go to [chrome DNS debugging](chrome://net-internals/#dns) to view the browser DNS cache
 
 ### Firewalls
 
