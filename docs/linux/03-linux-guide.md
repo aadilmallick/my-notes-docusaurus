@@ -995,7 +995,7 @@ You can also refer to the permission level via octal syntax:
 
 ![](https://i.imgur.com/EbGkY4a.png)
 
-### User permissions
+### User management
 
 There are two widely-used commands that you can use to get info about the current user:
 
@@ -1006,6 +1006,7 @@ You also have these tricks when it comes to permissions.
 
 - **find file permissions**: To see the permissions of all the directories and files, you can use `ls -l`.
 - **list all users**: You can see all the registered users on your linux system by running `cat /etc/passwd` to see the contents of the `/etc/passwd` file.
+- **Find all sudo users**: All the users that have sudo access on the Linux instance are stored in this file `/var/log/auth.log`
 
 #### Adding new users and groups
 
@@ -1021,6 +1022,16 @@ You can add groups with these commands:
 - `groups <username>` : shows all the groups that the specified user is a part of.
 - `addgroup <groupname>` : creates a new group with the specified name.
 - `adduser USER GROUP` : adds the specified user to the specified group.
+
+#### Switching users
+
+Use the `su` command to switch users:
+
+```
+su <username>
+```
+
+You can use `sudo su` to switch to the root user.
 
 #### Changing ownership
 

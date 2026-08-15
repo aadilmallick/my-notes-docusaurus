@@ -84,8 +84,17 @@ shutdown now -r
 
 
 4. **Give the new user superuser access**: Add the new user into the `sudo` (superusers do) list to allow it to temporarily assume root user access by allowing that user to temporarily switch into the root user profile.
-5. **enable login for new user**: add SSH connection for the new user via `~/.ssh/authorized_keys`
-6. **disable root login**
+5. **enable login for new user**: add SSH connection for the new user via `~/.ssh/authorized_keys`, which you do by just pasting in the public key into the authorized keys file, separating via newline for additional keys.
+
+
+![](https://i.imgur.com/Cij7Wmv.jpeg)
+
+
+6. **disable root login**: change the file permission of the `~/.ssh/authorized_keys` file so that only root can write to it and every other user can only read it, and then disable root login by removing it from the list of allowed SSH users, and then restart the SSH daemon to applyt he changes.
+
+
+![](https://i.imgur.com/u88At2G.jpeg)
+
 
 > [!NOTE]
 > Why not stay as root user? 
