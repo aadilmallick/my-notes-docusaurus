@@ -71,14 +71,26 @@ Here are the six steps that you have to take each time you create a new server, 
 ![](https://i.imgur.com/tgWlrSl.jpeg)
 
 
-2. **restart the server**: It's important to restart the server because you want to override the cache
+2. **restart the server**: It's important to restart the server because you want to override the cache. The command below shuts down the server and then immediately restarts it.
 
-
+```bash
+shutdown now -r
+```
 
 3. **Create a new user**: We don't want to be the root user all the time because that leaves a large attack surface, since root user has 100% access to do anything on the system.
+
+
+![](https://i.imgur.com/kAOItxr.jpeg)
+
+
 4. **Give the new user superuser access**: Add the new user into the `sudo` (superusers do) list to allow it to temporarily assume root user access by allowing that user to temporarily switch into the root user profile.
 5. **enable login for new user**: add SSH connection for the new user via `~/.ssh/authorized_keys`
 6. **disable root login**
+
+> [!NOTE]
+> Why not stay as root user? 
+> ***
+> Allowing root user as a valid login for people to gain root access is incredibly dangerous because root users have privilege to do any and all actions on the machine. For instance, they can even do `rm -rf /` to delete the entire OS.
 
 #### Custom user data script for installing software
 
