@@ -1,7 +1,7 @@
 
-### Basics
+## Basics
 
-#### Why Nginx?
+### Why Nginx?
 
 NGINX is a **reverse proxy**, meaning it is a middleman between a client and your server, where it can modify the request or send back a response, acting as middleware before it gets to your server and acting as a middleware before the server sends a response back to the client.
 
@@ -42,7 +42,7 @@ Advantages:
 - security
 - rate limiting
 
-#### NGINX CLI
+### NGINX CLI
 
 If installing nginx on WSL, then since you don't have `systemd`, you have to use `sudo service` prefix command or the `sudo systemcl` to acknowledge that NGINX runs with root-level permissions as a reverse proxy for your computer.
 
@@ -66,7 +66,7 @@ The `restart` command stops and then starts Nginx, which causes a brief servic
 
 - Use `sudo systemctl restart nginx` when you need to fully restart the service (e.g., after package updates)
 - Use `sudo systemctl reload nginx` when you’ve made configuration changes and want to apply them without downtime
-#### NGINX important files and folders
+### NGINX important files and folders
 
 All the NGINX config for a device lives in the `/usr/local/etc/nginx` directory in linux or in `/etc/nginx` in WSL.
 
@@ -96,7 +96,7 @@ When dealing with making changes to the config, here are two important commands 
 - `sudo systemctl reload nginx`: reloads NGINX with the updated config
 - `nginx -t`: checks if the NGINX configuration is error-free
 
-#### Hosting static content via server blocks
+### Hosting static content via server blocks
 
 > [!NOTE]
 > Why host static content via NGINX via something like express? Because NGINX has blazing fast, native filesystem access and can serve files instantly while Node has to call APIs to access files, increasing latency for serving static content.
@@ -217,9 +217,9 @@ Two server blocks are now enabled and configured to respond to requests based on
 
 
 
-### NGINX Config
+## NGINX Config
 
-#### Basic NGINX config
+### Basic NGINX config
 
 Let's go back to basics and not even worry about server blocks. Removing everything else, this is what a basic NGINX config looks like. Here are some rules to consider:
 
@@ -238,7 +238,7 @@ http {
 }
 ```
 
-#### NGINX workers
+### NGINX workers
 
 How does NGINX handle thousands of connections simultaneously? Well since it's a reverse proxy, it has to maintain mappings of one origin to another, which is in of itself creating a front-facing process so it can route to the destination process.
 
@@ -352,7 +352,7 @@ http {
 ```
 
 
-### HTTP context
+## HTTP context
 
 
 Inside http you configure:
@@ -379,7 +379,7 @@ http {
 }
 ```
 
-#### MimeTypes
+### MimeTypes
 
 By default, in the NGINX config it handles mimetypes for you with the `include mime.types` directive, where the `include <filepath>` directive loads a separate file of NGINX directives and executes them in the current file.
 
@@ -422,7 +422,7 @@ http {
 }
 ```
 
-#### Server blocks
+### Server blocks
 
 Server blocks colocate all server-related configuration, and is where you define routing rules for an origin and also proxy passing to other URLs.
 
@@ -437,7 +437,7 @@ server {
     server_name banana.com;
 }
 ```
-#### Location
+### Location
 
 The `server.location` context is used to control the routing of pathnames to the specific HTML file to serve.
 
@@ -531,7 +531,7 @@ And here is the breakdown:
 	- **fallback option 1**: Relative to the root folder, serve `index.html`
 	- **fallback option 2**: The `=404` is a special value which tells NGINX to return its default 404 response, so we save this as the absolute last fallback.
 
-##### Exact match routing
+#### Exact match routing
 
 For exact matching of routes, use the `location = <pathname>` syntax:
 
@@ -557,7 +557,7 @@ Does not match:
 > [!NOTE]
 > Exact matches are slightly faster because Nginx doesn't need to continue checking other location blocks.
 
-##### **Advanced path matching options with location regex**
+#### **Advanced path matching options with location regex**
 
 You can match pathnames using regex, which you specify that you're using regex to match a route by using the `location ~*` context:
 
@@ -583,7 +583,7 @@ server {
 > [!IMPORTANT]
 > Regular expressions are powerful but slower than prefix or exact matches, so use them only when needed.
 
-##### Redirects
+#### Redirects
 
 For a location context, you can redirect a route to another route location by using the `return` directive to return an HTTP response.
 
@@ -639,11 +639,11 @@ server {
 
 
 
-### NGINX as a reversed proxy
+## NGINX as a reversed proxy
 
 The `proxy_pass <url>` directive is the most powerful directive in NGINX. It reroutes an incoming request and redirects it to the specified URL.
 
-#### NGINX as a load balancer
+### NGINX as a load balancer
 
 After preparing a target group ready to be load balanced by NGINX, you have several options for load balancing algorithms:
 
@@ -697,7 +697,7 @@ server {
 }
 ```
 
-#### Standard reversed proxy
+### Standard reversed proxy
 
 Nginx can be used as a [reverse proxy](https://www.digitalocean.com/community/tutorials/how-to-configure-nginx-as-a-reverse-proxy-on-ubuntu-22-04) (compatible with Ubuntu 20.04 and 22.04) to route requests to different applications or services. This is useful when you have multiple applications running on the same server and want to manage them as a single entity.
 
@@ -723,7 +723,7 @@ server {
 }
 ```
 
-#### [1. “403 Forbidden” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)
+### [1. “403 Forbidden” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)
 
 The “403 Forbidden” error occurs when Nginx denies access to a requested resource. This can happen due to incorrect permissions on the file or directory, or if the Nginx user does not have the necessary permissions to access the content.
 
@@ -731,7 +731,7 @@ The “403 Forbidden” error occurs when Nginx denies access to a requested res
 
 Avoid blanket ownership changes on `/var/www/html`; instead, update permissions or ownership only for the specific site directory you are serving.
 
-#### [2. “502 Bad Gateway” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)
+### [2. “502 Bad Gateway” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)
 
 The “502 Bad Gateway” error occurs when Nginx acts as a reverse proxy and the backend server fails to respond. This can happen due to a misconfigured backend server or if the backend server is not running.
 
@@ -739,7 +739,7 @@ The “502 Bad Gateway” error occurs when Nginx acts as a reverse proxy and th
 
 For example, ensure that the port number in the `proxy_pass` directive matches the port the backend server is listening on.
 
-#### [3. “504 Gateway Timeout” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)
+### [3. “504 Gateway Timeout” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)
 
 The “504 Gateway Timeout” error occurs when Nginx acts as a reverse proxy and the backend server takes too long to respond. This can happen due to a slow backend server or if the timeout values in the Nginx configuration are set too low.
 
@@ -753,7 +753,7 @@ proxy_read_timeout 300;
 
 These lines increase the timeout values to 300 seconds.
 
-### NGINX with SSL
+## NGINX with SSL
 
 To secure Nginx with SSL, you need to obtain an SSL certificate and configure Nginx to use it. Here’s an example of how to do this:
 

@@ -59,6 +59,29 @@ There are two important types of DNS records, but there are more:
 > Email redirection is free but if you want to send emails with a forwarder and business account email then you have to pay for that. 
 
 
+### VPS setup
+
+#### Users and security on brand new server
+
+Here are the six steps that you have to take each time you create a new server, which you can then abstract into a user data script later on. For right now doing it manually is a valuable learning exercise:
+
+1. **Update software**: use your package manager of choice to update the software on your instance.
+
+
+![](https://i.imgur.com/tgWlrSl.jpeg)
+
+
+2. **restart the server**: It's important to restart the server because you want to override the cache
+
+
+
+3. **Create a new user**: We don't want to be the root user all the time because that leaves a large attack surface, since root user has 100% access to do anything on the system.
+4. **Give the new user superuser access**: Add the new user into the `sudo` (superusers do) list to allow it to temporarily assume root user access by allowing that user to temporarily switch into the root user profile.
+5. **enable login for new user**: add SSH connection for the new user via `~/.ssh/authorized_keys`
+6. **disable root login**
+
+#### Custom user data script for installing software
+
 ### Adding basic NGINX
 
 #### On EC2 with AMI
