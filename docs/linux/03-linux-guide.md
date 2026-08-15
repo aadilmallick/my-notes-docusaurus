@@ -240,6 +240,14 @@ pushd /tmp           # Push directory onto stack and change to it
 popd                 # Pop directory from stack and change to it
 ```
 
+### Create a symlink
+
+Creates a symlink from the source.
+
+```
+ln -s <source> <destination>
+```
+
 ## Random commands
 
 ### `tar`
