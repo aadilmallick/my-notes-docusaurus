@@ -103,7 +103,7 @@ shutdown now -r
 
 #### Custom user data script for installing software
 
-### Adding basic NGINX
+### Nginx setup
 
 #### On EC2 with AMI
 
@@ -166,6 +166,71 @@ ufw app list
 ufw allow 'Nginx Full'
 ```
 
+### Nginx proxy pass setup
+
+You should think of nginx config files as server proxy registrations that you can create, and then choose to enable selectively. You have these two conventions that are important to follow:
+
+- `/etc/nginx/sites-available`: folder to hold nginx configurations, not really special, just used as convention
+- `/etc/nginx/sites-enabled`: directory that NGINX recognizes and loads all nginx config files that live in this directory.
+
+1. Create a new configuration file in the `/etc/nginx/sites-available` directory, which handles proxy pass for port 80 and 443 to your app running on localhost
+
+```nginx title="/etc/nginx/sites-available/guestbook"
+server {
+    listen 80;
+    server_name linux.fireship.app;
+    
+    # Redirect HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name linux.fireship.app;
+
+    # SSL configuration using Cloudflare certificates
+    ssl_certificate /etc/ssl/cert.pem;
+    ssl_certificate_key /etc/ssl/key.pem;
+
+    # SSL settings (recommended for security)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+
+    # Next.js application
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # PocketBase API and Admin UI
+    location /pb/ {
+        rewrite ^/pb(/.*)$ $1 break;
+        proxy_pass http://localhost:8090;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+2. Create a symlink from the nginx config file you created and copy that via symlink over into the `/etc/nginx/sites-enabled` directory so that specific config will now be available for NGINX to register and use.
+
+```
+ln -s /etc/nginx/sites-available/guestbook /etc/nginx/sites-enabled/
+```
+
+3. Remove any previous conflicting nginx configs that are currently enabled.
+
+```
+rm /etc/nginx/sites-enabled/default
+```
 ### DDoS attacks
 
 VPS systems are pieces of compute you're buying, so they don't scale up infinitely for DDoS attacks, they just get taken down because they run out of memory, which is much better than scaling up infinitely via cloud functions and spending $100,000 as a result.
