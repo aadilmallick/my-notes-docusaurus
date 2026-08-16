@@ -2060,6 +2060,17 @@ Netstat displays all open ports, IP addresses currently connected, local process
 netstat -lt
 ```
 
+#### `nmap`
+
+The `nmap` command lets you see all the open ports exposed on a specific IP address
+
+```bash
+nmap $IP_ADDRESS
+```
+
+
+
+
 ### DNS
 
 
@@ -2082,7 +2093,61 @@ Go to [chrome DNS debugging](chrome://net-internals/#dns) to view the browser DN
 
 ### Firewalls
 
+
+
 #### `ufw`
+
+
+![](https://i.imgur.com/BVgvIAM.jpeg)
+
+`ufw` (uncomplicated firewall) is a simple tool that lets you set stateful ingress firewalls.
+
+Here is how to set up `ufw`:
+
+1. Check firewall status with `ufw status`
+
+```bash
+ufw status
+```
+
+Here is the basics of how to set firewall rules with `ufw`:
+
+```bash
+ufw allow <protocol> # allow stateful ingress
+ufw reject <protocol> # silently reject stateful ingress
+ufw deny <protocol> # reject stateful ingress
+```
+
+> [!TIP]
+> It's best to go with rejecting instead of denying because rejecting egress and ingress silently helps prevent DDoS attacks since our server doesn't really waste any compute in sending back a response. 
+
+> [!NOTE]
+> 'ufw reject' sends a rejection response to inform the requester that access is blocked, while 'ufw deny' silently blocks access without sending any response, which helps prevent potential DDOS attacks by not revealing the server's presence or forcing the system to send response packets
+
+
+
+Here's an example of how to allow ingress HTTP and SSH traffic to your VPS:
+
+
+1. Check firewall status
+
+```sh
+sudo ufw status
+```
+
+2. Allow SSH and HTTP traffic, following common ports like SSh on 22 and HTTP on 80.
+
+```sh
+sudo ufw allow ssh
+sudo ufw allow http
+```
+
+3. Enable the firewall
+
+```sh
+sudo ufw enable
+```
+
 
 ### SSL with Certbot
 

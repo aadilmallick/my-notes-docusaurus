@@ -324,9 +324,90 @@ rm /etc/nginx/sites-enabled/default
 ```
 
 
+## Security
+
+It's important to deal with server security with seriousness because you have a lot of attack surfaces there, such as:
+
+- **ssh**: if an unauthorized person gains access to a server with an SSH key, then they could connect to Github and potentially steal a company's entire worker profile by stealing the server's SSH credentials, pulling down the company code, and just stealing that. 
+- **not updating software**: you don't update your software or if you don't restore a compromised server to a backed-up version from a long time ago then a user could still have backdoor access. It's always important to update and patch software to patch OS-level bugs and it's always important to roll back to a version that was not compromised if your server has become compromised. 
+- **what to do in case of compromise**: in case your server was compromised, you need to wipe the machine in the store from the backup from a long time ago as you cannot be certain what actions were taken by the intruder. 
+
+> [!NOTE]
+> A general principle to keep in mind if your server ever gets compromised is that you have no 100% reliable way of knowing what the attacker did on your server while it was compromised. You should always restore and wipe the server to a version a long long time ago where you have 100% certainty that it was not compromised. 
+
+The three core security practices that you should implement for servers are as follows:
+
+1. Use SSH keys instead of passwords.
+2. Use firewalls to restrict server access.
+3. Keep software consistently up-to-date.
+
+### Checking ports
+
+A **port** is a communication endpoint that maps to a specific process or network service. Each port can run only one process.
+
+> [!NOTE]
+> Ports allow IP addresses to run multiple hundreds or thousands of services at the same time on that same IP address. 
+
+- **port collision**: when you are trying to run a service on a port that is already occupied by another currently running service
+- **open port**: A port that is exposed to the broader world on the machine and that someone can target as an origin.
+
+You can use the `nmap` command to check ports:
+
+
+![](https://i.imgur.com/tVxa9du.jpeg)
+
+### Firewalls
+
+
+![](https://i.imgur.com/OLUlVfI.jpeg)
+
+### Keep systems up to date
+
+What these commands do is automatically install OS upgrades and patches for you when they become available.
+
+
+![](https://i.imgur.com/29qb7Fw.jpeg)
 
 ### DDoS attacks
 
 VPS systems are pieces of compute you're buying, so they don't scale up infinitely for DDoS attacks, they just get taken down because they run out of memory, which is much better than scaling up infinitely via cloud functions and spending $100,000 as a result.
 
 It's better to outsource DDoS protection to a service like Cloudflare or AWS shield
+
+## CI/CD
+
+- **continuous integration**: code changes are validated and merged back into the main branch as often as possible. 
+- **continuous delivery**: code changes are automatically built and ready for production. 
+- **continuous deployment**: builds are automatically deployed to production environments. 
+
+
+> [!NOTE]
+> The difference between continuous delivery and continuous appointment is that continuous delivery is all about building automatically, making sure it is ready to be pushed up to production, while continuous appointment handles the actual pushing to production automatically by building and deploying when you push up to the main branch.
+
+
+![](https://i.imgur.com/8mLHhym.jpeg)
+
+### Using cron for CI/CD
+
+An interesting way to use cron for CI/CD is to write a cron job that continuously pulls code from GitHub or pushes to GitHub based on an interval. 
+
+1. Create a bash script that runs `git pull` from main branch
+
+```bash title="app/cron/pull.sh"
+#! /usr/bin/bash
+
+cd ~/app
+git pull origin main
+```
+
+2. Create a cron job to execute the script we created every 2 minutes, so run `crontab -e` and add this line, redirecting standard output and error to the `/var/log/syslog` system logs file.
+
+```cron
+*/2 * * * * bash /home/usernamehere/app/cron/pull.sh 2>&1
+```
+
+3. Check cron job logs
+
+```bash
+sudo tail -f /var/log/syslog
+```
