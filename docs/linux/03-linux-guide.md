@@ -1874,9 +1874,8 @@ There are three types of crontab files that you have access to, with different b
 
 
 
-#### Managing cron jobs
+#### Managing cron service
 
-**checking cron status**
 
 Since cron is a service unit managed by systemd, you can manage it with `systemctl`
 
@@ -1884,7 +1883,29 @@ Since cron is a service unit managed by systemd, you can manage it with `systemc
 sudo systemctl status cron
 ```
 
-**Running cron jobs**
+If you want to update the cron service, you can do so by installing it and following these steps:
+
+1. Update your package manager of choice
+
+```
+sudo apt update -y
+```
+
+2. Install cron via your package manager of choice
+
+```bash
+sudo apt install cron -y
+```
+
+3. Enable the cron service and then start it then check its status
+
+```bash
+sudo systemctl enable cron
+sudo systemctl start cron
+sudo systemctl status cron
+```
+
+#### **Running cron jobs**
 
 Cron jobs do not have the ability to print to stdout, so if they fail, the fail silently. The best practice is to redirect all stdout from a cron job into a file and also redirect stderr into a file.
 
