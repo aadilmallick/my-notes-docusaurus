@@ -1582,7 +1582,70 @@ touch /var/log/pocketbase.log
 chmod 644 /var/log/pocketbase.log
 ```
 
-2. 
+2. In the unit file, set `Restart=always` to make it a perpetual process that starts on startup
+
+```ini
+[Unit]
+Description=PocketBase
+
+[Service]
+Type=simple
+User=root
+Group=root
+LimitNOFILE=4096
+Restart=always
+RestartSec=5s
+StandardOutput=append:/var/log/pocketbase.log
+StandardError=append:/var/log/pocketbase.log
+ExecStart=/root/apps/guestbook/pocketbase serve --http="127.0.0.1:8090"
+Environment="NEXT_PUBLIC_POCKETBASE_URL=https://linux.fireship.app/pb"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. Reload the daemon to get the latest service registration in order for linux to recognize the new pocketbase service, and then start and enable the pocketbase service:
+
+```bash
+systemctl daemon-reload
+
+systemctl start pocketbase
+systemctl enable pocketbase
+```
+
+**nextjs unit file**
+
+1. Create a unit file `/etc/systemd/system/nextjs.service` to define a server service that runs nextjs, and should always be up and running
+
+```ini
+[Unit]
+Description=Next.js Application
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+Restart=always
+RestartSec=5s
+WorkingDirectory=/root/apps/guestbook
+ExecStart=/bin/bash -c 'source /root/.nvm/nvm.sh && /root/.nvm/versions/node/v20.15.0/bin/npm start'
+Environment="NODE_ENV=production"
+Environment="NEXT_PUBLIC_POCKETBASE_URL=https://linux.fireship.app/pb"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+2. Reload the daemon to get the latest service registration in order for linux to recognize the new pocketbase service, and then start and enable the pocketbase service:
+
+```bash
+systemctl daemon-reload
+
+systemctl start nextjs
+systemctl enable nextjs
+systemctl status nextjs
+```
 
 ### `systemctl`
 
