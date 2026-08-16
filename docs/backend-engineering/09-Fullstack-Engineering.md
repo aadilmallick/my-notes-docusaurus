@@ -166,4 +166,6 @@ ufw app list
 ufw allow 'Nginx Full'
 ```
 
-### 
+### DDoS attacks
+
+VPS systems are pieces of compute you're buying, so they don't scale up infinitely for DDoS attacks, they just get taken down because htey run out of memory, which is much better than scaling up infinitely via cloud functions and spending $100,000 as a result
