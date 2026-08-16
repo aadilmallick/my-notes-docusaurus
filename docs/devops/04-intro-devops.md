@@ -64,7 +64,7 @@ For example, Ansible is a configuration management tool that uses playbook YAML 
 
 ### Containers vs VMs
 
-A host device uses a hypervisor to manage multiple **virtual machines**, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
+A host device uses a hypervisor to manage multiple **virtual machines**0, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
 
 
 ![](https://i.imgur.com/9o1E6bp.jpeg)
