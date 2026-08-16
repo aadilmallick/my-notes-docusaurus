@@ -1548,6 +1548,8 @@ WorkingDirectory=/var/www/app
 ExecStart=/usr/bin/node /var/www/app/server.js
 Restart=on-failure
 RestartSec=5s
+Environment="NODE_ENV=production"
+Environment="NEXT_PUBLIC_POCKETBASE_URL=http://localhost:8000"
 
 [Install]
 WantedBy=multi-user.target
@@ -1566,8 +1568,21 @@ WantedBy=multi-user.target
     - `ExecStart=`: The exact command to run.
         
     - `Restart=`: Restart behavior (`on-failure`, `always`, `no`).
+    - `Environment=`: defines a key value pair for an env var to load into the shell session for the service. This key can be reused multiple times.
         
 - **`[Install]`**: Defines what happens when you **enable** the unit with `systemctl enable`. `WantedBy=multi-user.target` creates a symlink inside `/etc/systemd/system/multi-user.target.wants/`.
+
+**Pocketbase service example**
+
+1. Create a unit file that runs the `pocketbase` database as a service:
+
+```bash
+nano /etc/systemd/system/pocketbase.service
+touch /var/log/pocketbase.log
+chmod 644 /var/log/pocketbase.log
+```
+
+2. 
 
 ### `systemctl`
 
