@@ -166,12 +166,103 @@ ufw app list
 ufw allow 'Nginx Full'
 ```
 
-### Nginx proxy pass setup
+### Nginx app setup
 
 You should think of nginx config files as server proxy registrations that you can create, and then choose to enable selectively. You have these two conventions that are important to follow:
 
 - `/etc/nginx/sites-available`: folder to hold nginx configurations, not really special, just used as convention
 - `/etc/nginx/sites-enabled`: directory that NGINX recognizes and loads all nginx config files that live in this directory.
+
+
+![](https://i.imgur.com/i4koRKv.jpeg)
+
+1. **Create app code in `/var/www` folder**: By default, the HTML content nginx serves is in `/var/www/html` so we're putting our app HTML in `/var/www/app`.
+
+```js
+const http = require("http");
+
+http.createServer(function (req, res) {
+  res.write("On the way to being a full stack engineer!");
+  res.end();
+}).listen(3000);
+
+console.log("Server started on port 3000");
+
+```
+
+2. **Create NGINX proxy pass configuration file**: create an NGINX config file that does a proxy pass to the server, put this file in the `/etc/nginx/sites-available/` directory
+
+```nginx title="/etc/nginx/sites-available/my-server"
+server {
+
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+    index index.html;
+
+    server_name <your_domain>;
+
+    location / {
+        proxy_pass http://127.0.0:3000;
+    }
+
+}
+
+```
+
+3. **enable the NGINX config you created**: Enabled NGINX config files live in the `/etc/nginx/sites-enabled` folder, so you should symlink the config file you just created to be copied to that folder.
+4. **let the main nginx config know about the new config you want to include**: The main nginx config file is `/etc/nginx/nginx.conf`, and in there you should use the `include` directive to include the NGINX config file you made so it registers that:
+
+```nginx
+include /etc/nginx/sites-enabled/my-server;
+```
+
+5. **restart nginx and verify it works**
+
+```bash
+sudo nginx -t
+sudo service nginx restart
+```
+
+6. **start server**: you need to actually run the node server in order for proxy pass to work
+
+```
+node app/server.js
+```
+
+#### PM2
+
+PM2 is a way to run node servers as a service without using something like systemd, so the server can be automatically restarted on server restarts and after shutdowns, and also continue running as a daemon.
+
+
+
+![](https://i.imgur.com/4ptT7c7.jpeg)
+
+
+1. Install the `pm2` library:
+
+```bash
+sudo npm i -g pm2
+```
+
+2. Start PM2
+
+```sh
+pm2 start app/server.js --watch
+```
+
+3. Setup auto restart
+
+```bash
+pm2 save # saves as systemd service
+pm2 startup # adds to path to start systemd service
+```
+
+
+#### Pocketbase + NextJS example
+
+
 
 1. Create a new configuration file in the `/etc/nginx/sites-available` directory, which handles proxy pass for port 80 and 443 to your app running on localhost
 
@@ -231,6 +322,9 @@ ln -s /etc/nginx/sites-available/guestbook /etc/nginx/sites-enabled/
 ```
 rm /etc/nginx/sites-enabled/default
 ```
+
+
+
 ### DDoS attacks
 
 VPS systems are pieces of compute you're buying, so they don't scale up infinitely for DDoS attacks, they just get taken down because they run out of memory, which is much better than scaling up infinitely via cloud functions and spending $100,000 as a result.

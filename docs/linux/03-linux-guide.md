@@ -1351,7 +1351,7 @@ ssh-keygen -t rsa -C "aadil.mallick@unisonglobal.com"
 The basic syntax for connecting via SSH is like so:
 
 ```
-ssh user@your.ip.address
+ssh user@host
 ```
 
 For example, if the user is `root`, then you would connect with root access.
@@ -1361,6 +1361,8 @@ You use the `-i` flag (stands for "input") to use a `.pem` private key-pair as e
 ```
 ssh -i <path-to-pem-file> user@your.ip.address
 ```
+
+
 
 #### Managing SSH connections
 
@@ -1373,6 +1375,11 @@ In summary, the `~/.ssh` directory has these important files available:
 - `~/.ssh/authorized_keys`: stores list of public keys
 - `~/.ssh/known_hosts`: stores log of all SSH connections to this server
 - `~/.ssh/config`: stores host connection information and stores connection configuration details so you can easily connect to hosts without specifying a passphrase or private key path each and every time.
+
+> [!NOTE]
+> SSH configs allow you to map domain names to IP addresses or other domain names so you can store SSH connections without having to refer to the underlying IP address or identity file private key for connecting to that host every single time. 
+> 
+> For example, instead of specifying each and every time the private key pair we use to connect to GitHub, we can just add that host and identity file authentication into the SSH config and not have to reference it when performing an SSH connection. 
 
 Here is what an example ssh config looks like:
 
@@ -1402,6 +1409,51 @@ To automatically add public and private key connections into your `~/.ssh/config
 ```
 ssh-add --apple-use-keychain <path-to-public-key>
 ```
+
+
+**testing SSH connecitons**
+
+Once you add custom hosts, you can test them with the `ssh -vT` command:
+
+```bash
+ssh -vT user@host
+ssh -vT git@github.com
+```
+
+#### Connecting to Github
+
+The goal of this section is to create an SSH key and then use that to connect to Github so the VPS can push and pull to your Github account.
+
+1. Cd into `~/.ssh` folder
+
+```bash
+cd ~/.ssh
+```
+
+2. Create an SSH key on your VPS, which creates a private key and a public key (`.pub` file extension), call the key `gh_key` just for ease.
+
+```bash
+ssh-keygen
+```
+
+2. Copy the public key output to Github to create a new SSH key
+3. In your `~/.ssh/config`, add `github.com` as a host and for the identity file to use for SSH connection, give the filepath to the private key that was created.
+
+```toml
+Host github.com # our identifier we gave
+	Hostname github.com # domain name of host
+	IdentityFile ~/.ssh/gh_key # private key used for authentication
+```
+
+4. Now everything works as normal: clone, push, pull.
+
+The reason why we supply `~/.ssh/gh_key` as the `IdentityFile` in the `~/.ssh/config` is because that is the private key to the public key `~/.ssh/gh_key.pub`, and we gave Github our public key `~/.ssh/gh_key.pub`, so we must use the corresponding private key pair `~/.ssh/gh_key` for decrypting that.
+
+> [!NOTE]
+> You can use the same SSH key as much as you want to connect to different hosts and applications, since SSH keys are not application specific, they're only machine specific. It's totally up to your comfort for security.
+
+
+
 ### SFTP
 
 **SFTP** stands for secure file transfer protocol, which is a way of transferring files form your host computer to a virtual machine. By default when you set up ssh, you also set up an sftp connection between your host machine and the virtual machine.
