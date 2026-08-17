@@ -2,6 +2,39 @@ Here is how you can use SQLite in node:
 
 ## Node SQLite
 
+### Basics
+
+1. Install the `sqlite3` library from NPM
+
+```
+npm i sqlite3
+```
+
+2. Create an in-memory database for simplicity
+
+```ts
+import sqlite from 'sqlite3'
+const db = new sqlite.Database(':memory:')
+```
+3. Serialize the database, run migrations before the database is able to be used
+
+```ts
+// create promisify util
+const promisify = (fn: (...args: any[]) => void) => {
+  return (...args: any[]) => {
+    return new Promise((resolve, reject) => {
+      fn(...args, (err: any, result: any) => {
+        if (err) reject(err);
+        resolve(result);
+      });
+    });
+  };
+};
+
+const serialize = promisify(db)
+```
+### Full class
+
 ```ts
 import sqlite3 from "npm:sqlite3";
 
@@ -101,6 +134,14 @@ export class SqliteDatabase {
    */
   close(): Promise<void> {
     return promisify(this.db.close.bind(this.db))() as Promise<void>;
+  }
+  
+  /**
+   * Serializes the database, runs init code
+   * @returns A promise that resolves when the init code finishes execution
+   */
+  init(cb: () => Promise<void>): Promise<void> {
+    return promisify(this.db.serialize.bind(this.db, cb))() as Promise<void>;
   }
 }
 
