@@ -451,3 +451,113 @@ server {
     }
 }
 ```
+
+### Websocket express 
+
+The first step is to create an express app and connect it to the existing HTTP server
+
+```ts
+import express from 'express'
+import {createServer} from 'http'
+
+// 1. create HTTP server
+const server = createServer()
+
+// 2. create express app
+const app = express()
+
+app.get('/', (req, res) => {
+	res.sendFile('index.html', {root: __dirname })
+})
+
+// 3. forward http server requests to express app
+server.on('request', app)
+
+// 4. start server on port 3000
+server.listen(3000, () => {
+	console.log('listening on port 3000')
+})
+```
+
+And here is how to create websockets on express, look more at [[05-fetching-remote-data#Websockets]].
+
+```ts
+import express from 'express'
+import {createServer} from 'http'
+import  {Server as WebSocketServer} from "ws"
+
+// 1. create HTTP server
+const server = createServer()
+
+// 2. create express app
+const app = express()
+
+app.get('/', (req, res) => {
+	res.sendFile('index.html', {root: __dirname })
+})
+
+// 3. forward http server requests to express app
+server.on('request', app)
+
+// 4. start server on port 3000
+server.listen(3000, () => {
+	console.log('listening on port 3000')
+})
+
+
+// 1. create a websocket server
+const wss = new WebSocketServer({ server })
+
+function broadcast(wss : WebSocketServer, data: any) {
+	wss.clients.forEach(client => {
+		// send data to specific client
+		client.send(data)
+	})
+}
+
+// event that gets triggered every time new client connects to web socket server
+wss.on('connection', (ws) => {
+	// ws represents a single client web socket connection
+	// wss.clients is an array of all connected clients
+	
+	// 2. send a broadcast to all clients
+	broadcast(wss, `Current visitor count: ${wss.clients.size}`)
+	
+	// 3. send message to client
+	const isClientConnected = (ws.readyState === ws.OPEN)
+	if (isClientConnected) {
+		ws.send('hello, client!')
+	}
+	
+	ws.on('close' () => {
+		console.log('a client has disconnected')
+		broadcast(wss, `Current visitor count: ${wss.clients.size - 1}`)
+	})
+})
+```
+
+Now on the client JS, we need to create a websocket connection that connects to the server via the websocket protocol:
+
+If your app is on HTTPS then you have to use a WSS protocol, which stands for secure web sockets. If your app is on an HTTP connection then you have to use the WS protocol, which is normal web sockets but insecure. 
+
+
+
+> [!NOTE]
+> Because the Web Software protocols run on the same ports as HTTP and HTTPS, that's why we have to do the server upgrade and handle that in our Nginx as well 
+> 
+> - `ws://` is used for HTTP connections and typically runs on port 80
+> - `wss://` is used for HTTPS connections and typically runs on port 443
+
+```ts
+
+// 1. use wss for secure websockets, or ws for normal websockets protocol
+const protocol = window.locations.protocol === "https:" ? 'wss' : 'ws'
+
+const websocket = new WebSocket(`${procotol}://${window.location.host}`)
+
+ws.on('message', (event) => {
+	console.log('data received from server', event.data)
+})
+
+
+```
