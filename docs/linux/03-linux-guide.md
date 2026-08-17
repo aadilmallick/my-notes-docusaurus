@@ -248,6 +248,14 @@ Creates a symlink from the source.
 ln -s <source> <destination>
 ```
 
+### Searching for files with `find`
+
+
+![](https://i.imgur.com/wNpQIAc.jpeg)
+
+
+
+
 ## Random commands
 
 ### `tar`
