@@ -253,7 +253,28 @@ ln -s <source> <destination>
 
 ![](https://i.imgur.com/wNpQIAc.jpeg)
 
+Here are the basic `find` options:
 
+- `-type`: the type of file to search for, where you can supply these values:
+	- `f`: for file
+	- `d`: for directory
+- `-name`: the regex pattern in double quotes to match on
+
+**examples**
+
+here are a list of examples for using the `find` command correctly:
+
+- Find all log files (files ending in `.log` file extension) in `/var/log`:
+
+```bash
+find /var/log -type f -name "*.log"
+```
+
+- Find all directories in the OS with the name `log`:
+
+```bash
+find / -type d -name log
+```
 
 
 ## Random commands
@@ -552,6 +573,12 @@ The grep command is used for text-searching based on regex. Here is the basic us
 ```bash
 grep <pattern> <filename>
 ```
+
+
+
+
+![](https://i.imgur.com/d2ZmOT4.jpeg)
+
 
 **basic options**
 

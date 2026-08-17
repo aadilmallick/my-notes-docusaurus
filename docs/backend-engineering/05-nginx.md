@@ -638,6 +638,17 @@ server {
 ```
 
 
+### GZIP
+
+GZIP are a way to run lossless compression on text files so we send compressed files over the wire instead of uncompressed files.
+
+> [!NOTE]
+> 6 on the compression scale is best balance of speed and performance on the gzip compression scale.
+
+
+You can enable GZIP in nginx like so:
+
+
 
 ## NGINX as a reversed proxy
 
@@ -723,7 +734,9 @@ server {
 }
 ```
 
-### [1. “403 Forbidden” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)
+### Error handling
+
+#### [1. “403 Forbidden” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#1-403-forbidden-error)
 
 The “403 Forbidden” error occurs when Nginx denies access to a requested resource. This can happen due to incorrect permissions on the file or directory, or if the Nginx user does not have the necessary permissions to access the content.
 
@@ -731,7 +744,7 @@ The “403 Forbidden” error occurs when Nginx denies access to a requested res
 
 Avoid blanket ownership changes on `/var/www/html`; instead, update permissions or ownership only for the specific site directory you are serving.
 
-### [2. “502 Bad Gateway” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)
+#### [2. “502 Bad Gateway” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#2-502-bad-gateway-error)
 
 The “502 Bad Gateway” error occurs when Nginx acts as a reverse proxy and the backend server fails to respond. This can happen due to a misconfigured backend server or if the backend server is not running.
 
@@ -739,7 +752,7 @@ The “502 Bad Gateway” error occurs when Nginx acts as a reverse proxy and th
 
 For example, ensure that the port number in the `proxy_pass` directive matches the port the backend server is listening on.
 
-### [3. “504 Gateway Timeout” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)
+#### [3. “504 Gateway Timeout” Error](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)[](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-20-04#3-504-gateway-timeout-error)
 
 The “504 Gateway Timeout” error occurs when Nginx acts as a reverse proxy and the backend server takes too long to respond. This can happen due to a slow backend server or if the timeout values in the Nginx configuration are set too low.
 
@@ -753,18 +766,21 @@ proxy_read_timeout 300;
 
 These lines increase the timeout values to 300 seconds.
 
-## NGINX with SSL
+### NGINX with SSL
 
 To secure Nginx with SSL, you need to obtain an SSL certificate and configure Nginx to use it. Here’s an example of how to do this:
 
-Obtain an SSL certificate from a trusted certificate authority or use a self-signed certificate for testing purposes. For production, use Let’s Encrypt (see the conclusion section) or obtain certificates from a trusted CA. Certificate files are typically stored in `/etc/ssl/certs/` for certificates and `/etc/ssl/private/` for private keys.
+Obtain an SSL certificate from a trusted certificate authority or use a self-signed certificate for testing purposes. 
+
+- For production, use Let’s Encrypt (see the conclusion section) or obtain certificates from a trusted CA. 
+- Certificate files are typically stored in `/etc/ssl/certs/` for certificates and `/etc/ssl/private/` for private keys.
 
 Create or update a dedicated server block for your domain in `/etc/nginx/sites-available/<your_domain>` with the following configuration:
 
 ```nginx
 server {
     listen 443 ssl;
-    server_name your_domain.com;
+    server_name "your_domain.com" "subdomain.your_domain.com";
 
     ssl_certificate /etc/ssl/certs/your_certificate.crt;
     ssl_certificate_key /etc/ssl/private/your_certificate.key;
@@ -781,3 +797,10 @@ Then restart nginx to apply the changes:
 ```bash
 sudo systemctl restart nginx
 ```
+
+Here are the important keys to understand:
+
+- `server.server_name`: a space-separated list of domains and subdomains you want the server block to activate on. 
+	- **Why?**: This is how NGINX recognizes domains as requests that shoudl match that specific server block.
+- `server.ssl_certificate`: the path to the SSL certificate
+- `server.ssl_certificate_key`: the path to the SSL certificate public key
