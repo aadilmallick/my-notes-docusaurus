@@ -323,24 +323,6 @@ ln -s /etc/nginx/sites-available/guestbook /etc/nginx/sites-enabled/
 rm /etc/nginx/sites-enabled/default
 ```
 
-### NGINX with subdomains and SSL
-
-
-A subdomain is a subset of a main domain that allows developers to create separate environments or applications without creating an entirely new URL. 
-
-It simplifies development by avoiding the need to create new cookies and provides an easier way to manage different parts of a website.
-
-```nginx
-server {
-    listen 80;
-    listen [::]:80;
-    server_name blog.<your_domain>;
-    
-    location / {
-        proxy_pass http://localhost:3000;
-    }
-}
-```
 ## Security
 
 It's important to deal with server security with seriousness because you have a lot of attack surfaces there, such as:
@@ -558,6 +540,44 @@ const websocket = new WebSocket(`${procotol}://${window.location.host}`)
 ws.on('message', (event) => {
 	console.log('data received from server', event.data)
 })
+```
+
+## HTTPS and SSL
+
+### HTTPS overview
+
+#### Request
+
+Here are the common headers set:
+
+- `User-agent`: the requesting device type
+- `Accept`: what the device will handle, like `text/html` for what a request is asking for
+- `Accept-language`: browser languages to translate strings in JS automatically to a specific language
+- `Set-cookie`: sets cookie info
+- `Content-type`: the type of media used for passing request body metadata or what you're expecting back from a response
+- `X-`: the prefix for custom headers
+
+#### Response
 
 
+![](https://i.imgur.com/jQsvvt9.jpeg)
+
+
+### NGINX with subdomains and SSL
+
+
+A subdomain is a subset of a main domain that allows developers to create separate environments or applications without creating an entirely new URL. 
+
+It simplifies development by avoiding the need to create new cookies and provides an easier way to manage different parts of a website.
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name blog.<your_domain>;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+    }
+}
 ```
