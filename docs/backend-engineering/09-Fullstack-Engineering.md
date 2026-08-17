@@ -323,7 +323,24 @@ ln -s /etc/nginx/sites-available/guestbook /etc/nginx/sites-enabled/
 rm /etc/nginx/sites-enabled/default
 ```
 
+### NGINX with subdomains and SSL
 
+
+A subdomain is a subset of a main domain that allows developers to create separate environments or applications without creating an entirely new URL. 
+
+It simplifies development by avoiding the need to create new cookies and provides an easier way to manage different parts of a website.
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name blog.<your_domain>;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+    }
+}
+```
 ## Security
 
 It's important to deal with server security with seriousness because you have a lot of attack surfaces there, such as:
@@ -410,4 +427,27 @@ git pull origin main
 
 ```bash
 sudo tail -f /var/log/syslog
+```
+
+## Websockets
+
+### Websocket NGINX config
+
+So if you're using NGINX as your reverse proxy, it also offers easy ways to upgrade an HTTP connection to a WebSocket protocol connection and in fewer lines of code. 
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name blog.<your_domain>;
+    
+    location / {
+	    # 1. upgrade to ws or other protocol if need be
+	    proxy_set_header Upgrade $http_upgrade; 
+	    proxy_set_header Connection "upgrade";
+	    
+	    # 2. after setting headers, then redirect via proxy pass
+        proxy_pass http://localhost:3000;
+    }
+}
 ```
