@@ -1035,6 +1035,78 @@ There are two main benefits to this approach:
 
 ## Jest
 
+### Basic Jest crash course
+
+1. Install jest as a dev dependency
+
+```bash
+npm i -D jest
+```
+
+2. Create a test suite with mocks
+
+```ts
+import { jest } from '@jest/globals';
+
+// 1. mock out all exports from the module
+jest.unstable_mockModule('../src/db.js', () => ({
+  insert: jest.fn(),
+  getDB: jest.fn(),
+  saveDB: jest.fn(),
+}));
+
+// 2. import the module you want to mock
+const { insert, getDB, saveDB } = await import('../src/db.js');
+const { newNote, getAllNotes, removeNote } = await import('../src/notes.js');
+
+// 3. Before each test, reset the mock, ensures each test has fresh state
+beforeEach(() => {
+  insert.mockClear();
+  getDB.mockClear();
+  saveDB.mockClear();
+})
+
+test('newNote inserts data and returns it', async () => {
+  const note = 'Test note';
+  const tags = ['tag1', 'tag2'];
+  const data = {
+    tags,
+    content: note,
+    id: Date.now(),
+  };
+  // replaces insert() return with data
+  insert.mockResolvedValue(data);
+
+  const result = await newNote(note, tags);
+  expect(result).toEqual(data);
+});
+
+test('getAllNotes returns all notes', async () => {
+  const db = {
+    notes: ['note1', 'note2', 'note3']
+  };
+  // replaces getDB() return with db
+  getDB.mockResolvedValue(db);
+
+  const result = await getAllNotes();
+  expect(result).toEqual(db.notes);
+});
+
+test('removeNote does nothing if id is not found', async () => {
+  const notes = [
+    { id: 1, content: 'note 1' },
+    { id: 2, content: 'note 2' },
+    { id: 3, content: 'note 3' },
+  ];
+  // replaces saveDB() return with notes
+  saveDB.mockResolvedValue(notes);
+
+  const idToRemove = 4;
+  const result = await removeNote(idToRemove);
+  expect(result).toBeUndefined();
+});
+```
+
 ### ES Modules support
 
 1. Install jest as a dev dependency

@@ -791,10 +791,9 @@ function createLabel<T extends number | string>(label: T): NumberOrString<T> {
 
 ### Using `never`
 
-The `never` type is useful in conditional strings because in union types, `never` is imply ignored.
+The `never` type is useful in conditional strings because in union types, `never` is imply ignored:
 
-- `never` can never be assigned as a type to a variable.
-- So a `string | never` type is just a `string` type.
+>`never` can never be assigned as a type to a variable, so a `string | never` type is just a `string` type.
 
 ```typescript
 type MustBeString<T> = T extends string ? string : never;
@@ -802,9 +801,9 @@ type MustBeString<T> = T extends string ? string : never;
 type ApparentlyString = MustBeString<string | number>; // just returns string.
 ```
 
-WHen passing in a union type as a generic, you can think of it as splitting into two type equations, one for each type in the union type, so two different type conditional statements are being evaluated, and then joining it in a union.
+When passing in a union type as a generic, you can think of it as splitting into two type equations, one for each type in the union type, so two different type conditional statements are being evaluated, and then joining it in a union.
 
-- `MustBeString<string | number>` is evaluated as `MustBeString<string>` | `MustBeString<number>`
+>`MustBeString<string | number>` is evaluated as `MustBeString<string>` | `MustBeString<number>`
 
 ###  `infer`
 
@@ -829,8 +828,14 @@ const multiply = (a: number, b: number) => a * b;
 type MyType = RType<typeof multiply>; // number
 ```
 
-**infer with type constraints**
-****
+Here's an unboxing example:
+
+```ts
+import {z} from "zod"
+type zInfer<T> = T extends z.ZodObject<infer R> ? R : never
+```
+#### **infer with type constraints**
+
 You can also add type constraints to your `infer` conditionals, like `infer T extends string`
 
 Here are some useful examples:
@@ -846,8 +851,8 @@ type GetInstanceType<T extends new (...args: any[]) => any> =
 
 
 
-**Infer with template strings**
-****
+#### **Infer with template strings**
+
 You can even infer strings from template string literal types.
 
 ```ts
@@ -1096,7 +1101,7 @@ type Color = "primary" | "secondary";
 type Style = `${Size}-${Color}`;
 ```
 
-#### String manipulation utitilies
+#### Built-in string manipulation utitilies
 
 - `Uppercase<T>` : takes in a string literal type and returns that literal type as all uppercase
 - `Lowercase<T>` : takes in a string literal type and returns that literal type as all lowercase
@@ -1165,6 +1170,18 @@ export class PrintAdvanced implements PrintAdvancedColors {
 }
 ```
 
+#### Template string with infer
+
+
+```ts
+type RedisKeySplitter<T extends string> = T extends `${infer N}:${infer K}` ?
+			{ namespace: N, key: K} : never
+			
+
+// typed as {namespace: "app", key: "visitorCount"}
+type MyKey = RedisKeySpliter<"app:visitorCount">
+```
+
 ### Autocompletion with union types and strings
 
 If you are ever in the situation where you want autocomplete for string literal types defined by a union string type, but you also want any string to be a valid value, you need to use some TypeScript type gymnastics to get appropriate autocomplete.
@@ -1186,17 +1203,40 @@ let padding: Padding = "12px";
 
 ## Mapped Types
 
+### Intro 
+
 Mapped types are like index signatures but on a smaller scale, allowing you to iterate through a union type, extract each singular value from that union type which will be called as a **key**, and assign a corresponding type value to each key.
 
-```typescript
+```ts
+type MyType = {
+	name: string;
+	age: number; // ig age is just a number after all
+}
 type MyMappedType = {
-  // maps over union type, extracts each individual string value, and applies it
+  // 1. maps over union type
+  // 2. get the string key type, call it `key`
+  // 3. Have new type mapping be `key` has type = MyType[key]
   [key in keyof MyType]: MyType[key];
 };
 ```
 
 - The `keyof` operator returns a union string type of the keys of another type, like an interface
 - You can map over union string types, or implicitly map over a union string type by using the `keyof` operator on an interface or object type.
+
+```typescript
+const setOptions = {
+  darkMode: () => {},
+  fontSize: () => {},
+};
+
+type MakeOptions<T> = {
+  [key in keyof T]: boolean;
+};
+
+type Options = MakeOptions<typeof setOptions>;
+```
+
+#### Readonly and required operators
 
 You can also use attribute modifiers to make these mapped types `readonly`, required, or `optional`.
 
@@ -1219,22 +1259,53 @@ You can also negate these operators by prepending the `-` operator to those oper
 - Adding a `?` after the mapped type makes all those keys optional.
 - Adding a `-?` after the mapped type negates the optional operator and instead makes all properties required, even ones which were initially optional.
 
-```typescript
-const setOptions = {
-  darkMode: () => {},
-  fontSize: () => {},
-};
 
-type MakeOptions<T> = {
-  [key in keyof T]: boolean;
-};
+#### Conditional mapped types
 
-type Options = MakeOptions<typeof setOptions>;
+```ts
+import {z, AnyZodObject } from "zod"
+type ZodRecord<T extends AnyZodObject> = Record<string, T>
+
+type inferredZodRecord<T extends ZodRecord<any>> = {
+	[key in keyof T]: T[key] extends z.ZodObject<infer R> ? R : never
+}
 ```
 
-You also have a bunch of mapped types that are built into typescript:
+#### Key remapping via `as`
+
+Using the below syntax, we can retype (or most likely rename) keys to a new type using the `as` operator.
+
+```typescript
+type MappedTypeWithNewProperties<Type> = {
+  [Properties in keyof Type as NewKeyType]: Type[Properties];
+};
+```
 
 
+
+This is extremely useful for creating getters and setters on the fly.
+
+```ts
+type Store = {
+  name: string;
+  age: number;
+};
+
+type Setters<T> = {
+  [key in keyof T as `set${Capitalize<keyof T & string>}`]: (
+    value: T[key]
+  ) => void;
+};
+
+type Getters<T> = {
+  [key in keyof T as `get${Capitalize<keyof T & string>}`]: () => T[key];
+};
+
+type StoreGetters = Getters<Store>;
+type StoreSetters = Setters<Store>;
+```
+
+### Built-in mapped types
 #### `Pick<T, K>`
 
 The `Pick` utility type allows you to extract only the properties you want from an object. The `Pick<T, K>` type takes in two type parameters:
@@ -1345,37 +1416,7 @@ type Dictionary = Record<string, any>;
 type NumberMap = Record<string, number>;
 ```
 
-#### Key remapping via `as`
 
-```typescript
-type MappedTypeWithNewProperties<Type> = {
-  [Properties in keyof Type as NewKeyType]: Type[Properties];
-};
-```
-
-Using the above syntax, we can retype (or most likely rename) keys to a new type using the `as` operator.
-
-This is extremely useful for creating getters and setters on the fly.
-
-```ts
-type Store = {
-  name: string;
-  age: number;
-};
-
-type Setters<T> = {
-  [key in keyof T as `set${Capitalize<keyof T & string>}`]: (
-    value: T[key]
-  ) => void;
-};
-
-type Getters<T> = {
-  [key in keyof T as `get${Capitalize<keyof T & string>}`]: () => T[key];
-};
-
-type StoreGetters = Getters<Store>;
-type StoreSetters = Setters<Store>;
-```
 
 ### Advanced mapped types
 #### Filtering keys

@@ -1998,6 +1998,8 @@ The main advantage of `make` is that it only reruns the process if and only if t
 
 A package manager is an online repository of source code that users can download via the internet so that they don't have to download it themselves every single time and build it from the source. 
 
+Every linux distro comes with its own package manager:
+
 | Distribution Family                           | Package Manager        | Package Format   |
 | --------------------------------------------- | ---------------------- | ---------------- |
 | Debian, Ubuntu, Linux Mint, Pop!_OS, Kali     | **APT**                | `.deb`           |
@@ -2010,6 +2012,8 @@ A package manager is an online repository of source code that users can download
 | NixOS                                         | **Nix**                | Nix packages     |
 | Any distro                                    | **Snap**               | Snap packages    |
 | Any distro                                    | **Flatpak**            | Flatpak packages |
+
+
 
 ### `apt`
 
@@ -2025,6 +2029,12 @@ And here is how you can manage installed packages:
 
 - `sudo apt install <package>`: install a specific package
 - `sudo apt remove <package>`: uninstall a specific package
+- `sudo apt upgrade <package>`: upgrades a specific package
+- `sudo apt autoremove`: clean up stuff that you ahve but you don't really need
+
+#### `apt-get`
+
+`apt-get` is the older, more capable version of `apt`, but `apt` is newer and therefore more suggested to use.
 
 ### `yum`
 
@@ -2069,11 +2079,24 @@ A unique package manager providing reproducible builds, atomic upgrades, and eas
 
 ### `snap`
 
+**Snaps** are a universal way to package third-party code for Linux distros while making sure the untrusted code is secure. This is how snaps achieve security for packages:
+
+- **sandboxing**: run the code in sandboxing via containers, which also makes the code universal and able to interface with all linux distros.
+- **deltas**: ship deltas as well as the code, so diffing works to udpate packages instead of installing all the code and uninstalling all the code to update packages, which is what traditional package managers like `apt` do.
+- **automatically updating**: snaps are automatically updating so security patches are automatic.
+
+
 `snap` is a universal package manager that can be installed and is already shipped with many distros. It is meant for installing user-facing apps like VSCode, not really packages.
 
 - `sudo snap install code`: install vscode
 - `sudo snap remove code`: uninstall vscode
 - `snap list`: list all apps installed.
+
+This is how you can install node with snaps:
+
+```bash
+sudo snap install --channel=24/stable --classic node
+```
 
 Advantages:
 
