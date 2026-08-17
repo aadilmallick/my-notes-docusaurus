@@ -483,7 +483,12 @@ The load balancer acts as a **reverse proxy server** that forwards traffic to in
 
 ![](https://i.imgur.com/y2X3q4P.jpeg)
 
+Load balancers can use one of these algorithms to decide how to route traffic:
 
+- **round robin**: incoming requests are distributed in order to individual instances in a target group in a cyclic fashion, circling around once again to the first instance once all instances have been dished a request.
+- **least connection**: directs traffic to the server instance with the least active connections.
+- **least response time**: directs traffic to the server instance with the least active connections AND least response time (lowest latency)
+- **IP hashing**: directs traffic by hashing the client's IP address and based on that hash, it sends it to a specific "bucket" being the target instance to forward the request to, leading to deterministic routing.
 #### Round robin
 
 The round robin algorithm is where incoming requests are distributed in order to individual instances in a target group in a cyclic fashion, circling around once again to the first instance once all instances have been dished a request.

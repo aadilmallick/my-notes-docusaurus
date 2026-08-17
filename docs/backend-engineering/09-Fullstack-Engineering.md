@@ -651,3 +651,41 @@ listen 443 http2 ssl;
 
 ## Microservices and containers
 
+### NGINX as load balancer
+
+Learn more about load balancing here: [[03-system-design#Load balancers]]
+
+We can use Nginx as an orchestration load balancer over Dockerized servers. Here are the steps to do so:
+
+1. Dockerize a server app, run it on multiple ports:
+
+```
+docker run nodeserver -p 3000:3000
+docker run nodeserver -p 3001:3000
+docker run nodeserver -p 3002:3000
+```
+
+2. In the `/etc/nginx/nginx.conf` main configuration file, add a new `http.upstream` block that lists the origins to include in a target group that will be named `nodebackend`.
+
+
+```nginx
+http {
+	upstream nodebackend {
+		server localhost:3000;
+		server localhost:3001;
+		server localhost:3002;
+	}
+}
+```
+
+3. In your server block, proxy pass to the upstream target group, referenced by name:
+
+```nginx
+server {
+	server_name testing-2345.click
+	
+	location / {
+		proxy_pass http://nodebackend;
+	}
+}
+```
