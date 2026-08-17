@@ -548,6 +548,10 @@ ws.on('message', (event) => {
 
 #### Request
 
+
+![](https://i.imgur.com/1I3lB8H.jpeg)
+
+
 Here are the common headers set:
 
 - `User-agent`: the requesting device type
@@ -562,13 +566,14 @@ Here are the common headers set:
 
 ![](https://i.imgur.com/jQsvvt9.jpeg)
 
+### NGINX with subdomains
 
-### NGINX with subdomains and SSL
 
+A **subdomain** is a subset of a main domain that allows developers to create separate environments or applications without creating an entirely new URL. 
 
-A subdomain is a subset of a main domain that allows developers to create separate environments or applications without creating an entirely new URL. 
+- It simplifies development by avoiding the need to create new cookies and provides an easier way to manage different parts of a website.
 
-It simplifies development by avoiding the need to create new cookies and provides an easier way to manage different parts of a website.
+Here's how to set up a subdomain connection in nginx
 
 ```nginx
 server {
@@ -581,3 +586,68 @@ server {
     }
 }
 ```
+
+### NGINX with certbot SSL
+
+1. Update the `snap` package manager
+
+```bash
+sudo snap install core
+sudo snap refresh core
+```
+
+2. Remove any previously installed versions of certbot that were not installed with `snap`:
+
+```
+sudo apt-get remove certbot
+```
+
+3. Install certbot with snap
+
+```
+sudo snap install --classic certbot
+```
+
+4. Create a symlink
+
+```
+sudo ln -s /snap/bin/certbot /usr/local/bin/certbot
+```
+
+5. Run this command to get a certificate and have Certbot edit your nginx configuration automatically to serve it, turning on HTTPS access in a single step.
+
+```
+sudo certbot --nginx
+```
+
+6. Open up the HTTPS port on 443 using `ufw`
+
+```bash
+sudo ufw allow https
+sudo ufw enable
+```
+
+
+Behind the scenes, this is what certbot does:
+
+7. Request certificates for us on our behalf for the domains and subdomains that NGINX points to through its `server.server_name` property
+8. Modifies the NGINX config to work with SSL and redirect HTTP to HTTPS connections
+
+### HTTP2
+
+HTTP/2 lets you use multiplexing, which is a technique that allows this protocol to send multiple things across one single connection instead of just one payload per request-response cycle as per HTTP. 
+
+- **pro**: faster, more parallel work
+- **con**: consumes more CPU
+
+To use HTTP2 with node and nginx, NGINX actually handles upgrading to HTTP2 for you via one line of configuration code change:
+
+```nginx
+listen 443 http2 ssl;
+```
+
+> [!NOTE]
+> HTTP2 only works on an SSL connection, therefore that's why we only do that on port 443 and not HTTP on port 80
+
+## Microservices and containers
+
