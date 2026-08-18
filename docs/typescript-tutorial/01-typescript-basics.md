@@ -142,6 +142,18 @@ Variance refers to the concept of the error you get along the lines of:
 >"The type specified X, but Y was provided"
 
 
+There are three types of variance:
+
+- **covariance**: providing something more specific than what you asked for, giving a stricter type than the original
+- **contravariance**: providing something less specific than what you asked for, giving a broader type.
+
+
+Here is how the different types of variance affect different types of objects and primitives:
+
+- **variables**: variables are covariant, meaning you can give a stricter type and it will fit into that type just fine.
+- **function arguments**: 
+
+
 
 ### Namespaces
 
