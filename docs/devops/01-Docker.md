@@ -27,19 +27,26 @@ That's where containers come in - they completely abstract away the hardware, so
 
 ### How containers work
 
-Containers solve this problem. All you have to do is tell what software you want to run and download in a container, and it will do it for you. It is a lightweight version of a VM that doesn't ship with the entire OS.
 
 
-
-> [!NOTE]
-> Containers running on VMs are also more secure than running on a VM itself.
 
 
 Containers consist of three main components:
 
-1. `chroot`: jailing processes
-2. **namespaces**
+1. `chroot`: jailing processes to isolate filesystems and prevent jailed processes from accessing each other's files.
+2. **namespaces**: 
 3. **control groups**: using `cgroup` command
+
+Through using these three components, you can create multiple containers on one single VM,  creating multiple virtualized and isolated filesystems and processes that use the underlying host OS, but running on the same VM.
+
+> [!NOTE]
+> Containers running on VMs are also more secure than running on a VM itself.
+
+> [!NOTE]
+> You can think of containers as using virtualization without a hypervisor. Through incredibly clever Linux by the way processes and using namespaces to isolate processes, file systems, and resources, and preventing other jailed processes from infringing on the RAM and taking away resources from other jailed processes. 
+> 
+> This allows you to mock out a hypervisor and virtualization without having the overhead of hypervisors. 
+
 ### Making a container from scratch
 #### chroot
 
@@ -118,7 +125,7 @@ Because different jailed filesystems can access each others' processes and kill 
 
 #### Namespaces
 
-Namespaces allow you to hide process information from other processes, both on a physical memory and system call level for maximum security.
+Namespaces prevent users from seeing, accessing, or interfering with each other's processes. Each user gets their own isolated process namespace with separate process IDs, so they cannot see, kill, hijack, or otherwise manipulate processes belonging to other users on the same server.
 
 So let's create a chroot'd environment now that's isolated using namespaces using a new command: `unshare`. 
 
@@ -137,7 +144,9 @@ mount -t sysfs none /sys # filesystem
 mount -t tmpfs none /tmp # filesystem
 ```
 
+#### `cgroup`
 
+Right now, even with jailed processes and namespaces
 
 ## Docker Basics
 
@@ -691,7 +700,7 @@ Here are 4 benefits of working with docker networks in multi-container applicati
 - **Service Discovery**: Allows containers to find and connect to other containers by their name or alias within the same network.
 - **Portability**: Networking configurations are defined as part of the container or service definition, making them more portable.
 
-**creating networks**
+#### **creating networks**
 
 ---
 
@@ -710,7 +719,7 @@ In fact, there are 4 special drivers you can specify:
 - `host` : runs the network on the local machine, but not hiding the ports from the host machine. Has full access to the host network, with no network isolation
 - `none`: no connection to the network, no external network connectivity.
 
-**running stuff on networks**
+#### **running stuff on networks**
 
 You can then start running something on the network with `docker run`, but by specifying in which network you want to run the container with the `--network` flag:
 
@@ -750,7 +759,7 @@ Here's an english high-level equivalent of what we did in the above example:
 3. Then we'll create a container for our nodejs server that runs in the network, and have it run on port 3000. In our application code, it can access the postgres database through port 5432 because both containers run in the same network.
 4. Then we can do port forwarding to expose our app's container port 3000 to the host machine port of 8080 to see our app on `http://localhost:8080`
 
-**network reference**
+#### **network reference**
 
 ---
 
