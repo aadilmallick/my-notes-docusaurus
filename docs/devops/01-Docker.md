@@ -87,6 +87,26 @@ mkdir /new-root/bin
 ```
 
 4. Copy over all dependencies outputted by `ldd /bin/bash` into the `/new-root/lib` or `/new-root/lib64` folders.
+
+
+![](https://i.imgur.com/ZLSAlCi.jpeg)
+
+
+5. Copy over the bash binary into the `bin` folder
+
+```bash
+cp $(which bash) /new-root/bin
+```
+
+6. Run the `chroot` command:
+
+
+![](https://i.imgur.com/k0eOMN2.jpeg)
+
+
+Now just repeat for every single command a Linux distro ships (`cat`, `tail`, etc.), and you're done! 
+
+Highly impractical. Let's move on to namespaces.
 ## Docker Basics
 
 ### The absolute basics
