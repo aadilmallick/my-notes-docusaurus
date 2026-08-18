@@ -166,9 +166,18 @@ const circle: Circle = new Shape()
 Here is how the different types of variance affect different types of objects and primitives:
 
 - **variables**: variables are **covariant**, meaning you can give a stricter type and it will fit into that type just fine.
-- **return types**: variables are **covariant**, meaning you can give a stricter type and it will fit into that type just fine.
+- **return types**: return types are **covariant**, meaning you can give a stricter type and it will fit into that type just fine.
 - **functions**: Function signatures are **contravariant**, meaning that a function with typed arguments can only be typecast into a broader type, never stricter.
 
+
+![](https://i.imgur.com/pgoqbkb.jpeg)
+
+
+- **function example**: The reason why we can't typecast `drawShapeFunction` to be the same type as the `drawCircleFunction` is because function signatures are contravariant, meaning they can't be typecast into stricter types.
+	- `drawShapeFunction` uses a `Shape` instance, very broad.
+	- `drawCircleFunction` uses a `Circle` instance, very narrow.
+	- So it makes no sense to reassign a broad, powerful function `drawShapeFunction` that can draw every shape in existence including a circle to a narrow, strict function `drawCircleFunction` that can only draw a circle.
+- **return type example**: The reason why we can't cast `getCircle` to `getShape` is because every circle is a shape, but not every shape is a circle, so `getShape` might return a `Shape` instance that is not a `Circle` instance.
 
 
 
