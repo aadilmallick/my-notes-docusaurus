@@ -137,21 +137,35 @@ count = null;
 
 ### Variance
 
-Variance refers to the concept of the error you get along the lines of:
+Variance refers to the behavior of type casting a stricter type to a broader type of vice versa.
+
+Errors in variance happen when you mix up how variance works, which results in an error along the lines of:
 
 >"The type specified X, but Y was provided"
 
 
 There are three types of variance:
 
-- **covariance**: providing something more specific than what you asked for, giving a stricter type than the original
-- **contravariance**: providing something less specific than what you asked for, giving a broader type.
+- **covariance**: providing something more specific than what you asked for, giving a stricter type than the original type.
+- **contravariance**: providing something less specific than what you asked for, giving a broader type than the original type.
+
+```ts
+class Circle {}
+
+class Shape extends Circle {}
+
+// covariance works for variables
+const shape = new Circle()
+const circle: Shape = new Circle()
+
+// contravariance does not work for variables
+```
 
 
 Here is how the different types of variance affect different types of objects and primitives:
 
-- **variables**: variables are covariant, meaning you can give a stricter type and it will fit into that type just fine.
-- **function arguments**: 
+- **variables**: variables are **covariant**, meaning you can give a stricter type and it will fit into that type just fine.
+- **functions**: Function signatures are **contravariant**, meaning that a function with typed arguments can only be typecast into a broader type, never stricter.
 
 
 
