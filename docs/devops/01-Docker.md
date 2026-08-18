@@ -106,7 +106,39 @@ cp $(which bash) /new-root/bin
 
 Now just repeat for every single command a Linux distro ships (`cat`, `tail`, etc.), and you're done! 
 
-Highly impractical. Let's move on to namespaces.
+Now, this isn't secure. The only thing we've protected is the file system, mostly.
+
+1. chroot in a terminal into our environment
+2. In another terminal, run `docker exec -it docker-host bash`. This will get another terminal session #2 for us (I'll refer to the chroot'd environment as #1)
+3. Run `tail -f /my-new-root/secret.txt &` in #2. This will start an infinitely running process in the background.
+4. Run `ps` to see the process list in #2 and see the `tail` process running. Copy the PID (process ID) for the tail process.
+5. In #1, the chroot'd shell, run `kill <PID you just copied>`. This will kill the tail process from inside the `chroot'd` environment. This is a problem because that means chroot isn't enough to isolate someone. We need more barriers. This is just one problem, processes, but it's illustrative that we need more isolation beyond just the file system.
+
+Because different jailed filesystems can access each others' processes and kill them, to prevent that we use **namespaces**
+
+#### Namespaces
+
+Namespaces allow you to hide process information from other processes, both on a physical memory and system call level for maximum security.
+
+So let's create a chroot'd environment now that's isolated using namespaces using a new command: `unshare`. 
+
+`unshare` creates a new isolated namespace from its parent (so you, the server provider can't spy on Bob nor Alice either) and all other future tenants.
+
+```bash
+## Install debootstrap
+apt-get update -y
+apt-get install debootstrap -y
+debootstrap --variant=minbase jammy /better-root
+
+# head into the new namespace'd, chroot'd environment
+unshare --mount --uts --ipc --net --pid --fork --user --map-root-user chroot /better-root bash # this also chroot's for us
+mount -t proc none /proc # process namespace
+mount -t sysfs none /sys # filesystem
+mount -t tmpfs none /tmp # filesystem
+```
+
+
+
 ## Docker Basics
 
 ### The absolute basics
