@@ -148,6 +148,8 @@ mount -t tmpfs none /tmp # filesystem
 
 Right now, even with jailed processes and namespaces, we have no way for something like a hypervisor would do for resource management, to prevent one jailed process from hogging all the RAM and starving other jailed processes.
 
+Cgroups (control groups) are a Linux kernel feature for isolating and limiting computing resources like CPU and RAM for individual process trees, preventing one process from consuming all system resources.
+
 The `cgroup` command is a command that lets you allocate a predefined amount of resources that a process should have, not allowing it to go beyond that point.
 
 ## Docker Basics
