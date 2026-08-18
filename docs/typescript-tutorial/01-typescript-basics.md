@@ -135,6 +135,13 @@ if (count !== null) {
 count = null;
 ```
 
+### Variance
+
+Variance refers to the concept of the error you get along the lines of:
+
+>"The type specified X, but Y was provided"
+
+
 
 ### Namespaces
 
