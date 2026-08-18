@@ -1,26 +1,46 @@
 
 ## Containers from scratch
 
-In the past, companies used a **bare metal** approach to hosting servers online, where they owned all the infrastructure and machines. Here were the downsides:
+### Bare metal and virtual machines
+
+Historically, if you wanted to run a web server, you either set up your own or you rented a literal server somewhere. We often call this "bare metal" because, well, your code is literally executing on the processor with no abstraction. This is great if you're extremely performance sensitive and you have ample and competent staffing to take care of these servers.
+
+In the past, companies used a **bare metal** approach to hosting servers online, where they owned all the infrastructure and machines, where one machine had one OS and ran several different server processes as cloud deployment options on the same machine.
+
+Here were the downsides:
 
 - Expensive
 - Not scalable
 - Sometimes your machines broke down
+- **processes affect each other**: A completely separate server someone deployed to the same machine, which could affect your server and process that you deployed because it's all on the same OS, the same machine, the same file system. 
+- **security issues**: sharing the same physical host machine with no hypervisor meant that processes could snoop in on each other and wreak havoc on other servers on that same physical host machine.
 
 Now companies moved away from bare metal and now do **virtual machines**, where they run multiple OSs on one machine, called _virtualization_. This allows you to run multiple servers in parallel on a single computer.
 
-While you don’t have to manage the infrastructure yourself, there are downsides to VMs:
+While you don’t have to manage the infrastructure yourself, you still have to care about it, leading to these downsides to VMs:
 
 - You have to manage and update all the software yourself
 - Your have to install everything yourself.
-- People on the same VM can launch hack attacks against each other
+- **burning resources**: A hypervisor separating a bunch of OSs running is more resource-intensive and has more overhead than a normal bare metal approach.
 
-**containers**
+That's where containers come in - they completely abstract away the hardware, so you don't have to care about managing the guest OS, only the code.
 
-Containers solve this problem. All you have to do is tell what software you want to run and download in a container, and it will do it for you.
+### How containers work
 
-Containers running on VMs are also more secure than running on a VM itself.
+Containers solve this problem. All you have to do is tell what software you want to run and download in a container, and it will do it for you. It is a lightweight version of a VM that doesn't ship with the entire OS.
 
+
+
+> [!NOTE]
+> Containers running on VMs are also more secure than running on a VM itself.
+
+
+Containers consist of three main components:
+
+1. `chroot`: jailing processes
+2. **namespaces**
+3. **control groups**: using `cgroup` command
+### Making a container from scratch
 #### chroot
 
 We can start making containers from scratch by running this docker command to enter the interactive shell on an ubuntu OS:
@@ -35,12 +55,38 @@ We can then see what version of the OS we are on by logging the `/etc/issue` fil
 cat /etc/issue
 ```
 
-You can create a a new folder and then run the `chroot` command to make that folder the root:
+You can create a a new folder and then run the `chroot` command to make that folder the root and then run a command within that new root.
 
 ```bash
-chroot <new-folder>
+chroot <new-folder> <command>
 ```
 
+> [!NOTE]
+> You can think of the `chroot` command as saying, "Okay this is the new folder that is root and from now on you can only see folders and files that are children of this folder." It's basically making it the new root folder. 
+
+Here is how to create a container from scratch, starting with `chroot`:
+
+1. Make a new folder
+
+```
+mkdir /new-root
+```
+
+2. For all additional commands and libraries you want to copy over into that new root, because it can't see anything outside of itself once `chroot` is executed, you need to run the `ldd <filepath>` command to find the dependency list of a package like bash:
+
+```bash
+ldd /bin/bash
+```
+
+3. Create a `lib` and `lib64` and `bin` directories to house libraries and commands:
+
+```
+mkdir /new-root/lib
+mkdir /new-root/lib64
+mkdir /new-root/bin
+```
+
+4. Copy over all dependencies outputted by `ldd /bin/bash` into the `/new-root/lib` or `/new-root/lib64` folders.
 ## Docker Basics
 
 ### The absolute basics
