@@ -158,14 +158,18 @@ class Shape extends Circle {}
 const shape = new Circle()
 const circle: Shape = new Circle()
 
-// contravariance does not work for variables
+// contravariance does not work for variables, shape is less specific than circle.
+const circle: Circle = new Shape()
 ```
 
 
 Here is how the different types of variance affect different types of objects and primitives:
 
 - **variables**: variables are **covariant**, meaning you can give a stricter type and it will fit into that type just fine.
+- **return types**: variables are **covariant**, meaning you can give a stricter type and it will fit into that type just fine.
 - **functions**: Function signatures are **contravariant**, meaning that a function with typed arguments can only be typecast into a broader type, never stricter.
+
+
 
 
 
