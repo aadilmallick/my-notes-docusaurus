@@ -34,8 +34,8 @@ That's where containers come in - they completely abstract away the hardware, so
 Containers consist of three main components:
 
 1. `chroot`: jailing processes to isolate filesystems and prevent jailed processes from accessing each other's files.
-2. **namespaces**: 
-3. **control groups**: using `cgroup` command
+2. **namespaces**: prevent users from seeing, accessing, or interfering with each other's processes and viewing process IDs on the underlying host OS.
+3. **control groups**: using `cgroup` command to manage resource sharing and prevent one jailed process from eating up all the RAM and starving other jailed processes.
 
 Through using these three components, you can create multiple containers on one single VM,  creating multiple virtualized and isolated filesystems and processes that use the underlying host OS, but running on the same VM.
 
@@ -146,7 +146,9 @@ mount -t tmpfs none /tmp # filesystem
 
 #### `cgroup`
 
-Right now, even with jailed processes and namespaces
+Right now, even with jailed processes and namespaces, we have no way for something like a hypervisor would do for resource management, to prevent one jailed process from hogging all the RAM and starving other jailed processes.
+
+The `cgroup` command is a command that lets you allocate a predefined amount of resources that a process should have, not allowing it to go beyond that point.
 
 ## Docker Basics
 
