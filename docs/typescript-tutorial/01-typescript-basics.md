@@ -55,6 +55,48 @@ Outside of the compiler options, here are the different options you get access t
 - `exclude`: an array of glob patterns that match files to exclude from compilation. The default is `["node_modules", "bower_components", "jspm_packages"]`, which excludes all files in the `node_modules`, `bower_components`, and `jspm_packages` folders.
 - `files`: an array of files to include in compilation.
 
+## Modules and CJS interop
+
+When working on the compatibility between ES modules (the future) and commonjs (the past), it's important to understand how they work and not to jump to changing compiler settings to make the types work out, because if you then export your project as a library other people can consume, everybody else who uses your library also has to use the same compiler settings as you.
+
+### ES modules
+
+#### importing other modules
+
+These are all the ways to export and import stuff in ES modules:
+
+```ts
+// named imports
+import { Blueberry, Raspberry } from './berries'
+import Kiwi from './kiwi' // default import
+export function makeFruitSalad() {} // named export
+export default class FruitBasket {} // default export
+export { lemon, lime } from './citrus' // re-export
+
+// re-export entire module as a single namespace
+export * as berries from './berries' 
+```
+
+When importing identifiers that use declaration merging to refer to both a type and a value then ES modules and TypeScript have an intelligent way of deciding whether you actually need to import the actual identifier or not in the bundled production code:
+
+- **if using only the type portion**:  if you never actually use an identifier as a value or do something like where you instantiate it or use it as a variable and you only refer to it as a type, then it's not imported into the bundle. 
+	- It's only made to appear that way in VS Code for your benefit and DX
+- **if using identifier as a value**: If somewhere in your code you also use identifier as a value then ES modules will actually import that because it needs to be in the final bundle.
+
+
+#### `import type`
+
+> [!NOTE]
+> Why ES modules over something like babel or webpack?
+> ***
+>  ES modules are TypeScript native. They actually understand TypeScript whereas something like Babel or Webpack doesn't and they instead just strip all the types to produce the final JavaScript. 
+>  
+>  ES modules will actually look at declaration merging to see if you're actually using an identifier as a value or not, which results in more intelligent imports and a smaller bundle size and allows for tree shaking as a result .
+
+If you want the benefits of ES module intelligent tree shaking and accounting for declaration merging while using something like babel or normal `tsc`, you need to use the `import type` keyword to be explicit that you only want to import a type of an identifier instead of the value behind the identifier.
+
+This allows babel and webpack to know not to import the actual value of an identifier and rather just the type if using the `import type` syntax to import the type of an identifier.
+
 ## TS Theory
 
 ### Structural vs nominal typing
@@ -181,25 +223,33 @@ Here is how the different types of variance affect different types of objects an
 
 
 
-
-### Namespaces
-
-Namespaces are ways to keep your code clean and modularized and prevent global autocompletion for some type.
-
-```ts
-// myNamespace.ts
-namespace MyNamespace {
-  export function doSomething() {
-    console.log("Doing something...");
-  }
-}
-
-// main.ts
-/// <reference path="myNamespace.ts" />
-MyNamespace.doSomething(); // Output: "Doing something..."
-```
-
 ### Declaration merging
+
+Declaration merging is when a single identifier (an exportable or importable thing with a name) has multiple things stacked on top of it, such as a function, interface, and namespace all sharing the same name.
+
+Here are the three things you can merge together with declaration merging, if these things all have the same identifier:
+
+1. A value (like a function)
+2. a type (like an interface)
+3. a namespace
+
+Functions are values, interfaces are types, and namespaces are treated as a special kind of value that gets its own slot on an identifier.
+
+> [!NOTE]
+> Namespaces can pass for values in most cases because they can be used in value positions. To differentiate them, you need to hover over the identifier and look at the tooltip.
+
+#### Identifiers
+
+**Identifiers** are like a single exportable variable but can, via TypeScript, refer to multiple things at once, like both a variable and a type. 
+
+Here's an example where `Fruit` is both an actual function object but also is the name of a type:
+
+
+![](https://i.imgur.com/bYjYXog.jpeg)
+
+
+
+#### Interface extension
 
 Declaration merging refers to how you can redeclare certain things like interfaces, and their type definitions will merge together to form some larger type rather than throwing an error. 
 
@@ -221,6 +271,85 @@ let a: User = {
   age: 30
 }
 ```
+#### Namespaces
+
+Namespaces are ways to keep your code clean and modularized and prevent global autocompletion for some type.
+
+```ts
+// myNamespace.ts
+namespace MyNamespace {
+  export function doSomething() {
+    console.log("Doing something...");
+  }
+}
+
+// main.ts
+/// <reference path="myNamespace.ts" />
+MyNamespace.doSomething(); // Output: "Doing something..."
+```
+
+This is how declaration merging with namespaces work:
+
+```ts
+
+interface Fruit {
+  name: string
+  mass: number
+  color: string
+}
+
+const banana: Fruit = {
+	name: "banana",
+	color: "yellow",
+	mass: 183,
+}
+ 
+          
+function Fruit(kind: string): Fruit {
+  switch (kind) {
+    case "banana": return banana
+    default: throw new Error(`fruit type ${kind} not supported`)
+  }
+}
+ 
+// the namespace
+namespace Fruit {
+	function createBanana(): Fruit {
+		return Fruit("banana")
+	}
+}
+ 
+ 
+export { Fruit }
+```
+
+#### Classes
+
+Classes use declaration merging because they are both types and values at the same time, if you also use static methods then they are also namespaces.
+
+The identifier for a class is both an **interface** and a **value** (factory function that adds onto prototype)
+
+```ts
+class Fruit {
+  name?: string
+  mass?: number
+  color?: string
+  static createBanana(): Fruit {
+    return { name: "banana", color: "yellow", mass: 183 }
+  }
+}
+```
+
+- _When `Fruit` is used as a type_, it describes the type of an instance of Fruit
+- _When `Fruit` is used as a value_, it can both act as the constructor (e.g., `new Fruit()`) and holds the “static side” of the class (`createBanana()` in this case)
+
+> [!NOTE]
+> So it seems that **classes are both a type and a value**.
+
+
+### Namespaces in depth
+
+#### augmenting namespaces
 
 Here is how we can augment namespaces, which is useful when we want to add methods and intellisense to some library:
 
@@ -263,6 +392,10 @@ global.myGlobalFunction = function () {
 
 myGlobalFunction(); // Output: "I am a global function!"
 ```
+
+
+
+
 
 ## Create an NPM package with TYpeScript
 
