@@ -97,6 +97,43 @@ If you want the benefits of ES module intelligent tree shaking and accounting fo
 
 This allows babel and webpack to know not to import the actual value of an identifier and rather just the type if using the `import type` syntax to import the type of an identifier.
 
+### ES and CommonJS interop
+
+How to unambiguously indicate which type of module you’re authoring
+
+- Files with the `.mjs` extension are treated as native ES modules
+- Files with the `.cjs` extension are treated as CJS modules
+
+You can also indicate whether `.js` files in your project should be treated as ES or CJS modules. In your `package.json` you may include a top-level `"type"` field with either of the following values
+
+- `"module"` indicates that `.js` files should be run as ES modules
+- `"commonjs"` indicates that `.js` files should be run as CommonJS
+
+TypeScript 5 supports native modules that follow the established conventions, replacing the `j` with a `t` (just as is done for `.jsx` and `.tsx` files). `.`
+
+- `.mts` files are for TypeScript ES modules, and generate ES modules as output
+- `.cts` files are for TypeSCript CJS modules, and generate CJS modules as output
+
+### Importing static assets
+
+1. We can use **module declarations** to declare a static asset filepath as being a string:
+
+```ts title="global.d.ts"
+// @filename: global.d.ts
+declare module "*.png" {
+  const imgUrl: string
+  export default imgUrl
+}
+
+```
+
+2. We can then import it like so:
+
+```ts title="App.tsx"
+// @filename: component.ts
+import img from "./file.png"
+```
+
 ## TS Theory
 
 ### Structural vs nominal typing
