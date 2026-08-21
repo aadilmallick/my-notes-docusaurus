@@ -741,6 +741,185 @@ const factory = createFactory(factoryMap)
 const employee = factory("employee") // of type Employee
 ```
 
+The factory method design pattern is a way to create objects by defining an interface or abstract class for creating them, but leaving the actual creation to subclasses. This means you can write flexible code that doesn’t need to know the exact types of objects it’s working with.  
+
+
+![](https://i.imgur.com/rxC545l.jpeg)
+
+
+  
+**Benefits**
+  
+- **loose coupling**: It promotes loose coupling by separating object creation from usage.
+- **makes code easy to modify**: It centralizes class creation in one place, making it easier to add new classes without changing existing code.
+- It’s useful when building libraries or frameworks that need to support various use cases.
+- **compatible with singleton pattern**: It can save resources by reusing existing objects instead of creating new ones each time.
+
+**Cons**
+
+- **complexity over time**: it can add complexity if too many subclasses are created.
+
+**Code example**
+
+
+```ts
+// Abstract product 
+abstract class Furniture {
+    public abstract assemble(): void;
+}
+
+// concrete product 1
+class Chair extends Furniture {
+    public assemble(): void {
+        console.log('Assembling a chair.');
+    }
+}
+
+// concrete product 2
+class Table extends Furniture {
+    public assemble(): void {
+        console.log('Assembling a table.');
+    }
+}
+
+// Factory w/ factory method 
+abstract class FurnitureFactory {
+    public abstract createFurniture(type: string): Furniture;
+}
+
+class ConcreteFurnitureFactory extends FurnitureFactory {
+    public createFurniture(type: string): Furniture {
+        if (type === 'chair') {
+            return new Chair();
+        } else if (type === 'table') {
+            return new Table();
+        } else {
+            throw new Error('Furniture type not supported.');
+        }
+    }
+}
+
+function factoryClient() {
+    const factory = new ConcreteFurnitureFactory();
+    const chair = factory.createFurniture('chair');
+    chair.assemble();
+    const table = factory.createFurniture('table');
+    table.assemble();
+}
+
+factoryClient()
+```
+
+#### Abstract factory method
+
+An abstract factory method abstracts even more on top of a factory method because you return abstract classes from the factory instead of individual concrete classes.
+
+The Abstract Factory pattern is a design approach that lets you create families of related objects without specifying their exact classes upfront. It defines an interface or abstract class for creating these related objects, and the actual creation is handled by subclasses.  
+
+
+![](https://i.imgur.com/qeDwAmn.jpeg)
+
+Here are the main components:
+
+- **abstract factory interface**: defines a shared contract all concrete factories should implement.
+- **concrete factory**: a concrete factory function that adheres to the factory interface and creates concrete products that adhere to an abstract product interface.
+
+Here are the details:
+
+- **benefits**
+	- It groups multiple Factory Method patterns to manage a family of products.
+	- Unlike the Factory Method, which creates one product, the Abstract Factory creates a whole set of related products.
+	- It uses composition to delegate creation responsibilities to subclasses.
+	- It helps ensure that related objects work well together since they come from the same family.
+	- It centralizes object creation, making it easier to introduce new product families without breaking existing code.
+- **con**: however, it can add complexity due to the many interfaces and classes involved. 
+- **usage**: This pattern is useful when your code needs to handle multiple related objects that should be created together but whose exact types aren’t known until runtime.
+	- **don't know exact dependencies beforehand**
+	- **want to allow future expansion of codebase**
+
+
+
+```ts
+// Product Interfaces
+abstract class Chair {
+    abstract sitOn(): void;
+}
+
+abstract class Table {
+    abstract eatOn(): void;
+}
+
+// Concrete Products
+class ModernChair extends Chair {
+    sitOn(): void {
+        console.log("Sitting on a modern chair.");
+    }
+}
+
+class ModernTable extends Table {
+    eatOn(): void {
+        console.log("Eating on a modern table.");
+    }
+}
+
+class VictorianChair extends Chair {
+    sitOn(): void {
+        console.log("Sitting on a victorian chair.");
+    }
+}
+
+class VictorianTable extends Table {
+    eatOn(): void {
+        console.log("Eating on a victorian table.");
+    }
+}
+
+
+// Abstract Factory
+abstract class FurnitureFactory {
+    abstract createChair(): Chair;
+    abstract createTable(): Table;
+}
+
+
+// Concrete Factories
+class ModernFurnitureFactory extends FurnitureFactory {
+    createChair(): Chair {
+        return new ModernChair();
+    }
+    createTable(): Table {
+        return new ModernTable();
+    }
+}
+
+class VictorianFurnitureFactory extends FurnitureFactory {
+    createChair(): Chair {
+        return new VictorianChair();
+    }
+    createTable(): Table {
+        return new VictorianTable();
+    }
+}
+
+// Implement the Abstract Factory
+
+function furnitureClient(factory: FurnitureFactory) {
+    const chair = factory.createChair();
+    const table = factory.createTable();
+    chair.sitOn();
+    table.eatOn();
+}
+
+// Create modern furniture
+furnitureClient(new ModernFurnitureFactory());
+
+// Create victorian furniture
+furnitureClient(new VictorianFurnitureFactory());
+```
+
+> [!NOTE]
+> Basically, abstract factory takes in a concrete factory that then actually creates the individual class instances.
+
 #### Builder pattern
 
 The purpose of the builder pattern is to separate the construction of a complex object from its representation so that the same construction process can represent different representations.
@@ -750,7 +929,202 @@ basically the idea is that instead of having a ton of constructor arguments, jus
 > [!NOTE]
 > This is overkill. You can also just accept an object of arguments, with default or optional arguments and that would be a lot easier.
 
+
+The builder design pattern solves several key problems:  
+  
+- **simpler constructors**: It eliminates the need for constructors with many optional parameters (telescoping constructors), allowing you to set parameters step-by-step instead of all at once.
+- **more flexibility without creating multiple classes**: It enables creating different representations of the same object, like different types of burgers, using the same class.
+- **object creation simplicity**: It helps construct complex objects in a manageable, step-by-step way, isolating complex code parts.
+
+![](https://i.imgur.com/h7PXAWR.jpeg)
+
+The builder pattern has several key components that work together to create complex objects step-by-step:  
+  
+
+- **Builder Interface:** This defines all the methods needed to build parts of the final object. It acts as a blueprint for creating different representations.
+- **Concrete Builder Classes:** These implement the builder interface and contain the actual code to build the parts of the object. Each builder can create a different version of the product.
+- **Director:** This class controls the construction process by defining the order in which the builder's methods are called. It allows reusing different building sequences.
+- **Client:** The client assigns a specific builder to the director and initiates the construction. It interacts with the director to get the final product.
+
+
+```ts
+class Burger {
+    name: string
+    cheese: boolean
+    bacon: boolean
+    lettuce: boolean
+    tomato: boolean
+    
+    constructor(name: string, cheese: boolean, bacon: boolean, lettuce: boolean, tomato: boolean) {
+        this.name = name
+        this.cheese = cheese
+        this.bacon = bacon
+        this.lettuce = lettuce
+        this.tomato = tomato
+    }
+
+    showDetails() : string {
+        let details = "This " + this.name  + " Burger has: "
+
+        if(this.cheese) {
+            details = details + " Cheese, "
+        }
+
+        if(this.bacon) {
+            details = details + " Bacon, "
+        }
+
+        if(this.lettuce) {
+            details = details + " Lettuce, "
+        }
+
+        if(this.tomato) {
+            details = details + " Tomato "
+        }
+
+        return details
+
+    }
+}
+
+class BurgerBuilder {
+
+    private name: string
+    private cheese: boolean = false
+    private bacon: boolean = false
+    private lettuce: boolean = false
+    private tomato: boolean = false
+    
+    constructor(name: string) {
+        this.name = name
+    }
+    
+    addCheese(): BurgerBuilder {
+        this.cheese = true
+        return this
+    }
+    
+    addBacon(): BurgerBuilder {
+        this.bacon = true
+        return this
+    }
+    
+    addLettuce(): BurgerBuilder {
+        this.lettuce = true
+        return this
+    }
+    
+    addTomato(): BurgerBuilder {
+        this.tomato = true
+        return this
+    }
+    
+    build(): Burger {
+        return new Burger(this.name, this.cheese, this.bacon, this.lettuce, this.tomato)
+    }
+}
+
+// Usage
+
+function builderClient() {
+    const everythingBurgerBuilder = new BurgerBuilder("Everything")
+    const everythingBurger = everythingBurgerBuilder
+	    .addCheese()
+	    .addBacon()
+	    .addLettuce()
+	    .addTomato()
+	    .build()
+    
+    console.log(everythingBurger.showDetails()) 
+    const cheeseBurgerBuilder = new BurgerBuilder("Cheese")
+    const cheeseBurger = cheeseBurgerBuilder.addCheese().addTomato().build() 
+    console.log(cheeseBurger.showDetails())
+}
+builderClient()
+
+
+```
+
+
+#### Prototype pattern
+
+The prototype design pattern is a creational pattern that helps you create copies of objects efficiently without depending on their classes.
+
+1. It works by defining a prototype interface with a cloning method, which concrete prototype objects implement. 
+2. When you need a copy, the client produces it from this prototype interface.  
+  
+Key benefits include:  
+  
+
+- Objects copied this way are independent, so changes to one don’t affect the other.
+- It reduces the need for creating many subclasses.
+- It avoids repeated initialization by cloning existing objects.
+
+  
+However, copying complex objects can be tricky and may introduce errors. 
+
+This pattern is especially useful when your classes are only initialized at runtime and you want to manage object creation flexibly in TypeScript.
+
+
+```ts
+// Prototype Interface
+abstract class Shape  {
+    abstract print() : void
+    abstract clone() : Shape
+}
+
+// Concrete Prototype
+
+class Circle extends Shape {
+    color: string 
+    
+    constructor(color: string) {
+        super()
+        this.color = color
+    }
+
+    print() : void {
+        console.log(this.color + " circle")
+    }
+
+    clone() : Shape {
+        console.log("Cloning a " + this.color + " circle")
+        return new Circle(this.color)
+    }
+}
+
+
+
+// Client 
+function circleClient() {
+
+    let greenCircle = new Circle("Green")
+    let blueCircle = new Circle("Blue")
+    let redCircle = new Circle("Red")
+
+
+
+    let greenClone = greenCircle.clone()
+    let blueClone = blueCircle.clone()
+    let redClone = redCircle.clone()
+
+
+    greenCircle.print()
+    blueCircle.print()
+    redCircle.print()
+    greenClone.print()
+    blueClone.print()
+    redClone.print()
+
+}
+
+circleClient()
+
+```
+
 ### Structural patterns
+
+#### Adapter patterns
 
 
 #### Proxy pattern
