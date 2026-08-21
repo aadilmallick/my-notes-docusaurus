@@ -1126,7 +1126,103 @@ circleClient()
 
 #### Adapter patterns
 
+The adapter design pattern acts as a bridge between two incompatible types by using a single interface to connect different functionalities, where both sides are unaware that there is an adapter.
 
+- It allows you to use a class that otherwise wouldn't fit with your existing code by wrapping it in an adapter. 
+- This pattern is useful when you want to reuse subclasses that don't share common functionality but need to work together. 
+- In TypeScript, the adapter implements the client interface and handles incompatible services through wrapper functions, keeping your business logic separate from the interface. 
+- This approach follows good design principles like single responsibility and open/closed, making your code more flexible, though it can get complex as you add more adapters.
+
+Here are the pros of the adapter pattern:
+
+1. Uses single responsibility principle
+2. Follows the open/closed principle
+
+Here are the cons of the adapter pattern:
+
+- Code gets complex as clients and services grow and you have to adapt to all of them.
+
+There are two types of adapter patterns:
+
+- **object adapter**: uses composite pattern to accept a concrete object into its class and then wrap functionality around that.
+	- **universality**: universal across all programming languages
+- **class adapter**: adapter inherits interfaces from both objects at the same time
+	- **universality**: only in languages with multiple inheritance 
+
+
+![](https://i.imgur.com/Vc8l5Xq.jpeg)
+
+- **client**: a specific piece of functionality that contains business logic
+- **client interface**: interface that represents the shared contract of all the functionality a client exposes.
+- **adapter**: implements the client interface and uses the service to do so, providing custom business logic to use the methods on the service to implement the client interface.
+- **service**: a separate piece of business logic you want to adapt to the client.
+
+```ts
+// Client 
+class Publisher {
+    constructor () {}
+
+    publishContentOnPlatform(platform: Platform){
+        console.log("Pubisher is ready to post your content")
+        platform.postMedia()
+    }
+}
+
+
+// Client Interface
+abstract class Platform  {
+    abstract postMedia() : void
+}
+
+
+// Compatible Services
+class Instagram extends Platform {
+
+    postMedia() {
+        console.log("Instagram has published your post.")
+    }
+}
+
+
+// Incompatible Service
+class TikTok {
+    constructor(){}
+
+    scheduleMedia(){
+        console.log("TikTok is ready to schedule your post.")
+    }
+}
+
+// Adapter 
+class TikTokAdapter extends Platform {
+    tikTok : TikTok
+    constructor(tikTok : TikTok) {
+        super()
+        this.tikTok = tikTok
+    }
+
+    postMedia() {
+        this.tikTok.scheduleMedia()
+        console.log("Adapter has posted the TikTok content.")
+    }
+}
+
+function adapterClient() {
+
+    let publisher = new Publisher()
+    let instagram = new Instagram()
+
+    publisher.publishContentOnPlatform(instagram)
+
+    // Using the Adapter 
+    let tikTok = new TikTok()
+    let tikTokAdapter = new TikTokAdapter(tikTok)
+
+    publisher.publishContentOnPlatform(tikTokAdapter)
+}
+
+adapterClient()
+```
 #### Proxy pattern
 
 The proxy pattern is a way to hook into getters and setters of an object and provide additional functionality on top of that, running side effects on every get or set.
@@ -1198,6 +1294,91 @@ class DirectoryNode implements FileSystemNode {
 }
 ```
 
+Here are the main use cases for when you would want to use the composite pattern:
+
+- You want a tree-like object structure.
+- You want simple and complex objects to be treated the same way.
+
+
+![](https://i.imgur.com/P2cjWn6.jpeg)
+
+- **Component:** An interface describing operations for both simple and complex elements.
+- **Leaf:** Implements the component interface and represents simple objects without children.
+- **Composite:** A container that holds leaves or other composites, delegating tasks to its children.
+- **Client:** Interacts with all elements through the component interface.
+
+
+This pattern is great for building hierarchical structures and follows the open/closed principle, so you can add new classes without breaking existing code.
+
+
+```ts
+// Component Interface 
+abstract class Member  {
+    abstract printMemberInfo() : void
+}
+ 
+
+ // Leaf 
+class TeamMember extends Member {
+    name : string
+    teamNumber: number 
+    position : string 
+
+    constructor(name: string, teamNumber: number, position: string) {
+        super()
+        this.name = name
+        this.teamNumber = teamNumber
+        this.position = position
+    }
+
+    printMemberInfo(): void {
+        console.log("Name: %s Team Number: %d Position: %s\n", 
+        this.name, this.teamNumber, this.position)
+    }
+
+}
+ 
+ 
+
+// Composite
+ class Roster extends Member {
+     members : Member[] = []
+     name : string 
+ 
+     constructor(name: string) {
+         super()
+         this.name = name
+     }
+ 
+    printMemberInfo(): void {
+        console.log("Here's the roster for team: " + this.name)
+        for(let i = 0; i < this.members.length; i++) {
+            this.members[i].printMemberInfo()
+        }
+    }
+ 
+     add(m : Member) : void{
+         this.members.push(m)
+     }
+ }
+ 
+
+// Initialize our team members
+let member1 = new TeamMember("Johnny Rocket", 12, "Forward")
+let member2 = new TeamMember("Tim Hoops", 24, "Point Guard")
+let member3 = new TeamMember("Billy Banks", 29, "Shooting Guard")
+
+// Initialize our roster 
+let roster = new Roster("Bobcats")
+
+// Add team members to our roster 
+roster.add(member1)
+roster.add(member2)
+roster.add(member3)
+
+// print out the member info
+roster.printMemberInfo()
+```
 #### Decorator pattern
 
 The Decorator pattern allows you to dynamically attach new behaviors or responsibilities to an object by placing it inside special wrapper objects.
@@ -1240,6 +1421,101 @@ const myCoffee = new SugarDecorator(new MilkDecorator(new SimpleCoffee()))
 console.log(myCoffee.cost()) // 2.00 + 0.50 + .25
 ```
 
+The main purpose of the decorator pattern is to dynamically add new functionality to a specific object without affecting other objects of the same class. 
+
+- It wraps the original object with decorator classes, allowing you to extend behavior flexibly and avoid the complications of inheritance. 
+- This is especially useful when only some objects need extra features, keeping your code clean and focused on single responsibilities.
+
+
+![](https://i.imgur.com/nQbuR2t.jpeg)
+
+- **component interface**: Declares the structure for all the wrappers and wrapped objects. 
+- **concrete component**: the class that is being wrapped by the decorator. It defines the basic behavior the decorator can alter.
+- **base decorator**: delegates all the operations to the wrapped object 
+- **concrete decorator**: concrete subclass of a base decorator that defines extra functionality that can be added to an object dynamically, overriding functionality of the base decorator
+
+```ts
+// Component Interface 
+abstract class  AbstractIceCream  {
+	abstract addToppings() : string
+}
+
+// Concrete Component
+class IceCream extends AbstractIceCream {
+    flavor : string 
+
+    constructor(flavor : string) {
+        super()
+        this.flavor = flavor
+    }
+
+    addToppings() : string {
+        return "2 scoops of " + this.flavor
+    }
+}
+
+// Base Decorators
+abstract class IceCreamDecorator  {
+	abstract makeIceCream() : void 
+}
+
+
+// Concrete Decorator 1
+class Sprinkles extends IceCreamDecorator {
+    iceCream : AbstractIceCream
+
+    constructor(iceCream : AbstractIceCream) {
+        super()
+        this.iceCream = iceCream
+    }
+
+    addToppings(): string {
+        let currentOrder = this.iceCream.addToppings()
+        return currentOrder + " and Rainbow Sprinkles"
+    }
+
+    makeIceCream() : void {
+        console.log("Here's Your Ice Cream Order")
+        console.log(this.addToppings())
+        console.log()
+    }
+}
+
+// Concrete Decorator 2
+class Syrup extends IceCreamDecorator {
+    iceCream : AbstractIceCream
+
+    constructor(iceCream : AbstractIceCream) {
+        super()
+        this.iceCream = iceCream
+    }
+
+    addToppings(): string {
+        let currentOrder = this.iceCream.addToppings()
+        return currentOrder + " and Chocolate Syrup"
+    }
+
+    makeIceCream() : void {
+        console.log("Here's Your Ice Cream Order")
+        console.log(this.addToppings())
+        console.log()
+    }
+}
+
+
+let iceCream = new IceCream("Chocolate")
+
+
+let iceCreamWithSprinkles = new Sprinkles(iceCream)
+iceCreamWithSprinkles.makeIceCream()
+
+let iceCreamWithSprinkesAndChocolateSyrup = new Syrup(          iceCreamWithSprinkles 
+)
+iceCreamWithSprinkesAndChocolateSyrup.makeIceCream()
+
+
+
+```
 #### Composites and Decorators abstraction
 
 ```ts
@@ -1318,6 +1594,18 @@ console.log(htmlDocument.execute());
 // <h1>Hello World</h1>
 // <p>This is built with patterns.</p>
 ```
+
+#### Facade pattern
+
+The facade pattern is simply a single class that wraps around the complexities of a library or framework just to abstract around it and make it easier to use. 
+
+Here are the main use cases:
+
+- When you want a limited but straightforward interface to a complex system, when you want to hide a lot of business logic to make the code simpler.
+- When you want to structure a system into layers and prevent tight coupling.
+
+
+
 
 ### Behavioral patterns
 
@@ -1512,6 +1800,13 @@ abstract class StrategyUser<T> {
 
 #### Command pattern
 
+The main use case of the command pattern is when you have a bunch of operations that you would like to compose in different orders and execute them and would also like to make them reversible. 
+
+Here are the main use cases:
+
+- **scheduling or queuing operations**: When you want to schedule certain operations or queue them in an easy, declarative way.
+- **reversing operations**: When you want to easily reverse operations instead of writing the concrete code to reverse it.
+
 The pattern has two main components:
 
 - **command**: a single command represents an encapsulation of some function logic
@@ -1525,16 +1820,16 @@ interface Conductor<T> {
 	execute<T>(command: Command<T>, data: T) => void;
 }
 
-  export class Command<T> {
-    constructor(
-      public name: string,
-      public cb: (data: T) => void
-    ) {}
-  
-    equals(command: Command<T>) {
-      return this.name === command.name;
-    }
-  }
+export class Command<T> {
+	constructor(
+	  public name: string,
+	  public cb: (data: T) => void
+	) {}
+
+	equals(command: Command<T>) {
+	  return this.name === command.name;
+	}
+}
   
 export class CommandExecutor implements Conductor {
 	// for keeping track of commands
@@ -1600,7 +1895,109 @@ manager.execute(new TrackOrderCommand("1234"));
 manager.execute(new CancelOrderCommand("1234"));
 ```
 
+
+![](https://i.imgur.com/5rGfCBK.jpeg)
+
+- **Command Interface:** Declares a method for executing the command.
+- **Concrete Command Objects:** Implement the command interface and encapsulate specific requests.
+- **Receiver:** Contains the business logic to perform the actual work.
+- **Invoker:** Handles requests from the client and references command objects instead of calling the receiver directly.
+- **Client:** Creates and configures concrete command objects with the invoker to execute requests.
+
+```ts
+class Train {
+    name : string
+    location : string
+    passengers : string[]
+
+    constructor(name : string, location : string , passengers : string[]){
+        this.name = name
+        this.location = location
+        this.passengers = passengers
+    }
+}
+
+
+
+// Command Interface 
+abstract class Command {
+    abstract execute(train: Train) : void
+}
+
+
+
+// Concrete Command 1
+class AddPassengerCommand extends Command  {
+    passenger : string 
+
+    constructor(passenger : string) {
+        super()
+        this.passenger = passenger
+    }
+
+    execute(train : Train) {
+        train.passengers.push(this.passenger)
+        console.log("New passenger on board: " + this.passenger)
+    }
+}
+
+
+// Concrete Command 2 
+class MoveTrainCommand extends Command  {
+    location : string 
+
+    constructor(location : string) {
+        super()
+        this.location = location
+    }
+
+    execute(train : Train) {
+        train.location = this.location
+        console.log("The train is locatied at: " + train.location)
+    }
+}
+
+
+// Invoker
+class Invoker {
+
+    command! : Command
+    
+
+    setCommand(command: Command) {
+        this.command = command
+    }
+
+    executeCommand(train : Train) {
+        this.command.execute(train)
+    }
+}
+
+
+
+
+// Client
+function commandClient() {
+    let train = new Train("Express", "Station A", [])
+
+	
+	let addPassengerCommand = new AddPassengerCommand("Alice")
+	let moveTrainCommand = new MoveTrainCommand("Station B")
+	
+	let invoker = new Invoker()
+	
+	invoker.setCommand(addPassengerCommand)
+	invoker.executeCommand(train)
+	
+	invoker.setCommand(moveTrainCommand)
+	invoker.executeCommand(train)	
+}
+
+commandClient()
+```
 #### Iterator pattern
+
+The iterator pattern allows you to traverse the items of any collection without actually knowing the actual structure of the collection.
 
 - **iterator**: an object with a `next()` method, which when invoked, returns an object in the shape of `{value: any, done: boolean}`.
 - **iterable**: an object with a `[Symbol.iterator]()` method implemented that returns an iterator object. 
@@ -1641,6 +2038,104 @@ for (const gospel of gospelIteratable) {
 }
 ```
 
+Here are the pros of the iterator pattern:
+
+- Follows SOLID principles of single responsibility and open/closed principle
+
+
+![](https://i.imgur.com/Lpbh62Y.jpeg)
+
+
+- **Iterator Interface:** Declares methods to traverse the collection, like getting the next element or checking if more elements exist.
+- **Collection Interface:** Provides a method to get an iterator for the collection.
+- **Concrete Iterator:** Implements the iterator interface, allowing traversal through the collection independently.
+- **Concrete Collection:** Returns new instances of the concrete iterator.
+- **Client:** Uses both the iterator and collection to access elements without knowing the collection's structure.
+
+```ts
+// Iterator Interface
+abstract class AbstractIterator {
+    abstract next(): TeamMember;
+    abstract hasNext(): boolean;
+}
+
+// Collection Iterface
+abstract class Aggregator {
+    abstract getIterator(): AbstractIterator
+ }
+
+
+class TeamMember  {
+    name : string
+    teamNumber: number 
+    position : string 
+
+    constructor(name: string, teamNumber: number, position: string) {
+        this.name = name
+        this.teamNumber = teamNumber
+        this.position = position
+    }
+
+    printMemberInfo(): void {
+        console.log("Name: %s Team Number: %d Position: %s\n", this.name, this.teamNumber, this.position)
+    }
+
+ }
+
+
+ // Concrete Iterator
+ class TeamMemberIterator extends AbstractIterator {
+
+    teamMembers : TeamMember[]
+    index : number = 0
+
+    constructor(teamMembers : TeamMember[] ){
+        super()
+        this.teamMembers = teamMembers
+    }
+
+    hasNext(): boolean {
+        return this.index < this.teamMembers.length
+    }
+
+    next(): TeamMember{
+        return this.teamMembers[this.index++];
+    }
+ }
+
+ // Concrete Collection
+ class Roster extends Aggregator {
+    teamMembers : TeamMember[] 
+
+    constructor(teamMembers : TeamMember[]) {
+        super()
+        this.teamMembers = teamMembers
+    }
+
+    getIterator(): TeamMemberIterator {
+        return new TeamMemberIterator(this.teamMembers)
+    }
+ }
+
+ // Client
+ function iteratorClient() {
+    let member1 = new TeamMember("Johnny Rocket", 12, "Forward")
+	let member2 = new TeamMember("Tim Hoops", 24, "Point Guard")
+    let member3 = new TeamMember("Billy Banks", 29, "Shooting Guard")
+
+    let roster = new Roster([member1, member2, member3])
+    let iterator = roster.getIterator()
+
+    while(iterator.hasNext()) {
+        iterator.next().printMemberInfo()
+    }
+    
+ }
+
+ iteratorClient()
+
+
+```
 #### Observer pattern
 
 The purpose of the observer pattern is to define a one-to-many dependency between objects so that when one object changes state, all of its dependents are notified and updated automatically.
@@ -1688,4 +2183,296 @@ function handleClick() {
 function handleToggle() {
 	observable.notify("User toggled switch!");
 }
+```
+
+#### State pattern
+
+The state pattern just follows a state machine and allows for objects to alter behavior depending on their current state. 
+
+Here are the main use cases for when you would want to use the state pattern:
+
+- If you have an object that behaves differently depending on the state
+- If you have a bunch of conditionals in a class, you could benefit from refactoring to use a state pattern to remove those conditionals and instead just program to an interface. 
+- If you have a bunch of duplicate code across multiple subclasses, you could benefit from refactoring to use a state pattern to remove those conditionals and instead just program to an interface. 
+
+![](https://i.imgur.com/g45X028.jpeg)
+
+- **State Interface:** Declares methods used by all different states.
+- **Concrete States:** Implement the state interface with specific behaviors for each state.
+- **Context:** Holds a reference to a concrete state object and delegates state-specific work to it.
+- **Setter Method in Context:** Allows switching the current state dynamically.
+- **Client:** Interacts with the context and can change its state.
+
+  
+This pattern helps objects change behavior based on their internal state, making the object appear to change its class while keeping code organized and flexible.
+
+
+```ts
+// State Interface 
+abstract class ShapeState {
+    abstract drawShape() : void
+    abstract eraseShape() : void 
+}
+
+
+
+// Concrete State 
+class CircleState extends ShapeState {
+
+    drawShape(): void {
+        console.log("Drawing Circle")
+    }
+
+    eraseShape(): void {
+        console.log("Erasing Circle")
+    }
+}
+// Concrete State 
+class RectangleState extends ShapeState {
+
+    drawShape(): void {
+        console.log("Drawing Rectangle")
+    }
+
+    eraseShape(): void {
+        console.log("Erasing Rectangle")
+    }
+
+}
+
+
+// Context 
+class Shape {
+    state : ShapeState
+
+    constructor(state : ShapeState) {
+        this.state = state
+    }
+    draw() : void {
+        this.state.drawShape()
+    }
+
+    erase() : void {
+        this.state.eraseShape()
+    }
+}
+
+
+// Client 
+function stateClient() {
+    let circle = new Shape(new CircleState())
+    circle.draw()
+    circle.erase()
+
+    let rectangle = new Shape(new RectangleState())
+    rectangle.draw()
+    rectangle.erase()
+
+}
+
+stateClient()
+```
+
+#### Template method pattern
+
+The template method is useful when you have a multi-step algorithm that can be implemented differently with different concrete subclasses, where you have a **template** that always runs the same instructions the same way, but the individual steps within the algorithm may vary across child components.
+
+- You don't want to change all the code to account for all the different ways a concrete class could implement the individual steps. 
+- Instead you abstract each step so that the concrete class has its own implementation for it. 
+
+It defines the skeleton of an algorithm in an abstract superclass, allowing subclasses to override specific steps without changing the overall structure, which helps reduce code duplication when multiple classes share similar algorithms.
+
+
+![](https://i.imgur.com/HRi4uGc.jpeg)
+
+- **abstract class**: an interface that describes individual steps of an algorithm to be implemented by concrete classes
+	- **template method**: a method that controls the business logic and order of how the steps execute in the algorithm. 
+		- This should not be overridden by child components.
+	- **step method**: individual steps of the template which should be overridden by child components to provide concrete implementation of a step in the algorithm.
+- **concrete class**: implements the abstract class and provides business logic for overriding the outlined steps set by the abstract class with a concrete implementation.
+
+```ts
+abstract  class Car {
+
+    abstract drive() : void 
+    startEngine(): void {
+        console.log("Starting Engine")
+    }
+
+    stopEngine(): void {
+        console.log("Stoping Engine")
+    }
+
+    // template method 
+    run() : void {
+        this.startEngine()
+        this.drive()
+        this.stopEngine()
+    }
+
+}
+
+
+class Sedan extends Car {
+
+    drive() {
+        console.log("Driving a sedan")
+    }
+}
+
+
+class SUV extends Car {
+
+    drive(){
+        console.log("Driving an SUV")
+    }
+}
+
+
+
+let sedan = new Sedan()
+sedan.run()
+
+let suv = new SUV()
+suv.run()
+
+templateMethodClient()
+```
+
+#### Mediator pattern
+
+The mediator pattern restricts direct communication between objects and forces them to collaborate instead via a mediator object. 
+
+You should use the mediator pattern when specific dependencies prevent your ability to change a class and you can't reuse that class because it's too tightly coupled to other classes. 
+
+
+![](https://i.imgur.com/dAehA6f.jpeg)
+
+
+Benefits:
+
+- Reduces the amount of dependencies and promotes loose coupling 
+
+Cons:
+
+- Becomes a dreaded god object over time
+
+**Example**
+
+```ts
+// Component Interface 
+abstract class Package {
+    abstract ship() : void
+    abstract deliver() : void
+    abstract allowShipping() :void
+}
+
+
+// Mediator Interface 
+abstract class Mediator {
+    abstract canShip(pack : Package) : boolean
+    abstract notifyAboutDelivery() : void
+}
+
+// Concrete Component A 
+class UPSPackage extends Package {
+    mediator : Mediator 
+
+    constructor(mediator : Mediator) {
+        super()
+        this.mediator = mediator
+    }
+
+    ship(){
+        if (this.mediator.canShip(this)) {
+            console.log("UPS Package Shipping blocked...waiting")
+        }
+    }
+
+    deliver() : void {
+        console.log("Delivering UPS package")
+	    this.mediator.notifyAboutDelivery()
+
+    }
+
+    allowShipping(): void {
+        console.log("UPS Package: Ready to ship")
+        this.ship();
+    }
+}
+
+// Concrete Compomnent B
+class FedExPackage extends Package {
+    mediator : Mediator 
+
+    constructor(mediator : Mediator) {
+        super()
+        this.mediator = mediator
+    }
+
+    ship(){
+        if (this.mediator.canShip(this)) {
+            console.log("FedEx Package Shipping blocked...waiting")
+        }
+    }
+
+    deliver() : void {
+        console.log("Delivering FedEx package")
+	    this.mediator.notifyAboutDelivery()
+
+    }
+
+    allowShipping(): void {
+        console.log("FedEx Package: Ready to ship")
+        this.ship();
+    }
+
+}
+
+
+// Concrete Mediator
+class PackageManager extends Mediator {
+    isPackagePacked : boolean
+    packages : Package[] = []
+
+    constructor(isPackagePacked : boolean) {
+        super()
+        this.isPackagePacked = isPackagePacked
+    }
+
+    canShip(pack: Package): boolean {
+       if (this.isPackagePacked) {
+        this.isPackagePacked = false
+        return true
+       }
+       this.packages.push(pack)
+       return false
+    }
+
+    notifyAboutDelivery(): void {
+        if (!this.isPackagePacked) {
+            this.isPackagePacked = true
+        }
+        if (this.packages.length > 0) {
+            let firstPackage = this.packages[0]
+            this.packages.shift()
+            firstPackage.allowShipping()
+        }
+    }
+}
+
+
+// Client 
+function mediatorClient() {
+    let packageManager = new PackageManager(true)
+
+    let upsPackage = new UPSPackage(packageManager)
+    let fedExPackage = new FedExPackage(packageManager)
+
+    upsPackage.ship()
+    fedExPackage.ship()
+    upsPackage.deliver()
+    fedExPackage.deliver()
+}
+mediatorClient()
 ```
