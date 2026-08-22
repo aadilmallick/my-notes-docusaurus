@@ -267,15 +267,7 @@ Deno.test("returns a single character by id", async () => {
 ```
 
 
-### Making a basic graphQL server in Express
-
-#### Initial setup
-
-1. Install packages
-
-```bash
-npm i graphql express-graphql
-```
+### Making a basic express server 
 ## GraphQL syntax fundamentals
 
 ### Types, Queries, Resolvers
