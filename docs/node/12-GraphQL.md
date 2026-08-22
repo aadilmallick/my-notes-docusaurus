@@ -2203,7 +2203,3 @@ fragment CarData on Car {
 
 ### Fullstack App Example
 
-#### 1) 
-
-
-#### 2) Create the frontend
