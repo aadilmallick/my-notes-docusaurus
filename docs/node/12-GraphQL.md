@@ -1527,6 +1527,14 @@ export async function POST(request: NextRequest) {
 
 This is the most basic vanilla way to use Apollo to create a server with Express. 
 
+1. Install dependencies
+
+```bash
+npm install @apollo/server @as-integrations/express5 graphql express cors
+
+npm install --save-dev @types/cors @types/express
+```
+
 ```ts
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
