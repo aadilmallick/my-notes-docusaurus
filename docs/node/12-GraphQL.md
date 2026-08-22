@@ -1641,7 +1641,103 @@ export const schema = joinTypeDefs(typeDefs, queryDefs, inputDefs, MutationDefs)
 4. Write the resolvers
 
 ```ts
+enum CarType {
+    SPORTS = "SPORTS",
+    NORMAL = "NORMAL",
+}
 
+interface Car {
+    id: number;
+    carType: CarType;
+    color: string;
+    year: number;
+}
+
+interface AddCarInput {
+    id?: number;
+    carType?: CarType;
+    color: string;
+    year: number;
+}
+
+
+class CarFactoryManager {
+    public cars: Car[];
+
+    constructor() {
+        this.cars = [
+            {
+                id: 1,
+                carType: CarType.NORMAL,
+                color: "gray",
+                year: 1999,
+            },
+        ];
+    }
+
+    public get count() {
+        return this.cars.length;
+    }
+
+    public get nextId() {
+        return this.count + 1
+    }
+
+    addCar(input: AddCarInput) {
+        const newCar: Car = {
+            ...input,
+            carType: input.carType || CarType.NORMAL,
+            id: this.nextId,
+        }
+        this.cars.push(newCar)
+        return newCar;
+    }
+}
+
+const carManager = new CarFactoryManager();
+
+// A map of functions which return data for the schema.
+export const resolvers = {
+    Query: {
+        getCars: async (parent, args, context, info) => {
+            return cars
+        },
+        getCar: async (parent, args: { id: number }, context, info) => {
+            console.log({
+                parent,
+                args,
+                context,
+            })
+            return carManager.cars.find(car => Number(car.id) === Number(args.id));
+        }
+    },
+    Mutation: {
+        addCar: async (parent, args: AddCarInput, context, info) => {
+            return carManager.addCar(args)
+        }
+    }
+};
+
+```
+
+6. Query in the playground
+
+```graphql
+mutation AddCar {
+  addCar(
+    input:  {
+      color: "green",
+      year: 2020
+    }
+  ) {
+    ...CarData
+  }
+}
+
+fragment CarData on Car {
+  id,
+  carType,
+}
 ```
 
 ### Fullstack App Example
