@@ -63,6 +63,15 @@ There are two main ways to solve this issue and prefer abstraction over details 
 - **dependency injection**: Dependency injection avoids the mocking and spying issue
 - **treat code as a black box**: Treat the code you're testing as a black box - you only know the inputs and outputs. Pretend you have no idea what the function is actually doing.
 
+#### Do not test implementation details
+
+If you're mocking and spying all over the place, that may mean that you're testing implementation details of how a function is actually written, which is bad because it makes your test brittle and they will break if your function implementation changes.
+
+> [!IMPORTANT]
+> Anytime you write a test to test a function, you should almost never care about what the implementation details of that function are, and instead try to abstract it away as if it were a black box.
+
+
+
 #### Making testable classes
 
 When writing classes you want to later be able to test, make sure that all your class properties are able to be accessed. Give getters and setters for each one.
@@ -81,7 +90,14 @@ Now, here is how to write testable code:
 
 #### It's OK to repeat yourself
 
-Don't worry about DRY code when writing tests. Tests are meant to stand on their own individually, and writing abstractions to promote DRY code makes your code inflexible and your tests more complicated. Just repeat them.
+Don't worry about DRY code when writing tests. 
+
+> [!NOTE]
+> Tests are meant to stand on their own individually, and writing abstractions to promote DRY code makes your code inflexible and your tests more complicated. Just repeat them.
+
+Do not try to get clever with abstraction in tests, because that will inevitably end up affecting all your tests and makes them harder to maintain.
+
+
 
 #### Use dependency injection
 
@@ -97,6 +113,15 @@ These are the three major benefits of dependency injection:
 - **Flexibility:** Changing a dependency becomes as simple as handing a new one to your class or function. No need to dive deep into the internals just to update an implementation, making your app more maintainable.
 - **Decoupling:** When your code doesn’t need to know _how_ things are created, it’s largely isolated from changes. Want to swap out `ApiClient` for something else? Just hand in the new dependency. No drama, no tears.
 
+#### When to mock and when not to
+
+> [!NOTE]
+> The best time to mock a function is when you're trying to abstract away implementation details you don't care about, like a database call or some network requests that you don't want to actually execute. 
+
+> [!WARNING]
+> If you see a test that has more than 10 to 20 mocks within a single file, then that means that you're not really testing the code. Instead you're just trying to make sure that your test is correct and it's not really testing the underlying code. That's a red flag. 
+
+
 ### TDD
 
 TDD is a programming paradigm where we write tests before writing code, essentially designing our entire codebase out of those tests. It follows a principle of **red-green-refactor**.
@@ -109,25 +134,42 @@ These are the steps:
 
 The main benefit of TDD is that it follows the rule of testing based on abstractions rather than implementation details.
 
+> [!NOTE]
+> **Here is why TDD works**:
+> ***
+> TDD works because if you write the tests before you actually write the function and actual business logic, it's pretty much impossible to include implementation details in your testing. 
+
 ## Vitest basics
 
-### CLI and setup
+### Setup
 
 Vitest is typescritp compatible and built from jest. You can import other files into your test files, which you couldn’t do with jest
 
 1. `npm install -D vitest`
 2. Create a test script. THe `vitest` command runs in watch mode by default
     
-    ```jsx
-    {
-      "scripts": {
-        "test": "vitest"
-      }
-    }
-    ```
-    
+```jsx
+{
+  "scripts": {
+	"test": "vitest"
+  }
+}
+```
 
-**Vitest CLI**
+3. If using `tsconfig.json` path aliases, you need to use the `tsconfigPaths()` plugin in Vite to account for that, because otherwise Vite can't handle those aliases.
+
+```ts
+/// <reference types="vitest/config" />
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react-swc"
+import tsconfigPaths from "vite-tsconfig-paths"
+
+export default defineConfig({
+  plugins: [react(), tsconfigPaths()],
+})
+```
+
+### CLI 
 
 - `vitest --run` : runs your tests once
 - `vitest` : runs your tests in watch mode
@@ -229,6 +271,9 @@ it.skipIf(process.env.NODE_ENV !== 'test')('it should run in test', () => {
 
 To avoid code duplication, you can write code that runs before and after each test with lifecycle hooks
 
+> [!IMPORTANT]
+> These lifecycle hooks are scoped. If you put lifecycle hooks within a test suite, then they are scoped to that test suite.
+
 - `beforeEach(cb)` : runs a callback before each test
 - `afterEach(cb)` : runs a callback after each test
 - `beforeAll(cb)` : runs a callback once before starting testing for the file
@@ -263,14 +308,12 @@ describe('Counter', () => {
 });
 ```
 
-### Testing API
-
-#### `expect()`
+### `expect()`
 
 Here is how we can use the powerful `expect()` method:
 
 - `expect(variable).toBe(value)` : checks equality for primitive values, checks reference for objects
-- `expect(variable).toEqual(value)` : checks equality for primitive values and objects, works by checking equality of values instead of references for objects.
+- `expect(variable).toEqual(value)` : checks equality for primitive values and objects, works by checking equality of values instead of references for objects, checking for deep equality.
 - `expect(variable).toBeInstanceOf(class)` : asserts is the variable is an instance of the specified class.
 - `expect(variable).toContain(value)` : asserts if the array contains the specified class
 - `expect(func).toThrow()` : execute the function and asserts true if the function throws an error
@@ -284,7 +327,7 @@ expect(() => throw new Error("it went wrong")).toThrowError(/went wrong/);
 expect(0.2 + 0.1).toBeCloseTo(0.3);
 ```
 
-**negating**
+#### **negating**
 
 To negate these conditions, use the `not` property after the `expect()` method like so:
 
@@ -292,7 +335,7 @@ To negate these conditions, use the `not` property after the `expect()` method l
 expect(["Backlog"]).not.toContain(["Bruh"]);
 ```
 
-**dealing with promises**
+#### **dealing with promises**
 
 In most cases, you can just make your test asynchronous, but in some cases, you can use these properties:
 
@@ -303,7 +346,7 @@ In most cases, you can just make your test asynchronous, but in some cases, you 
 expect(new Promise((res, rej) => res(undefined))).resolves.toBeUndefined();
 ```
 
-**mocking with objects**
+#### **mocking with objects**
 
 If you want to test whether an object has some properties defined on it or equal to something, you can do that by using the `expect` function to create mocking objects.
 
@@ -318,6 +361,178 @@ it.todo('supports adding an item with the correct name', () => {
   // expect result[0] to have property result[0].name == iPhone
   expect(result[0]).toBe(expect.objectContaining({ name: 'iPhone' }));
 });
+```
+
+### mocking `vi.fn()`
+
+The `vi.fn()` a method creates a mock function, which is both a stub and a spy, so it's basically an implementation that you can have full control over. 
+
+```ts
+test("it should mock", () => {
+	const fn = vi.fn(() => 5)
+	const five = fn()
+	expect(fn).toHaveBeenCalledOnce()
+})
+```
+
+1. Create a mock function that returns a value with `vi.fn()`:
+
+```ts
+const fn = vi.fn()
+```
+
+2. Use expectations with that mock function:
+
+```
+expect(fn).toHaveBeenCalledOnce()
+```
+### Spying with `vi.spyOn()`
+
+The `vi.spyOn(obj, property)` method allows you to swap out an implementation of a method on an already existing object with a mock.
+
+```ts
+const obj = {
+	getPeople() {
+		// complicated code
+		return 3
+	}
+}
+
+
+test("it should stub out and spy", () => {
+    // create spy and stub out return value
+	const spy = vi.spyOn(obj, "getPeople")
+					.mockImplementation(() => 4)
+					
+	const four = obj.getPeople()
+	expect(spy).toHaveBeenCalledOnce()
+})
+```
+
+### Fake timers
+
+1. Before each test in a test suite, call `vi.useFakeTimers()` to use fake timers:
+
+```ts
+beforeEach(() => {
+	vi.useFakeTimers()
+})
+```
+
+2. After each test in a test suite, call `vi.resetAllMocks()` to reset fake timers:
+
+```ts
+afterEach(() => {
+	vi.resetAllMocks()
+})
+```
+
+3. In a test, you can now use many timer methods using fake timers.
+
+
+### vitest browser mode for E2E testing
+
+#### Setup
+
+1. Init the browser setup TUI, choose playwright when the TUI comes up, this command creates a `vitest.browser.config.ts` file.
+
+```bash
+npx vitest init browser
+```
+
+2. Run this command to start testing in the browser
+
+```bash
+vitest --config=vitest.browser.config.ts
+```
+
+The most important thing is to make sure you have a working `vite.config.ts` for testing:
+
+1. Refactor the vite config to have two **projects**, one for unit testing and one for browser testing with their associated configs.
+
+```ts
+/// <reference types="vitest/config" />
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react-swc"
+import tsconfigPaths from "vite-tsconfig-paths"
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tsconfigPaths()],
+  test: {
+    projects: [
+      // "Unit" project uses node types, ignores browser tests
+      {
+        extends: true,
+        test: {
+          exclude: ["**/*.browser.{test,spec}.ts(x)"],
+          name: "Unit",
+          environment: "node",
+        },
+      },
+      // "Browser" project uses playwright and chromium
+      {
+        extends: true,
+        test: {
+          include: ["**/*.browser.{test,spec}.ts(x)"],
+          name: "Browser",
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: "playwright",
+            instances: [{ browser: "chromium" }],
+          },
+        },
+      },
+    ],
+  },
+})
+```
+
+2. Add two NPM scripts that use `vitest` to run tests, one for running the unit tests referenced by the `"Unit"` project spec and the other for browser tests referenced by the `"Browser"` project spec:
+
+```json title="package.json"
+{
+  "name": "current-project-2",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest --watch",
+    "benchmark": "vitest bench --watch",
+    "test:unit": "vitest --project unit",
+    "test:browser": "vitest --project browser"
+  }
+}
+```
+
+#### React component testing
+
+```ts
+import { render } from "vitest-browser-react"
+import { Counter } from "./Counter"
+
+describe("Counter", () => {
+  test("basic counter usage", async () => {
+    // 1. render the react component
+    const { getByText } = render(<Counter />)
+    
+    // 2. fetch playwright locator via location methods
+    const incButton = getByText("Increment")
+    
+    // 3. do DOM expectations
+    await expect.element(getByText("Count: 0")).toBeInTheDocument()
+    
+    // 4. perform locator DOM interactions
+    await incButton.click()
+    
+    await expect.element(getByText("Count: 1")).toBeInTheDocument()
+  })
+})
 ```
 
 ## Mocking, stubbing, spying
