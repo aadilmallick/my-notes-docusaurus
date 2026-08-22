@@ -1,6 +1,8 @@
-## Eslint
+## Linting tools
 
-### Basics
+### Eslint
+
+#### Basics
 
 1. Install
 
@@ -14,7 +16,7 @@ npm install eslint husky lint-staged --save-dev
 npx eslint --init
 ```
 
-### Eslint Config
+#### Eslint Config
 
 This is what your `eslint.config.js` should look like:
 
@@ -53,7 +55,6 @@ export default defineConfig([
 ]);
 ```
 
-#### Rules
 
 The rules for eslint come in a special format under the `rules` key: `Record<string, "off" | "warn" | "error">`.
 
