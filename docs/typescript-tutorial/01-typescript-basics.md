@@ -11,8 +11,6 @@ Let's learn about all the compiler options in the tsconfig, which live under the
 - `noEmit` : a boolean. If true, does not emit compiled files, meaning running `tsc` will not compile to javascript. Use this when using some frontend framework and not compiling your own typescript.
 - `noEmitOnError`: a boolean. If true, does not emit compiled files if there are any errors.
 - `target` : the specific year of JavaScript syntax you want to compile to. If you want to support older browsers, you would do es5, but if you want to use newer syntax, you would do es6 or es2015. If you want your compiled typescript to be bleeding edge, the same syntax as typescript but without type annotations, use `esnext`.
-- `strictPropertyInitialization`: a boolean. If true, requires that all class properties are initialized and synchronously intialized in the constructor.
-- `esModuleInterop`: a boolean. If true, allows you to use default imports from commonjs modules. Always set this to true
 - `skipLibCheck`: a boolean. If true, skips type checking of all declaration files in the project. Always set this to true.
 - `resolveJsonModule`: a boolean. If true, allows you to import json files as modules. Always set this to true.
 - `lib`: Base APIs typescript gives intellisense for. It is an array of strings, and you should always at least include the `"es2022"` option, which gives base APIs for both node and the browser. If working in the browser, also include `"dom"` and `"dom.iterable"`.
@@ -47,13 +45,20 @@ Let's learn about all the compiler options in the tsconfig, which live under the
 }
 ```
 
-### Other options
+
+These other options are kind of a hybrid between being nice typescript determination behavior:
+
+- `strictPropertyInitialization`: a boolean. If true, requires that all class properties are initialized and synchronously intialized in the constructor.
+- `esModuleInterop`: a boolean. If true, allows you to use default imports from commonjs modules. Always set this to true
+#### Compilation options
 
 Outside of the compiler options, here are the different options you get access to, many of which are important for deciding which files to compile.
 
 - `include`: an array of glob patterns that match files to include in compilation. The default is `["**/*"]`, which includes all files in the project.
 - `exclude`: an array of glob patterns that match files to exclude from compilation. The default is `["node_modules", "bower_components", "jspm_packages"]`, which excludes all files in the `node_modules`, `bower_components`, and `jspm_packages` folders.
 - `files`: an array of files to include in compilation.
+
+
 
 ## Modules and CJS interop
 
