@@ -406,6 +406,8 @@ For example, this is how a single feature in NextJS would look like, being subdi
 
 ### Error handling
 
+#### Basics
+
 - **The Problems with Naive Handling:** Simply scattering _try/catch_ blocks throughout a codebase creates **duplicated logic**, makes code hard to reuse, and ignores the potential for unhandled, unexpected errors.
 - **The Service Layer Approach:** Moving business logic into a dedicated service layer allows for shared functionality across both server actions and API routes. However, relying on custom error classes can still leave gaps in **compile-time type safety**.
 - **The Result Type Pattern:** By returning a discriminated union (a `Result` type) that represents either a success or a failure, developers are forced to explicitly handle all possible error states. Using the `satisfies` keyword ensures that every error case is accounted for, preventing future bugs when errors are added or removed.
@@ -417,7 +419,83 @@ So basically follow these steps:
 2. Create abstractions over business logic into its own service so you're not writing raw code in API route handlers, instead abstracting that into an OOP service,
 3. Create custom error classes that are easy to identify what actually went wrong.
 
+#### Fine: Try/catch wrapper
 
+
+```ts
+type Success<T> = {
+	data: T;
+	error: null;
+}
+
+type Failure<E> = {
+	data: null;
+	error: E;
+}
+
+type Result<T, E = Error> = Success<T> | Failure<E>
+
+export async function tryCatch<T, E = Error>(
+	promise: Promise<T>
+): Promise<Result<T, E>> {
+	try {
+		const data = await promise;
+		return {data, error: null}
+	}
+	catch(e) {
+		return {data: null, error: error as E }
+	}
+}
+```
+
+#### Great: Error handling improvement
+
+Instead of throwing errors you should just return a response type from all your service functions, which makes it easy to modify and allows you to reuse the same code in a lot of different places without copying and pasting. 
+
+```ts
+type Result<S, E extends {reason: string}> = [E, null] | [null, S]
+
+export function ok<S>(data: S): Result<S, never> {
+	return [null, data]
+}
+
+export function err<const R extends string, E extends { reason: R }>(
+	err: E
+) {
+	return [err, null]
+}
+```
+
+
+```ts
+type FN<T extends (...args: any) => any> = T extends (...args: infer A) => infer R ? (...args: A) => Result<R, { reason: string} >: never
+```
+
+Then when consuming a response you can perform an exhaustive switch like so which gives you type safety and raises an error if you don't handle all the possible errors returned from a function.
+
+```ts
+function consume() {
+	const [err, data] = func(input)
+	
+	switch(err?.reason) {
+		case "InvalidData": {
+			return {message: "invalid data"}
+		}
+		default: {
+				throw new Error(`
+				Unhandled error: ${reason satisfies never}
+			`)
+		}
+	} 
+}
+```
+
+> [!NOTE]
+> This is the absolute best way to handle errors because it's type-safe across every single function. 
+
+#### Amazing: `neverthrow`
+
+A library that overrides all function return types and throwing errors to return a result type.
 ## Antipatterns
 
 ### Storing booleans in DB
