@@ -271,8 +271,6 @@ Deno.test("returns a single character by id", async () => {
 
 #### Defining the schema
 
-
-
 1. Create graphQL objects:
 
 ```graphql
@@ -351,6 +349,10 @@ mutation {
 	}
 }
 ```
+
+
+
+
 ## GraphQL syntax fundamentals
 
 ### Types, Queries, Resolvers
@@ -1472,7 +1474,7 @@ fragment productFragment on Product {
 
 ### Creating basic apollo server
 
-**nextJS quickstart**
+#### **nextJS quickstart**
 
 1. Create the apollo server and configure it to use the type definitions and resolvers you set up for your graphQL app. 
 2. Use the apollo server in all of the route handlers for `/api/graphql`
@@ -1521,9 +1523,52 @@ export async function POST(request: NextRequest) {
 
 ```
 
-**deno quickstart**
+#### Express + Apollo quickstart
 
+This is the most basic vanilla way to use Apollo to create a server with Express. 
 
+```ts
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@as-integrations/express5';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer'
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
+
+// The GraphQL schema
+const typeDefs = `#graphql
+  type Query {
+    hello: String
+  }
+`;
+
+// A map of functions which return data for the schema.
+const resolvers = {
+    Query: {
+        hello: () => 'world',
+    },
+};
+
+const app = express();
+const httpServer = http.createServer(app);
+
+// Set up Apollo Server
+const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+});
+await server.start();
+
+app.use(
+    cors(),
+    express.json(),
+    expressMiddleware(server),
+);
+
+await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
+console.log(`🚀 Server ready at http://localhost:4000`);
+```
 ### Fullstack App Example
 
 #### 1) 
