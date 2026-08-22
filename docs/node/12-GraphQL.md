@@ -1535,6 +1535,8 @@ npm install @apollo/server @as-integrations/express5 graphql express cors
 npm install --save-dev @types/cors @types/express
 ```
 
+2. Write basic server
+
 ```ts
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
@@ -1577,6 +1579,71 @@ app.use(
 await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
 console.log(`🚀 Server ready at http://localhost:4000`);
 ```
+
+3. Refactor schema to be more composable:
+
+```ts
+function stripGraphQL(schema: string) {
+    return schema
+        .replace(/#graphql/g, '')
+        .replace(/\n/, '')
+        .trim()
+
+}
+
+function joinTypeDefs(...typeDefs: string[]) {
+    return typeDefs
+        .map(typeDef => stripGraphQL(typeDef))
+        .join('\n\n')
+}
+
+const typeDefs = `#graphql
+
+enum CarType {
+    SPORTS
+    NORMAL
+}
+
+type Car {
+    id: ID!,
+    carType: CarType,
+    color: String!,
+    year: Int!
+}
+`
+
+const queryDefs = `#graphql
+type Query {
+    getCar(id: ID!): Car
+    getCars: [Car]!
+}
+`
+
+const inputDefs = `#graphql
+input AddCarInput {
+    id: ID,
+    carType: CarType,
+    color: String!,
+    year: Int!
+}
+`
+
+const MutationDefs = `#graphql
+type Mutation {
+    addCar(input: AddCarInput): Car
+}
+`
+
+// The GraphQL schema
+export const schema = joinTypeDefs(typeDefs, queryDefs, inputDefs, MutationDefs)
+```
+
+4. Write the resolvers
+
+```ts
+
+```
+
 ### Fullstack App Example
 
 #### 1) 
