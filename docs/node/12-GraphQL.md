@@ -115,58 +115,6 @@ All of these graphQL operations takes in graphQL documents to request.
 > [!NOTE]
 > All of these are technically the same, but semantically are meant to be used differently, and that is evident in how client-side libraries follow conventions when performing these different type of operations to the server even though business logic is the one that decides the actual difference between these operations.
 
-Here is an example of a graphQL query operation, denoted by the `query` keyword.
-
-```graphql
-query {
-  author(limit: 5) {
-    id
-    name
-  }
-}
-```
-
-You can have an operation be more dynamic and accept variables:
-
-```graphql
-query ($limit: Int) {
-  author(limit: $limit) {
-    id
-    name
-  }
-}
-```
-
-The variable(s) is defined at the top of the operation and the value for the variable can be sent by the client in a format that the server understands. 
-
-Typically variables are represented in JSON like below:
-
-```graphql
-{
-  limit: 5
-}
-
-```
-
-Here is an example of a document that has multiple query operations
-
-```graphql
-query fetchAuthor {
-  author(id: 1) {
-    name
-    profile_pic
-  }
-}
-query fetchAuthors {
-  author(limit: 5, order_by: { name: asc }) {
-    id
-    name
-    profile_pic
-  }
-}
-```
-
-
 #### Operations: Aliases
 
 When you are fetching information about an author, let's say you have two images, different sizes and you have a field with an argument to do that. 
@@ -238,6 +186,320 @@ query ($showFullname: Boolean!) {
 
 ```
 
+### Queries
+
+There are two types of queries:
+
+1. **anonymous query**: a query without a name
+
+```graphql
+query {
+  todos {
+    title
+  }
+}
+
+```
+
+2. **named query**: a query that you provide a name for, which is the best practice because it helps when debugging.
+
+```graphql
+query getTodos {
+  todos {
+    title
+  }
+}
+
+```
+
+#### **queries with arguments**
+
+In most API calls, you usually use parameters. e.g. to specify what data you're fetching. 
+
+- If you're familiar with making `GET` calls, you would have used a query parameter. 
+- For example, to fetch only 10 todos you might have made this API call: `GET /api/todos?limit=10`.
+
+The GraphQL query analog of this is _arguments_, which are key-value pairs that you can attach to a "field" or "nested object". 
+
+GraphQL servers come with a default list of arguments, but you can also define custom arguments.
+
+For both queries and fields, you can use the default list of arguments and "invoke" fields and queries with those built-in arguments, which contain these:
+
+- `limit`: the number of records to return
+- `offset`: the number of records to skip
+- `where`: conditional filtering of records based on the values of certain properties of the field.
+- `order_by`: how to sort the list of records that are returned, with values following this syntax:
+
+```
+field(order_by: { property_name: desc/asc })
+```
+
+Here is an example of how to pass arguments to a field in a query.
+
+```graphql
+query {
+  author(limit: 5, offset: 10) {
+    id
+    name
+  }
+}
+```
+
+
+#### **variables**
+
+Until now, you hardcoded the arguments in the queries. In real-life applications, though, the arguments might come from different parts of your application, such as filters for example. So you will pass them dynamically to your queries.
+
+In GraphQL, you can pass arguments dynamically with the help of variables:
+
+```graphql
+query ($limit: Int) {
+  author(limit: $limit) {
+    id
+    name
+  }
+}
+```
+
+The variable(s) is defined at the top of the operation and the value for the variable can be sent by the client in a format that the server understands. 
+
+Typically variables are represented in JSON like below:
+
+```graphql
+{
+  limit: 5
+}
+
+```
+
+**multiple query operations**
+
+A single document can have multiple operations it in at once.
+
+Here is an example of a document that has multiple query operations
+
+```graphql
+query fetchAuthor {
+  author(id: 1) {
+    name
+    profile_pic
+  }
+}
+query fetchAuthors {
+  author(limit: 5, order_by: { name: asc }) {
+    id
+    name
+    profile_pic
+  }
+}
+```
+
+#### `limit` and `offset`
+
+```graphql
+{
+  todos(limit: 5, offset: 5) {
+    title
+    is_completed
+    is_public
+  }
+}
+```
+#### `order_by`
+
+The `order_by` key lets you sort the list of records that are returned, with values following this syntax:
+
+```
+field(order_by: { property_name: desc/asc })
+```
+
+Here is an example where we sort the `todos` field returned on the record in descending order based on the `created_at` field.
+
+```graphql
+query {
+  users (limit: 1) {
+    id
+    name
+    todos(order_by: {created_at: desc}, limit: 5) {
+      id
+      title
+    }
+  }
+}
+```
+
+#### `where`
+
+The `where` argument lets you conditionally filter records based on the property value of fields:
+
+```graphql
+{
+  todos(where: {is_public: {_eq: false}}) {
+    title
+    is_public
+    is_completed
+  }
+}
+
+```
+
+You can also use the `where` argument multiple times in one query. Let's say you want to see all the public notes from a specific user:
+
+```graphql
+{
+  users(where: {id: {_eq: "61dd5e7dc4b05c0069a39att"}}) {
+    name
+    todos(where: {is_public: {_eq: true}}) {
+      title
+      is_public
+    }
+  }
+}
+```
+
+### Subscriptions
+
+GraphQL Subscriptions are implemented using the WebSocket protocol, enabling us to create a persistent connection between the server and client. The connection stays open until either party terminates it.
+
+There are two ways to implement a subscription in graphQL:
+
+- **`subscription` operation**: use the `subscription` keyword to make a query a subscription type, which triggers automatic use of websockets.
+
+```graphql
+subscription {
+  todos {
+    id
+    created_at
+    is_completed
+    is_public
+    title
+  }
+}
+```
+
+- **live queries**: Use the `@live` directive to decorate a normal query and make it a subscription without the automatic websockets, but now you have to write the business logic yourself to implement WebSockets or some other real-time data solution to actually handle the live query. 
+
+```graphql
+query @live {
+  todos {
+    id
+    created_at
+    is_completed
+    is_public
+    title
+  }
+}
+
+```
+
+#### Live queries vs subscriptions
+
+A **Live Query** watches the query result and whenever it changes, the server returns the new results to the client by invoking the resolver.
+
+A **subscription** uses websockets behind the scenes to keep the connection open and facilitate real-time data flow from a data store to a client.
+
+Here are the main differences:
+
+- **graphQL support**: One significant difference is that Subscriptions are defined in the GraphQL Specification, whereas Live Queries are not. That means there is no official definition of a Live Query.
+- **realtime**: Another difference is that Subscriptions respond to events, sending back data on insertions, while live queries are reactive and return new results if the arguments passed to a query changes.
+	- **how subscriptions work**: For example, you might have a Subscription that reacts to an insertion. When the insertion occurs, the server sends back the new data to the client.
+	- **how live queries work**: On the other hand, Live Queries watch the latest result of a query and whenever it changes, the server returns the latest results to the client. Rather than responding to an event, they monitor for changes in the query result.
+
+### Resolvers
+
+The basic signature of a resolver looks like the following:
+
+
+```js
+resolverFunc(data, args, context, info)
+```
+
+- `data` - previously fetched data from the parent
+- `args` - key-value pairs of arguments, optional
+- `context` - state information per request, typically used for auth logic
+- `info` - metadata about the selection context for traversal
+
+#### N + 1 problem
+
+Let's consider we have to fetch a list of authors and their articles. In a simple REST API, the naive version would look something like this:
+
+```ts
+fetchData: async () => ORM.getAuthors().getArticles();
+```
+
+There are two (SQL) queries to the database - one to fetch the list of authors and another to fetch the list of articles of each author.
+
+The GraphQL query for this would look something like this:
+
+```graphql
+query {
+  author {
+    id
+    name
+    articles {
+      id
+      title
+      content
+    }
+  }
+}
+
+```
+
+The resolver would look something like this:
+
+```ts
+resolvers = {
+  Query: {
+    author: async () => {
+      return ORM.getAllAuthors()
+    }
+  },
+  Author: {
+    articles:  async (authorObj, args) => {
+      return ORM.getArticlesBy(authorObj.id)
+    }
+  },
+}
+```
+
+#### Dataloader
+
+Dataloader is a utility used as part of your application’s data fetching layer. In trying to solve the N+1 problem, it waits for all the resolvers to load in their individual values, coalesce all individual loads and call the batch function with the requested keys.
+
+### Fetching from the client
+
+#### Basic fetch
+
+To make a client-side request to a graphQL endpoint, you make a `POST /graphql` request with a JSON request body which should have these properties:
+
+- `query`: a query operation string to execute
+- `variables`: a JSON object of variables to pass into the query if the query is using variables.
+
+```ts
+const limit = 5;
+const query = `query author($limit: Int!) {
+    author(limit: $limit) {
+        id
+        name
+    }
+}`;
+
+fetch('/graphql', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  body: JSON.stringify({
+    query,
+    variables: { limit },
+  })
+})
+  .then(r => r.json())
+  .then(data => console.log('data returned:', data));
+
+```
 ### Introspection
 
 The GraphQL query language is strongly typed. Due to its strong type system, GraphQL gives you the ability to query and understand the underlying schema.
@@ -465,6 +727,10 @@ Returns all of this:
   }
 }
 ```
+
+
+
+
 ### Making a basic graphQL server in Deno
 
 ```ts
