@@ -268,6 +268,89 @@ Deno.test("returns a single character by id", async () => {
 
 
 ### Making a basic express server 
+
+#### Defining the schema
+
+
+
+1. Create graphQL objects:
+
+```graphql
+type Store {
+	store: string
+}
+
+enum Soldout {
+	SOLDOUT
+	ONSALE
+}
+
+type Product {
+	id: ID!
+	name: String!
+	description: String
+	price: Float!
+	soldout: Soldout
+	stores: Store[]!
+	inventory: Int
+}
+```
+
+2. Create graphQL query:
+
+```ts
+type Query {
+	getProduct(id: ID!): Product
+	getProducts: [Product]!
+}
+```
+
+3. Create GraphQL mutations:
+
+```graphql
+input StoreInput {
+	store: String
+}
+
+input ProductInput {
+	id: ID!
+	name: String!
+	description: String
+	price: Float!
+	soldout: Soldout
+	stores: [StoreInput]!
+	inventory: Int
+}
+
+type Mutation {
+	createProduct(input: ProductInput): Product
+	updateProduct(input: ProductInput): Product
+	deleteProduct(productId: ID): Product
+}
+```
+
+
+Now here are examples of how we would invoke the graphQL mutations and queries we set up:
+
+```graphql
+mutation {
+	# 1. invoke mutation function, pass argument
+	createProduct(input: {
+		name: "prod1",
+		price: 40.99,
+		soldout: ONSALE,
+		inventory: 10,
+		stores: [
+			{store: "store1"}
+		]
+	}) {   # get back specific fields from Product
+		price
+		name
+		id
+		soldout
+	}
+}
+```
 ## GraphQL syntax fundamentals
 
 ### Types, Queries, Resolvers
@@ -1304,6 +1387,86 @@ const resolvers = {
     }
     
     ```
+
+
+### Advanced queries
+
+#### Aliases
+
+Aliases allow you to execute multiple queries in a single GraphQL query and then rename those objects so you're not just getting everything merged into a single one. 
+
+
+
+![](https://i.imgur.com/oaZCsFQ.jpeg)
+
+
+So with a schema like this:
+
+```graphql
+type Store {
+	store: string
+}
+
+enum Soldout {
+	SOLDOUT
+	ONSALE
+}
+
+type Product {
+	id: ID!
+	name: String!
+	description: String
+	price: Float!
+	soldout: Soldout
+	stores: Store[]!
+	inventory: Int
+}
+```
+
+And a query structure like this:
+
+```ts
+type Query {
+	getProduct(id: ID!): Product
+	getProducts: [Product]!
+}
+```
+
+You can invoke a query with aliases like so:
+
+```gql
+query {
+	prod1: getProduct(id: "1") {
+		name
+		description
+	}
+	prod2: getProduct(id: "2") {
+		name
+		description
+	}
+}
+```
+
+#### Fragments
+
+Fragments allow you to basically create reusable slices of object keys that promote DRY principles and prevent lots of repeating code.
+
+```gql
+query {
+	prod1: getProduct(id: "1") {
+		...productFragment
+	}
+	prod2: getProduct(id: "2") {
+		...productFragment
+	}
+}
+
+fragment productFragment on Product {
+	name
+	description
+	price
+}
+```
 
 ## Apollo with GraphQL
 
