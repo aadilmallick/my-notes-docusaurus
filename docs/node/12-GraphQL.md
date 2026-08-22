@@ -4,7 +4,7 @@
 
 GraphQL is better for larger projects where you have a tone of endpoints and instead you just want to fetch the exact data you need.
 
-### Making a basic graphQL server
+### Making a basic graphQL server in Deno
 
 ```ts
 import { GraphQLHTTP } from "https://deno.land/x/gql@1.1.2/mod.ts";
@@ -266,6 +266,16 @@ Deno.test("returns a single character by id", async () => {
 
 ```
 
+
+### Making a basic graphQL server in Express
+
+#### Initial setup
+
+1. Install packages
+
+```bash
+npm i graphql express-graphql
+```
 ## GraphQL syntax fundamentals
 
 ### Types, Queries, Resolvers
