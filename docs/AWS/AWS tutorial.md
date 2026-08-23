@@ -714,6 +714,15 @@ CMD ["node", "server.ts"]
 
 
 ![](https://i.imgur.com/qwUnOCM.jpeg)
+6. If the cluster doesn't immediately work, that means that the **express service** and **task definition** it created doesn't have the correct networking. Let's fix that by creating a task definition that uses the following:
+	- **network mode**: Should use the **bridge** network mode
+	- **port mapping**: Should map the exposed container port to a port on the container host that is available and open for TCP traffic.
+	- **security group**: security group on the container host should have correct ports being opened.
+7. Create a new express service that uses the new task definition you just created.
+
+
+![](https://i.imgur.com/KRzt6fX.jpeg)
+
 
 ### ECS intro
 
@@ -724,7 +733,7 @@ ECS contains two main components:
 	- **task size (compute)**: the underlying compute parameters to provision for the container host.
 	- **port mapping**: the port mapping from the port the container is exposed on and running on to the host port.
 	- **network mode**: how to setup the container networking with the host instance.
-- **clusters**
+- **clusters**: defines the auto-scaling groups for a single task definition, defining when to scale and the scaling boundaries of horizontally scaling a task definition.
 
 #### Task definitions
 
@@ -764,7 +773,7 @@ The **network mode** specifies what type of networking the containers in the t
     
 
 For tasks hosted on Amazon EC2 instances, the available network modes are **awsvpc**, **bridge**, **host**, and **none**. If no network mode is specified, the **bridge** network mode is used by default.
-#### CLusters
+#### Clusters
 ## Lambda 
 
 ### Lambda Development Basics
