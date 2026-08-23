@@ -662,13 +662,45 @@ Here are the steps to create an IAM role that allows an EC2 instance to access t
 
 1. Create the EFS volume by going to **Amazon EFS** then to **File systems**.
 2. Attach the EFS volume via the instructions
-
+               
 #### Accessing an EFS volume
 
 On the Amazon Linux AMI, the EFS filesystem is mounted at the `/mnt/efs` mount path, so any files you modify, create, or delete here changes those files for all consumers of that specific EFS volume.
 
 
-## DOcker
+## Docker Containers on AWS
+
+### ECR setup
+
+1. Create a docker image that runs some app
+
+```Dockerfile
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+ENV PORT=5000
+
+EXPOSE ${PORT}
+
+CMD ["node", "server.ts"]
+```
+
+2. Go to the ECR management pane and create a new repository
+
+
+![](https://i.imgur.com/cIKnuni.jpeg)
+3. Push a docker image to the ECR registry via these commands:
+
+
+![](https://i.imgur.com/j91IX2l.jpeg)
+
 
 ## Lambda 
 
