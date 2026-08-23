@@ -170,3 +170,27 @@ await assertSucceeds(getDoc(doc(aliceDb, "users/alice")));
 // Test that an unauthenticated user cannot write
 await assertFails(setDoc(doc(publicDb, "users/alice"), { data: "test" }));
 ```
+
+## Firebase service accounts
+
+### How to authenticate with admin SDK
+
+1. In the firebase console, go to **project settings** then to **service accounts**.
+
+
+![](https://i.imgur.com/ObsYTi4.jpeg)
+
+
+2. Generate the private key JSON and store it.
+3. Add this code to get the firebase admin config
+
+
+```ts
+var admin = require("firebase-admin");
+
+var serviceAccount = require("path/to/serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+```
