@@ -170,9 +170,16 @@ To run the playbook already authenticated as the superuser, run the `ansible-pla
 ansible-playbook -k neovim.yaml
 ```
 
-## Ansible example
 
-### Ansible on EC2 instance
+
+## Ansible on EC2 instance example
+
+Here are some links that go over this lab in detail:
+
+- [Lab+-+Configuration+Management+with+Ansible.pdf](https://drive.google.com/file/d/1mjC5s2Rb_UsQcBJCBeZEVy7XnfdXoHk4/view?usp=sharing)
+- [Configuration+Management+Tools+Study+Guide.pdf](https://drive.google.com/file/d/1mRTme1qQ1SPrWwZZ9fKFApRKhdOdbf2A/view?usp=sharing)
+
+### Step 1 - Setup
 
 1. Create three EC2 instances and then make one of them the **control plane** on which you're going to SSH into and download Ansible. 
 2. SSH into the control plane EC2 and then run these commands to install ansible, or make this a user data script:
@@ -193,7 +200,7 @@ yum install ansible -y
 
 3. Create an inventory file adding hosts, create two hosts and use private IP addresses of the individual target instances in the hosts:
 
-```toml
+```ini
 [web]
 172.31.40.47
 172.31.42.209
@@ -202,3 +209,12 @@ yum install ansible -y
 172.31.36.74
 ```
 
+### Step 2 - connect to hosts
+
+For Ansible to manage the servers, it needs SSH access to them. When you created the instances, AWS provided a key pair for secure access, and all of those instances should have the same key pair.
+
+1. Transfer the key pair from your local computer to the Control VM. Use the following command in your terminal:
+
+```
+scp -i ansible-key.pem ansible-key.pem ubuntu@<Control_VM_Public_IP>:~/
+```
