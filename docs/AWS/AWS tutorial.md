@@ -715,6 +715,56 @@ CMD ["node", "server.ts"]
 
 ![](https://i.imgur.com/qwUnOCM.jpeg)
 
+### ECS intro
+
+ECS contains two main components:
+
+- **task definitions**: defines how a single container runs on a container host, which requires you to provide the information below:
+	- **container host type**: whether to use Fargate or EC2
+	- **task size (compute)**: the underlying compute parameters to provision for the container host.
+	- **port mapping**: the port mapping from the port the container is exposed on and running on to the host port.
+	- **network mode**: how to setup the container networking with the host instance.
+- **clusters**
+
+#### Task definitions
+
+
+**task size**
+
+For **task size**, specify the amount of CPU and memory to reserve for the task. The CPU value is specified as a number of vCPUs. The memory value is specified in GB.
+
+For Amazon ECS tasks hosted on AWS Fargate, the task CPU and memory values are required and there are specific values for both CPU and memory that are supported.
+
+- For `.25 vCPU` CPU, the valid memory values are `.5 GB`, `1 GB`, or `2 GB`.
+    
+- For `.5 vCPU`, the valid memory values are `1 GB`, `2 GB`, `3 GB`, or `4 GB`.
+    
+- For `1 vCPU`, the valid memory values are `2 GB`, `3 GB`, `4 GB`, `5 GB`, `6 GB`, `7 GB`, or `8 GB`.
+    
+- For `2 vCPU`, the valid memory values are between `4 GB` and `16 GB` in 1 GB increments.
+
+**launch type**
+
+The **Launch type** specified for a task definition determines where Amazon ECS launches the task or service. The task definition parameters are validated against the allowed values for the compute option.
+
+- By default, the **AWS Fargate** option is selected. 
+- You can also select **Amazon EC2 instances**.
+
+**network mode**
+
+The **network mode** specifies what type of networking the containers in the task use. The following are available:
+
+- **awsvpc**:  which provides the task with an elastic network interface (ENI). When creating a service or running a task with this network mode you must specify a network configuration consisting of one or more subnets, security groups, and whether to assign the task a public IP address.
+	- The **awsvpc** network mode is required for tasks hosted on Fargate.
+- **bridge** uses Docker's built-in virtual network, which runs inside each Amazon EC2 instance hosting the task. The bridge is an internal network namespace that allows each container connected to the same bridge network to communicate with each other. It provides an isolation boundary from containers that aren't connected to the same bridge network. You use static or dynamic port mappings to map ports in the container with ports on the Amazon EC2 host.
+	- If you choose **bridge** for the network mode, under **Port mappings**, for **Host port**, specify the port number on the container instance to reserve for your container.
+- **default**: uses Docker's built-in virtual network mode on Windows, which runs inside each Amazon EC2 instance that hosts the task. This is the default network mode on Windows if a network mode isn't specified in the task definition.
+- **host**: has the task bypass Docker's built-in virtual network and maps container ports directly to the ENI of the Amazon EC2 instance hosting the task. As a result, you can't run multiple instantiations of the same task on a single Amazon EC2 instance when port mappings are used.
+- **none**: this network mode provides a task with no external network connectivity.
+    
+
+For tasks hosted on Amazon EC2 instances, the available network modes are **awsvpc**, **bridge**, **host**, and **none**. If no network mode is specified, the **bridge** network mode is used by default.
+#### CLusters
 ## Lambda 
 
 ### Lambda Development Basics

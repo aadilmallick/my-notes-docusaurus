@@ -44,6 +44,55 @@ Some platforms like Cursor or Warp allow you to BYOK or BYOM (bring your own mod
 
 #### Inference with Opencode
 
+The endpoint URL is `https://opencode.ai/zen/v1`, with the OpenAI-compatible inference endpoint being `https://opencode.ai/zen/v1/chat/completions`
+
+**Opencode free models**
+
+
+
+| Model name             | Model identifier       | Model inference endpoint                      |
+| ---------------------- | ---------------------- | --------------------------------------------- |
+| Big Pickle             | big-pickle             | `https://opencode.ai/zen/v1/chat/completions` |
+| MiMo-V2.5 Free         | mimo-v2.5-free         | `https://opencode.ai/zen/v1/chat/completions` |
+| North Mini Code Free   | north-mini-code-free   | `https://opencode.ai/zen/v1/chat/completions` |
+| Nemotron 3 Ultra Free  | nemotron-3-ultra-free  | `https://opencode.ai/zen/v1/chat/completions` |
+| DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` |
+
+
+#### Inference with vercel AI API GATEWAY
+
+These are the free models vercel AI API gateway has:
+
+| Model                              | Context | Latency | Throughput | Input | Output | Cache                       |
+| ---------------------------------- | ------- | ------- | ---------- | ----- | ------ | --------------------------- |
+| nvidia/nemotron-3.5-lightning      | 1M      | 0.1s    | 48tps      | Free  | Free   | Read: $0.01/M Free Write: — |
+| nvidia/nemotron-3.5-lightning-free | 1M      | 0.1s    | 48tps      | Free  | Free   |                             |
+| fish-audio/s2.1-pro                |         |         |            | Free  | Free   |                             |
+| fish-audio/s2.1-pro-free           |         |         |            | Free  | Free   |                             |
+| poolside/laguna-s-2.1-free         | 256K    | 1.4s    | 68tps      | Free  | Free   |                             |
+| fish-audio/s2-pro                  |         |         |            | Free  | Free   |                             |
+| fish-audio/s2-pro-free             |         |         |            | Free  | Free   |                             |
+| fish-audio/transcribe-1            |         |         |            | Free  | Free   |                             |
+| fish-audio/transcribe-1-free       |         |         |            | Free  | Free   |                             |
+| fish-audio/s1                      |         |         |            | Free  | Free   |                             |
+| fish-audio/s1-free                 |         |         |            | Free  | Free   |                             |
+
+#### Inference with Kilo Code
+
+**Kilocode free models**
+
+Kilocode allows you to use other inference endpoint providers but you can also use these free models that come with kilocode:
+
+```embed
+title: "Best Free AI Coding Models Available Now | Kilo Code"
+image: "https://kilo.ai/kilocode-social.png"
+description: "Find the best currently tested free AI coding models in Kilo Code, plus a live catalog of hosted models with $0 input and $0 output token pricing."
+url: "https://kilo.ai/landing/free-models"
+favicon: ""
+aspectRatio: "56.35062611806798"
+```
+
+
 #### Inference with NVidia APIs
 
 - **endpoint URL**  : `https://integrate.api.nvidia.com/v1`
@@ -85,33 +134,8 @@ for chunk in completion:
     print(delta.content, end="")
 ```
 
-#### Free models
-
-**Kilocode free models**
-
-Kilocode allows you to use other inference endpoint providers but you can also use these free models that come with kilocode:
-
-```embed
-title: "Best Free AI Coding Models Available Now | Kilo Code"
-image: "https://kilo.ai/kilocode-social.png"
-description: "Find the best currently tested free AI coding models in Kilo Code, plus a live catalog of hosted models with $0 input and $0 output token pricing."
-url: "https://kilo.ai/landing/free-models"
-favicon: ""
-aspectRatio: "56.35062611806798"
-```
 
 
-**Opencode free models**
-
-The endpoint URL is `https://opencode.ai/zen/v1`, with the OpenAI-compatible inference endpoint being `https://opencode.ai/zen/v1/chat/completions`
-
-| Model name             | Model identifier       | Model inference endpoint                      |
-| ---------------------- | ---------------------- | --------------------------------------------- |
-| Big Pickle             | big-pickle             | `https://opencode.ai/zen/v1/chat/completions` |
-| MiMo-V2.5 Free         | mimo-v2.5-free         | `https://opencode.ai/zen/v1/chat/completions` |
-| North Mini Code Free   | north-mini-code-free   | `https://opencode.ai/zen/v1/chat/completions` |
-| Nemotron 3 Ultra Free  | nemotron-3-ultra-free  | `https://opencode.ai/zen/v1/chat/completions` |
-| DeepSeek V4 Flash Free | deepseek-v4-flash-free | `https://opencode.ai/zen/v1/chat/completions` |
 **nvidia free models**
 
 The endpoint URL is `https://integrate.api.nvidia.com/v1`, with the OpenAI-compatible inference endpoint being `https://integrate.api.nvidia.com/v1/chat/completions`
