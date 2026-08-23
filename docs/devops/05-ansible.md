@@ -218,3 +218,32 @@ For Ansible to manage the servers, it needs SSH access to them. When you created
 ```
 scp -i ansible-key.pem ansible-key.pem ubuntu@<Control_VM_Public_IP>:~/
 ```
+
+2. Test SSH connections from control VM to the target VM via its private IP address.
+
+```
+ssh -t -i ansible-key.pem ubuntu@<Private_IP_of_target_instance>
+```
+
+3. Create a playbook on the control VM
+
+```yaml
+- hosts: web
+	 become: yes
+	 tasks:
+		 - name: Install Apache
+			 apt:
+			 name: apache2
+			 state: present
+		 - name: Start Apache
+			 service:
+			 name: apache2
+			 state: started
+			 enabled: yes
+```
+
+3. Run the playbook, where we specify the inventory file to use with the `-i` flag and the private SSH key to use for connecting to the hosts with the `--private-key` flag and then run the playbook with `ansible-playbook setup-web-server.yml`
+
+```bash
+ansible-playbook -i inventory --private-key ansiblekey.pem setup-web-server.yml 
+```
