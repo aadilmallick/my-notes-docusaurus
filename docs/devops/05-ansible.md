@@ -30,6 +30,7 @@ Here are the core properties of ansible:
 
 - **Python-based**: can be installed with Python
 - **agentless**: no need to install agents on target hosts. Rather, updates to target hosts are done via SSH.
+	- This is a big benefit because installing agents on remote servers are a pain and require manual downloading.
 - **declarative pushing**: One control node pushes to all target hosts, ansible is a push model.
 
 
@@ -44,8 +45,54 @@ Here is the core loop behind how ansible works:
 ![](https://i.imgur.com/0rKHvJU.jpeg)
 
 
+### Control pane
+
+In the `/etc/ansible` folder on the control pane instance there are three important files/folders:
+
+- `ansible.cfg`: ansible configuration settings file
+- `hosts`: contains the list of target hosts that the control pane can connect to for controlling them.
+	- Also called the **Inventory file**
+
+#### Adding hosts to the inventory file
+
+The ansible inventory file lists the servers and target hosts that Ansible will manage.
+
+- Servers are organized into groups called **hosts**, where each individual host is a group of IP addresses or servers to include in that target group.
+- a single host is more like a group of target hosts that all get targeted with the same name reference.
+
+Here is how to add a new host to the `hosts` file:
+
+```toml
+[host_name]
+
+# list of IP address to include in this target host group
+ip-address-1
+ip-address-2
+...
+```
+
+#### Controlling hosts imperatively
+
+Now you can use the `ansible` CLI to control hosts imperatively by running Linux commands on those target host groups:
+
+```bash
+# HOST = the name of a target host group you created in the `hosts` file
+# COMMAND = any linux command to run on the target hosts, like `ping`
+ansible $HOST_NAME -m $COMMAND
+```
 
 
+
+```bash
+# HOST = the name of a target host group you created in the `hosts` file
+# COMMAND_STRING = a shell command string to execute
+ansible $HOST_NAME -a $COMMAND
+```
+
+
+#### Controlling hosts declaratively
+
+We can use Ansible playbooks to declaratively control target hosts via Ansible
 ## Basics
 
 
@@ -143,3 +190,15 @@ yum update -y
 yum install epel-release -y
 yum install ansible -y
 ```
+
+3. Create an inventory file adding hosts, create two hosts and use private IP addresses of the individual target instances in the hosts:
+
+```toml
+[web]
+172.31.40.47
+172.31.42.209
+
+[control]
+172.31.36.74
+```
+
