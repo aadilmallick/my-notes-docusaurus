@@ -84,11 +84,19 @@ Here are the cons:
 
 ![](https://i.imgur.com/JknQeGR.jpeg)
 
-## Microservices
+## Microservices intro
 
 ### Why Microservices
 
-The tight coupling in monoliths make scaling hard, but if we divide an app into independent pieces, we can scale those pieces independently.
+The tight coupling in monoliths make scaling hard, but if we divide an app into independent pieces, we can scale those pieces independently and develop on them easier
 
+
+
+### Benefits
+
+### Diadvantages
+
+- **latency**: since each microservice exposes an API to access over the network, there will always be extra latency as opposed to a monolithic application where all services and infra live on the same VM.
+- **complexity**: It's very complex to build a microservices architecture because you have to always account for failure handling and graceful failover as well as load balancing.
 
 

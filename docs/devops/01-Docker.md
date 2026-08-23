@@ -28,9 +28,6 @@ That's where containers come in - they completely abstract away the hardware, so
 ### How containers work
 
 
-
-
-
 Containers consist of three main components:
 
 1. `chroot`: jailing processes to isolate filesystems and prevent jailed processes from accessing each other's files.
@@ -46,6 +43,14 @@ Through using these three components, you can create multiple containers on one 
 > You can think of containers as using virtualization without a hypervisor. Through incredibly clever Linux by the way processes and using namespaces to isolate processes, file systems, and resources, and preventing other jailed processes from infringing on the RAM and taking away resources from other jailed processes. 
 > 
 > This allows you to mock out a hypervisor and virtualization without having the overhead of hypervisors. 
+
+Containers live on a **Container Host** and use its underlying operating system, and the **container engine** (something like Docker) uses `chroot`, namespaces, and `cgroup` to create containers on the OS.
+
+> [!NOTE]
+> Because a container does not bundle an entire OS with it as opposed to a VM, as a result it is much more lightweight than a VM because it uses the underlying container host OS as the OS, which is possible through `chroot`, namespaces, and `cgroup`.
+
+
+![](https://i.imgur.com/BaufJcu.jpeg)
 
 ### Making a container from scratch
 #### chroot
@@ -151,6 +156,9 @@ Right now, even with jailed processes and namespaces, we have no way for somethi
 Cgroups (control groups) are a Linux kernel feature for isolating and limiting computing resources like CPU and RAM for individual process trees, preventing one process from consuming all system resources.
 
 The `cgroup` command is a command that lets you allocate a predefined amount of resources that a process should have, not allowing it to go beyond that point.
+
+
+
 
 ## Docker Basics
 
