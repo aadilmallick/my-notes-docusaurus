@@ -27,6 +27,9 @@ resource "local_file" "hello_world" {
   
 
 ### First EC2 instance
+
+- [IaC+with+Terraform+Study+Guide.pdf](https://drive.google.com/file/d/1EBfvxQGX56dqOxkdviikKzRlfwwnElec/view?usp=sharing)
+- [Lab+-+Infrastructure+as+Code+(IaC)+with+Terraform.pdf](https://drive.google.com/file/d/1dW07jrIpT8LJ79MMRTuFrq9g8rk74LRS/view?usp=sharing)
   
 
 1. Load AWS access keys into shell session as env vars
