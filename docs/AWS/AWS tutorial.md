@@ -705,6 +705,15 @@ CMD ["node", "server.ts"]
 
 
 ![](https://i.imgur.com/Yr7s0zA.jpeg)
+5. Create a cluster and set these 5 things:
+	- **cluster name**: to easily identify your cluster
+	- **container port**: which port to expose the container on
+	- **container env vars**: env vars to set in the container.
+	- **compute**: the compute to provision for a single task, and the auto-scaling capabilities of when to scale up tasks, and define the minimum and maximum number of tasks.
+	- **networking**: the VPCs and subnets to place the tasks in.
+
+
+![](https://i.imgur.com/qwUnOCM.jpeg)
 
 ## Lambda 
 
