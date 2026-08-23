@@ -701,6 +701,10 @@ CMD ["node", "server.ts"]
 
 ![](https://i.imgur.com/j91IX2l.jpeg)
 
+4. Once your image is pushed up to ECR, you can select it to use in ECS:
+
+
+![](https://i.imgur.com/Yr7s0zA.jpeg)
 
 ## Lambda 
 
