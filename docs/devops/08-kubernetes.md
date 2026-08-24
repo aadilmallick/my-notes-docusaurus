@@ -111,6 +111,17 @@ The crud methods are as follows:
 > [!NOTE]
 > You can get a bird’s eye view of everything running with the `kubectl get all` command.
 
+### kubectl YAML basics
+
+All k8s YAML files must have these two keys:
+
+- `apiVersion`: should be set to v1
+- `kind`: the type of resource this YAML is
+
+Basides that, you have these rules:
+
+- **can have multiple resources in one YAML**: it's possible to have multiple resources defined in one YAML by separating the resources with a `---` fence.
+
 ### Kubectl Config
 
 The `~/.kube/config` file contains configuration about all the k8s clusters and contexts available that you can connect to:
@@ -181,6 +192,11 @@ Here are the commands for the context:
 
 Kubernetes namespaces let you organize and isolate your workloads.
 
+> [!NOTE]
+> Once belonging to a namespace, if the namespace gets deleted, all resources belonging to that namespace also get deleted, which is good for cleanup purposes.
+
+#### Creating namespaces
+
 Here is the declarative way to create a namespace
 
 1. Create the YAML to make a namespace called "development"
@@ -198,6 +214,19 @@ kind: Namespace
 ```bash
 kubectl apply -f namespace-development.yaml
 ```
+
+#### Namespace management
+
+- `kubectl create namespace <namespace-name>`: creates a namespace
+- `kubectl delete namespace <namespace-name>`: deletes a namespace
+- `kubectl get namespaces` : returns all namespaces in the current context
+
+#### Tying resources to a namespace
+
+You can tie resources to namespaces in two different ways:
+
+- **imperatively:** Use the `-n <namespace-name>` option to refer to a namespace. Without the `-n` option, all the commands for creating resources will be run in the default namespace.
+- **declaratively:** After creating a namespace either declaratively (with yaml) or imperatively (with CLI), you can specify that namespace in other yaml files’ `metadata` key like the example below to tie resources to a namespace. Otherwise, those resources will be created in the default namespace.
 ### Nodes
 
 Nodes are individual VMs that run multiple pods at once. Nodes are scaled up and down by the control plane, as you wish. On your local machine, docker desktop provides you only with a single node.
@@ -286,6 +315,11 @@ All yaml should be in a top-level folder called `kustomize`, and that should hav
 
 - `kustomize/base`: stores YAML that defines core resources like pods
 - `kustomize/overlay`: The `overlay` directory contains environment-specific configurations that build upon the `base` configurations.
+
+The `overlay` folder should be divided into local and prod environments with two subfolders:
+
+- `overlay/local`
+- `overlay/prod`
 
 
 ## Tilt
