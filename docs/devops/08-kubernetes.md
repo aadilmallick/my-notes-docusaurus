@@ -159,37 +159,7 @@ users:
 ```
 
 
-### Kustomize
 
-The kustomize tool is a way to combine multiple yaml files describing k8s resources into one so you don’t have to think about individual resources. You simply deploy one kustomize file, and to delete all resources, you simply delete that kustomize file.
-
-You can create a **kustomization** file which must be named `kustomization.yaml` like so, specifying the resources you want to include:
-
-
-```yaml title="kustomization.yaml"
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: health-dashboard
-resources:
-  # - secrets.yaml
-  # - hsd-namespace.yaml
-  - mongo-deployment.yaml
-  - server-deployment.yaml
-```
-
-Here are the general steps for integrating `kustomize` into your workflow:
-
-1. Run the `kustomize <dir>` command, which looks for a `kustomization.yaml` file in the directory, and if found, outputs the contents of all the yaml files concatenated.
-2. Pipe the output of the `kustomize` command into a file.
-3. Run that file manually with `kubectl apply -f` to create resources, and to delete resources, use `kubectl delete -f`
-
-
-You can also just do it the declarative way where by naming the file as `kustomization.yaml` and then using the `-k` option with `kubectl apply`:
-
-- `kubectl apply -k <dir>`: Looks in the specified directory for a `kustomization.yaml`, and if found, creates or updates all k8s resources specified in that file.
-- `kubectl delete -k <dir>`: Looks in the specified directory for a `kustomization.yaml`, and if found, deletes all k8s resources specified in that file.
-
-#### Best folder structure for `kustomize`
 
 
 ## Kubectl constructs
@@ -277,6 +247,45 @@ Here are the different selector keys you can have on a resource:
 2. When we want to select a node to assign the pod to using the `nodeSelector` key, we select on the `disktype` label and select the node with the value of that `disktype` label being equal to `superfast`, thus selecting Node A.
 
 
+
+## Kustomize and advanced K8S Yaml
+
+The kustomize tool is a way to combine multiple yaml files describing k8s resources into one so you don’t have to think about individual resources. You simply deploy one kustomize file, and to delete all resources, you simply delete that kustomize file.
+
+You can create a **kustomization** file which must be named `kustomization.yaml` like so, specifying the resources you want to include:
+
+
+```yaml title="kustomization.yaml"
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: health-dashboard
+resources:
+  # - secrets.yaml
+  # - hsd-namespace.yaml
+  - mongo-deployment.yaml
+  - server-deployment.yaml
+```
+
+Here are the general steps for integrating `kustomize` into your workflow:
+
+1. Run the `kustomize <dir>` command, which looks for a `kustomization.yaml` file in the directory, and if found, outputs the contents of all the yaml files concatenated.
+2. Pipe the output of the `kustomize` command into a file.
+3. Run that file manually with `kubectl apply -f` to create resources, and to delete resources, use `kubectl delete -f`
+
+
+You can also just do it the declarative way where by naming the file as `kustomization.yaml` and then using the `-k` option with `kubectl apply`:
+
+- `kubectl apply -k <dir>`: Looks in the specified directory for a `kustomization.yaml`, and if found, creates or updates all k8s resources specified in that file.
+- `kubectl delete -k <dir>`: Looks in the specified directory for a `kustomization.yaml`, and if found, deletes all k8s resources specified in that file.
+
+### Best folder structure for `kustomize`
+
+TODO: add tree, auth with github
+
+All yaml should be in a top-level folder called `kustomize`, and that should have two subfolders:
+
+- `kustomize/base`: stores YAML that defines core resources like pods
+- `kustomize/overlay`: The `overlay` directory contains environment-specific configurations that build upon the `base` configurations.
 
 
 ## Tilt
