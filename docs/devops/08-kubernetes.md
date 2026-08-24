@@ -341,6 +341,18 @@ spec:
                 fieldPath: status.podIP # resolved at runtime
 ```
 
+Pods are a shell around a grouping of containers, essentially a single server with a single IP address that runs each container inside the pod on its dedicated port. Here are the advantages of working with pods:
+
+- **shared data:** All pods in a container can access the same volumes
+- **shared network**: All pods in a container live on the same server and thus the same network, allowing for simple inter-container communication without having their traffic be exposed to the real world.
+- **replicable**: pods are the main scalable unit in kubernetes, allowing you to deploy multiple copies of the same pod and run them on a worker node.
+
+Pods can be in one of 6 states:
+
+
+
+
+
 #### Imperative deployments
 
 Here is the basic crud:
@@ -451,6 +463,70 @@ kubectl exec -it <podname> -c <container_name> -- /bin/sh
 
 ![](https://i.imgur.com/nPy3mm5.jpeg)
 
+### Services
+
+Services are resources that have persistent DNS names and IP addresses which are designed for creating stable networking for pods and between pods.
+
+Pods have ephemeral IP addresses, meaning that if you want to connect to another pod in your application logic or through your local machine, you must use a service to have stable port forwarding.
+
+Let’s go over some basic use cases:
+
+- **connecting to [localhost](http://localhost):** you have a pod runnign a server and you want a service that forwards that pod’s IP address to localhost on your laptop.
+- **inter-pod communication**: You have one server pod and one database pod, and you want to expose the database pod on a service for a persistent communication so that the server pod can access the database.
+
+**using services declaratively**
+
+There are three types of services you can have:
+
+- `ClusterIP` : the default, which gives the service an IP address that is accessible only from within the cluster. (only other pods within the cliuster can communicate with the service, not from localhost).
+- `LoadBalancer` : load balances requests from the service to all matching pods it has from its `selector` property. It operates at **layer 4**, meaning it uses the TCP protocol.
+- `Ingress`: a load balancer but operates at the **layer 7** level, meaning it uses intelligent protocols like HTTP and SMTP and can make intelligent load balancing decisions based on the contents of the web packets.
+- `NodePort` : exposes the service’s IP address to the local machine on localhost.
+
+#### ClusterIP
+
+Gives a private IP address for the pod within the cluster, all pods within the same cluster run as if on the same LAN.
+
+![](https://i.imgur.com/u2OHbNk.jpeg)
+
+- `ports`: the ports to expose
+    - `port`: the port that the server will expose
+    - `targetPort`: the port that the selected pod is listening on.
+- `selector`: selects the pods to do networking for in the service.
+
+#### NodePort
+
+The `NodePort` runs the pod as a process rather than giving it its own IP address, and then exposing it on a port.
+
+
+![](https://i.imgur.com/2hcFQhF.jpeg)
+
+- `ports`: the ports to expose
+    - `port`: the port that the selected pod is listening on
+    - `targetPort`: the port that the selected pod is listening on. This value is not applied if the service type is `NodePort`, so you can just omit this.
+    - `nodePort`: the port to map to on your localhost. This must be a large value between 30000 - 32767, as to not interfere with important ports.
+- `selector`: selects the pods to do networking for in the service.
+#### CLI
+
+Services help expose your containers to the outer world via port forwarding, doing either forwarding to your localhost or to a DNS mapping to a registered domain name.
+
+- `kubectl get services`: lists all services
+- `kubectl delete service <service-name>` : deletes the specified service
+- `kubectl describe service <service-name>` : gets detailed info about the specified service.
+
+**port forwarding**
+
+---
+
+You can do port forwarding from a service to a port on your laptop if you didn’t already do `nodePort` forwarding on your service:
+
+```bash
+kubectl port-forward service/<service-name> <nodeport>:<serviceport>
+```
+
+- `service-name`: the name of the service to port forward
+- `nodeport`: the port number on your local machine you want to forward to
+- `serviceport` : the port on the service that is currently being exposed and that you want to forward.
 ## Kustomize and advanced K8S Yaml
 
 The kustomize tool is a way to combine multiple yaml files describing k8s resources into one so you don’t have to think about individual resources. You simply deploy one kustomize file, and to delete all resources, you simply delete that kustomize file.
