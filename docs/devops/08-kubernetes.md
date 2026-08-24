@@ -177,3 +177,126 @@ On any resource yaml, you define the labels as key-value pairs under the `labels
 2. Create a label of `type` with value `front-end`
 
 ![](https://i.imgur.com/7gEEmHN.jpeg)
+
+## Tilt
+
+### Intro
+
+Tilt is a program that simplifies k8 development on your local machine. It provides benefits such as restarting deployments, rebuilding containers, doing everything automatically in watch mode, and much more.
+
+Install tilt like so:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+```
+
+
+- `tilt version`: prints the version of tilt
+- `tilt up`: runs the `TiltFile` file in the current directory, running all the k8 resources you specify in the tiltfile.
+- `tilt down`: deletes all the deployments and resources you created when running `tilt up`.
+
+### Basics
+
+A TiltFile code is run in Starlark, which is a simplified dialect of python. It looks like this: 
+
+
+![](https://i.imgur.com/uYZdEdN.jpeg)
+
+```python
+allow_k8s_contexts([
+  'docker-desktop',
+]);
+
+docker_build(
+        "health-dashboard-server", 
+        context="server", 
+        dockerfile_contents="""
+        ARG NODE_VERSION=24.0.2
+
+        ######################################
+        # Use node image for base image for all stages.
+        FROM node:${NODE_VERSION}-alpine
+
+        # install bash
+        RUN apk add --no-cache bash
+
+        # Set working directory for all build stages.
+        RUN mkdir -p /usr/src/app
+        RUN chown -R node:node /usr/src/app
+        USER node
+        WORKDIR /usr/src/app
+
+
+        COPY --chown=node:node package.json ./
+        COPY --chown=node:node package-lock.json ./
+
+        RUN npm install
+
+        COPY --chown=node:node . ./
+
+        RUN npm run build
+
+        CMD ["npm", "start"]
+        """
+)
+
+k8s_yaml("kustomize/base/local/mongo-deployment.yaml")
+k8s_yaml("kustomize/base/local/server-deployment.yaml")
+```
+
+Here are the different functions:
+
+- `allow_k8s_contexts(contexts: [str])`: Allows the specified list of context names to be used as valid contexts for running the kubernetes resources.
+- `docker_build(image_name: str, **kwargs)` : Builds the image with the image name based on either dockerfile contents you provide or the path to the dockerfile.
+- `k8s_yaml(yaml_path : str)` : runs the k8s resource specified in the yaml filepath. It’s basically just calling `kubectl apply -f <yaml-file>`, and it watches for changes to that file.
+
+### Examples
+
+#### Loading env
+
+```python
+env_path = "./server/.env"
+
+
+allow_k8s_contexts([
+  'docker-desktop',
+  'test-janelia',
+])
+
+k8s_context("docker-desktop")
+
+run("export IN_DEV_MODE=true")
+
+
+
+# RUN THIS TO CREATE THE SECRET
+
+local_resource(
+    name="env-file",
+    cmd="bash scripts/tasks/initk8resources.sh",
+    deps=[env_path]
+)
+watch_file(env_path)
+
+docker_build(
+        "health-dashboard-server", 
+        context="server", 
+        dockerfile="server/Dockerfile.prod",
+)
+combined_yaml_file = kustomize(
+  "kustomize/overlay/local",
+)
+k8s_yaml(combined_yaml_file)
+
+k8s_resource(
+  workload="health-dashboard-server-deployment",
+  port_forwards="30000:3000"
+)
+
+k8s_resource(
+  workload="mongodb",
+  port_forwards="31017:27017"
+)
+```
+
+- `run(command: str)`: lets you run a linux command that will persist in the shell session.
