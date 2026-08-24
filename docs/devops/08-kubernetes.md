@@ -74,16 +74,21 @@ kubectl get services -A # get all services
 
 ### `kubectl` basics
 
-`kubectl` is a CLI tool that lets you imperatively control cluster changes using CLI commands, but also lets you declaratively do it through YAML files like so:
-
-```
-kubectl apply -f <yaml-file>
-```
+#### Declarative vs imperative
 
 You can create resources in kubernetes either imperatively or declaratively:
 
 - **imperative:** running CLI commands to create k8 resources
+	-  When you hear about creating resources imperatively, that means using kubectl CLI to create resources
 - **declarative**: describing resources in YAML and then creating them with the `kubectl apply -f <yaml-file>` command to create a resource from its YAML description.
+	- when you hear about declarative, that means describing resources in yaml files and then using two basic commands to manage their creation and deletion.
+
+Once you describe the outline for a resource in a yaml file, you have these two basic commands to bring them into and out of existence:
+
+- `kubectl apply -f <yaml-file>` : creates the resource from the specified yaml file
+- `kubectl delete -f <yaml-file>` : deletes the resource that was created from the yaml specification.
+
+#### Imperative: CLI
 
 The CLI for kubernetes is based on CRUD functionality for deployments, services, namespaces, and pods, making using the CLI extremely predictable. It always follows this syntax:
 
@@ -106,7 +111,15 @@ The crud methods are as follows:
 > [!NOTE]
 > You can get a bird’s eye view of everything running with the `kubectl get all` command.
 
+
+#### Declarative: Basic kubectl YAML rules
+
+
 ## Kubectl constructs
+
+### Kubectl config
+
+
 
 ### Context
 
@@ -117,7 +130,7 @@ Here are the commands for the context:
 - `kubectl config current-context`: gets the current context
 - `kubectl config get-contexts`: lists all contexts
 - `kubectl config use-context [contextName]`: set the current context to a different context
-- `kubectl config use-context [contextName]`: delete the specifried contex
+- `kubectl config use-context [contextName]`: delete the specified context
 ### Namespaces
 
 Kubernetes namespaces let you organize and isolate your workloads.
@@ -132,3 +145,35 @@ kind: Namespace
 		name: development
 ```
 
+### Nodes
+
+Nodes are individual VMs that run multiple pods at once. Nodes are scaled up and down by the control plane, as you wish. On your local machine, docker desktop provides you only with a single node.
+
+When a node is added to the cluster, these three tools are installed, which are necessary to run pods:
+
+- **kubelet:** manages the pods’ lifecycles
+- **container runtime**: supports docker to create and run containers
+- **kube-proxy**: manages network traffic
+
+- `kubectl get nodes` : gets all nodes
+- `kubectl describe node <nodename>` : describes the node
+
+### Labels and selectors
+
+Labels and selectors within kubernetes are ways to reference resources and even assign them to specific nodes.
+
+We can target resources using the `--selector` option or the `--label` option
+
+```bash
+kubectl get pods --selector=myapp
+```
+
+
+#### Labels
+
+On any resource yaml, you define the labels as key-value pairs under the `labels` key like so:
+
+1. Create a label of `app` with value `myapp`
+2. Create a label of `type` with value `front-end`
+
+![](https://i.imgur.com/7gEEmHN.jpeg)
