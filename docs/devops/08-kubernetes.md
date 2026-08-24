@@ -217,16 +217,34 @@ kubectl apply -f namespace-development.yaml
 
 #### Namespace management
 
+The `namespace` resource (shorthand `ns`) is used for controlling namespaces via CLI
+
 - `kubectl create namespace <namespace-name>`: creates a namespace
 - `kubectl delete namespace <namespace-name>`: deletes a namespace
 - `kubectl get namespaces` : returns all namespaces in the current context
+
+
+![](https://i.imgur.com/GG9W8l3.jpeg)
+
 
 #### Tying resources to a namespace
 
 You can tie resources to namespaces in two different ways:
 
 - **imperatively:** Use the `-n <namespace-name>` option to refer to a namespace. Without the `-n` option, all the commands for creating resources will be run in the default namespace.
-- **declaratively:** After creating a namespace either declaratively (with yaml) or imperatively (with CLI), you can specify that namespace in other yaml files’ `metadata` key like the example below to tie resources to a namespace. Otherwise, those resources will be created in the default namespace.
+- **declaratively:** After creating a namespace either declaratively (with yaml) or imperatively (with CLI), you can specify that namespace in other yaml files’ `metadata` key like the example below to tie resources to a namespace. 
+	- Otherwise, those resources will be created in the default namespace.
+
+
+![](https://i.imgur.com/bMww1br.jpeg)
+
+The default namespace is named `default` by default, but you can change that.
+
+If you’re tired of using `-n` all the time, you can change the default namespace for the current context, like so:
+
+```bash
+kubectl config set-context --current --namespace <namespace-name>
+```
 ### Nodes
 
 Nodes are individual VMs that run multiple pods at once. Nodes are scaled up and down by the control plane, as you wish. On your local machine, docker desktop provides you only with a single node.
