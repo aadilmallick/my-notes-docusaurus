@@ -79,9 +79,14 @@ kubectl get services -A # get all services
 You can create resources in kubernetes either imperatively or declaratively:
 
 - **imperative:** running CLI commands to create k8 resources
-	-  When you hear about creating resources imperatively, that means using kubectl CLI to create resources
 - **declarative**: describing resources in YAML and then creating them with the `kubectl apply -f <yaml-file>` command to create a resource from its YAML description.
-	- when you hear about declarative, that means describing resources in yaml files and then using two basic commands to manage their creation and deletion.
+
+
+> [!NOTE]
+> **Declarative vs Imperative**
+> ***
+> - **imperative**: using kubectl CLI to create resources
+> - **declarative**: configuring resources in yaml files and then using two basic commands to manage their creation and deletion.
 
 Once you describe the outline for a resource in a yaml file, you have these two basic commands to bring them into and out of existence:
 
@@ -347,11 +352,84 @@ Pods are a shell around a grouping of containers, essentially a single server wi
 - **shared network**: All pods in a container live on the same server and thus the same network, allowing for simple inter-container communication without having their traffic be exposed to the real world.
 - **replicable**: pods are the main scalable unit in kubernetes, allowing you to deploy multiple copies of the same pod and run them on a worker node.
 
-Pods can be in one of 6 states:
+Pods can be in one of 6 lifecycle states:
+
+- **pending**: pending for creation
+- **running**: running within a node
+- **succeeded**: ran and exited with status 0
+- **failed**: all containers within the pod exit and at least one exited with a non-zero exit status code.
+- **unknown**
+- **CrashLoopBackOff**: started, crashed, again and again.
+
+A pod resource is declared in yaml through the `Pod` kind of resource. The main key to specify when creating a pod resource is the `containers` key, where you specify all the containers that will run in a pod. Here are the options in each container:
+
+- `image`: the image to build the container from. By default, it pulls from dockerhub or any other external registry, but if you want to build a container from your local image, you need to also include the `imagePullPolicy: never` key.
+- `imagePullPolicy`: describes the pulling behavior of images. You can supply these values:
+    - `always` : pull the image from an external registry
+    - `never`: pull the image from your local images
+- `ports` : runs the container on the specified port. You have these keys to supply:
+    - `containerPort`: required, the port number to run the container on.
+    - `protocol` : the protocol to run on, TCP or UDP, if it even matters
+- `command` : a string array of the split string command to override the main container’s entrypoint. Useful for debugging.
+- `env` : provides key value pairs of environment variables to load into the container.
+
+#### Multi-container pods
+
+A pod can deploy multiple containers, which has the main advantage of letting all containers within that pod access the same shared resources like if they were on the same physical machine, leading to two key benefits:
+
+- **intra-pod communication:** containers within the same pod can communicate with each other through localhost.
+	- Each pod runs on its own individual IP address, and thus each container in a pod runs on a separate process and thus separate port. 
+- **shared volumes:** Volumes are declared at the pod level, thus containers within the same pod can share volumes.
+
+
+
+> [!NOTE]
+> Containers in the same pod are processes running on the same IP address and can communicate with each other through `localhost`, therefore.
 
 
 
 
+![](https://i.imgur.com/zg4JlR2.jpeg)
+
+
+For example, this would be the mongo URI to use when dealing with a multi-container setup with an express app in one container and a mongodb database running on port 27017 in another container:
+
+```bash
+PORT=3000
+MONGO_INITDB_ROOT_USERNAME=mongo
+MONGO_INITDB_ROOT_PASSWORD=mongo
+MONGO_INITDB_DATABASE=db
+SERVICE_NAME=localhost 
+
+MONGO_URI="mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@$SERVICE_NAME:27017?authSource=admin"
+```
+
+
+
+#### Pod observability
+
+You can perform wellness checks on your pods to see if they are responding correctly, which is good for making sure certain pods are up and running before trying to communicate with them. 
+
+These checks are called probes and there are three of them:
+
+1. **startup probe**: to know when a container has started
+2. **readiness probe**: to know when a container is ready to accept traffic.
+	- A failing readiness probe will stop the application from receiving traffic.
+3. **liveness probe**: indicates whether the code is running or not
+	- A failing liveness probe will restart the container.
+
+Each of these probes has a suitable, appropriate test you can configure, which can be of these three types:
+
+1. `ExecAction`: running a command in a container
+2. `TCPSocketAction`: continuously pinging and checking if a container is listening on a port via the TCP protocol
+3. `HTTPGetAction`: fetching a route with HTTP
+
+- `startupProbe`: Usually, running a command through the exec test is a good indicator for a container being started.
+	- **test type**: use `ExecAction`
+- `readinessProbe`: the readiness probe test should try seeing if a container is listening/running on a certain port before declaring that the container is ready to receive network traffic
+	- **test type**: use `TCPSocketAction`
+- `livenessProbe`: the liveness probe test runs a continuous test to see if the container is still running.
+	- **test type**: use `HTTPGetAction`
 
 #### Imperative deployments
 
@@ -414,6 +492,7 @@ You can get pods with `kubectl get pod` command, making sure to specify a namesp
 
 ```bash
 kubectl describe pod # gets all pods in default namespace
+kubectl describe pod -o wide # get more info on pods
 ```
 
 You can then get info about a single pod with the `kubectl describe pod` command, specifying the namespace if necessary.
@@ -473,6 +552,10 @@ Let’s go over some basic use cases:
 
 - **connecting to [localhost](http://localhost):** you have a pod runnign a server and you want a service that forwards that pod’s IP address to localhost on your laptop.
 - **inter-pod communication**: You have one server pod and one database pod, and you want to expose the database pod on a service for a persistent communication so that the server pod can access the database.
+
+
+> [!NOTE]
+> For a pod to communicate with another pod, they have to go through a service with port forwarding and DNS forwarding, because each pod has 1 IP address.
 
 **using services declaratively**
 
