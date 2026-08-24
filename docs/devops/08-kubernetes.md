@@ -113,7 +113,51 @@ The crud methods are as follows:
 
 ### Kubectl Config
 
-the`~/.kube/config` file:
+The `~/.kube/config` file contains configuration about all the k8s clusters and contexts available that you can connect to:
+
+
+```yaml
+# metadata defining config file
+apiVersion: v1
+kind: Config
+
+# metadata that applies to currently connected cluster
+current-context: docker-desktop
+preferences: {}
+
+# lists all clusters
+clusters:
+- cluster:
+    certificate-authority-data: some-bullshit
+    server: https://127.0.0.1:6443
+  name: docker-desktop
+- cluster:
+    server: https://rancher-test.hhmi.org/k8s/clusters/c-m-bf8pt7pg
+  name: test-janelia
+  
+# lists all contexts
+contexts:
+- context:
+    cluster: docker-desktop
+    user: docker-desktop
+  name: docker-desktop
+- context:
+    cluster: test-janelia
+    user: test-janelia
+  name: test-janelia
+
+# lists all the users
+users:
+- name: docker-desktop
+  user:
+    client-certificate-data: some-bullshit
+    client-key-data: some-bullshit
+- name: test-janelia
+  user:
+    token: some-bullshit
+
+```
+
 
 ### Kustomize
 
@@ -167,9 +211,11 @@ Here are the commands for the context:
 
 Kubernetes namespaces let you organize and isolate your workloads.
 
-Here is an example YAML resource of a namespace we create that will be named `development`.
+Here is the declarative way to create a namespace
 
-```yaml
+1. Create the YAML to make a namespace called "development"
+
+```yaml title="namespace-development.yaml"
 ---
 apiVersion: v1
 kind: Namespace
@@ -177,6 +223,11 @@ kind: Namespace
 		name: development
 ```
 
+2. Apply the YAML to make it a live k8s resource:
+
+```bash
+kubectl apply -f namespace-development.yaml
+```
 ### Nodes
 
 Nodes are individual VMs that run multiple pods at once. Nodes are scaled up and down by the control plane, as you wish. On your local machine, docker desktop provides you only with a single node.
