@@ -203,14 +203,21 @@ A TiltFile code is run in Starlark, which is a simplified dialect of python. It 
 ![](https://i.imgur.com/uYZdEdN.jpeg)
 
 ```python
+# 1. specify which contexts to allow
 allow_k8s_contexts([
   'docker-desktop',
 ]);
 
+# 2. specify which context to set as current context
+k8s_context("docker-desktop")
+
+# 3. builds an image
 docker_build(
-        "health-dashboard-server", 
-        context="server", 
-        dockerfile_contents="""
+        "health-dashboard-server",  # tag name
+        context="server",  # cwd to run `docker build` in
+        
+        # dockerfile contents
+        dockerfile_contents=""" 
         ARG NODE_VERSION=24.0.2
 
         ######################################
@@ -240,19 +247,24 @@ docker_build(
         """
 )
 
+# runs the k8s yaml files declaratively
 k8s_yaml("kustomize/base/local/mongo-deployment.yaml")
 k8s_yaml("kustomize/base/local/server-deployment.yaml")
 ```
 
-Here are the different functions:
+Here are functions concerned with the context:
 
 - `allow_k8s_contexts(contexts: [str])`: Allows the specified list of context names to be used as valid contexts for running the kubernetes resources.
+- `k8s_context(context: str)`: specify which context to set as current context
+
+And here are other functions:
+
 - `docker_build(image_name: str, **kwargs)` : Builds the image with the image name based on either dockerfile contents you provide or the path to the dockerfile.
 - `k8s_yaml(yaml_path : str)` : runs the k8s resource specified in the yaml filepath. It’s basically just calling `kubectl apply -f <yaml-file>`, and it watches for changes to that file.
 
 ### Examples
 
-#### Loading env
+#### Watching files
 
 ```python
 env_path = "./server/.env"
@@ -267,10 +279,7 @@ k8s_context("docker-desktop")
 
 run("export IN_DEV_MODE=true")
 
-
-
-# RUN THIS TO CREATE THE SECRET
-
+# whenever file at env_path changes, run command
 local_resource(
     name="env-file",
     cmd="bash scripts/tasks/initk8resources.sh",
@@ -283,9 +292,13 @@ docker_build(
         context="server", 
         dockerfile="server/Dockerfile.prod",
 )
+
+# use kustomize to combine multiple YAML files into one.
 combined_yaml_file = kustomize(
   "kustomize/overlay/local",
 )
+
+# run kubectl apply -f on the kustomize file
 k8s_yaml(combined_yaml_file)
 
 k8s_resource(
@@ -300,3 +313,4 @@ k8s_resource(
 ```
 
 - `run(command: str)`: lets you run a linux command that will persist in the shell session.
+- `local_resource()`
