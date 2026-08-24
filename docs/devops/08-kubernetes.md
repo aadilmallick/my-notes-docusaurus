@@ -15,7 +15,7 @@ Here is how K8S orchestrates node failure and recovery
 1. The master control plane decides what is the desired state for the cluster
 2. The master scheduler is continuously monitoring for failures and scaling requests to process them and notifies the master control plane if there are any changes that must be made to achieve the desired state.
 
-### Minikube
+### Minikube and Kubectl Setup
 
 Minikube allows you to run a kubernetes cluster on your local computer for practice.
 
@@ -27,7 +27,14 @@ curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikub
 sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
 ```
 
-2. Start a cluster with minikube
+2. Install `kubectl`
+
+```bash
+brew install kubectl
+kubectl version --client
+```
+
+3. Start a cluster with minikube
 
 ```bash
 minikube start
@@ -40,10 +47,12 @@ kubectl cluster-info # view cluster info
 kubectl get nodes # view nodes
 kubectl get namespaces # view namespaces
 kubectl get pods -A # view pods from all namespaces
+kubectl get services -A # get all services
 ```
 
-4. View nodes
 
-```
+## Basics
 
-```
+### Namespaces
+
+Kubernetes name
