@@ -50,9 +50,28 @@ kubectl get pods -A # view pods from all namespaces
 kubectl get services -A # get all services
 ```
 
+## Kubectl Basics
 
-## Basics
+`kubectl` is a CLI tool that lets you imperatively control cluster changes using CLI commands, but also lets you declaratively do it through YAML files like so:
+
+```
+kubectl apply -f <yaml-file>
+```
+
 
 ### Namespaces
 
-Kubernetes name
+Kubernetes namespaces let you organize and isolate your workloads.
+
+Here is an example YAML resource of a namespace we create that will be named `development`.
+
+```yaml
+---
+apiVersion: v1
+kind: Namespace
+	metadata:
+		name: development
+```
+
+
+#### CLI
