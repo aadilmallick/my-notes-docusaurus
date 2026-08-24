@@ -12,5 +12,6 @@ Here is what K8S does in the happy path
 
 Here is how K8S orchestrates node failure and recovery
 
-1. If a node fails, the master control plane acknowledges this and forwards the request to go to a working node instead.
+1. The master control plane decides what is the desired state for the cluster
+2. The master scheduler is continuously monitoring for failures and scaling requests to process them and notifies the master control plane if there are any changes that must be made to achieve the desired state.
 
