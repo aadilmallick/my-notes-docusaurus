@@ -178,6 +178,20 @@ On any resource yaml, you define the labels as key-value pairs under the `labels
 
 ![](https://i.imgur.com/7gEEmHN.jpeg)
 
+#### Selectors
+
+Here are the different selector keys you can have on a resource:
+
+- `selector`: selects a pod based on the label and value pair, searching across all current pod instances to do so.
+- `nodeSelector` : selects a node based on the label and value pair, searching across all current node instances to do so.
+
+
+![](https://i.imgur.com/SpPoH4i.jpeg)
+
+
+
+1. We set a label of `disktype=superfast` on Node A
+2. When we want to select a node to assign the pod to using the `nodeSelector` key, we select on the `disktype` label and select the node with the value of that `disktype` label being equal to `superfast`, thus selecting Node A.
 ## Tilt
 
 ### Intro
@@ -301,6 +315,7 @@ combined_yaml_file = kustomize(
 # run kubectl apply -f on the kustomize file
 k8s_yaml(combined_yaml_file)
 
+# define port forwarding for a service
 k8s_resource(
   workload="health-dashboard-server-deployment",
   port_forwards="30000:3000"
@@ -313,4 +328,3 @@ k8s_resource(
 ```
 
 - `run(command: str)`: lets you run a linux command that will persist in the shell session.
-- `local_resource()`
