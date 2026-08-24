@@ -294,6 +294,162 @@ Here are the different selector keys you can have on a resource:
 2. When we want to select a node to assign the pod to using the `nodeSelector` key, we select on the `disktype` label and select the node with the value of that `disktype` label being equal to `superfast`, thus selecting Node A.
 
 
+## K8S Resources
+
+### Deployments and Pods
+
+A deployment is a single deployment unit of a microservice, which creates all the pods necessary for that microservice.
+
+In this example below, we create a deployment named `pod-info-deployment` in the namespace `development` which contains one pod built from the `aadilmallick/pod-info-app:latest` docker image.
+
+```yaml
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-info-deployment
+  namespace: development
+  labels:
+    app: pod-info
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pod-info
+  template:
+    metadata:
+      labels:
+        app: pod-info
+    spec:
+      containers:
+      - name: pod-info-container
+        image: aadilmallick/pod-info-app:latest
+        ports:
+        - containerPort: 3000
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name # pod-info-deployment
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace  # development
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP # resolved at runtime
+```
+
+#### Imperative deployments
+
+Here is the basic crud:
+
+- `kubectl get deployments` : gets all deployments
+- `kubectl describe deployment <deployment-name>` : gives more info on the specified deployment
+- `kubectl delete deployment <deployment-name>` : deletes the specified deployment
+
+**create deployments**
+
+Deployments are a grouping of pods, and in deployments you describe how to create the pods through a yaml file, but you can also create them imperatively (not recommended)
+
+```bash
+kubectl create deployment <deployment-name> \
+--image=<image-name> \ # image to create container (1-container pod)
+--replicas=3 \    # the number of pods in the replica set
+--port=80         # the port to run the container on
+```
+
+**fetching deployments**
+
+You can get deployments with the `kubectl get deployment` command, which by default will look in the default namespace. To specify the namespace to search in, use the `-n` command:
+
+```bash
+kubectl get deployment # gets all deployments in the default namespace
+kubectl get deployment -n "nginx" # gets deployments in the "nginx" namespace
+```
+
+Once you get a deployment, you can describe it with the `kubectl describe deployment` command, making sure to specify the namespace if the deployment belongs to a namespace
+
+```bash
+kubectl describe deployment DEPLOYMENT_NAME_HERE
+```
+
+**deleting deployments**
+
+To delete a deployment, use the `kubectl delete deployment` command, which will automatically delete and stop all pods within that deployment. This command also needs to be namespaced if the deployment is tied to a namespace.
+
+```bash
+kubectl delete deployment DEPLOYMENT_NAME_HERE
+```
+
+
+#### Imperative pods
+
+**create pods**
+
+---
+
+You can create pods imperatively with the `kubectl run` command:
+
+```bash
+kubectl run <podname> --image=<imagename>
+```
+
+**fetching pods**
+
+You can get pods with `kubectl get pod` command, making sure to specify a namespace if your pods are in a deployment that belongs to a namespace.
+
+```bash
+kubectl describe pod # gets all pods in default namespace
+```
+
+You can then get info about a single pod with the `kubectl describe pod` command, specifying the namespace if necessary.
+
+```bash
+kubectl describe pod POD_NAME # describes the pod by pod name
+kubectl describe pod nginx-deployment-d556bf558-5jtpv -n "nginx"
+```
+
+**deleting pods**
+
+```bash
+kubectl delete pod $POD
+kubectl delete pod $POD -n $NAMESPACE
+```
+
+**interactive mode**
+
+You can check out the logs of a pod or execute commands in it interactively with this command, to go into its shell:
+
+```bash
+kubectl exec -it <podname> -- sh
+```
+
+**checking logs**
+
+You can get the logs of a pod with the `kubectl logs` command:
+
+```bash
+kubectl logs <podname>
+```
+
+**multi-container pods**
+
+When dealing with multi container pods, you often have to specify the cdesired container you want to work with using the `-c <container-name>` option:
+
+```bash
+kubectl logs <podname> -c <container_name> # get logs from container
+```
+
+And this is how you can get inside the shell of the specified container running inside the specified pod:
+
+```bash
+kubectl exec -it <podname> -c <container_name> -- /bin/sh
+```
+
+
+![](https://i.imgur.com/nPy3mm5.jpeg)
 
 ## Kustomize and advanced K8S Yaml
 
