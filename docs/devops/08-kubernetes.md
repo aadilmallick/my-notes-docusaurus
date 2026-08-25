@@ -301,50 +301,8 @@ Here are the different selector keys you can have on a resource:
 
 ## K8S Resources
 
-### Deployments and Pods
+### Pods
 
-A deployment is a single deployment unit of a microservice, which creates all the pods necessary for that microservice.
-
-In this example below, we create a deployment named `pod-info-deployment` in the namespace `development` which contains one pod built from the `aadilmallick/pod-info-app:latest` docker image.
-
-```yaml
---- 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pod-info-deployment
-  namespace: development
-  labels:
-    app: pod-info
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: pod-info
-  template:
-    metadata:
-      labels:
-        app: pod-info
-    spec:
-      containers:
-      - name: pod-info-container
-        image: aadilmallick/pod-info-app:latest
-        ports:
-        - containerPort: 3000
-        env:
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name # pod-info-deployment
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace  # development
-          - name: POD_IP
-            valueFrom:
-              fieldRef:
-                fieldPath: status.podIP # resolved at runtime
-```
 
 Pods are a shell around a grouping of containers, essentially a single server with a single IP address that runs each container inside the pod on its dedicated port. Here are the advantages of working with pods:
 
@@ -361,7 +319,13 @@ Pods can be in one of 6 lifecycle states:
 - **unknown**
 - **CrashLoopBackOff**: started, crashed, again and again.
 
-A pod resource is declared in yaml through the `Pod` kind of resource. The main key to specify when creating a pod resource is the `containers` key, where you specify all the containers that will run in a pod. Here are the options in each container:
+#### Declarative POD YAML
+
+A pod resource is declared in yaml through the `Pod` kind of resource. 
+
+##### **specifying container behavior**
+
+The main key to specify when creating a pod resource is the `containers` key, where you specify all the containers that will run in a pod. Here are the options in each container:
 
 - `image`: the image to build the container from. By default, it pulls from dockerhub or any other external registry, but if you want to build a container from your local image, you need to also include the `imagePullPolicy: never` key.
 - `imagePullPolicy`: describes the pulling behavior of images. You can supply these values:
@@ -369,9 +333,39 @@ A pod resource is declared in yaml through the `Pod` kind of resource. The main 
     - `never`: pull the image from your local images
 - `ports` : runs the container on the specified port. You have these keys to supply:
     - `containerPort`: required, the port number to run the container on.
-    - `protocol` : the protocol to run on, TCP or UDP, if it even matters
+    - `protocol` : the layer 4 protocol to run on, TCP or UDP
+    - `name`: the layer 7 protocol, like http, https, etc.
 - `command` : a string array of the split string command to override the main container’s entrypoint. Useful for debugging.
 - `env` : provides key value pairs of environment variables to load into the container.
+
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx
+    ports:
+    - containerPort: 80
+      name: http
+      protocol: TCP
+    env:
+    - name: DBCON
+      value: connectionstring
+    command: ["/bin/sh", "-c"]
+    args: ["echo ${DBCON}"]
+```
+
+
+##### **compute request**
+
+You can specify the amount of compute (memory and CPU) a container within a pod gets.
 
 #### Multi-container pods
 
@@ -418,11 +412,29 @@ These checks are called probes and there are three of them:
 3. **liveness probe**: indicates whether the code is running or not
 	- A failing liveness probe will restart the container.
 
+##### Probes
+
 Each of these probes has a suitable, appropriate test you can configure, which can be of these three types:
 
 1. `ExecAction`: running a command in a container
+
+
+![](https://i.imgur.com/fabItCS.jpeg)
+
+
 2. `TCPSocketAction`: continuously pinging and checking if a container is listening on a port via the TCP protocol
+
+
+![](https://i.imgur.com/tN55If0.jpeg)
+
+
 3. `HTTPGetAction`: fetching a route with HTTP
+
+
+![](https://i.imgur.com/yDGoI7c.jpeg)
+
+
+Are here are the test types for each different type of probe:
 
 - `startupProbe`: Usually, running a command through the exec test is a good indicator for a container being started.
 	- **test type**: use `ExecAction`
@@ -431,49 +443,58 @@ Each of these probes has a suitable, appropriate test you can configure, which c
 - `livenessProbe`: the liveness probe test runs a continuous test to see if the container is still running.
 	- **test type**: use `HTTPGetAction`
 
-#### Imperative deployments
+Each probe has these same properties that influence the frequency of the probe and when to declare failure:
 
-Here is the basic crud:
+- `failureThreshold`: the amount of attempts the probe is allowed to fail before declaring failure on the probe and thus giving up.
+- `periodSeconds`: the amount of time to wait before reattempting the probe.
+- `initialDelaySeconds`: the number of seconds to wait before starting the probe test.
 
-- `kubectl get deployments` : gets all deployments
-- `kubectl describe deployment <deployment-name>` : gives more info on the specified deployment
-- `kubectl delete deployment <deployment-name>` : deletes the specified deployment
+There are different behaviors that K8 takes whenever you fail one of the probes:
 
-**create deployments**
+- **failing readinessProbe**: if you fail a readiness probe, the container stops accepting traffic.
+- **failing startupProbe**: if you fail a startup probe, the entire pod restarts.
 
-Deployments are a grouping of pods, and in deployments you describe how to create the pods through a yaml file, but you can also create them imperatively (not recommended)
-
-```bash
-kubectl create deployment <deployment-name> \
---image=<image-name> \ # image to create container (1-container pod)
---replicas=3 \    # the number of pods in the replica set
---port=80         # the port to run the container on
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: goproxy
+  labels:
+    app: goproxy
+spec:
+  containers:
+  - name: goproxy
+    image: k8s.gcr.io/goproxy:0.1
+    ports:
+    - containerPort: 8080
+    readinessProbe:
+      tcpSocket:
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    livenessProbe:
+      tcpSocket:
+        port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 80
+      failureThreshold: 3
+      periodSeconds: 10
 ```
 
-**fetching deployments**
+##### init containers
 
-You can get deployments with the `kubectl get deployment` command, which by default will look in the default namespace. To specify the namespace to search in, use the `-n` command:
+Init containers are a way to spin up containers and deal with dependencies, like checking database connection is ready before starting your express app.
 
-```bash
-kubectl get deployment # gets all deployments in the default namespace
-kubectl get deployment -n "nginx" # gets deployments in the "nginx" namespace
-```
+You specify your init containers under the `initContainers` key at the same level as `containers`, and specify them the same way. There’s only a few differences:
 
-Once you get a deployment, you can describe it with the `kubectl describe deployment` command, making sure to specify the namespace if the deployment belongs to a namespace
+- If an init container fails, it restarts repeatedly until it succeeds, unless `restartPolicy: never` is set on these containers.
+- Probes like `livenessProbe`, `readinessProbe`, and `startupProbe` are not supported on init containers.
 
-```bash
-kubectl describe deployment DEPLOYMENT_NAME_HERE
-```
-
-**deleting deployments**
-
-To delete a deployment, use the `kubectl delete deployment` command, which will automatically delete and stop all pods within that deployment. This command also needs to be namespaced if the deployment is tied to a namespace.
-
-```bash
-kubectl delete deployment DEPLOYMENT_NAME_HERE
-```
-
-
+As soon as all the init containers finish, the normal containers specified under `containers` are allowed to run.
 #### Imperative pods
 
 **create pods**
@@ -542,6 +563,98 @@ kubectl exec -it <podname> -c <container_name> -- /bin/sh
 
 ![](https://i.imgur.com/nPy3mm5.jpeg)
 
+### Deployments
+
+#### Declarative deployments
+
+A deployment is a single deployment unit of a microservice, which creates all the pods necessary for that microservice.
+
+In this example below, we create a deployment named `pod-info-deployment` in the namespace `development` which contains one pod built from the `aadilmallick/pod-info-app:latest` docker image.
+
+```yaml
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-info-deployment
+  namespace: development
+  labels:
+    app: pod-info
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pod-info
+  template:
+    metadata:
+      labels:
+        app: pod-info
+    spec:
+      containers:
+      - name: pod-info-container
+        image: aadilmallick/pod-info-app:latest
+        ports:
+        - containerPort: 3000
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name # pod-info-deployment
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace  # development
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP # resolved at runtime
+```
+
+
+#### Imperative deployments
+
+Here is the basic crud:
+
+- `kubectl get deployments` : gets all deployments
+- `kubectl describe deployment <deployment-name>` : gives more info on the specified deployment
+- `kubectl delete deployment <deployment-name>` : deletes the specified deployment
+
+**create deployments**
+
+Deployments are a grouping of pods, and in deployments you describe how to create the pods through a yaml file, but you can also create them imperatively (not recommended)
+
+```bash
+kubectl create deployment <deployment-name> \
+--image=<image-name> \ # image to create container (1-container pod)
+--replicas=3 \    # the number of pods in the replica set
+--port=80         # the port to run the container on
+```
+
+**fetching deployments**
+
+You can get deployments with the `kubectl get deployment` command, which by default will look in the default namespace. To specify the namespace to search in, use the `-n` command:
+
+```bash
+kubectl get deployment # gets all deployments in the default namespace
+kubectl get deployment -n "nginx" # gets deployments in the "nginx" namespace
+```
+
+Once you get a deployment, you can describe it with the `kubectl describe deployment` command, making sure to specify the namespace if the deployment belongs to a namespace
+
+```bash
+kubectl describe deployment DEPLOYMENT_NAME_HERE
+```
+
+**deleting deployments**
+
+To delete a deployment, use the `kubectl delete deployment` command, which will automatically delete and stop all pods within that deployment. This command also needs to be namespaced if the deployment is tied to a namespace.
+
+```bash
+kubectl delete deployment DEPLOYMENT_NAME_HERE
+```
+
+
+
 ### Services
 
 Services are resources that have persistent DNS names and IP addresses which are designed for creating stable networking for pods and between pods.
@@ -559,12 +672,35 @@ Let’s go over some basic use cases:
 
 **using services declaratively**
 
-There are three types of services you can have:
+There are four types of services you can have:
 
 - `ClusterIP` : the default, which gives the service an IP address that is accessible only from within the cluster. (only other pods within the cliuster can communicate with the service, not from localhost).
 - `LoadBalancer` : load balances requests from the service to all matching pods it has from its `selector` property. It operates at **layer 4**, meaning it uses the TCP protocol.
 - `Ingress`: a load balancer but operates at the **layer 7** level, meaning it uses intelligent protocols like HTTP and SMTP and can make intelligent load balancing decisions based on the contents of the web packets.
 - `NodePort` : exposes the service’s IP address to the local machine on localhost.
+
+A basic service YAML is like so:
+
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-service
+  namespace: development
+spec:
+  selector:
+    app: pod-info
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: LoadBalancer
+```
+
+Each service should have a selector that points to a corresponding label on a pod so the service targets the pod for directing traffic to it.
+
+1. On a pod resource YAML, provide a value for `metadata.labels.app`
+2. On a service YAML, use that same pod label value on `spec.selector.app`
 
 #### ClusterIP
 
@@ -589,6 +725,28 @@ The `NodePort` runs the pod as a process rather than giving it its own IP addres
     - `targetPort`: the port that the selected pod is listening on. This value is not applied if the service type is `NodePort`, so you can just omit this.
     - `nodePort`: the port to map to on your localhost. This must be a large value between 30000 - 32767, as to not interfere with important ports.
 - `selector`: selects the pods to do networking for in the service.
+
+
+#### Loadbalancer
+
+1. Run `minikube tunnel` to expose your kubernetes to localhost internet
+2. Create this yaml of a service:
+
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-service
+  namespace: development
+spec:
+  selector:
+    app: pod-info
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: LoadBalancer
+```
 #### CLI
 
 Services help expose your containers to the outer world via port forwarding, doing either forwarding to your localhost or to a DNS mapping to a registered domain name.
