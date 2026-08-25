@@ -796,6 +796,9 @@ spec:
       targetPort: 3000
   type: LoadBalancer
 ```
+3. Create the associated pod and apply the service
+4. Visit `localhost:80` to see your pod running via a service
+
 #### CLI
 
 Services help expose your containers to the outer world via port forwarding, doing either forwarding to your localhost or to a DNS mapping to a registered domain name.
