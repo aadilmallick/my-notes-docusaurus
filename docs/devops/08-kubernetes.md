@@ -724,96 +724,93 @@ kubectl exec -it <podname> -c <container_name> -- /bin/sh
 
 ![](https://i.imgur.com/nPy3mm5.jpeg)
 
-### Deployments
+### Workloads
 
-#### Declarative deployments
+Workloads are an abstraction over controlling how a pod runs and its lifecycle behavior or execution behavior.
 
-A deployment is a single deployment unit of a microservice, which creates all the pods necessary for that microservice.
+There are 5 types of workloads:
 
-In this example below, we create a deployment named `pod-info-deployment` in the namespace `development` which contains one pod built from the `aadilmallick/pod-info-app:latest` docker image.
+- **replica set**: maintain a set of pod copies and provide self-healing capabilities to replace crashing pods with healthy replicas.
+- **deployments**: An abstraction over replica sets that allow you to manage a single pod template and also updates and rollbacks to pods and any replica sets
 
-```yaml
---- 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pod-info-deployment
-  namespace: development
-  labels:
-    app: pod-info
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: pod-info
-  template:
-    metadata:
-      labels:
-        app: pod-info
-    spec:
-      containers:
-      - name: pod-info-container
-        image: aadilmallick/pod-info-app:latest
-        ports:
-        - containerPort: 3000
-        env:
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name # pod-info-deployment
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace  # development
-          - name: POD_IP
-            valueFrom:
-              fieldRef:
-                fieldPath: status.podIP # resolved at runtime
-```
+#### Deployments and replica sets
 
 
-#### Imperative deployments
+ReplicaSets are workloads that manage pod replicas and provide self-healing capabilities to replace crashing pods with healthy replicas.
 
-Here is the basic crud:
+> [!NOTE]
+> Obviously pods in a replica set will have different IP address since the rule is one IP address per pod.
 
-- `kubectl get deployments` : gets all deployments
-- `kubectl describe deployment <deployment-name>` : gives more info on the specified deployment
-- `kubectl delete deployment <deployment-name>` : deletes the specified deployment
+Their main job is to always ensure the desired number of pods are always running.
 
-**create deployments**
+> [!NOTE]
+> You can create replica sets imperatively or declaratively through the `rs` resource, but it’s recommended use deployments instead, since they are abstractions over replica sets.
 
-Deployments are a grouping of pods, and in deployments you describe how to create the pods through a yaml file, but you can also create them imperatively (not recommended)
+- `kubectl get rs`: list replica sets
+- `kubectl describe rs <rs-name>`: get info of a specific replica set
+- `kubectl delete rs <rs-name>`: delete a specific replica set
 
-```bash
-kubectl create deployment <deployment-name> \
---image=<image-name> \ # image to create container (1-container pod)
---replicas=3 \    # the number of pods in the replica set
---port=80         # the port to run the container on
-```
 
-**fetching deployments**
+Deployments manage a single pod template and can also manage replica sets, abstracting that resource away. They manage updates and rollbacks to pods and any replica sets
 
-You can get deployments with the `kubectl get deployment` command, which by default will look in the default namespace. To specify the namespace to search in, use the `-n` command:
 
-```bash
-kubectl get deployment # gets all deployments in the default namespace
-kubectl get deployment -n "nginx" # gets deployments in the "nginx" namespace
-```
 
-Once you get a deployment, you can describe it with the `kubectl describe deployment` command, making sure to specify the namespace if the deployment belongs to a namespace
+![](https://i.imgur.com/m9yoJeB.jpeg)
 
-```bash
-kubectl describe deployment DEPLOYMENT_NAME_HERE
-```
 
-**deleting deployments**
+Here is how you can declaratively define replica set behavior:
 
-To delete a deployment, use the `kubectl delete deployment` command, which will automatically delete and stop all pods within that deployment. This command also needs to be namespaced if the deployment is tied to a namespace.
 
-```bash
-kubectl delete deployment DEPLOYMENT_NAME_HERE
-```
+- `replicas` : the number of pod replicas to manage in a replica set
+- `revisionHistoryLimit` : sets the number of previous iterations to keep
+- `strategy` : the type of behavior for determining how updates and rollbacks work in the deployment. You have these two types you can pass:
+    - `RollingUpdate` : cycle through updating pods. The default for the below strategies are 25%.
+        - `maxSurge` : the number of additional pods to have as backup in addition to the desirecd number of pods. This is an expressed as a percentage from 0 to 1.
+        - `maxUnavailable` : the number of pods that are allowed to unavailable from the desired number of pods. This is expressed as a percentage between 0 and 1.
+    - `Recreate` : kills all existing pods before creating new ones
+- `template` : you create the pod declaratively here, specifying the containers to run, the env variables, the volumes, etc. It’s just a `pod.yaml` essentially.
 
+##### `RollingUpdate` strategy
+
+Going more in depth into the rolling update strategy, let’s paint a picture of having a replica set of 3 pods, and the following stretegy values:
+
+- **max surge = 33%**: have one additional pod as backup ready to substitute in at any time.
+- **maxc unavailable 66%**: Allow two pods (2/3 = 66%) out of the desired 3 pods to be killed or unavailable before you ask for the rolling update feature to trigger.
+
+You can roll back deployments imperatively like so:
+
+
+![](https://i.imgur.com/RS9CGVk.jpeg)
+
+
+#### DaemonSet
+
+A DaemonSet workload is used to ensure all nodes run an instance of a pod, basically ensuring maximum replicability. 
+
+It makes sure that as new nodes are added to the cluster, specified pods are automatically replicated and added to those nodes and run.
+
+> [!NOTE]
+> It is like a deployment, but for the specific use case of caring more about maximum availability.
+
+Here is how to declare a DaemonSet declaratively:
+
+
+![](https://i.imgur.com/4rfq53y.jpeg)
+
+- `spec.tolerations` : any specified nodes that you do not want to run the pods on, like the master node or control plane
+- `spec.containers`: the containers that will make up the pod belonging to a daemon set.
+
+You can also create DaemonSets imperatively through the `ds` resource:
+
+- `kubectl get ds`: lists all daemonsets
+- `kubectl describe ds <daemonset-name>`: get info of a specific daemonset
+- `kubectl delete ds <daemonset-name>`: delete a specific daemonset
+
+#### StatefulSet
+
+#### Job
+
+#### CronJob
 
 
 ### Services
@@ -932,6 +929,102 @@ kubectl port-forward service/<service-name> <nodeport>:<serviceport>
 - `service-name`: the name of the service to port forward
 - `nodeport`: the port number on your local machine you want to forward to
 - `serviceport` : the port on the service that is currently being exposed and that you want to forward.
+
+
+### Deployments in depth
+
+A deployment is a single deployment unit of a microservice, which creates all the pods necessary for that microservice.
+
+#### Declarative deployments
+
+
+In this example below, we create a deployment named `pod-info-deployment` in the namespace `development` which contains one pod built from the `aadilmallick/pod-info-app:latest` docker image.
+
+```yaml
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-info-deployment
+  namespace: development
+  labels:
+    app: pod-info
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pod-info
+  template:
+    metadata:
+      labels:
+        app: pod-info
+    spec:
+      containers:
+      - name: pod-info-container
+        image: aadilmallick/pod-info-app:latest
+        ports:
+        - containerPort: 3000
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name # pod-info-deployment
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace  # development
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP # resolved at runtime
+```
+
+
+#### Imperative deployments
+
+Here is the basic crud:
+
+- `kubectl get deployments` : gets all deployments
+- `kubectl describe deployment <deployment-name>` : gives more info on the specified deployment
+- `kubectl delete deployment <deployment-name>` : deletes the specified deployment
+
+**create deployments**
+
+Deployments are a grouping of pods, and in deployments you describe how to create the pods through a yaml file, but you can also create them imperatively (not recommended)
+
+```bash
+
+kubectl create deployment <deployment-name> \
+--image=<image-name> \  # image to create container (1-container pod)
+--replicas=3 \    # the number of pods in the replica set
+--port=80         # the port to run the container on
+```
+
+**fetching deployments**
+
+You can get deployments with the `kubectl get deployment` command, which by default will look in the default namespace. To specify the namespace to search in, use the `-n` command:
+
+```bash
+kubectl get deployment # gets all deployments in the default namespace
+kubectl get deployment -n "nginx" # gets deployments in the "nginx" namespace
+```
+
+Once you get a deployment, you can describe it with the `kubectl describe deployment` command, making sure to specify the namespace if the deployment belongs to a namespace
+
+```bash
+kubectl describe deployment DEPLOYMENT_NAME_HERE
+```
+
+**deleting deployments**
+
+To delete a deployment, use the `kubectl delete deployment` command, which will automatically delete and stop all pods within that deployment. This command also needs to be namespaced if the deployment is tied to a namespace.
+
+```bash
+kubectl delete deployment DEPLOYMENT_NAME_HERE
+```
+
+
+
 ## Kustomize and advanced K8S Yaml
 
 The kustomize tool is a way to combine multiple yaml files describing k8s resources into one so you don’t have to think about individual resources. You simply deploy one kustomize file, and to delete all resources, you simply delete that kustomize file.
