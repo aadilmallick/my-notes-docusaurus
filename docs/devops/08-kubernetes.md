@@ -25,15 +25,120 @@ Here is how K8S orchestrates node failure and recovery
 - **pod**: a system that manages and runs multiple containers, all running on the same IP address. You can think of a pod as a single server that runs each container inside it on a different port. Pods can have replicas, which is where scaling and availability comes into play
 - **cluster:** A cluster is a control plane and the worker node(s) it manages. All the scaling up and down of resources happens in the context of a cluster.
 - **control plane:** The control plane manages all worker nodes, scaling them up or down. It has 5 components to it:
-    - **API server:** a server that uses the **kubelet** tool to communicate with the worker nodes in a cluster.
-    - **Scheduler:** used for managing pods and assigning them to run in available nodes.
-    - **kube controller manager**: manages worker nodes and ensures that the correct number of pods are being deployed.
-    - **cloud controller manager**: just the kube controller manager but retrofitted for each individual cloud provider. Your cloud provider will take care of providing this component.
-    - **etcd:** key value store for storing the cluster start
+    - **Cloud Controller Manager**: Connects a Kubernetes cluster to a cloud provider's API, managing cloud-specific resources and ensuring proper integration with the underlying infrastructure
+	- **etcd**: A key-value store that saves all data about the state of the cluster; only the kube-apiserver can communicate directly with etcd
+	- **kube-apiserver**: The kube-apiserver is a key component of Kubernetes that exposes the Kubernetes API, handles most requests, and manages interactions with the cluster by processing and validating API requests, making it essential for the cluster's operation
+	- **kube-controller-manager**: Monitors the Kubernetes cluster's state, running processes to ensure the current state matches the desired state
+	- **kube-scheduler**: Identifies a newly created pod that has not been assigned a worker node and assigns it to a specific node
 
-When deploying Kubernetes apps, you deploy a single cluster, which is made from many nodes that can be scaled horizontally to adapt to server traffic. Kubernetes deploys **nodes**, which you can think of as each node being a single virtual machine, and in each node you can have multiple **pods**, where a pod can run multiple containers at once together.
+> [!NOTE]
+> K8S in a nutshell
+> ***
+> When deploying Kubernetes apps, you deploy a single cluster, which is made from many nodes that can be scaled horizontally to adapt to server traffic. 
+> 
+> Kubernetes deploys **nodes**, which you can think of as each node being a single virtual machine, and in each node you can have multiple **pods**, where a pod can run multiple containers at once together.
 
-To avoid everything crashing when a single pod in a node fails, you can establish **replica sets** that create several copies of the same pod in order to replace a pod without the system crashing.
+
+### K8S architecture
+
+The control plane is what handles the orchestration of pods across worker nodes and other things like networking between nodes.
+
+
+
+
+
+#### The control plane
+
+Think of the Kubernetes control plane as kind of an air traffic controller that determines and directs where pods are created on different worker nodes. 
+
+
+![](https://i.imgur.com/CuBhJQ1.jpeg)
+
+Here are the different control plane components:
+
+- **API server:** a server that exposes a REST API to control K8S resources
+- **etcd**: Highly-available key value store that lives in the control plane to store all data about the current state of the cluster.
+- **kube scheduler**: runs in a loop, identifies newly created pods which have not been assigned a worker node and then assigns them a node for the pod to run on.
+- **kube controller manager**: manages worker nodes and ensures that they are up and running and deploys self-healing operations to keep them up.
+- **cloud controller manager**: just the kube controller manager but retrofitted for each individual cloud provider so you can use kubernetes on cloud infrastructure. Your cloud provider will take care of providing this component.
+
+> [!NOTE]
+> Think of the API server as the only component that's actually doing any action, while the other components (like the cube scheduler and the cube controller manager) all they do is watch for changes and intelligently request the API server to create resources and allocate them to specific nodes. 
+
+All components of the control plane run as containerized pods within the cluster, which live in the `kube-system` built-in namespace.
+
+You can see all control plane components running as pods with this command:
+
+```bash
+kubectl -n kube-system get pods
+```
+
+##### API server
+
+All K8S resources like pods, deployments, and horizontal pod autoscaler have API endpoints.
+
+The **API server** component on K8S exposes a REST API interface to control all of these resources, and CLI tools like `kubectl` use the API server REST API under the hood to control k8s resources via HTTP requests.
+
+To see all the K8S resources that have available API endpoints to control their provisioning, run this command:
+
+```bash
+kubectl api-resources
+```
+
+##### etcd
+
+Highly-available key value store that lives in the control plane to store all data about the current state of the cluster.
+
+> [!NOTE]
+> Only the Kube API server can communicate directly with etcd.
+
+##### Kube controller manager
+
+A component that runs in a loop and continuously checks the status of the cluster to see what the desired state is, to make sure things are running properly.
+
+For example if a worker node gets broken, then through its continuous checks it will see that and then queue up an operation to replace the broken worker node with a newly working one. 
+
+##### Cloud controller manager
+
+This component offers a provider-agnostic way to connect your cluster to a cloud provider like AWS, GCP, or any other platform that supports kubernetes
+#### worker nodes
+
+All K8S clusters run with a minimum of three worker nodes to be highly available.
+
+Each worker node has three components:
+
+1. **kubelet**: this is an agent that runs on every worker node and it makes sure that containers in a pod are running and healthy. It communicates directly with the API server component in the control plane to monitor newly created pods.
+	- An agent that runs on each node in a Kubernetes cluster, ensuring containers in a pod are running and healthy while communicating with the API server in the control plane to maintain the desired state of the node
+2. **container runtime**: Once kubelet verifies a new pod is ready to go, it builds and starts the containers in the pod spec using the **Container runtime interface** (CRI), which enables the Kubelet to create containers with supported container engines.
+	- Pulls container images, creates and manages containers, and ensures they run properly and securely as directed by the Kubernetes control plane
+3. **kube proxy**: offers a proxy between pods and services running in a worker node to the API server in the control plane so that pods and services within the same cluster can communicate with each other.
+	- A network proxy that runs on each node in a Kubernetes cluster, maintaining network rules and enabling communication between pods and services within the node and the control plane, while also communicating directly with the kube-apiserver
+
+
+#### The full flow
+
+
+![](https://i.imgur.com/MFLuZ0x.jpeg)
+
+1. **create kubernetes resources**: You either imperatively or declaratively, create Kubernetes resources, which then make a request to the API server component in the control plane. 
+2. **save state**: the API server receives the request, creates the resources, and saves the new state of the cluster in etcd. 
+3. **controller-manager checks for changes**: the controller manager component continuously checks for changes to see if it should add a new worker node.
+4. **scheduler gets triggered**: because a new deployment was created the scheduler gets triggered and pings the API server to ask if there are any unassigned, newly created pods.
+5. **API server notifies scheduler**: the API server notifies the scheduler that there are newly created unassigned pods.
+6. **scheduler chooses node for a pod**: the scheduler chooses a node for the pod and sends its request to the API server to place the newly created pods within those specific nodes.
+7. **API server saves state**: API server saves state of cluster in etcd
+8. **kubelet in worker node checks for newly assigned pod**: kubelet inside the worker node that got the newly created pod assigned to it wakes up and pings API server to receive the pod spec.
+9. **API server sends pod spec**: the API server sends the pod spec to kubelet in the worker node.
+10. **kubelet triggers container runtime**: Kubelet receives the pod spec, triggers container runtime to create container and start it
+11. **kubelet monitors pod status and sends to API server**
+12. **API server saves state to etcd**
+
+#### Built-in namespaces
+
+In a K8S cluster you have several namespaces that come built-in default to k8s, which contain important resources used to control the cluster:
+
+- `kube-system`: contains pods of the control plane.
+
 
 ### Minikube and Kubectl Setup
 
@@ -70,7 +175,11 @@ kubectl get pods -A # view pods from all namespaces
 kubectl get services -A # get all services
 ```
 
+### Minikube management
 
+- `minikube start`: creates a local cluster you can use
+- `minikube tunnel`: proxies internet traffic from your locally running minikube cluster to your local machine on `localhost`, making services able to run on `localhost`.
+- `minikube delete`: deletes the cluster.
 
 ### `kubectl` basics
 
@@ -571,6 +680,9 @@ You can then get info about a single pod with the `kubectl describe pod` command
 kubectl describe pod POD_NAME # describes the pod by pod name
 kubectl describe pod nginx-deployment-d556bf558-5jtpv -n "nginx"
 ```
+
+
+
 
 **deleting pods**
 
