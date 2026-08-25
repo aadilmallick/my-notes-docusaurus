@@ -1447,6 +1447,72 @@ To send an email with lambda, you need these permissions:
 
 - `ses:SendEmail`: allows you to send an email
 - `ses:SendRawEmail`: allows you to send an email with HTML content.
+
+#### Scheduling with event bridge
+
+```ts
+import {
+  ActionAfterCompletion,
+  CreateScheduleCommand,
+  FlexibleTimeWindowMode,
+  SchedulerClient,
+} from '@aws-sdk/client-scheduler'
+
+// Formats a Date or ISO string into EventBridge Scheduler format: at(yyyy-MM-ddTHH:mm:ss)
+function formatSchedulerExpression(dateInput: string | Date): string {
+  const date = new Date(dateInput)
+  // EventBridge Scheduler requires ISO without milliseconds
+  // or timezone offset in the expression
+  const iso = date.toISOString().split('.')[0]
+  return `at(${iso})`
+}
+
+export async function schedulePocNotification(params: {
+  schedulerClient: SchedulerClient
+  targetLambdaArn: string
+  schedulerRoleArn: string
+  postedAt: string | Date
+  tenantId: string
+  opportunityId: string
+  userId: string
+}) {
+  const scheduleName =
+    `opp-poc-notify-${params.tenantId}-${params.opportunityId}`
+      .replace(/[^a-zA-Z0-9-_.]/g, '-')
+      .slice(0, 64)
+
+  const payload = {
+    action: 'SEND_OPPORTUNITY_POC_NOTIFICATION',
+    tenantId: params.tenantId,
+    opportunityId: params.opportunityId,
+    userId: params.userId,
+  }
+
+  const command = new CreateScheduleCommand({
+    Name: scheduleName,
+    GroupName: 'default',
+    ScheduleExpression: formatSchedulerExpression(params.postedAt),
+    ScheduleExpressionTimezone: 'UTC',
+    FlexibleTimeWindow: {
+      Mode: FlexibleTimeWindowMode.OFF, // Set to 'FLEXIBLE' with a window if exact minute precision isn't mandatory
+    },
+    ActionAfterCompletion: ActionAfterCompletion.DELETE, // Automatically deletes the schedule after it executes
+    Target: {
+      Arn: params.targetLambdaArn,
+      RoleArn: params.schedulerRoleArn, // IAM role that gives Scheduler permission to invoke the target Lambda
+      Input: JSON.stringify(payload),
+      RetryPolicy: {
+        MaximumRetryAttempts: 2,
+        MaximumEventAgeInSeconds: 3600,
+      },
+    },
+  })
+
+  await params.schedulerClient.send(command)
+}
+
+```
+
 ### Bedrock
 
 #### OpenAI compatible endpoints
