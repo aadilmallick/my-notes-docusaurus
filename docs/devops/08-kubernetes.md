@@ -365,7 +365,56 @@ spec:
 
 ##### **compute request**
 
-You can specify the amount of compute (memory and CPU) a container within a pod gets.
+You can specify the amount of compute (memory and CPU) a container within a pod gets under the `spec.containers.resources` key, specifying both **requests** and **resources**
+
+- `spec.containers.resources.requests`: the requests for the minimum amount of compute that should be available for use.
+- `spec.containers.resources.limits`: the requests for the maximum amount of compute that a container can use up.
+
+For both 
+
+```yaml
+--- 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  containers:
+  - name: pod-info-container
+	image: kimschles/pod-info-app:latest
+	resources:
+	  requests:
+		memory: "64Mi"
+		cpu: "250m"
+	  limits:
+		memory: "128Mi"
+		cpu: "500m"
+	securityContext:
+	  allowPrivilegeEscalation: false
+	  runAsNonRoot: true
+	  capabilities:
+		drop:
+		  - ALL
+	  readOnlyRootFilesystem: true
+	ports:
+	- containerPort: 3000
+	env:
+	  - name: POD_NAME
+		valueFrom:
+		  fieldRef:
+			fieldPath: metadata.name
+	  - name: POD_NAMESPACE
+		valueFrom:
+		  fieldRef:
+			fieldPath: metadata.namespace
+	  - name: POD_IP
+		valueFrom:
+		  fieldRef:
+			fieldPath: status.podIP
+```
 
 #### Multi-container pods
 
