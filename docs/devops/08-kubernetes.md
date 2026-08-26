@@ -777,6 +777,8 @@ Going more in depth into the rolling update strategy, let’s paint a picture of
 - **max surge = 33%**: have one additional pod as backup ready to substitute in at any time.
 - **maxc unavailable 66%**: Allow two pods (2/3 = 66%) out of the desired 3 pods to be killed or unavailable before you ask for the rolling update feature to trigger.
 
+##### Imperative rollbacks
+
 You can roll back deployments imperatively like so:
 
 
@@ -785,9 +787,15 @@ You can roll back deployments imperatively like so:
 
 #### DaemonSet
 
-A DaemonSet workload is used to ensure all nodes run an instance of a pod, basically ensuring maximum replicability. 
+A DaemonSet workload is used to ensure all nodes run exactly one instance of a pod, basically ensuring maximum replicability and availability.
 
 It makes sure that as new nodes are added to the cluster, specified pods are automatically replicated and added to those nodes and run.
+
+Here are the rules:
+
+- **one pod per node**: daemonsets place one pod per node for all nodes in a cluster,
+	- **EXAMPLE**: if you have four nodes then the daemonset will produce four pods, placing one pod in each node. 
+- **run containers as background processes**: runs containers in the pod spec of a daemon set as background processes.
 
 > [!NOTE]
 > It is like a deployment, but for the specific use case of caring more about maximum availability.
@@ -800,6 +808,8 @@ Here is how to declare a DaemonSet declaratively:
 - `spec.tolerations` : any specified nodes that you do not want to run the pods on, like the master node or control plane
 - `spec.containers`: the containers that will make up the pod belonging to a daemon set.
 
+##### Imperative DaemonSet control
+
 You can also create DaemonSets imperatively through the `ds` resource:
 
 - `kubectl get ds`: lists all daemonsets
@@ -808,10 +818,63 @@ You can also create DaemonSets imperatively through the `ds` resource:
 
 #### StatefulSet
 
+A StatefulSet workload is like a deployment that maintains the ids for each pod, making them have the same persistent reference/identifier even across runs.
+
+Here are the rules:
+
+- If a pod dies, it is replaced with a new one with the exact same identifier and IP address.
+- Pods are added in sequence, and deletes pods in sequence
+- New pods after old ones die will share the same attached volumes, meaning data persists across pod deaths.
+
+> [!NOTE]
+> Containers are stateless by design, but StatefulSets offer stateful approaches
+
+
+##### Imperative stateful set control
+
+Here are the CLI commands to create stateful sets imperatively using the `sts` resource:
+
+
+- `kubectl get sts`: lists all stateful sets
+- `kubectl describe sts <sts-name>`: get info of a specific stateful set
+- `kubectl delete sts <sts-name>`: delete a specific stateful set
 #### Job
 
+Jobs are workloads for short-lived tasks that run pods, get a termination status, and then cleanup themselves. Think of them like jobs from github actions - just there to do some task and then end. 
+
+- **job success criteria**: You control the metrics for whether the job should succeed or fail.
+- **job execution behavior**: Jobs are run sequentially by default. You have to specify parallelism.
+
+
+![](https://i.imgur.com/T83tTzB.jpeg)
+
+Here are the important keys concerned with declaratively creating a job:
+
+- `restartPolicy`: since jobs are one-time short-lived tasks, you should always set the restart policy to `never` for a job resource.
+- `parallelism`: if this key is specified, you need to provide the number of containers in the pod you want to run in parallel.
+- `completions`: The number of pods that should successfully run and exit in order for a job to be considered successfully completed.
+- `template.spec`: the pod template that should be run in a job, where you define your short-lived containers that do some command and then exit.
+
+##### Imperative job control
+
+This is how you create and use jobs imperatively using the `job` resource:
+
+- `kubectl create job <jobName> --image=<docker-image>`: create a job
+- `kubectl get job`: list jobs
+- `kubectl describe job <jobName>`: print out info of a specific job
+- `kubectl delete job <jobName>`: delete a specific job
 #### CronJob
 
+CronJobs are just Job workloads that run on a schedule using the cron syntax, and specify cron syntax for the `spec.schedule` property.
+
+
+![](https://i.imgur.com/rPvYWhA.jpeg)
+
+
+Here is how you can use cron jobs imperatively using the `cj` resource.
+
+
+![](https://i.imgur.com/memEiIa.jpeg)
 
 ### Services
 
@@ -1206,3 +1269,57 @@ k8s_resource(
 ```
 
 - `run(command: str)`: lets you run a linux command that will persist in the shell session.
+
+## Kubernetes security
+
+### Basic tips
+
+#### Tip 1 - use `securityContext`
+
+In terms of pods running containers, there is a huge attack surface on how the containers are running themselves, usually on two fronts:
+
+- **root access**: any container that allows root access means that it can be compromised since root can basically do anything. 
+- **write filesystem**: allowing the container to have its file system written to and having the user be root means that root can basically delete the entire container. We want to prevent writing on the container file system, even if we're root. 
+
+So here is how we do that on YAML via the `spec.containers.securityContext` object, which has these boolean flags.
+
+- `allowPrivilegeEscalation`: allow users to use `sudo` to assume root access.
+- `runAsNonRoot`: if set to `true`
+
+```yaml
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-info-deployment
+  namespace: development
+  labels:
+    app: pod-info
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pod-info
+  template:
+    metadata:
+      labels:
+        app: pod-info
+    spec:
+      containers:
+      - name: pod-info-container
+        image: kimschles/pod-info-app:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+        ports:
+        - containerPort: 3000
+```
+
+#### Tip 2 - use `snyk` CLI
+
+`snyk` is a static vulnerability analysis tool that also offers a CLI that lets you find out any vulnerabilities of code files.
+
