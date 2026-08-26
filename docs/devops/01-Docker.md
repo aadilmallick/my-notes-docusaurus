@@ -52,6 +52,12 @@ Containers live on a **Container Host** and use its underlying operating system,
 
 ![](https://i.imgur.com/BaufJcu.jpeg)
 
+- **Virtual Machines** virtualize the entire hardware stack, including the operating system, so each VM runs a full OS. This makes VMs heavier, slower to start, and more resource-intensive.
+- **Containers** virtualize at the operating system level, sharing the host OS kernel. They package just the application and its dependencies, making them lightweight, faster to start, and with less overhead
+
+> [!NOTE]
+> The main reason why containers are so widely use is because they accelerate the feedback loop and accelerates devops teams.
+
 ### Making a container from scratch
 #### chroot
 

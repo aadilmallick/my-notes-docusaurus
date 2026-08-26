@@ -51,20 +51,48 @@ Now instead of each team working individually, DevSecOps achieves all three team
 
 **continuous deployment** differs from continuous delivery in that continuous deployment automatically deploys to production, skipping the QA team and staging and going straight to production.
 
-### IaC and Configuration management
+### IaC basics
 
 - **IaC (infrastructure as code)**: creating declarative code files that describe what resources you want to provision, what VMs to create, etc.
 - **configuration management**: tools intended to help a a fleet of VMs provisioned automatically with IaC get into a desired state, by controlling configuration like delivering software updates to certain VMs, sending commands to them, installing packages, etc.
 
 The benefit of IaC is error-free automated setup and teardown of resources, which saves time and money.
 
+
+#### Provisioning vs Configuration Management vs Orchestration
+
+- **configuration management**: changing control of system configuration during and after initial provisioning.
+	- Examples are ansible, chef, puppet
+- **provisioning**: the process of making a server ready for operation, including hardware, OS, system services, and network connectivity.
+	- Examples are pulumi and terraform
+- **orchestration**: the act of performing coordinated operations across multiple systems while maintaining uptime by intelligently performing operations on services in such a way to avoid disruption of use while they are running.
+
+**configuration management**
+
 We use configuration management tools for granularity to individually or batch apply updates to VM(s) in a fleet of VMs provisioned by IaC.
 
 For example, Ansible is a configuration management tool that uses playbook YAML files to declaratively describe the desired state of the environment and automates the process to achieve it.
 
+#### Declarative vs Imperative
+
+- **Declarative**: You specify _what_ the desired end state of the system should be, and the tool figures out _how_ to achieve and maintain that state. 
+	- **Core benefit**: It’s simpler and converges the system over time. Tools like Chef and Puppet use this model.  
+	- **Medium**: uses stuff like playbooks or YAML files to describe how a deployment or configuration should be performed, and then you just point at the file to execute the change.
+- **Imperative**: You specify _how_ to perform the steps to reach the desired state, giving you full control over the process. 
+	- **Core benefit**: This approach is more explicit and better for orchestrating complex changes. Tools like Ansible and Shell scripts follow this model.
+	- **Medium**: runs CLI commands to imperatively provision infra of configure changes.
+
+#### Immutable provisioning
+
+**Immutable provisioning** create deployments that are not intended to change the provisioned resources on updates, but instead delete and recreate and redeploy the entire system if needed.
+
+This approach avoids modifying running systems, reducing errors and enabling advanced rollout strategies like blue-green deployments.
+
+
+
 ### Containers vs VMs
 
-A host device uses a hypervisor to manage multiple **virtual machines**0, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
+A host device uses a hypervisor to manage multiple **virtual machines**, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
 
 
 ![](https://i.imgur.com/9o1E6bp.jpeg)

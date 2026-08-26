@@ -66,7 +66,17 @@ By default, it's one container per service, but via targeted scaling, we can cre
 
 ### Serverless
 
-Serverless architectures are the most simple out of all of these since you don't manage the backend yoruself. You either delegate all the backend work to a BAAS or a FAAS:
+Serverless computing means you don't have to manage the servers yourself, even though servers are still running behind the scenes.
+
+It mainly involves running small pieces of containerized code called functions that are triggered by events, like web requests or file uploads. 
+
+- These functions run in containers that start quickly, do their job, and then disappear, so you don't have to worry about maintaining or configuring servers. 
+- This approach lets you build scalable applications without managing infrastructure, using services like AWS Lambda, Google Cloud Functions, or Azure Functions.
+
+> [!NOTE]
+> Historically, serverless functions were used as event handlers, but then because people realized that many functions have a mildly small cold start, are lightweight, and that HTTP is nothing but a series of events, people made **cloud functions** that basically listen to HTTP events and thus mimic a server serverlessly.
+
+Serverless architectures are the most simple out of all of these since you don't manage the backend yourself. You either delegate all the backend work to a BAAS or a FAAS:
 
 - **BAAS (backend as a service)**: something like supabase or firebase, where you have the database, auth, functions, and storage all running in the cloud and infinitely scalable.
 - **FAAS (backend as a service)**: something like vercel or lambda, where you write the backend code but instead you host the server as isolated API routes as serverless function, which have infinite scaling capabilities.
@@ -74,15 +84,25 @@ Serverless architectures are the most simple out of all of these since you don't
 Here are the pros:
 
 - **pay for usage only**: As opposed to servers which are running 24/7, serverless functions are only invoked when you programmatically invoke them, leading to less uptime and less consumption of resources.
-- **infinitely scalable**: You no longer have to worry about and manage the uptime of the server. The BAAS of FAAS does that for you.
+- **infinitely scalable**: You no longer have to worry about and manage the uptime of the server. Cloud functions are infinitely scalable because they are just run as ephemeral containers, and you can spin those up infinitely, all though it will cost you a lot.
 - **no server management required**: great for solo developers who want to move fast
 
 Here are the cons:
 
 - **DDoS susceptibility**: with automated infinite scaling, comes the bad experience of being DDoSed and paying $100,000
+- **not good with long running processes**: since you pay for the more compute time you use, long function execution times cost you more, thus long-running processes will cost you a lot.
+	- Also you have runtime limits.
+- **cold starts**: cold starts can hamper the speed of cloud function invocations and increase latency.
 
 
 ![](https://i.imgur.com/JknQeGR.jpeg)
+
+
+To mitigate these:  
+  
+- **reduce cold start times**: Use caching and asynchronous responses to reduce cold start impacts.
+- **handle long-running processes**: Break long-running processes into smaller steps with tools like step functions.
+- **cost**: Serverless is cheaper to stop with, and becomes more expensive at scale. Delay adopting complex serverless solutions until your workload truly requires it, balancing cost and complexity.****
 
 ## Microservices intro
 
@@ -94,7 +114,7 @@ The tight coupling in monoliths make scaling hard, but if we divide an app into 
 
 ### Benefits
 
-### Diadvantages
+### Disadvantages
 
 - **latency**: since each microservice exposes an API to access over the network, there will always be extra latency as opposed to a monolithic application where all services and infra live on the same VM.
 - **complexity**: It's very complex to build a microservices architecture because you have to always account for failure handling and graceful failover as well as load balancing.
