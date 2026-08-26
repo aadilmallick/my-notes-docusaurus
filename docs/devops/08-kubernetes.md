@@ -403,6 +403,28 @@ minikube delete
 minikube start --network-plugin=cni --cni=calico
 ```
 
+#### Network policies
+
+A network policy in K8S is a set of rules that allow you to control traffic flow at the IP address or port level for a pod, basically like a stateless firewall for a pod.
+
+> [!NOTE]
+>  By default, all pods can freely communicate, but network policies let you restrict this traffic to enforce security principles like least privilege and zero trust.
+
+When no network policy is in place, all pods within the same node are able to communicate with each other via inter-pod communication and if services are live, intra-cluster communication as well, without any filtering or checking. This violates the principle of least privilege and zero trust.=
+
+To use network policies, your cluster must have a CNI plugin that supports them, such as Calico
+
+**How network policies work**
+
+They specify whether to allow or deny ingress (incoming) or egress (outgoing) traffic based on pod selectors, namespaces, IP addresses, and ports.
+
+When defining a network policy for a pod, for each firewall rule you need to define two components:
+
+- **ingress or egress**: whether the traffic type the rule applies to is ingress traffic or egress traffic.
+- **allow or deny**: whether to allow to deny the traffic of the specific network type.
+
+**creating network policies**
+
 
 ## Kubectl constructs
 
