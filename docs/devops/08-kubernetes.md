@@ -351,6 +351,8 @@ users:
 
 ## Networking in Kubernetes basics
 
+### Intro
+
 You can consider a Kubernetes cluster as its own LAN network with private IP addresses that it assigns to pods, services, and nodes. 
 
 Kubernetes networking model has four main requirements:
@@ -375,7 +377,7 @@ The first three requirements are satisfied by different cluster components assig
 - **How kubeapi solves intra-cluster communication**: the kubeapi component assigns services unique, private IP addresses
 - **How kube controller manager solves inter-pod communication**: The kubcontroller manager component in the control plane assigns unique, private IP addresses the node.
 
-#### CNI and CNI plugins
+### CNI and CNI plugins
 
 **CNI plugins** in Kubernetes are software packages that set up and manage the cluster's network. They create a private network that allows containers within the same pod to communicate, pods to talk to each other, pods to connect with services, and external traffic to reach services inside the cluster. 
 
@@ -403,7 +405,7 @@ minikube delete
 minikube start --network-plugin=cni --cni=calico
 ```
 
-#### Network policies
+### Network policies
 
 A network policy in K8S is a set of rules that allow you to control traffic flow at the IP address or port level for a pod, basically like a stateless firewall for a pod.
 
@@ -423,8 +425,136 @@ When defining a network policy for a pod, for each firewall rule you need to def
 - **ingress or egress**: whether the traffic type the rule applies to is ingress traffic or egress traffic.
 - **allow or deny**: whether to allow to deny the traffic of the specific network type.
 
-**creating network policies**
+#### **creating network policies**
 
+There is a special `NetworkPolicy` resource in K8S that allows you to define a network policy for a pod or for multiple pods via the `spec.podSelector` object:
+
+**ingress example**
+
+For example, what the below network policy is saying is that for the pod with selector `app: echo-server`, only allow ingress traffic to that pod from the pod with selector `app: learning-resources` and on port 80.
+
+```yaml
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-from-learning-resources
+spec:
+  podSelector:
+    matchLabels:
+      app: echo-server
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: learning-resources
+      ports:
+        - port: 80
+```
+
+**egress example**
+
+The example below allows egress traffic from the pod with selector `app: frontend-ui` to the subnet `172.11.0.0/20`, which is probably a node and all the pods within it.
+
+```yaml
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-egress
+  namespace: frontend
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend-ui
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 172.11.0.0/20
+```
+#### Deny-all policy
+
+This deny all policy basically blocks all traffic from one pod to another pod:
+
+```yaml
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+```
+
+#### Fetching network policies
+
+
+### Ingress for cluster
+
+By default, pods can only respond to requests that come from other pods within the same cluster, meaning that by default, the highest amount of networking power is **intra-cluster communication**.
+
+If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster.
+
+We do that by adding an **Ingress** and an **Ingress controller** K8S object:
+
+- **Ingress**: A Kubernetes ingress object is a resource that defines rules for routing external HTTP or HTTPS traffic to services within your cluster. It essentially specifies how requests should be directed based on hostnames or paths.
+- **Ingress Controller**: The ingress controller, on the other hand, is the software that enforces these rules. It acts as a reverse proxy and load balancer, receiving incoming traffic and routing it according to the ingress object’s rules. 
+
+> [!NOTE]
+> While ingress objects are built into Kubernetes, ingress controllers are separate, pluggable components that you need to install (like Ingress-Nginx or Traefik).
+
+> [!NOTE]
+> So, the ingress object sets the rules, and the ingress controller makes those rules happen by managing the traffic flow into your cluster.
+
+Here's how an ingress request to your cluster works:
+
+1. An external HTTP request sends ingress traffic to a cluster IP address the **Ingress** object made.
+2. The ingress object sends that traffic to the ingress controller.
+3. The ingress controller checks the list of rules that you set up on your ingress, and routes traffic to the appropriate pod.
+
+#### Creating an ingress and ingress controller
+
+The `Ingress` object in kubernetes allows you to define the ingress rules as well as the specific third-party ingress controller to use for the reverse proxy functionality of the ingress controller.
+
+1. Use the NGINX ingress controller
+2. Define the available DNS host for ingress as `lil-microservices.com`
+3. On HTTP requests, accept all `/*` matching routes and redirect that to the `frontend-ui` service.
+
+```yaml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - host: lil-microservices.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-ui
+                port:
+                  number: 8080
+```
+
+### Service meshes
+
+A service mesh in Kubernetes is software you install in your cluster that manages all internal service-to-service communication. 
+
+- It handles service discovery, encrypts traffic between pods for security, and provides authentication and authorization options. 
+- Additionally, it offers observability tools to monitor the health of your microservices.
+
+While it simplifies managing complex microservices architectures by taking over network management tasks, it also introduces a new system you need to learn and manage. 
+
+Popular service meshes include Istio, Linkerd, and HashiCorp Consul. 
 
 ## Kubectl constructs
 
