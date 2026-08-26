@@ -1,5 +1,26 @@
 ## Intro
 
+### The history of application deployments
+
+- **1990s and 2000s - single physical host**: in the early days people used to hire a sysadmin to take the application code from the developers and then upload it to a physical host machine they owned. 
+	- Since there was no virtualization back then, the server could only run one single server-facing process so you had one tiny application running on a physical server that probably cost $20,000. 
+	- It was a complete waste of resources and very time-consuming. 
+- **2000s - 2013 - VMs**: with the innovation of virtualization came virtual machines, which allowed you to run multiple guest operating systems on one single physical host server. This meant you could take advantage of all the CPU and resources of a single giant host machine and also deploy more applications (since each VM was secured in its own way to prevent application memory in one VM leaking over to another VM)
+- **2013 - now (containers)**: containers are sort of like virtual machines except they don't need a guest operating system or a hypervisor to run their code, making it very lightweight since they just use the underlying container engine operating system, like Docker desktop on Mac, Windows, or Linux.
+	- Containers allow for creating lightweight microservices, and are more lightweight than VMs.
+
+> [!NOTE]
+> The combination of distributed computing systems and packing containers on a host makes for the most efficient use of computer CPU and memory. 
+
+Because containers are the most efficient way to use a computer's CPU and memory, it's the de facto way to deploy microservices today. 
+
+
+### Why Kubernetes
+
+Before Docker Swarm, Docker was only able to deploy and manage containers on one server at a time.
+
+Kubernetes is a good container orchestration tool, that's why.
+
 ### How kubernetes works
 
 Kubernetes exists because when you're dealing with a container orchestration system where you orchestrate many containers among many different hosts, you have to deal with things like termination, graceful failover, and auto-scaling. Those things are extremely difficult to manually implement because there are so many things that can go wrong when creating your own auto-scaling microservice system between containers. 
@@ -139,6 +160,7 @@ In a K8S cluster you have several namespaces that come built-in default to k8s, 
 
 - `kube-system`: contains pods of the control plane.
 
+## Minikube basics
 
 ### Minikube and Kubectl Setup
 
@@ -181,7 +203,20 @@ kubectl get services -A # get all services
 - `minikube tunnel`: proxies internet traffic from your locally running minikube cluster to your local machine on `localhost`, making services able to run on `localhost`.
 - `minikube delete`: deletes the cluster.
 
-### `kubectl` basics
+#### starting and deleting clusters
+
+You can start a cluster with the `minikube start` command or even name your cluster with the `-p` flag like so to easily identify it later:
+
+```bash
+minikube start -p [clusterName]
+```
+
+You can delete the default cluster with the `minikube delete` command or delete a specific named cluster via the `-p` flag:
+
+```bash
+minikube delete -p [clusterName]
+```
+## `kubectl` basics
 
 #### Declarative vs imperative
 
@@ -285,6 +320,50 @@ users:
 
 
 
+## Networking in Kubernetes basics
+
+You can consider a Kubernetes cluster as its own LAN network with private IP addresses that it assigns to pods, services, and nodes. 
+
+Kubernetes networking model has four main requirements:
+
+1. **intra-pod communication**: Containers must be able to communicate with other containers in the same pod. 
+2. **inter-pod communication**: Pods must be able to communicate with other pods, whether within the same node or in different nodes.
+3. **intra-cluster communication**: Pods must be able to communicate with services. 
+4. **internet communication**: There must be a way for traffic from the internet to communicate with services inside a Kubernetes cluster. 
+
+The first three requirements are satisfied by different cluster components assigning IP addresses to pods, nodes, and services:
+
+- **How CNIs solve inter-pod communication**: CNIs (cloud network interfaces) assign unique private IP addresses to pods so that they can communicate with each other, satisfying inter-pod communication.
+- **How kubeapi solves intra-cluster communication**: the kubeapi component assigns services unique, private IP addresses
+- **How kubelet solves inter-pod communication**: The kubelet controller manager compinent in the control plane assigns unique,, private IP addresses to the node.
+
+#### CNI and CNI plugins
+
+**CNI plugins** in Kubernetes are software packages that set up and manage the cluster's network. They create a private network that allows containers within the same pod to communicate, pods to talk to each other, pods to connect with services, and external traffic to reach services inside the cluster. 
+
+Essentially, CNIs assign unique IP addresses to pods and ensure smooth network communication within Kubernetes. 
+
+> [!NOTE]
+> This pluggable design lets Kubernetes support different networking solutions depending on the cluster's needs.
+
+Because CNIs are so pluggable and only have to implement the 4 requirements of the Kubernetes Network Model, there are many third party CNI providers.
+
+> [!NOTE]
+> All CNIs must implement the 4 parts of the Kubernetes Network Model, but some CNIs add additional features.
+
+#### Calico CNI plugin
+
+1. Delete any previous clusters you have
+
+```
+minikube delete
+```
+
+2. Recreate the minikube cluster with the CNI set to calico:
+
+```bash
+minikube start --network-plugin=cni --cni=calico
+```
 
 
 ## Kubectl constructs
@@ -798,7 +877,7 @@ Here are the rules:
 - **run containers as background processes**: runs containers in the pod spec of a daemon set as background processes.
 
 > [!NOTE]
-> It is like a deployment, but for the specific use case of caring more about maximum availability.
+> DaemonSets allow you to run one pod per node, which works well for running pods implementing background processes such as agents.
 
 Here is how to declare a DaemonSet declaratively:
 
@@ -818,7 +897,12 @@ You can also create DaemonSets imperatively through the `ds` resource:
 
 #### StatefulSet
 
+Containers are stateless by design, but StatefulSets offer stateful approaches
+
 A StatefulSet workload is like a deployment that maintains the ids for each pod, making them have the same persistent reference/identifier even across runs.
+
+> [!NOTE]
+> A statefulSet is an object that lets an updated Kubernetes application communicate with the same volume as the previous pod.
 
 Here are the rules:
 
@@ -826,8 +910,7 @@ Here are the rules:
 - Pods are added in sequence, and deletes pods in sequence
 - New pods after old ones die will share the same attached volumes, meaning data persists across pod deaths.
 
-> [!NOTE]
-> Containers are stateless by design, but StatefulSets offer stateful approaches
+
 
 
 ##### Imperative stateful set control
@@ -951,7 +1034,7 @@ The `NodePort` runs the pod as a process rather than giving it its own IP addres
 #### Loadbalancer
 
 1. Run `minikube tunnel` to expose your kubernetes to localhost internet
-2. Create this yaml of a service:
+2. Create this yaml of a service, targeting the specific pod you want to proxy traffic to via `spec.selector.<selector-tag>` property.
 
 ```yaml
 ---
@@ -1086,8 +1169,161 @@ To delete a deployment, use the `kubectl delete deployment` command, which will 
 kubectl delete deployment DEPLOYMENT_NAME_HERE
 ```
 
+## K8S practice
 
+### Level 1 - Basic microservices
 
+#### Create the deployments
+
+1. Create a deployment that has a web server pod running on port 3000, and a service that proxies the traffic for that pod forwarding port 3000 on that pod to port 80 on the cluster IP address, via the `ClusterIP` service type./
+
+```yaml
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learning-resources
+  labels:
+    app: learning-resources
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: learning-resources
+  template:
+    metadata:
+      labels:
+        app: learning-resources
+    spec:
+      containers:
+      - name: learning-resources-container
+        image: kimschles/learning-resources:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: learning-service
+  labels:
+    app: learning-resources
+spec:
+  selector:
+    app: learning-resources
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+```
+
+2. Create deployment that has a long running pod running on port 80,  and a `NodePort` service that proxies traffic for the pod, and forwards traffic from port 80 on the pod to port 30076 on your `localhost`.
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: echo-server
+  template:
+    metadata:
+      labels:
+        app: echo-server
+    spec:
+      containers:
+      - image: kimschles/echo-server:latest
+        imagePullPolicy: Always
+        name: echo-server
+        ports:
+        - containerPort: 80
+        env:
+        - name: PORT
+          value: "80"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-service
+spec:
+  selector:
+    app: echo-server
+  type: NodePort
+  ports:
+    - name: echo
+      port: 80
+      targetPort: 80
+      nodePort: 30076
+      protocol: TCP
+```
+
+3. Create a deployment that runs a VITE frontend app on port 4173 across a replica set of pods and creates a `LoadBalancer` service that distributes traffic equally to those pods and forwards traffic on those pods from port 4173 to port 80 on the Cluster IP.
+
+```yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: frontend
+  labels:
+    app: frontend-ui
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend-ui
+  template:
+    metadata:
+      labels:
+        app: frontend-ui
+    spec:
+      containers:
+      - name: frontend-container
+        image: kimschles/frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4173
+        env:
+        - name: PUBLIC_K8S_SERVICE_URL
+          value: "http://learning-service.default.svc.cluster.local"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: frontend
+spec:
+  selector:
+    app: frontend-ui
+  ports:
+    - port: 80
+      targetPort: 4173
+  type: LoadBalancer 
+```
 ## Kustomize and advanced K8S Yaml
 
 The kustomize tool is a way to combine multiple yaml files describing k8s resources into one so you don’t have to think about individual resources. You simply deploy one kustomize file, and to delete all resources, you simply delete that kustomize file.
@@ -1284,7 +1520,8 @@ In terms of pods running containers, there is a huge attack surface on how the c
 So here is how we do that on YAML via the `spec.containers.securityContext` object, which has these boolean flags.
 
 - `allowPrivilegeEscalation`: allow users to use `sudo` to assume root access.
-- `runAsNonRoot`: if set to `true`
+- `runAsNonRoot`: if set to `true`, does not allow running container as a root user to start off with.
+- `readOnlyRootFilesystem`: if set to `true`, the root user can only read files in the container filesystem, not being able to write anything.
 
 ```yaml
 --- 
@@ -1323,3 +1560,6 @@ spec:
 
 `snyk` is a static vulnerability analysis tool that also offers a CLI that lets you find out any vulnerabilities of code files.
 
+```
+snyk iac test <k8s-yaml-file>
+```
