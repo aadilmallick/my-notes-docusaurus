@@ -129,11 +129,40 @@ All K8S clusters run with a minimum of three worker nodes to be highly available
 Each worker node has three components:
 
 1. **kubelet**: this is an agent that runs on every worker node and it makes sure that containers in a pod are running and healthy. It communicates directly with the API server component in the control plane to monitor newly created pods.
-	- An agent that runs on each node in a Kubernetes cluster, ensuring containers in a pod are running and healthy while communicating with the API server in the control plane to maintain the desired state of the node
 2. **container runtime**: Once kubelet verifies a new pod is ready to go, it builds and starts the containers in the pod spec using the **Container runtime interface** (CRI), which enables the Kubelet to create containers with supported container engines.
 	- Pulls container images, creates and manages containers, and ensures they run properly and securely as directed by the Kubernetes control plane
 3. **kube proxy**: offers a proxy between pods and services running in a worker node to the API server in the control plane so that pods and services within the same cluster can communicate with each other.
 	- A network proxy that runs on each node in a Kubernetes cluster, maintaining network rules and enabling communication between pods and services within the node and the control plane, while also communicating directly with the kube-apiserver
+##### Kubelet
+
+Kubelet is an agent that runs on each node in a Kubernetes cluster, ensuring containers in a pod are running and healthy while communicating with the API server in the control plane to maintain the desired state of the node.
+
+
+##### Container Runtime
+
+The container runtime uses a container engine to run containers within a pod, and the kubelet communicates with the CRI (container runtime interface) to control the container runtime and request container management operations to be executed.
+
+##### Kube proxy
+
+The kube-proxy component is a network proxy on each node. It maintains network rules to allow communication to your pods, which is the basis of the service resource in Kubernetes. 
+
+
+#### Core objects
+
+- **Pod**: a pod is the smallest and most fundamental deployable unit, which represents a single instance of a running process. 
+	- A pod encapsulates one or more tightly coupled containers that share storage and network resources. 
+	- The most common pattern is one container per pod.
+- **replica set**: its purpose is to ensure that a specified number of identical pods, called replicas, are running at any given time. 
+- **deployment**: a deployment is an abstraction over replica sets, making it a higher-level object that manages replica sets and their life cycles:
+	- Provides declarative updates to pods
+	- Handles rolling updates and rollbacks
+	- Deployments are the standard way to manage stateless applications. 
+- **service**: a service provides a stable endpoint to access a logical set of pods, which means it can target pods via a label or selector and then provide a stable DNS name that they can refer to statically without the fragility of IP addresses changing. 
+	- Since pods are ephemeral and their IP addresses change, we use services to provide a stable endpoint to forward traffic to those pods. 
+	- Services provide a stable virtual IP address called a cluster IP and also a DNS name that is static and unchanging. 
+	- Traffic to a service is automatically load-balanced to the backend pods. 
+- **namespace**: namespaces provide a mechanism for isolating groups of resources within a single cluster. 
+	- They are a way to divide cluster resources between multiple namespaces, ensuring that resource names must be unique within a namespace but not across them because resources are always sectioned into the namespace that they are in 
 
 
 #### The full flow
@@ -983,14 +1012,27 @@ Let’s go over some basic use cases:
 > [!NOTE]
 > For a pod to communicate with another pod, they have to go through a service with port forwarding and DNS forwarding, because each pod has 1 IP address.
 
-**using services declaratively**
+
 
 There are four types of services you can have:
 
-- `ClusterIP` : the default, which gives the service an IP address that is accessible only from within the cluster. (only other pods within the cliuster can communicate with the service, not from localhost).
+- `ClusterIP` : the default, which gives the service an IP address that is accessible only from within the cluster. (only other pods within the cluster can communicate with the service, but not from localhost).
 - `LoadBalancer` : load balances requests from the service to all matching pods it has from its `selector` property. It operates at **layer 4**, meaning it uses the TCP protocol.
 - `Ingress`: a load balancer but operates at the **layer 7** level, meaning it uses intelligent protocols like HTTP and SMTP and can make intelligent load balancing decisions based on the contents of the web packets.
 - `NodePort` : exposes the service’s IP address to the local machine on localhost.
+
+Here's a table comparing all these services:
+
+
+| Service Type   | Forwards traffic to internet?                                                            | Has private cluster IP? |
+| -------------- | ---------------------------------------------------------------------------------------- | ----------------------- |
+| `ClusterIP`    | No, only accessible within cluster.                                                      | Yes                     |
+| `LoadBalancer` | Yes, also creates external IP address using cloud provider to provision a load balancer. | Yes                     |
+| `NodePort`     | Yes, forwards traffic directly to `localhost` on the machine.                            | Yes                     |
+
+
+
+**using services declaratively**
 
 A basic service YAML is like so:
 
@@ -1017,7 +1059,15 @@ Each service should have a selector that points to a corresponding label on a po
 
 #### ClusterIP
 
-Gives a public IP address for the pod within the cluster, enabling **intra-cluster** communication between pods in different nodes
+Gives a private fixed IP address for the pod within the cluster, enabling **intra-cluster** communication between pods in different nodes.
+
+> [!NOTE]
+> This is the base service that all other service types inherit from and add onto.
+
+> [!NOTE]
+> Since the cluster IP is the most basic service and all it does is enable intra-cluster communication between pods and different nodes, it gives an IP address to the pod that is only available within the cluster (meaning that, by default, no internet traffic can reach the cluster IP). 
+> 
+> To expose traffic to the internet, you look towards other services. 
 
 ![](https://i.imgur.com/u2OHbNk.jpeg)
 
@@ -1027,7 +1077,10 @@ Gives a public IP address for the pod within the cluster, enabling **intra-clust
 
 #### NodePort
 
-The `NodePort` runs the pod as a process rather than giving it its own IP address, and then exposing it on a port.
+The `NodePort` extends the `ClusterIP` service by not only giving the pod its own private IP, but also exposing it to the internet on a specific port on the the loopback `localhost`.
+
+> [!NOTE]
+> A node port service lets you expose a group of pods to the internet directly, forwarding their traffic to certain ports on `localhost` 
 
 
 ![](https://i.imgur.com/2hcFQhF.jpeg)
@@ -1036,11 +1089,22 @@ The `NodePort` runs the pod as a process rather than giving it its own IP addres
     - `port`: the port that the selected pod is listening on
     - `targetPort`: the port that the selected pod is listening on. This value is not applied if the service type is `NodePort`, so you can just omit this.
     - `nodePort`: the port to map to on your localhost. This must be a large value between 30000 - 32767, as to not interfere with important ports.
+    - `protocol`: the layer 4 protocol to use, either TCP or UDP
 
 
 #### Loadbalancer
 
-1. Run `minikube tunnel` to expose your kubernetes to localhost internet
+The load balancer service calls upon a cloud provider the cluster is hosted on to provision a real load balancer to handle external internet traffic being directed to the target pod.
+
+The load balancer service tries to acquire an external IP address for the provisioned load balancer, allowing it to accept internet traffic immediately.
+
+- If using a local cluster management service like `minikube`, you can use `minikube tunnel` command to actually expose the external IP address as being an origin on `localhost` IP address.
+- If using a cloud provider like Google Cloud, Google Cloud will actually provision a load balancer for you and attach to it an external IP address immediately available on the internet. 
+
+> [!NOTE]
+> Behind the scenes if you use a load balancer service, a cloud provider like Google Cloud or AWS EKS will actually create a load balancer for you and provision that resource for you with the IP, the port, and traffic rules that you decide on. 
+
+1. Run `minikube tunnel` to expose your kubernetes cluster to localhost internet
 2. Create this yaml of a service, targeting the specific pod you want to proxy traffic to via `spec.selector.<selector-tag>` property.
 
 ```yaml
@@ -1061,6 +1125,35 @@ spec:
 3. Create the associated pod and apply the service
 4. Visit `localhost:80` to see your pod running via a service
 
+#### ExternalName
+
+The `ExternalName` type service redirects traffic from a target pod to an external DNS address that's typically outside your server. 
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-service
+  namespace: prod
+spec:
+  externalName: ://database.com
+  type: ExternalName
+
+```
+
+#### Connecting to services
+
+The main advantage of services is that they're sort of like NGINX in that they can create static DNS names for IP addresses so you request the DNS created by a service rather than an ephemeral, changing pod IP.
+
+Here is the basic syntax for how to form a request to a service DNS origin:
+
+```
+http://<service-name>.<namespace>.svc.cluster.local
+```
+
+- `service-name`: the name of the service
+- `namespace`: the namespace the service belongs to
+- `svc.cluster.local`: represents a service being created in a local cluster.
 #### CLI
 
 Services help expose your containers to the outer world via port forwarding, doing either forwarding to your localhost or to a DNS mapping to a registered domain name.
@@ -1331,6 +1424,131 @@ spec:
       targetPort: 4173
   type: LoadBalancer 
 ```
+
+#### Create the services
+
+**ClusterIP example**
+
+For a `ClusterIP` service like this:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: learning-service
+  labels:
+    app: learning-resources
+spec:
+  selector:
+    app: learning-resources
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+```
+
+This is how you connect to it:
+
+1. **Create a BusyBox Pod:** Deploy a BusyBox pod in your Kubernetes cluster. This pod will be used to run commands inside the cluster.
+2. **Verify Pod is Running:** Use `kubectl get pods` to ensure the BusyBox pod is up and running.
+3. **Access the BusyBox Pod:** Run `kubectl exec -it <busybox-pod-name> -- sh` to open an interactive shell inside the BusyBox pod.
+4. **Find Pod IP Addresses:** In another terminal tab, run `kubectl get pods -o wide` to list pods and their IP addresses.
+5. **Make HTTP GET Request to a Pod:** Inside the BusyBox shell, use `wget -O- http://<pod-ip>:<port>` to make a GET request directly to a pod's IP and port.
+6. **Get Service Information:** Run `kubectl get services` to see the available services and their ClusterIP addresses.
+7. **Make HTTP GET Request to Service Name:** Inside BusyBox, use `wget -O- http://<service-name>` to make a request to the service by its name.
+8. **Make HTTP GET Request to Service DNS Name:** Use the full DNS name pattern `http://<service-name>.<namespace>.svc.cluster.local` with wget inside BusyBox to access the service.
+
+**NodePort example**
+
+1. Create a pod that has a container running on port 80 and exposes it 
+2. Create a node port service that targets the pod definition and reroutes traffic from port 80 on that pod to port 30076 on localhost. 
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: echo-server
+  template:
+    metadata:
+      labels:
+        app: echo-server
+    spec:
+      containers:
+      - image: kimschles/echo-server:latest
+        imagePullPolicy: Always
+        name: echo-server
+        ports:
+        - containerPort: 80
+        env:
+        - name: PORT
+          value: "80"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-service
+spec:
+  selector:
+    app: echo-server
+  type: NodePort
+  ports:
+    - name: echo
+      port: 80
+      targetPort: 80
+      nodePort: 30076
+      protocol: TCP
+```
+
+1. **Create a BusyBox Pod:** Deploy a BusyBox pod in your Kubernetes cluster to run commands inside the cluster.
+2. **Verify Pod is Running:** Use `kubectl get pods` to ensure the BusyBox pod is up and running.
+3. **Access the BusyBox Pod:** Run `kubectl exec -it <busybox-pod-name> -- sh` to open an interactive shell inside the BusyBox pod.
+4. **Find Pod IP Addresses:** In another terminal tab, run `kubectl get pods -o wide` to list pods and their IP addresses.
+5. **Make HTTP GET Request to a Pod:** Inside the BusyBox shell, use `wget -O- http://<pod-ip>:<port>` to make a GET request directly to a pod's IP and port.
+6. **Get Node IP Addresses:** Run `kubectl get nodes -o wide` to find the IP addresses of your Kubernetes nodes.
+7. **Make HTTP GET Request to Node IP with NodePort:** Use `wget -O- http://<node-ip>:<nodeport>` to access the service exposed via NodePort.
+8. **Get Service Information:** Run `kubectl get services` to see the available services and their types.
+9. **Make HTTP GET Request to Service Name:** Inside BusyBox, use `wget -O- http://<service-name>` to make a request to the service by its name.
+10. **Make HTTP GET Request to Service DNS Name:** Use the full DNS name pattern `http://<service-name>.<namespace>.svc.cluster.local` with wget inside BusyBox to access the service.
+
+**load balancer service**
+
+Here are the generic steps to replicate the process shown in the video for learning how to deploy and test a LoadBalancer service in Kubernetes:  
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: frontend
+spec:
+  selector:
+    app: frontend-ui
+  ports:
+    - port: 80
+      targetPort: 4173
+  type: LoadBalancer 
+```
+  
+
+1. **Create a Namespace:** Define and apply a YAML file to create a new namespace for your service.
+2. **Deploy Backend Pods:** Create a deployment YAML to spin up your backend pods with the appropriate container image.
+3. **Deploy Frontend Pods:** Similarly, create and apply a deployment YAML for your frontend pods.
+4. **Create a LoadBalancer Service:** Define a service YAML of type LoadBalancer that fronts the frontend pods by matching their labels.
+5. **Apply All Configurations:** Use `kubectl apply -f <filename.yaml>` to deploy the namespace, deployments, and service.
+6. **Verify Service Creation:** Run `kubectl get services -n <namespace>` to check the service status and note the ClusterIP and External IP (which may be pending in local clusters).
+7. **Create a BusyBox Pod in the Same Namespace:** Deploy a BusyBox pod to use as a client for testing service connectivity.
+8. **Exec into BusyBox Pod:** Use `kubectl exec -n <namespace> -it <busybox-pod-name> -- sh` to open a shell inside the pod.
+9. **Test Service Connectivity:** Use commands like `wget -O- http://<service-name>` or the full DNS name `http://<service-name>.<namespace>.svc.cluster.local` to query the service and verify it returns expected data.
+10. **Port Forward to Access Service Externally:** Find a pod name with `kubectl get pods -n <namespace>`, then run `kubectl port-forward -n <namespace> <pod-name> <local-port>:<container-port>` to forward a local port to the pod.
+11. **Open Browser to Localhost:** Access the service via `http://localhost:<local-port>` to see the combined frontend and backend response.
+
 ## Kustomize and advanced K8S Yaml
 
 The kustomize tool is a way to combine multiple yaml files describing k8s resources into one so you don’t have to think about individual resources. You simply deploy one kustomize file, and to delete all resources, you simply delete that kustomize file.
@@ -1512,6 +1730,15 @@ k8s_resource(
 ```
 
 - `run(command: str)`: lets you run a linux command that will persist in the shell session.
+
+## Kubernetes admin
+
+Kubernetes admin refers to installing a Kubernetes cluster and managing it on a generic Linux device or VM. 
+
+Because Kubernetes is pretty heavy, each machine that runs a Kubernetes cluster must have these prerequisites:
+
+- 2 GB RAM per machine
+- 2 vCPUs for the control-plane node
 
 ## Kubernetes security
 
