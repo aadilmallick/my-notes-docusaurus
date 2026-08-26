@@ -327,15 +327,24 @@ You can consider a Kubernetes cluster as its own LAN network with private IP add
 Kubernetes networking model has four main requirements:
 
 1. **intra-pod communication**: Containers must be able to communicate with other containers in the same pod. 
+	- Achieved by creating a docker network within the pod
 2. **inter-pod communication**: Pods must be able to communicate with other pods, whether within the same node or in different nodes.
+	- Achieved by giving each pod within a node its own private IP address
 3. **intra-cluster communication**: Pods must be able to communicate with services. 
+	- Achieved by moving 
 4. **internet communication**: There must be a way for traffic from the internet to communicate with services inside a Kubernetes cluster. 
+
+Since a node represents a physical machine, you can think of a node as a subnet within an LAN and a cluster, which consists of many nodes, as the LAN itself. Here are the analogies:
+
+- **cluster**: consider this like a LAN with its cluster IP being a default gateway being some private IP address, but via a local cloud controller manager like `minikube`, we can make the default gateway's public IP address forwarding to `127.0.0.1`.
+- **node**: consider this as a subnet, where a node has its own private IP address that the cluster can connect to, but clusters can't connect to the pods within the nodes.
+- **pod**: consider this as an individual machine within a subnet, having its own private IP address within th enode.
 
 The first three requirements are satisfied by different cluster components assigning IP addresses to pods, nodes, and services:
 
-- **How CNIs solve inter-pod communication**: CNIs (cloud network interfaces) assign unique private IP addresses to pods so that they can communicate with each other, satisfying inter-pod communication.
+- **How CNIs solve inter-pod communication within the same node**: CNIs (cloud network interfaces) assign unique private IP addresses to pods so that they can communicate with each other in the same node, satisfying inter-pod communication.
 - **How kubeapi solves intra-cluster communication**: the kubeapi component assigns services unique, private IP addresses
-- **How kubelet solves inter-pod communication**: The kubelet controller manager compinent in the control plane assigns unique,, private IP addresses to the node.
+- **How kube controller manager solves inter-pod communication**: The kubcontroller manager component in the control plane assigns unique, private IP addresses the node.
 
 #### CNI and CNI plugins
 
@@ -1008,14 +1017,13 @@ Each service should have a selector that points to a corresponding label on a po
 
 #### ClusterIP
 
-Gives a private IP address for the pod within the cluster, all pods within the same cluster run as if on the same LAN.
+Gives a public IP address for the pod within the cluster, enabling **intra-cluster** communication between pods in different nodes
 
 ![](https://i.imgur.com/u2OHbNk.jpeg)
 
 - `ports`: the ports to expose
     - `port`: the port that the server will expose
     - `targetPort`: the port that the selected pod is listening on.
-- `selector`: selects the pods to do networking for in the service.
 
 #### NodePort
 
@@ -1028,7 +1036,6 @@ The `NodePort` runs the pod as a process rather than giving it its own IP addres
     - `port`: the port that the selected pod is listening on
     - `targetPort`: the port that the selected pod is listening on. This value is not applied if the service type is `NodePort`, so you can just omit this.
     - `nodePort`: the port to map to on your localhost. This must be a large value between 30000 - 32767, as to not interfere with important ports.
-- `selector`: selects the pods to do networking for in the service.
 
 
 #### Loadbalancer
