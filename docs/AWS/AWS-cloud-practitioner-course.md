@@ -1587,6 +1587,13 @@ ECS is a container orchestration service that allows you to run individual conta
 
 By default, an **ECS cluster** uses an auto-scaling group to add more **nodes** (container hosts) and uses a load balancer to perform container orchestration across all those nodes, placing containers intelligently across container hosts.
 
+> [!NOTE]
+> In the shared responsibility model, you manage the container hosts and the operating system that the container host uses but services like ECS and EKS will handle the container orchestration for you. So here's what you're responsible for:
+> - **scaling**: either manually scaling or setting up an auto-scaling group to add more container hosts.
+> - **patching**: patching the container host OS and updating it
+
+
+
 Here’s the difference between Fargate and EC2 container hosts in AWS ECS:  
   
 
@@ -1622,10 +1629,38 @@ If you don't want to manage container hosts, choose the managed service version 
 
 Fargate is great for saving money if your containers are small enough to not suffer from large cold starts, btu if your containers execute for long times then you'll honestly save more money by moving to an EC2 instance launch type
 
+
+### Fargate
+
+Fargate is a managed service where it's basically ECS except that container hosts are abstracted away and instead you deal with managed compute resources, where the compute auto-scales to deal with the number of desired containers.
+
+Fargate abstracts away the compute so you only pay for on-demand CPU use instead of runtime.
+
+So here is what Fargate handles:
+
+- **container hosts**: handles OS, container host instance type, and auto-scaling for more compute.
+- **container orchestration**: handles the basic container orchestration of assigning containers to container hosts
+
+> [!NOTE]
+> While Fargate is certainly less complex than something like ECS, where you have to manage the container hosts and the operating system of each host, Fargate becomes far more expensive because it's a managed service. Managed services are basically always more expensive than unmanaged services. 
+
+Where Fargate becomes a better choice than ECS lies in **variable workload**:
+
+- **variable workload**: if you have variable amounts of traffic and thus containers that spin up and down unpredictably, or in cases where you're not getting continuous traffic, Fargate is a better choice and less expensive, because you're only paying for what you're actually use.
+- **consistent workload**: if you have a consistent workload where containers need to be alive for long periods of time and receive consistent traffic (like having a bunch of web servers running in containers), then it's better to use something like ECS with an EC2 container host type. 
+
+
 ### EKS
 
+EKS lets you run a cluster in a highly available way, where you replicate the cluster across many availability zones.
+
+![](https://i.imgur.com/WYrJpfJ.jpeg)
 
 
+Here is what EKS manages for you:
+
+- **cluster and control plane**: EKS creates the control plane for you so you don't have to install the cluster yourself. 
+- **worker nodes**: EKS chooses EC2 instances as worker nodes, and if you use Fargate as the container host type, than even worker nodes are fully managed.
 ## CloudWatch
 
 CloudWatch is an observability service that can listen for events and metrics of other AWS services and then direct those events to other AWS services like lambda to execute a cloud function or SNS to send an email notification.

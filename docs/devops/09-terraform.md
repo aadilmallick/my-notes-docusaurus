@@ -11,9 +11,30 @@ Choosing Terraform over cloud provider-specific tools like AWS CloudFormation or
 - **Feature parity and updates:** Terraform support for cloud features is generally as current as the cloud providers' own tools, sometimes even quicker due to community contributions.
 - **Flexibility in state management:** You can store Terraform's infrastructure state in various secure and version-controlled locations, giving you control over your environment.
 
+### IaC and Configuration Management
+
+Terraform focuses on managing and provisioning your base infrastructure—like creating servers, networking, and storage—using code. It sets up the foundational resources but doesn't manage what runs inside those servers. 
+
+Configuration management tools like Puppet come into play after Terraform has created the infrastructure; they configure and manage the software and applications on those servers. 
+
+> [!NOTE]
+> So, think of Terraform as setting up a blank canvas (the infrastructure), and Puppet as painting the picture (configuring the software). This separation helps keep infrastructure setup and software configuration distinct and manageable.
+
+### How terraform works
+
+
 ## Terraform basics
 
 ### Learning to create resources
+
+The typical Terraform workflow involves three main steps:  
+  
+
+1. **Write your Terraform code** to define the infrastructure you want to create.
+2. **Initialize your working directory** using the command `terraform init`, which sets up the directory and downloads necessary provider plugins.
+3. **Apply your infrastructure** with `terraform apply`, which actually provisions the resources defined in your code.
+
+Here's that workflow in action:
   
 
 1. Create terraform resource in `.tf` file, with the resource type being `"local_file"` to refer to a local file:
