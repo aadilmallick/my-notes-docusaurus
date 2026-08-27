@@ -709,6 +709,16 @@ This arrangement allows resources in those subnets to remain operational even if
 
 When creating EC2 instances, you can assign **security groups**, which creates a **stateful firewall** for the instance and you are able to control inbound and outbound traffic via layer 3 and 4 firewall access control list rules.
 
+> [!NOTE]
+> In AWS EC2, up to five security groups can be applied to a single network interface of an instance. 
+> 
+> Each security group defines inbound and outbound rules, and the instance follows the combined rules of all assigned security groups. 
+> 
+> - This allows for flexible access control, enabling different rules for different use cases without modifying a single security group repeatedly. 
+> - If multiple security groups are assigned, AWS evaluates all rules together and allows traffic that matches any of the permitted rules.
+
+
+
 NACLs are basically the same thing as security groups but they are a firewall for entire subnets and you write the layer 3 and 4 firewall access control list rules yourself, starting from scratch with a **stateless firewall**.
 
 You must set both security groups and NACLs when configuring a VPC:

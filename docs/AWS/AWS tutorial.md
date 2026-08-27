@@ -520,6 +520,28 @@ Here are the steps to creating an EC2 instance using the AWS console:
 4. **select network settings**: choose how to expose your EC2 instance to the world, either through SSH only or include HTTP traffic and which IP addresses to allow connecting to the instance.
 5. **configure storage**: configure disk storage capacity
 
+
+#### Network settings
+
+An EC2 instance must be placed with a specific VPC and a specific subnet within that VPC, which then places the instance inside an availability zone.
+
+> [!NOTE]
+> How do you know if the subnet you're placing an EC2 instance in is public or private? 
+> 
+> 1. For that you can just check if the "Auto assign public IP" setting is available and if it's enabled. 
+> 2. If it is enabled then that means that your subnet is a public subnet because it has a public IP assigned to it. 
+
+For extra availability, you can create an exact copy of your instance and place it in a different subnet so it gets placed in a different availability zone.
+
+#### Storage settings
+
+The best storage setting for EBS is `gp3`, which stands for SSD drive, since that has good balance of performance, cost-performance, and durability.
+
+
+
+
+
+
 ### Run a webserver on an instance
 
 There are two ways to connect to an instance:
