@@ -37,9 +37,7 @@ resource "local_file" "hello_world" {
 
 5. Run `terraform destroy` to destroy all the resources managed by terraform
 
-  
-
-### First EC2 instance
+#### First EC2 instance
 
 - [IaC+with+Terraform+Study+Guide.pdf](https://drive.google.com/file/d/1EBfvxQGX56dqOxkdviikKzRlfwwnElec/view?usp=sharing)
 - [Lab+-+Infrastructure+as+Code+(IaC)+with+Terraform.pdf](https://drive.google.com/file/d/1dW07jrIpT8LJ79MMRTuFrq9g8rk74LRS/view?usp=sharing)
@@ -89,3 +87,13 @@ provider "aws" {
   region = var.aws_region
 }
 ```
+
+#### File structure 
+
+Once you provision the resources using terraform, all the provisioned resource info will be put into a file called `terraform.tfstate`, which contains all the details of all cloud assets it created from the most recent `terraform apply` call.
+
+- **`terraform.tfvars`**: Holds configuration parameters you can tweak, like the number of servers or instance types.
+- **Main Terraform files**: These define the actual infrastructure resources you want to create, such as networks, servers, and load balancers.
+- **`terraform.tfstate` file**: This file tracks the current state of your infrastructure, recording what Terraform has created or modified. It’s crucial for managing changes accurately.
+- **Modules directory**: Contains reusable Terraform code modules that handle specific parts of your infrastructure, like networking or compute resources.
+

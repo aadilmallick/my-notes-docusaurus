@@ -1883,6 +1883,10 @@ k8s_resource(
 
 - `run(command: str)`: lets you run a linux command that will persist in the shell session.
 
+## Helm
+
+Helm is a tool used in Kubernetes to package, configure, and deploy applications using "charts," which are collections of Kubernetes resource definitions. It simplifies managing complex deployments by letting you define your app and its dependencies in reusable, versioned packages.
+
 ## Kubernetes admin
 
 Kubernetes admin refers to installing a Kubernetes cluster and managing it on a generic Linux device or VM. 

@@ -51,6 +51,40 @@ Now instead of each team working individually, DevSecOps achieves all three team
 
 **continuous deployment** differs from continuous delivery in that continuous deployment automatically deploys to production, skipping the QA team and staging and going straight to production.
 
+### Containers vs VMs
+
+A host device uses a hypervisor to manage multiple **virtual machines**, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
+
+
+![](https://i.imgur.com/9o1E6bp.jpeg)
+
+A container differs from a virtual machine by not including an operating system with it. Rather, it uses the container engine's operating system (like Docker Desktop Windows or Mac).
+
+Here are the benefits of this container approach:
+
+- **containers are slim**: Because a container does not ship an entire OS with it, it takes up much less space than a VM.
+- **containers boot up quickly**: because containers do not use their own OS, they boot up very quickly because they just use the container engine and container host OS to boot up the containers again and again.
+
+
+![](https://i.imgur.com/qJBaKAz.jpeg)
+
+
+### Technical Design Documents (TDDs)
+
+TDDs are high-level documentation pieces on how to implement a feature, talking about the purpose, system architecture, data flow, and data structures involved with the feature at a high level.
+
+WHen writing TDDs, you should always start out describing the problem, its scope, and then get into how to solve it and the various different approaches to solving it.
+
+Here are the four components of the TDD you should write in order:
+
+1. **what problem are we trying to solve**
+2. **what is the current process?**: optional, only for internal tools.
+3. **what are the requirements?**: what circumstances define the problem as being solved.
+4. **how do we solve it?**: feature proposal for solving the problem, which correctly achieves the circumstances needed that define the problem as being solved.
+
+
+## IaC
+
 ### IaC basics
 
 - **IaC (infrastructure as code)**: creating declarative code files that describe what resources you want to provision, what VMs to create, etc.
@@ -88,37 +122,63 @@ For example, Ansible is a configuration management tool that uses playbook YAML 
 
 This approach avoids modifying running systems, reducing errors and enabling advanced rollout strategies like blue-green deployments.
 
+#### IaC philosophy
 
+Infrastructure as code is the philosophy of treating the continuous deployment of your infrastructure with software development practices: using your code to deploy the infrastructure and having the state of the infrastructure be dependent on the code. 
 
-### Containers vs VMs
+The main reason why adhering to infrastructure as code is beneficial is because in DevOps culture you should always treat your servers as cattle rather than pets (because you shouldn't handcraft servers and cater to their unique needs). 
 
-A host device uses a hypervisor to manage multiple **virtual machines**, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
+Instead servers should be standardized and be able to be killed and provisioned without a second thought, which is possible through infrastructure as code.
 
+This approach involves:  
+  
 
-![](https://i.imgur.com/9o1E6bp.jpeg)
+- Writing your infrastructure setup and configurations as code that is stored in source control, just like application code.
+- Automating the creation, configuration, and deployment of servers and services, making them consistent and repeatable.
+- Avoiding manual changes on individual servers; instead, you update the code, test it, and redeploy, similar to fixing bugs in software.
+- Adopting a cultural shift where infrastructure is treated as disposable and replaceable ("servers as cattle, not pets"), enabling mass production and easy replacement.
 
-A container differs from a virtual machine by not including an operating system with it. Rather, it uses the container engine's operating system (like Docker Desktop Windows or Mac).
+This leads to more reliable systems, less firefighting, and smoother operations, which aligns well with modern DevOps and backend development practices.
 
-Here are the benefits of this container approach:
+### CI/CD in IaC
 
-- **containers are slim**: Because a container does not ship an entire OS with it, it takes up much less space than a VM.
-- **containers boot up quickly**: because containers do not use their own OS, they boot up very quickly because they just use the container engine and container host OS to boot up the containers again and again.
+The main purpose of a continuous delivery pipeline for infrastructure as code is to automate the process of taking your infrastructure code from development to production reliably and efficiently. It:  
+  
 
+- Isolates changes by building and testing small batches of code, so you know exactly when and where something goes wrong.
+- Enables traceability by linking deployments to specific code changes, eliminating manual changes on production servers.
+- Ensures your infrastructure is consistent, repeatable, and easier to manage by automating build, test, and deployment steps.
 
-![](https://i.imgur.com/qJBaKAz.jpeg)
+Here is how to effectively use CI/CD in your IaC system:
 
+1. Check in your IaC code into version control
+2. Have unit tests that automatically run via CI pipelines to test your infrastructure before it goes through the CD pipeline.
+3. In the CD pipeline, deploy your IaC to a cloud provider.
 
-### Technical Design Documents (TDDs)
+Here are the key components of a CI/CD system for IaC:
 
-TDDs are high-level documentation pieces on how to implement a feature, talking about the purpose, system architecture, data flow, and data structures involved with the feature at a high level.
+- **Reproducible infrastructure:** Ensuring your infrastructure works the same way across development, testing, and production environments reduces bugs and deployment issues.
+- **Versioned artifacts:** Package and version your code and infrastructure configurations to keep deployments consistent and traceable.
+- **Identical environments:** Strive to make environments as similar as possible to avoid surprises, using tools like Docker or Vagrant to align developer and production setups.
+- **Deployment as code:** Automate deployments using code to increase speed, reduce errors, and enable rollbacks or roll-forwards.
 
-WHen writing TDDs, you should always start out describing the problem, its scope, and then get into how to solve it and the various different approaches to solving it.
+Then using these key components, here are the steps to implement a CI/CD pipeline to deploy your IaC:
 
-Here are the four components of the TDD you should write in order:
+1. **create versioned artifacts**: Create versioned artifacts for your code and your infrastructure code. 
+2. **create an identical environment**: Use that code to make a production-like environment in each phase of the dev cycle. 
+3. **deploy each identical environment**: Have a mechanism to deploy it in an identical manner in each of those environments. 
 
-1. **what problem are we trying to solve**
-2. **what is the current process?**: optional, only for internal tools.
-3. **what are the requirements?**: what circumstances define the problem as being solved.
-4. **how do we solve it?**: feature proposal for solving the problem, which correctly achieves the circumstances needed that define the problem as being solved.
+### GitOps
 
+GitOps is a methodology and practice that uses Git repositories as a single source of truth to deliver infrastructure as code. 
 
+The four key characteristics of GitOps according to OpenGitOps are:  
+
+- **Declarative:** The system's desired state is expressed declaratively, meaning that it lives somewhere in code like in YAML files.
+- **Versioned and immutable:** The desired state is stored in a way that enforces immutability, versioning, and retains a complete version history.
+- **Pulled automatically:** Software agents automatically pull the desired state declarations from the source repository.
+- **Continuously reconciled:** Software agents continuously observe the actual system state and attempt to apply the desired state.
+
+### Policies as code
+
+**Policies as code** help prevent risky configurations (like open network ports or missing encryption) before they reach production, using tools such as TFSEC, Chekov, Dry Run Security, and Open Policy Agent.
