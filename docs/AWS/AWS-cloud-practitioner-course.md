@@ -1555,10 +1555,10 @@ There are two ways you can design the behavior of your lambda invocation to be:
 
 ### Container orchestration
 
-Container orchestration is the act of managing a variable amount of **container instances** and assigning them to **container hosts.**
+Container orchestration is the act of managing a variable amount of **container instances** and assigning them to **container hosts** as well as availability, reliability, and graceful failover if container hosts go down.
 
 - **container instances**: Individual ephemeral containers
-- **container hosts**: the underlying EC2 instances that run multiple containers at a time in a ReplicaSet for availability and redundancy.
+- **container hosts**: the underlying EC2 instances with preinstalled container runtimes that run multiple containers at a time in a ReplicaSet for availability and redundancy.
 
 
 
@@ -1627,14 +1627,14 @@ If you don't want to manage container hosts, choose the managed service version 
 > - **ideal use case**: a finite job that runs and then exits
 > - **anti use case**: a long lived connection like a web server or hosted database
 
-Fargate is great for saving money if your containers are small enough to not suffer from large cold starts, btu if your containers execute for long times then you'll honestly save more money by moving to an EC2 instance launch type
+> [!NOTE]
+> Fargate is great for saving money if your containers are small enough to not suffer from large cold starts, but if your containers execute for long times then you'll honestly save more money by moving to an EC2 instance launch type.
 
 
-### Fargate
+Fargate is a serverless, managed service where it's basically ECS except that container hosts are abstracted away and instead you deal with managed compute resources, where the compute auto-scales to deal with the number of desired containers.
 
-Fargate is a managed service where it's basically ECS except that container hosts are abstracted away and instead you deal with managed compute resources, where the compute auto-scales to deal with the number of desired containers.
-
-Fargate abstracts away the compute so you only pay for on-demand CPU use instead of runtime.
+> [!NOTE]
+> Fargate abstracts away the compute so you only pay for on-demand CPU use instead of runtime. You only pay for the resources you actually use as opposed to EC2 container hosts.
 
 So here is what Fargate handles:
 
@@ -1648,6 +1648,40 @@ Where Fargate becomes a better choice than ECS lies in **variable workload**:
 
 - **variable workload**: if you have variable amounts of traffic and thus containers that spin up and down unpredictably, or in cases where you're not getting continuous traffic, Fargate is a better choice and less expensive, because you're only paying for what you're actually use.
 - **consistent workload**: if you have a consistent workload where containers need to be alive for long periods of time and receive consistent traffic (like having a bunch of web servers running in containers), then it's better to use something like ECS with an EC2 container host type. 
+
+#### Fargate spot launch type
+
+Fargate spot is a service where serverless spot instances are used as the underlying container hosts for a Fargate solution, which lets you run interruptable container jobs while saving money.
+
+- **temporary and interruptible**: runs like spot instances, so this is only suitable for short-lived, interruptable container jobs
+- **cheap**: Since it uses spot instances under the hood, it's pretty cheap
+
+
+### ECR
+
+
+![](https://i.imgur.com/dXpauWU.jpeg)
+
+
+### ECS clusters
+
+ECS clusters let you use any of these three capacity providers or launch types:
+
+1. **fargate**: managed, serverless compute
+2. **fargate spot**: manages, serverless, cheap, interruptible compute.
+3. **EC2 with ASG**: EC2 container hosts with an auto-scaling group
+
+A cluster can have multiple capacity providers and even provide strategies to define the traffic percentage to go to either one, but you cannot mix and match EC2-based capacity providers with Fargate-based capacity providers.
+
+
+#### ECS with EC2 container hosts
+
+To have container orchestration work across multiple EC2 container hosts, you must install an **ECS agent** on those container hosts (managed service like Puppet or Chef) that allows the cluster to orchestrate changes across those container hosts.
+
+
+
+![](https://i.imgur.com/bnSTJGc.jpeg)
+
 
 
 ### EKS
