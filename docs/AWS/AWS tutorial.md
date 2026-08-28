@@ -813,14 +813,14 @@ For tasks hosted on Amazon EC2 instances, the available network modes are **aws
 
 ### ECS Cluster example
 
-#### Create the cluster
+#### Create the network
 
 We'll walk through creating this architecture:
 
 
 ![](https://i.imgur.com/kR2libH.jpeg)
 
-1. Apply this Cloudformation template:
+First apply this Cloudformation template to create the network
 
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
@@ -1059,6 +1059,50 @@ Outputs:
     Description: 'Private Subnet 2 Id'
     Value: !Ref PrivateSubnet2
 ```
+
+#### Configure container hosts
+
+Then you have to decide which container host type to use for the cluster:
+
+Choose from three infrastructure types for your containers. All clusters have Fargate access by default:
+
+- **Amazon ECS Managed Instances**: AWS fully manages Amazon EC2 instances (provisioning, patching, scaling). Best for cost-effective compute with minimal operational overhead.
+    
+- **AWS Fargate**: Serverless compute - Pay only for task resources without managing infrastructure. Ideal for variable workloads and rapid deployment.
+    
+- **Self-managed instances**: Full control - You manage Amazon EC2 instances directly (selection, configuration, maintenance). Best for custom AMIs or specific instance requirements.
+
+
+
+![](https://i.imgur.com/QQ0q5Oq.jpeg)
+
+
+Once you select EC2 instances as the container host, here is a list of all that you have to configure:
+
+- **auto-scaling group**: whether to delegate to ECS to create an auto-scaling group for the container hosts, or to use an existing auto-scaling group.
+	- If you choose to use an existing auto-scaling group, then you have to manually SSH into the container hosts and install the ECS agent yourself.
+- **provisioning model**: whether to use on-demand instances or spot instances for cheaper workloads 
+- **AMI**: the AMI to use for the container host.
+- **instance type**: the instance type for the container host.
+- **EC2 instance role**: An IAM instance role is used by Amazon EC2 instances to make AWS API requests
+- **desired capacity**: sets the minimum and maximum number of tasks/containers that can run simultaneously per container host. 
+	- Basically defines the bounds of the auto-scaling.
+
+Then you have to add the networking settings:
+
+
+![](https://i.imgur.com/hrTRnUo.jpeg)
+
+
+- **VPC**: the VPC to place the container hosts in.
+- **subnets**: the subnets to use and place the container hosts in.
+- **security group**: the security group for the container host
+- **public IP**: if in a a public subnet, whether or not to enable automatically assigning a public IP address to the container hosts.
+
+#### Task definitions
+
+Create a new task definition
+
 ## Lambda 
 
 ### Lambda Development Basics
