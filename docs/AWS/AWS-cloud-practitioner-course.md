@@ -2409,6 +2409,14 @@ Here are the general steps you take to define the pipeline:
 
 Then you can manually run the pipeline or define triggers that automatically run the pipeline.
 
+Using a serverless build service like AWS CodeBuild offers several advantages over traditional build servers:  
+  
+
+- **Scalability:** CodeBuild automatically scales to meet your build needs, so you don't have to worry about managing or waiting for limited server resources.
+- **Serverless Convenience:** No need to maintain or provision build servers; you just configure your build projects and let AWS handle the infrastructure.
+- **Integrated Build Management:** It provides detailed build history, logs, triggers, and metrics, helping you monitor and troubleshoot builds efficiently.
+- **Faster and More Reliable Builds:** Because it's cloud-based and expandable, builds can run faster and more reliably compared to potentially slow or outdated traditional servers.
+
 #### CodeArtifact
 
 CodeArtifact is a managed repo for private and public application packages, where you can upload public packages from NPM as well as private custom packages you create so you can use CodeArtifact as a substitute for a package manager repository.
@@ -2418,10 +2426,38 @@ CodeArtifact is a managed repo for private and public application packages, wher
 
 #### CodeDeploy
 
+AWS CodeDeploy is the AWS service responsible for deploying your application code after a successful build. It automates the deployment process and supports various deployment configurations to control how new versions are rolled out.
+
+
+
 CodeDeploy is a managed deployment service that allows you to configure deployments for EC2, ECS, and lambda functions, and accounts for availability-compliant code deployments like load balancer architectures or container fleets, uploading the code to all instances/containers at once.
 
 - You can manually run deployments or set up triggers for them.
 - You can retry or roll back deployments.
+
+### CodePipeline
+
+AWS CodePipeline is a fully managed service that automates your software release process by orchestrating the steps needed to build, test, and deploy your application. It connects various AWS services to create a continuous integration and continuous delivery (CI/CD) workflow.
+
+CodePipeline combines CodeCommit, COdeBuild, CodeArtifact, and CodeDeploy all at one to provide a DevSecOps CI/CD pipeline easily.
+
+Here’s a generic overview of how CodePipeline works and how to set one up:  
+
+- **Source Stage:** CodePipeline starts by connecting to your source code repository, such as AWS CodeCommit, GitHub, or S3, to detect changes.
+- **Build Stage:** When changes are detected, CodePipeline triggers a build using AWS CodeBuild, which compiles your code, runs tests, and produces build artifacts.
+- **Deploy Stage:** After a successful build, CodePipeline deploys your application using services like AWS CodeDeploy or AWS CloudFormation, which can provision infrastructure and update resources.
+
+
+Each stage shows status indicators (green for success, yellow for in progress, red for failure) so you can monitor the pipeline easily.  
+  
+To set up a pipeline generically:  
+  
+1. Define your source repository and connect it to CodePipeline.
+2. Configure a build project in CodeBuild with your build specifications.
+3. Set up deployment targets using CodeDeploy or CloudFormation templates.
+4. Create the pipeline in CodePipeline, linking these stages in order.
+5. Test the pipeline by committing changes to your source repository and watch the automated process run.
+
 
 
 ## Secrets and app config
