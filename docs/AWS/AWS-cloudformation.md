@@ -109,6 +109,25 @@ AWS::SecretsManager::Secret
 AWS::EC2::Instance
 ```
 
+#### `DependsOn`
+
+By default CloudFormation is intelligent enough to determine the order in which it should create resources based on the reference functions so it creates the dependency list in order.
+
+But if you have a use case where you want to launch an EC2 instance with the user data script that only works if a separate database instance is already up and running (and for that use case CloudFormation can't figure out the dependency order based on references), you should use the `DependsOn` key to derive an explicit dependency order:
+
+```yaml
+Resources:
+  WebInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: us-east-1a
+      ImageId: ami-0742b4e673072066f
+      InstanceType: t2.micro
+    DependsOn: DemoBucket
+  DemoBucket:
+    Type: AWS::S3::Bucket
+```
+
 ### Functions and variables
 
 Functions in CloudFormation start with `!` and can be used to dynamically retrieve or set values using variables or other values:
@@ -420,6 +439,42 @@ Parameters:
       - t3.small
     ConstraintDescription: Choose a valid EC2 instance type.
 ```
+
+#### Using SSM parameters
+
+For a parameter value, you can pass in an SSM parameter path for the `AWS::SSM::Parameter::Value<T>` generic type.
+
+```yaml
+Parameters:
+
+#This is referenced in the EC2 resource below
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    #These four options will be displayed when we run the CF template
+    #If you are using automation, make sure to use an allowed value
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+      - t3.small
+    ConstraintDescription: Choose a valid EC2 instance type.
+
+  ImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+Resources:
+#Create an EC2 instance using the parameters above.
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      #References the InstanceType parameter above
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref ImageId
+```
+
 ### Outputs
 
 You can define outputs you want to see in the cloudformation stack through the top-level `Outputs` key, which lets you define a bunch of cloudformation outputs, each one with their own logical ID.
@@ -478,6 +533,161 @@ Outputs:
     Description: "The ARN of the created S3 bucket"
     Value: !GetAtt MyBucket.Arn
 ```
+
+### Mappings
+
+Mappings allow us to create multiple key-value pairs that work apply on different conditions, like a different value for different regions.
+
+Here's the basic syntax for a mapping:
+
+```yaml
+Mappings:
+	MapName:
+		MapKey1:
+			property: value1
+		MapKey2:
+			property: value2
+```
+
+And to retrieve a value from the mapping dynamically, use the `!FindInMap` function, which works like so:
+
+```yaml
+ReturnValue: !FindInMap [MapName, MapKey, property]
+```
+
+```yaml
+Parameters:
+  EnvironmentName:
+    Description: Environment Name
+    Type: String
+    AllowedValues: [test, prod]
+    ConstraintDescription: must be test or prod
+
+Mappings:
+  EnvironmentToInstanceType:
+    # We use a small instance type for Test
+    test:
+      instanceType: t2.small
+    # we use a medium instance type for prod
+    prod:
+      instanceType: t2.medium
+  AWSRegionArch2AMI:
+    us-east-1:
+      HVM64: ami-0742b4e673072066f
+    us-east-2:
+      HVM64: ami-05d72852800cbf29e
+
+Resources:
+  WebServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      # In the line below, !Ref EnvironmentName references the parameter above (Test or Prod)
+      InstanceType: !FindInMap [EnvironmentToInstanceType, !Ref 'EnvironmentName', instanceType]
+      # ImageId uses the second mapping to find the right AMI based on the region
+      # The region is automatically detected
+      ImageId: !FindInMap [AWSRegionArch2AMI, !Ref 'AWS::Region', HVM64]
+
+Outputs:
+  Environment:
+    Description: Test or Prod?
+    Value: !Ref EnvironmentName
+    
+    # name of export
+    Export:
+      Name: TestOrProd
+```
+
+### Conditions
+
+Conditions can be associated with the creation of a resource, like if an environment parameter is "dev", then create a set of EC2 instances in a single AZ.
+
+The `Conditions` top level object has a list of key-value pairs where all the values are booleans, so it's basically a list of flags.
+
+```yaml
+Parameters:
+  EnvType:
+    #Allows the user to choose prod or test environment
+    Description: Environment type.
+    Default: test
+    Type: String
+    AllowedValues:
+      - prod
+      - test
+    ConstraintDescription: must specify prod or test.
+    
+Conditions:
+  #If this condition is true, the user has chosen a prod environment
+  CreateProdResources: !Equals [ !Ref EnvType, prod ]
+```
+
+Then you can choose to conditionally create resources based on a boolean flag using the resource-level `Condition` property:
+
+- if `true`, creates the resource
+- if `false`, does not provision the resource.
+
+
+
+
+```yaml
+Parameters:
+  ImageId:
+    #This Parameter pulls the correct AMI ID from AWS
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+  EnvType:
+    #Allows the user to choose prod or test environment
+    Description: Environment type.
+    Default: test
+    Type: String
+    AllowedValues:
+      - prod
+      - test
+    ConstraintDescription: must specify prod or test.
+
+Conditions:
+  #If this condition is true, the user has chosen a prod environment
+  CreateProdResources: !Equals [ !Ref EnvType, prod ]
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      #The AMI is pulled from the parameter above
+      ImageId: !Ref ImageId
+      InstanceType: t2.micro
+
+  MountPoint:
+    #This resouce attaches an EBS volume to the EC2 instance above
+    #The volume is being created in the next resource "NewVolume"
+    Type: AWS::EC2::VolumeAttachment
+    Condition: CreateProdResources
+    Properties:
+      InstanceId:
+        !Ref EC2Instance
+      VolumeId:
+        !Ref NewVolume
+      Device: /dev/sdh
+
+  NewVolume:
+    #This volume is only created in a prod environment.
+    #The CreateProdResources condition must be true or this is not created.
+    Type: AWS::EC2::Volume
+    Condition: CreateProdResources
+    Properties:
+      Size: 1
+      AvailabilityZone:
+        !GetAtt EC2Instance.AvailabilityZone
+
+# conditionally creates the output
+Outputs:
+  VolumeId:
+    Condition: CreateProdResources
+    Value:
+      !Ref NewVolume
+```
+
+
 
 ## Resource reference
 
