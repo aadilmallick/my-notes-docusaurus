@@ -2158,6 +2158,7 @@ A **route table** is an abstraction over hop lists by connecting subnets to inte
 > [!NOTE]
 > All subnets without explicit association to a route table will get put into the default route table, which comes with the default VPC.
 
+
 Here are the general steps for creating a route table and associating it with a subnet:
 
 1. Create a route table in a certain VPC
@@ -2165,7 +2166,26 @@ Here are the general steps for creating a route table and associating it with a 
 3. Add a route to the route table via these two components:
 	- **destination**: the IP address CIDR range that the routing rule applies to. 
 		- If you pick something like `0.0.0.0/0`, that means that this routing rule you're creating gets applied on any requests to the internet originating from the subnet.
-	- **target**: the network that intercepts any requests to the destination and then takes over the routing from there, like a NAT gateway or internet gateway
+	- **target**: the network that intercepts any requests to the destination and then takes over the routing from there, like a NAT gateway or internet gateway or `local` to reference that the target is the CIDR range inside the VPC.
+
+Route tables are what you use to actually connect subnets to the internet or other networks outside the VPC:
+
+- **public subnet - internet egress + ingress**: To provide **inbound and outbound access**, you must create an **Internet Gateway (IGW)** and add a default route (`0.0.0.0/0`) to your route table that points to that gateway.
+- **private subnet - internet ingress**: To provide **outbound-only access** (e.g., for patching), you configure a **NAT Gateway**. 
+	- By pointing the default route to the NAT Gateway instead of the Internet Gateway, you create a "one-way valve" where internal instances can reach the internet, but external requests cannot reach the internal instances.
+
+**Default Route Tables**
+
+Every VPC comes with a default route table. 
+
+By default, it contains a local route that ensures all resources within the assigned CIDR block can communicate with one another.
+
+
+![](https://i.imgur.com/LxScqKL.jpeg)
+
+
+
+
 ### Example: create VPC and subnets and gateway from scratch
 
 1. Create a VPC with CIDR block range `10.0.0.0/16`
