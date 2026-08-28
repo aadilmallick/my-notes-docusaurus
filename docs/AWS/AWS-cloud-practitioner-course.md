@@ -2131,14 +2131,40 @@ Gateways are networking infra that let a VPC connect to another network. There a
 
 - **internet gateway**: attached to a VPC, allows all inbound and outbound traffic to the internet.
 	- You can only have one internet gateway per VPC.
-- **NAT gateway**: attached to a private subnet allows it to have stateful egress traffic, but no ingress internet traffic.
-- **transit gateway**: A gateway that connects one VPC to another VPC directly
+- **NAT gateway**: attached to a private subnet allows it to have stateful egress traffic, but no ingress internet traffic. It acts as a router that also performs NAT.
+- **transit gateway**: A gateway that connects one VPC to another VPC directly. It acts as an edge router.
+
+
+To be able to connect an instance within a subnet to the internet, you need to have three things:
+
+1. **connection to the internet**: gateways like internet gateway or NAT gateway directly connect to the internet.
+2. **route to the internet**: your subnets need to be able to route to connections to the internet. In other words, they need route tables to an internet gateway.
+3. **public IP address**: instances either need to have public IP addresses to be publicly discoverable, or use a NAT gateway if in a private subnet to use the NAT gateway's public IP as the default gateway for the private instance.
+
 
 What makes a subnet public or private? It's the gateways and route tables:
 
-- **public subnet**: A subnet that has a route table routing it to an internet gateway
+- **public subnet**: A subnet that has a route table routing it to an internet gateway.
+	- Accepts both ingress and egress traffic from the internet.
+	- All instances within a public subnet must have a public IP address, since NAT can't be used because the public subnet already routes to the internet gateway, which does not use NAT.
 - **private subnet**: A subnet that does NOT route to an internet gateway, but it may route to a NAT gateway.
+	- If routes to a NAT gateway for the `0.0.0.0/0` destination, then can perform egress traffic to the internet but does not allow any ingress traffic.
 
+Here are the steps to create a standard networking diagram as follows, where we have one instance within a public subnet and another instance within a private subnet:
+
+
+![](https://i.imgur.com/ERDNICK.jpeg)
+
+Here's how to create a public subnet and then a public instance within that subnet:
+
+1. **create a subnet**
+2. **creating the route table for the public subnet**: For a subnet you create, create a route table in the VPC, associate it with the subnet.
+3. **create the internet gateway**: create an internet gateway within the VPC
+4. **add the route to the internet gateway**: in the route table, add a route setting the destination to be `0.0.0.0/0` and the target as the internet gateway, making the subnet a **public subnet**
+5. **create an instance with public IP**: when creating an instance within the public subnet, enable a public IP address for it, which will then make it discoverable on the internet.
+
+
+Here's how to create a private subnet and then a private instance within that subnet 
 #### NAT gateway
 
 By default private subnets only allow ingress traffic to resources within that private subnet from within the same VPC. This means that any instance within the same VPC can perform ingress traffic to an instance in a private subnet but ingress traffic outside of that VPC is impossible so it blocks all internet traffic. 
@@ -2168,6 +2194,8 @@ Here are the general steps for creating a route table and associating it with a 
 		- If you pick something like `0.0.0.0/0`, that means that this routing rule you're creating gets applied on any requests to the internet originating from the subnet.
 	- **target**: the network that intercepts any requests to the destination and then takes over the routing from there, like a NAT gateway or internet gateway or `local` to reference that the target is the CIDR range inside the VPC.
 
+
+
 Route tables are what you use to actually connect subnets to the internet or other networks outside the VPC:
 
 - **public subnet - internet egress + ingress**: To provide **inbound and outbound access**, you must create an **Internet Gateway (IGW)** and add a default route (`0.0.0.0/0`) to your route table that points to that gateway.
@@ -2186,7 +2214,7 @@ By default, it contains a local route that ensures all resources within the assi
 
 
 
-### Example: create VPC and subnets and gateway from scratch
+#### Example: create VPC and subnets and gateway from scratch
 
 1. Create a VPC with CIDR block range `10.0.0.0/16`
 2. Now create subnets. Select the VPC you want to create the subnet in
