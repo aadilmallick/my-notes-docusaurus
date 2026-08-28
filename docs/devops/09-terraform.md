@@ -352,6 +352,51 @@ output "instance_arn" {
 }
 ```
 
+### Data blocks
+
+In Terraform, a data block is used to fetch or reference existing information about infrastructure that Terraform doesn't directly manage.
+
+In the example below, here are the values we get access to by creating the data blocks:
+
+- `data.aws_ami.app_ami`: returns a reference to the AMI object filtered by name, virtualization type, and owners.
+- `data.aws_vpc.default`: returns `true`, meaning that the default value for whether to use a VPC for instances is true.
+
+```hcl
+data "aws_ami" "app_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["bitnami-tomcat-*-x86_64-hvm-ebs-nami"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["979382823631"] # Bitnami
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+```
+
+You can then use data block variables as normal variables:
+
+```hcl
+resource "aws_instance" "blog" {
+  ami                    = data.aws_ami.app_ami.id
+  instance_type          = var.instance_type
+  vpc_security_group_ids = [aws_security_group.blog.id]
+
+  tags = {
+    Name = "Learning Terraform"
+  }
+}
+```
+
 ### Basic resource types
 
 The nice thing about using Terraform is that the logical ID of a resource is a combination of the resource type and the actual human-facing logical ID used. 
@@ -367,6 +412,26 @@ resource_type.logical_id.property
 #### Instances + VPCs
 
 ```hcl
+data "aws_ami" "app_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["bitnami-tomcat-*-x86_64-hvm-ebs-nami"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["979382823631"] # Bitnami
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
 resource "aws_instance" "blog" {
   ami                    = data.aws_ami.app_ami.id
   instance_type          = var.instance_type
@@ -417,5 +482,257 @@ resource "aws_security_group_rule" "blog_everything_out" {
   protocol    = "-1"
   cidr_blocks = ["0.0.0.0/0"]
   security_group_id = aws_security_group.blog.id
+}
+```
+
+#### ALB + ASG
+
+1. **Set Up the Load Balancer Module:**  
+      
+    
+    - Use the Terraform AWS ALB module from the Terraform Registry.
+    - Configure it with your VPC ID and public subnets from your VPC module.
+    - Attach your existing security group by passing its ID as a list.
+    - Define listeners to forward HTTP traffic to a target group (no HTTPS for simplicity).
+    - Remove inline security group rules and access logs if not needed.
+    
+      
+    
+2. **Create the Target Group:**  
+      
+    
+    - Define an AWS load balancer target group resource.
+    - Set the name and link it to your VPC using the VPC ID.
+    
+      
+    
+3. **Connect Target Group to Instances:**  
+      
+    
+    - Initially, create a target group attachment resource to link the target group to your single instance.
+    - When using an autoscaling group, remove this attachment.
+    
+      
+    
+4. **Set Up the Auto Scaling Group Module:**  
+      
+    - Use the Terraform AWS Auto Scaling module from the Registry.
+    - Configure parameters like `min_size` (e.g., 1), `max_size` (e.g., 2), and `vpc_zone_identifier` with your public subnets.
+    - Use a launch template name (e.g., “blog”) to let the module handle instance provisioning.
+    - Set security groups and image ID (AMI) for instances.
+    - Add a traffic source attachment block to connect the ASG to the ALB’s target group by referencing the target group ARN.
+
+Here's the complete code.
+
+```hcl
+data "aws_ami" "app_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["bitnami-tomcat-*-x86_64-hvm-ebs-nami"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["979382823631"] # Bitnami
+}
+
+module "blog_vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = "dev"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["us-west-2a","us-west-2b","us-west-2c"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+  tags = {
+    Terraform = "true"
+    Environment = "dev"
+  }
+}
+
+
+module "blog_autoscaling" {
+  source  = "terraform-aws-modules/autoscaling/aws"
+  version = "6.5.2"
+
+  name = "blog"
+
+  min_size            = 1
+  max_size            = 2
+  vpc_zone_identifier = module.blog_vpc.public_subnets
+  target_group_arns   = module.blog_alb.target_group_arns
+  security_groups     = [module.blog_sg.security_group_id]
+  instance_type       = var.instance_type
+  image_id            = data.aws_ami.app_ami.id
+}
+
+module "blog_alb" {
+  source  = "terraform-aws-modules/alb/aws"
+  version = "~> 6.0"
+
+  name = "blog-alb"
+
+  load_balancer_type = "application"
+
+  vpc_id             = module.blog_vpc.vpc_id
+  subnets            = module.blog_vpc.public_subnets
+  security_groups    = [module.blog_sg.security_group_id]
+
+  target_groups = [
+    {
+      name_prefix      = "blog-"
+      backend_protocol = "HTTP"
+      backend_port     = 80
+      target_type      = "instance"
+    }
+  ]
+
+  http_tcp_listeners = [
+    {
+      port               = 80
+      protocol           = "HTTP"
+      target_group_index = 0
+    }
+  ]
+
+  tags = {
+    Environment = "dev"
+  }
+}
+
+module "blog_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "4.13.0"
+
+  vpc_id  = module.blog_vpc.vpc_id
+  name    = "blog"
+  ingress_rules = ["https-443-tcp","http-80-tcp"]
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  egress_rules = ["all-all"]
+  egress_cidr_blocks = ["0.0.0.0/0"]
+}
+```
+### Terraform modules
+
+A Terraform module is a way to group related Terraform code into a single, logical unit that can be managed together.
+
+Modules help you organize and reuse code, making it easier to manage complex infrastructure.
+
+A module can use `variable` and `output` blocks, but the content of a module is encapsulated and works like a black box, so the only way you can access code from a module is through exposing `output` blocks on it.
+
+Using a Terraform module for security groups simplifies your code by bundling complex configurations into reusable, manageable blocks. 
+
+- Instead of manually defining every rule and detail, the module handles much of that for you, reducing errors and saving time. 
+- Modules also make your infrastructure code cleaner and easier to maintain, and you can use pre-built, tested modules from the Terraform Registry, which helps ensure best practices and consistency in your setups.
+
+#### Example
+
+Here are the steps where we use an offical terraform module for security groups to make the process of creating a security group simpler:
+
+- **in-house way**: Create a `security_group` resource and then for each rule you want to add to the security group, create a `security_group_rule` resource.
+- **module way**: Just define meta-arguments for the security group module to create a security group with rules all at once.
+
+So here are the steps to implement the module way:
+
+1. Create a module that creates a VPC:
+
+```hcl
+module "blog_vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = "dev"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["us-west-2a","us-west-2b","us-west-2c"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+
+  tags = {
+    Terraform = "true"
+    Environment = "dev"
+  }
+}
+```
+
+2. Create a module that creates a security group
+
+```hcl
+module "blog_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "4.13.0"
+
+  vpc_id  = data.aws_vpc.default.id
+  name    = "blog"
+  ingress_rules = ["https-443-tcp","http-80-tcp"]
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  egress_rules = ["all-all"]
+  egress_cidr_blocks = ["0.0.0.0/0"]
+}
+```
+
+3. Use the module as a security group reference:
+
+```hcl
+resource "aws_instance" "blog" {
+  ami                    = "ami-2342343242"
+  instance_type          = t2.micro
+  vpc_security_group_ids = [module.blog_sg.security_group_id]
+
+  tags = {
+    Name = "Learning Terraform"
+  }
+}
+```
+
+
+And here it is all complete:
+
+```hcl
+data "aws_ami" "app_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["bitnami-tomcat-*-x86_64-hvm-ebs-nami"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["979382823631"] # Bitnami
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+resource "aws_instance" "blog" {
+  ami                    = data.aws_ami.app_ami.id
+  instance_type          = var.instance_type
+  vpc_security_group_ids = [module.blog_sg.security_group_id]
+
+  tags = {
+    Name = "Learning Terraform"
+  }
+}
+
+module "blog_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "4.13.0"
+
+  vpc_id  = data.aws_vpc.default.id
+  name    = "blog"
+  ingress_rules = ["https-443-tcp","http-80-tcp"]
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  egress_rules = ["all-all"]
+  egress_cidr_blocks = ["0.0.0.0/0"]
 }
 ```
