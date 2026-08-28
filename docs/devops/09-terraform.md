@@ -22,6 +22,56 @@ Configuration management tools like Puppet come into play after Terraform has cr
 
 ### How terraform works
 
+The Terraform configuration file is structured into three main blocks: 
+
+1. `terraform` block: specifies required providers and Terraform version constraints
+2. `provider` block: configures the provider plugin, like choosing AWS and then the properties like AWS region and other connection details.
+3. `resource` block: defines the actual infrastructure components, such as an AWS instance.
+
+```terraform
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.16"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
+provider "aws" {
+  region = "us-east-2"
+}
+
+resource "aws_instance" "app_server" {
+  ami           = "ami-0c7c4e3c6b4941f0f"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "Lab-03-AWS-Instance"
+  }
+}
+```
+
+> [!NOTE]
+> Based on this static code, terraform produces a directed acyclic resource graph to create a dependency order in which to create resources. 
+
+Then the basic workflow is:
+
+1. Write the code
+2. Run `terraform init` to initialize the directory
+3. Validate the changes with `terraform validate` and `terraform plan`
+4. Apply the infra with `terraform apply`
+
+#### Terraform state file
+
+Terraform tracks the state of the infrastructure with a `terraform.tfstate` JSON file.
+
+A Terraform state file is a JSON-formatted text file that Terraform uses to keep track of the current state of your infrastructure. 
+
+- It records details about the resources Terraform manages, like your AWS instances and configurations. 
+- This file helps Terraform understand what exists in your environment so it can plan and apply only the necessary changes when you update your infrastructure code.
 
 ## Terraform basics
 
@@ -118,3 +168,70 @@ Once you provision the resources using terraform, all the provisioned resource i
 - **`terraform.tfstate` file**: This file tracks the current state of your infrastructure, recording what Terraform has created or modified. It’s crucial for managing changes accurately.
 - **Modules directory**: Contains reusable Terraform code modules that handle specific parts of your infrastructure, like networking or compute resources.
 
+### Basic resource types
+
+The nice thing about using Terraform is that the logical ID of a resource is a combination of the resource type and the actual human-facing logical ID used. 
+
+This means that you can scope logical IDs to a resource type and thus reuse logical IDs across your application as long as the combination of resource type and logical ID is unique. 
+
+You can also refer to the properties of another resource using dot-notation syntax
+
+```
+resource_type.logical_id.property
+```
+
+#### Instances + VPCs
+
+```hcl
+resource "aws_instance" "blog" {
+  ami                    = data.aws_ami.app_ami.id
+  instance_type          = var.instance_type
+  vpc_security_group_ids = [aws_security_group.blog.id]
+
+  tags = {
+    Name = "Learning Terraform"
+  }
+}
+
+resource "aws_eip" "blog" {
+	instance = aws_instance.blog.id
+	vpc = true
+}
+
+resource "aws_security_group" "blog" {
+  name = "blog"
+  tags = {
+    Terraform = "true"
+  }
+  vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_security_group_rule" "blog_http_in" {
+  type        = "ingress"
+  from_port   = 80
+  to_port     = 80
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.blog.id
+}
+
+
+resource "aws_security_group_rule" "blog_https_in" {
+  type        = "ingress"
+  from_port   = 443
+  to_port     = 443
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.blog.id
+}
+
+
+resource "aws_security_group_rule" "blog_everything_out" {
+  type        = "egress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.blog.id
+}
+```
