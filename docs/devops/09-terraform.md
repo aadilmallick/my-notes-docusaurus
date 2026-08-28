@@ -64,6 +64,42 @@ Then the basic workflow is:
 3. Validate the changes with `terraform validate` and `terraform plan`
 4. Apply the infra with `terraform apply`
 
+#### `terraform init`
+
+The `terraform init` command initializes your working directory for Terraform. 
+
+It sets up the backend (usually local at first), downloads and installs the necessary provider plugins like AWS, and creates a lock file (`.terraform.lock.hcl`) that records the provider versions and selections. 
+
+You can safely run this command multiple times—it will recheck for updates and ensure your environment is ready to build infrastructure with Terraform.
+
+#### `terraform validate`
+
+The `terraform validate` command checks your Terraform configuration files for syntax errors and correctness before you proceed to planning or applying infrastructure changes. 
+
+- It helps catch issues like misplaced commas or incorrect argument formats by providing clear error messages with file and line details. 
+- You can also run it with a `-json` option to get machine-readable output, useful for automation. 
+
+Using `terraform validate` regularly ensures your code is error-free and ready to be applied, making your infrastructure management smoother and more reliable.
+
+
+#### `terraform plan`
+
+The `terraform plan` command generates a detailed preview of the changes Terraform will make to your infrastructure based on your current configuration. 
+
+It shows what resources will be created, changed, or destroyed without actually applying those changes yet. 
+
+- This helps you verify your setup before making any real modifications. 
+- You can also save the plan to a file to apply it later, ensuring consistency between planning and applying stages.
+
+#### `terraform apply`
+
+The `terraform apply` command is the step where Terraform actually builds the infrastructure you've defined in your configuration. 
+
+1. It first shows you the execution plan again and asks for your confirmation before proceeding. 
+2. Once you confirm by typing "yes," it creates the resources on AWS and generates a state file to track the current infrastructure. 
+
+This command is crucial because it turns your code into real cloud infrastructure, but it’s important to review the plan carefully and ensure your AWS credentials are properly configured before applying changes.
+
 #### Terraform state file
 
 Terraform tracks the state of the infrastructure with a `terraform.tfstate` JSON file.
@@ -73,7 +109,106 @@ A Terraform state file is a JSON-formatted text file that Terraform uses to keep
 - It records details about the resources Terraform manages, like your AWS instances and configurations. 
 - This file helps Terraform understand what exists in your environment so it can plan and apply only the necessary changes when you update your infrastructure code.
 
+> [!NOTE]
+> The state file represents a source of truth for resource provisioning with Terraform. 
+
+#### `terraform destroy`
+
+The `terraform destroy` command looks at the state file and destroys all infra provisioned by terraform.
 ## Terraform basics
+
+### First terraform
+
+```hcl title="main.tf"
+// 1. create terraform config
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+    }
+  }
+}
+
+// 2. create provider config
+provider "aws" {
+  region  = "us-west-2"
+}
+
+// 3. define variables
+variable "instance_type" {
+  description = "Type of EC2 instance to provision"
+  default     = "t3.nano"
+}
+
+
+data "aws_ami" "app_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["bitnami-tomcat-*-x86_64-hvm-ebs-nami"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["979382823631"] # Bitnami
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+// 4. create resources
+resource "aws_instance" "blog" {
+  ami                    = data.aws_ami.app_ami.id
+  instance_type          = var.instance_type
+  vpc_security_group_ids = [aws_security_group.blog.id]
+
+  tags = {
+    Name = "Learning Terraform"
+  }
+}
+
+resource "aws_security_group" "blog" {
+  name = "blog"
+  tags = {
+    Terraform = "true"
+  }
+  vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_security_group_rule" "blog_http_in" {
+  type        = "ingress"
+  from_port   = 80
+  to_port     = 80
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.blog.id
+}
+
+
+resource "aws_security_group_rule" "blog_https_in" {
+  type        = "ingress"
+  from_port   = 443
+  to_port     = 443
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.blog.id
+}
+
+
+resource "aws_security_group_rule" "blog_everything_out" {
+  type        = "egress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.blog.id
+}
+```
 
 ### Learning to create resources
 
@@ -167,6 +302,55 @@ Once you provision the resources using terraform, all the provisioned resource i
 - **Main Terraform files**: These define the actual infrastructure resources you want to create, such as networks, servers, and load balancers.
 - **`terraform.tfstate` file**: This file tracks the current state of your infrastructure, recording what Terraform has created or modified. It’s crucial for managing changes accurately.
 - **Modules directory**: Contains reusable Terraform code modules that handle specific parts of your infrastructure, like networking or compute resources.
+
+### Variables
+
+You can define variables in Terraform that you can then use throughout your Terraform files, using the `terraform` block like so:
+
+```hcl
+variable "instance_type" {
+  description = "Type of EC2 instance to provision"
+  default     = "t3.nano"
+}
+```
+
+And then you can access variables through the `var` namespace via dot notation:
+
+```
+var.<variable_name>
+```
+
+Here's an example of defining a variable then using it:
+
+```hcl
+variable "instance_type" {
+  description = "Type of EC2 instance to provision"
+  default     = "t3.nano"
+}
+
+resource "aws_instance" "blog" {
+  ami                    = data.aws_ami.app_ami.id
+  instance_type          = var.instance_type
+  vpc_security_group_ids = [aws_security_group.blog.id]
+
+  tags = {
+    Name = "Learning Terraform"
+  }
+}
+```
+### Outputs
+
+Outputs are like cloudformation outputs, defined by a `output` top level block.
+
+```hcl
+output "instance_ami" {
+  value = aws_instance.blog.ami
+}
+
+output "instance_arn" {
+  value = aws_instance.blog.arn
+}
+```
 
 ### Basic resource types
 
