@@ -132,6 +132,14 @@ For all AWS CLI commands you can always use the `--profile` flag in order to sco
 
 Without this flag all the actions just go to the currently logged in AWS profile, which is the default one. 
 
+### CLI autoprompt
+
+The coolest thing ever for the CLI is autocomplete suggestions for this command:
+
+```bash
+aws --cli-auto-prompt
+```
+
 
 ## AWS CLI
 

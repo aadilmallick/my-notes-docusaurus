@@ -2381,7 +2381,15 @@ However, you can also use the AWS service called **CodePipeline**, which automat
 
 #### Cloud9
 
-Cloud9 is a cloud-based IDE that runs on an EC2 instance under the hood, so you pay for the isntance runtime, not the actual IDE usage.
+Cloud9 is a cloud-based IDE that runs on an EC2 instance under the hood, so you pay for the instance runtime, not the actual IDE usage.
+
+Using Cloud9 offers several advantages over local IDEs like VS Code or PyCharm, especially in a cloud and DevOps context:  
+  
+
+- **Integrated AWS Tools:** Cloud9 comes pre-configured with AWS tools such as the AWS CDK, Code Whisperer (Amazon's AI code completion), and AWS Explorer, making it easier to develop, run, and debug AWS infrastructure and applications.
+- **Standardized Development Environment:** Since Cloud9 runs in the cloud, you can provide your team with a consistent, pre-configured environment. This reduces the "works on my machine" problem and simplifies setup and maintenance.
+- **Security and Updates:** Centralized management means libraries and security patches are updated for all users, enhancing security compared to managing multiple local machines.
+- **Convenience and Performance:** You can access your development environment from anywhere without needing powerful local hardware, and it integrates smoothly with AWS services.
 
 #### CodeCommit
 

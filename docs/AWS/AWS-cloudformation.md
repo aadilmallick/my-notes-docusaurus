@@ -1,4 +1,4 @@
-## Basics
+## Intro
 
 Cloudformation is a declarative IaC solution for AWS, and all other IaC solutions that apply to AWS in reality just compile down to CloudFormation, like Pulumi, AWS CDK, AWS SAM, etc.
 
@@ -29,8 +29,18 @@ When manually uploading a template, here are the steps you should follow:
 3. Choose the **stack policy**, which is a JSON document that defines the resources you want to prevent from accidental deletion or retain them when a stack gets destroyed.
 4. Choose the **rollback configuration**, which defines cloudwatch alarms to listen for and if those alarms are breached, then CloudFormation rolls back to the previous template version.
 5. Choose the **stack notification options**, where upon stack creation, you set up an SNS topic you want to push to.
-6. 
 
+### IaC generator
+
+The IaC generator service in AWS creates cloudformation templates from provisioned resources, reverse engineering what you did to manually create selected cloud resources and synthesizes that into a single cloudformation template.
+
+Here is an example of how to best use it: 
+
+1. For all manual resources you eventually want to create a CloudFormation template from, give them all a tag identifier with the same value. 
+2. For adding the related resources you want to scan in the IAC generator, select the ones with the tag you set. 
+3. Download as either using CDK or Cloudformation YAML.
+
+## Basics
 ### CloudFormation Resources
 
 All resources you define for a template live under the `Resources` top level key, where for each resource, you define these three core information pieces:
@@ -171,6 +181,7 @@ Outputs:
         Value: "https://someurl.com"
         Description: "some description"
 ```
+
 
 ## Examples
 
