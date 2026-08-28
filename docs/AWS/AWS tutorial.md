@@ -654,6 +654,17 @@ Here are the steps to create an IAM role that allows an EC2 instance to access t
 
 
 
+### Creating snapshots (custom AMIs)
+
+If you want to create snapshots from existing instances to create copies that also take into account storage and installed packages and make a perfect copy of an instance, then what you want to do is create snapshots following these steps:
+
+1. Create an instance, install packages, add data to EBS hard drive.
+2. On the instance details, click on **create image** to create a snapshot of this instance.
+
+![](https://i.imgur.com/RfLJwOy.jpeg)
+
+3. Once the new custom AMI is available, launch a new EC2 instance based on it.
+
 
 
 ### EBS

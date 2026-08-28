@@ -2125,18 +2125,126 @@ NACLs are stateless firewalls you can configure with standard layer 3 and 4 secu
 
 Because NACLs are stateless, you need to define explicit rules for both egress and ingress traffic, which can be annoying to do.
 
+### Gateways, subnets, and route tables
+
+Gateways are networking infra that let a VPC connect to another network. There are three types of gateways:
+
+- **internet gateway**: attached to a VPC, allows all inbound and outbound traffic to the internet.
+	- You can only have one internet gateway per VPC.
+- **NAT gateway**: attached to a private subnet allows it to have stateful egress traffic, but no ingress internet traffic.
+- **transit gateway**: A gateway that connects one VPC to another VPC directly
+
+What makes a subnet public or private? It's the gateways and route tables:
+
+- **public subnet**: A subnet that has a route table routing it to an internet gateway
+- **private subnet**: A subnet that does NOT route to an internet gateway, but it may route to a NAT gateway.
+
+#### NAT gateway
+
+By default private subnets only allow ingress traffic to resources within that private subnet from within the same VPC. This means that any instance within the same VPC can perform ingress traffic to an instance in a private subnet but ingress traffic outside of that VPC is impossible so it blocks all internet traffic. 
+
+Although this is great for security, that means that any instance in a private subnet cannot perform any egress traffic to connect to resources outside of the VPC, meaning it can't even access the internet. 
+
+To get over this and access the internet from within a private subnet, we use a NAT gateway. Here is a high level overview of how to do so:
+
+1. **Create a NAT gateway**
+2. **Place the NAT gateway within the public subnet**: Since public subnets are allowed egress and ingress traffic to the internet, the only this works is if we place the NAT gateway within a public subnet so it can send egress traffic to the internet.
+3. **Create a route table that routes the private subnet CIDR range to the NAT gateway**: whenever our private subnet makes an egress request to an IP address outside of the VPC, we need to route it first to the NAT gateway. The NAT gateway takes care of being in a public subnet and then sending that request along to the internet, statefully, then returning the response to the private subnet.
+
+#### Route table
+
+A **route table** is an abstraction over hop lists by connecting subnets to internet gateways and NAT gateways to make subnets (private by default) either public subnets or private subnets with egress internet traffic.
+
+> [!NOTE]
+> All subnets without explicit association to a route table will get put into the default route table, which comes with the default VPC.
+
+Here are the general steps for creating a route table and associating it with a subnet:
+
+1. Create a route table in a certain VPC
+2. Edit the subnet associations for a route table and choose the subnet you want to associate it to.
+3. Add a route to the route table via these two components:
+	- **destination**: the IP address CIDR range that the routing rule applies to. 
+		- If you pick something like `0.0.0.0/0`, that means that this routing rule you're creating gets applied on any requests to the internet originating from the subnet.
+	- **target**: the network that intercepts any requests to the destination and then takes over the routing from there, like a NAT gateway or internet gateway
+### Example: create VPC and subnets and gateway from scratch
+
+1. Create a VPC with CIDR block range `10.0.0.0/16`
+2. Now create subnets. Select the VPC you want to create the subnet in
+3. Choose to create two subnets, one public, one private, one in each different availability zone.
+	- **Availabilty zone**
+	- **IPv4 CIDR block**: choose the CIDR block allotted for the subnet, which should obviously be a subset of the VPC CIDR block range.
+
+
+![](https://i.imgur.com/IHA0qK1.jpeg)
+
+4. Create an EC2 instance and place it in the public subnet you created.
+5. To allow your VPC to accept egress and ingress traffic to the internet, you need to attach an **internet gateway** to the VPC by creating it and attaching it to the VPC.
+
+![](https://i.imgur.com/3I6FEj3.jpeg)
+
+6. Create a route table for the public subnet to actually make it a public subnet by connecting it to the internet gateway.
+	- We need to create a **route table** so that we give the supposedly public subnet a route (hop list) to the internet gateway, making the subnet the instance lives in actually public by connecting it to the internet gateway. 
+	- For each subnet, we need to create one route table, since a single route table represents a hop list from one source to a destination.
+
+
+![](https://i.imgur.com/KBqneeC.jpeg)
+
+
+7. Create a route table for the private subnet that connects it to the NAT gateway.
+
+
+![](https://i.imgur.com/TwSK42b.jpeg)
+
+
+8. Now to connect subnets to their respective gateways via route tables, create a subnet association for a subnet to a route table:
+
+
+![](https://i.imgur.com/PlK6g5f.jpeg)
+
+
+
+![](https://i.imgur.com/lmTXzfk.jpeg)
+
+9. Click on the specific route table, then click **edit routes**, then add a new route with the destination being `0.0.0.0/0` (all IP addresses) and the target being the **internet gateway** component:
+
+
+![](https://i.imgur.com/sTrv7xd.jpeg)
+
+The following steps are all about adding a NAT gateway to a private subnet so that instances and resources within that private subnet can have egress internet traffic while blocking all other ingress traffic that doesn't originate from within the VPC.
+
+1. Create a NAT gateway in a public subnet with the connectivity type set to public and give a static, elastic IP to the NAT gateway to ensure the routing table doesn't break on dynamic IP addresses.
+	- **subnet**: The NAT gateway must be created within a public subnet so it can perform egress traffic to the internet
+	- **connectivity type**: setting this to public makes it publicly discoverable on the internet, which is what you want.
+	- **elastic IP**: attaching a static fixed IP to the NAT gateway is better because it doesn't break route tables if the IP address ever changes or the NAT gateway is destroyed. 
+
+
+![](https://i.imgur.com/TeTJrMw.jpeg)
+
+2. Create a route table in the current VPC, associate it with the private subnet
+3. Edit the routes to add the intercepting target of the NAT gateway whenever the private subnet makes a request to the internet (destination of `0.0.0.0/0`).
+
+
+![](https://i.imgur.com/sAGt6KD.jpeg)
+
+
+
+
+
 ### VPC peering
 
 VPC peering allows you to connect two VPCs together so devices in different VPCs can communicate with each other. If you need cross-VPC communication across more than 2 VPCs, then you should use **transit gateways**
 
 - **VPC peering**: allows devices in two different VPCs to communicate with each other by connecting two VPCs together.
-- **transit gateway**: 
+- **transit gateway**: A gateway that connects one VPC to another VPC directly
 
 ### AWS privatelink
 
 If you want to securely use other AWS services like S3 in your instance, then instead of having to expose your instances publicly by having them connect to the internet,  you can take advantage of AWS's private WAN across the globe to use VPC endpoints, a way to connect to AWS services without going through the internet.
 
 **AWS privatelink** is the service that intercepts network requests destined for AWS services and replaces those internet requests with AWS private WAN requests by requesting the VPC endpoint for that service instead.
+
+
+
 
 
 
