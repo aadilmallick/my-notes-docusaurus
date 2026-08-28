@@ -48,6 +48,13 @@ Replacing the template means you upload a new or modified template file. This al
   
 So, updating with the existing template is for parameter tweaks without changing the infrastructure layout, while replacing the template is for structural changes to your stack.
 
+For different resources you're updating in the stack, there are different behaviors:
+
+- **update with no interruption**: if possible, Cloudformation updates the resource with no interruption and without changing the resource's physical ID. 
+	- This happens on non-destructive changes.
+- **updates with some interruption**: Cloudformation updates the resource with some interruption, like when updating properties on an EC2 instance.
+- **replacement**: on destructive changes, Cloudformation needs to destroy the resource before recreating it, like changing the availability zone of a resource.
+
 ## Basics of templates
 
 A Cloudformation YAML template represents the resources, parameters, and outputs all associated with a single stack.
@@ -197,7 +204,6 @@ Here are the properties you can provide for each parameter:
 - `Type`: **Required**. the data type of the parameter, like `String`
 - `Description`: the human-friendly description.
 - `Default`: the default value to provide if no parameter value is provided by the user.
-- `AllowedValues`: a YAML list of allowed values for the parameter, so it's sort of like providing an ENUM data type on top of being a string.
 
 You define the parameters and their data types beforehand and then at build-time you inject values for those parameters. This avoids hardcoding and allows for flexibility.
 
@@ -231,7 +237,7 @@ sam deploy \
 !Ref Stage # returns prod
 ```
 
-Here's a more complete example:
+Here's a more complete example for the `String` type:
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
@@ -273,6 +279,147 @@ There's not just `String` data types for parameters. You can also specify these:
 > 
 > Well, because they offer autocomplete when you're putting it into the CloudFormation console and database type safety with the provided strict enum typing, so it reduces errors.
 
+Here is a complete example of all the parameter data types and their options:
+
+```yaml
+Parameters:
+#Number Parameter with minimum and maximum
+#Used to configure a single port for the SG below
+  SecurityGroupPort:
+    #The description below is the description of the parameter itself
+    Description: Security Groups port to open (Must be a single port between 1150-65535)
+    #When the CF Template is run, it will prompt for a number
+    Type: Number
+    MinValue: 1150
+    MaxValue: 65535
+
+#Simple String Parameter
+#This is referenced in the SG Below
+  SGDescription:
+    Description: Security Group Description
+    Type: String
+
+#This parameter will take a string, but will not show what you type (NoEcho)
+#This paramter is not used below
+  DBPwd:
+    NoEcho: true
+    Description: The database admin account password
+    Type: String
+    MinLength: 1
+    MaxLength: 41
+    AllowedPattern: ^[a-zA-Z0-9]*$
+    #String Parameter with allowed values
+
+#This is referenced in the EC2 resource below
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    #These four options will be displayed when we run the CF template
+    #If you are using automation, make sure to use an allowed value
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+      - t3.small
+    ConstraintDescription: Choose a valid EC2 instance type.
+
+#String Parameter with an allowed pattern
+#Used to configure incoming CIDRs for one SG below
+  AllowedInboundCIDR:
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    #Below is a regex that requires three digits, then a period, etc...
+    #This forces the IP range to be configured properly
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+
+#Used to define the VPC that SG and Subnets are in
+  MyVPC:
+    Description: VPC to operate in
+    #In the console, you will click on one of your VPCs
+    Type: AWS::EC2::VPC::Id
+
+#Comma delimited list of CIDR ranges for subnets
+  SubnetCIDRs:
+    Description: "Comma-delimited list of two CIDR blocks"
+    Type: CommaDelimitedList
+    Default: "10.1.1.0/24, 10.1.2.0/24"
+
+Resources:
+#Create an EC2 instance using the instance type parameter.
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      #References the InstanceType parameter above
+      InstanceType: !Ref InstanceType
+      ImageId: ami-0742b4e673072066f
+      #References subnet1 below. Not a parameter
+      SubnetId: !Ref Subnet1
+
+#Create a security group using multiple inputs from parameters
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Ref SGDescription
+      #The three references below are all parameters above
+      SecurityGroupIngress:
+        - CidrIp: !Ref AllowedInboundCIDR
+          FromPort: !Ref SecurityGroupPort
+          ToPort: !Ref SecurityGroupPort
+          IpProtocol: tcp
+      VpcId: !Ref MyVPC
+
+#Create subnets in the VPC specified by a parameter
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      #This Select function chooses the first CIDR in the comma delimited list
+      CidrBlock: !Select [0, !Ref SubnetCIDRs]
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      #This Select function chooses the second CIDR in the comma delimited list
+      CidrBlock: !Select [1, !Ref SubnetCIDRs]
+```
+
+#### **`String` type**
+
+Here are all the specific properties you can add for a parameter of type `String`.
+
+- `AllowedValues`: a YAML list of allowed values for the parameter, so it's sort of like providing an ENUM data type on top of being a string.
+
+
+```yaml
+Parameters:
+  # example of arbitrary string with constraints
+  DBPwd:
+    NoEcho: true
+    Description: The database admin account password
+    Type: String
+    MinLength: 1
+    MaxLength: 41
+    AllowedPattern: ^[a-zA-Z0-9]*$
+    
+  # example of enum type
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    #These four options will be displayed when we run the CF template
+    #If you are using automation, make sure to use an allowed value
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+      - t3.small
+    ConstraintDescription: Choose a valid EC2 instance type.
+```
 ### Outputs
 
 You can define outputs you want to see in the cloudformation stack through the top-level `Outputs` key, which lets you define a bunch of cloudformation outputs, each one with their own logical ID.
@@ -331,6 +478,115 @@ Outputs:
     Description: "The ARN of the created S3 bucket"
     Value: !GetAtt MyBucket.Arn
 ```
+
+## Resource reference
+
+### EC2 instance
+
+Here's a complete example:
+
+```yaml
+Resources:
+# Create an EC2 instance
+  WebInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: us-east-1a
+      ImageId: ami-0022f774911c1d690
+      InstanceType: t2.micro
+      
+      #References a SG created below
+      SecurityGroups:
+        - !Ref DemoSecurityGroup
+          
+      #Performs an update and creates a web server
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install httpd -y
+          systemctl enable httpd.service
+          systemctl start httpd.service
+    
+      # add specific permission for IAM role
+      IamInstanceProfile: S3FullAccessEC2
+
+  # Assign an EIP to the Web Server
+  MyEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref WebInstance
+
+  # Web Server Security Group: 443, 22, 80
+  DemoSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH, HTTP, and HTTPs
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+```
+
+#### **basic properties**
+
+Here are the basic properties of an EC2 instance resource:
+
+- `ImageId`: the AMI image id of the AMI to use.
+- `InstanceType`: the instance type to use, like `t2.micro`
+
+#### **networking properties**
+
+Here are the networking properties of an EC2 instance resource:
+
+- `AvailabilityZone`: the availability zone to place the instance in
+	- Accepts values of `us-east-1a` - `us-east-1f`
+- `SecurityGroups`: a YAML list of security group `!Ref` references to add as security groups for the instance.
+
+#### **advanced properties**
+
+Here are the advanced properties of an EC2 instance resource:
+
+- `UserData`: object with properties to define the user data script for the instance.
+	- `Fn::Base64`: Accepts a string representing the bash script to run on startup, then converts it into base 64.
+
+#### **IAM properties**
+
+- `IAMInstanceProfile`: accepts a permission like `S3FullEC2Access` or a reference to a policy, defines the role for the instance and the associated permissions it has.
+
+
+### S3
+
+```yaml
+Resources:
+  DemoBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      VersioningConfiguration:
+        Status: Enabled
+      BucketName: demobucket2trainertests
+```
+
+Here are the basic properties:
+
+- `AccessControl`: defines the access control level for the bucket, accepting these values:
+	- `PublicRead`: makes the bucket public for reading.
+- `VersioningConfiguration`: an object with properties to configure how version control for objects work in the bucket.
+	- `Status`: if set to `Enabled`, then enables object versioning for the bucket.
+- `BucketName`: the globally unique bucket name for the bucket
+
+
+
 
 ## Examples
 
@@ -560,3 +816,4 @@ Resources:
       Path: "/"
 
 ```
+

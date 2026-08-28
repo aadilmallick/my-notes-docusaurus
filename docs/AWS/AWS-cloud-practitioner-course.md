@@ -2107,7 +2107,9 @@ Here are the core benefits:
 
 ## AWS networking in depth
 
-### Security groups in depth
+### Security groups and NACLs
+
+#### Security groups in depth
 
 Security groups are stateless firewalls that you can define the inbound and outbound traffic rules for a single EC2 instance and then reuse that security group for other EC2 instances. 
 
@@ -2119,11 +2121,33 @@ Here are the types of traffic you can control:
 	- By default, all IP addresses are allowed to make inbound HTTP traffic to port 80 of the EC2 instance.
 - **outbound network traffic**: which origins can this EC2 instance make outbound requests to?
 	- By default, this is all IP addresses, meaning this server can make requests to any website or server on the internet.
-### **NACL in depth**
+
+You can also specify security group sources from other security groups to basically scope traffic to only come from a specific NIC of instances with that security group.
+
+
+![](https://i.imgur.com/7hwSYua.jpeg)
+
+
+> [!NOTE]
+> For example let's say that you have a front-end web server that you want to allow internet traffic to come from anywhere for both ingress and egress, and then you have a database server. 
+> 1. For ingress traffic to that database server you only want to allow the web servers to access that. 
+> 2. You would add the web server security group as a source for the database security group. 
+> 3. That tells AWS to use the network interface card source of the web server instances as the only allowed ingress source for the databases. 
+
+
+
+#### **NACL in depth**
 
 NACLs are stateless firewalls you can configure with standard layer 3 and 4 security rules, and are applied to entire subnets at a time, applying the firewall settings to the subnet itself rather than the individual instances.
 
 Because NACLs are stateless, you need to define explicit rules for both egress and ingress traffic, which can be annoying to do.
+
+> [!NOTE]
+> NACLs should be relatively short. If you find that you have a lot of rules, then you're probably doing it overkill style. 
+
+#### Security groups vs NACLs
+
+![](https://i.imgur.com/UWdnyyj.jpeg)
 
 ### Gateways, subnets, and route tables
 
@@ -2164,14 +2188,23 @@ Here's how to create a public subnet and then a public instance within that subn
 5. **create an instance with public IP**: when creating an instance within the public subnet, enable a public IP address for it, which will then make it discoverable on the internet.
 
 
-Here's how to create a private subnet and then a private instance within that subnet 
+Here's how to create a private subnet and then a private instance within that subnet:
+
+1. **create a subnet**
+2. **creating the route table for the private subnet**: For a subnet you create, create a route table in the VPC, associate it with the subnet.
+3. **create a NAT gateway**: create a NAT gateway and place it in a public subnet (a subnet that already routes to an internet gateway)
+4. **add the route to the NAT gateway**: in the route table associated with the private subnet, add a route setting the destination to be `0.0.0.0/0` and the target as the NAT gateway, making the subnet a **private subnet** with egress internet traffic allowed.
 #### NAT gateway
 
 By default private subnets only allow ingress traffic to resources within that private subnet from within the same VPC. This means that any instance within the same VPC can perform ingress traffic to an instance in a private subnet but ingress traffic outside of that VPC is impossible so it blocks all internet traffic. 
 
 Although this is great for security, that means that any instance in a private subnet cannot perform any egress traffic to connect to resources outside of the VPC, meaning it can't even access the internet. 
 
-To get over this and access the internet from within a private subnet, we use a NAT gateway. Here is a high level overview of how to do so:
+To get over this and access the internet from within a private subnet, we use a NAT gateway. 
+
+The NAT gateway is a one-way valve, a stateful firewall that allows egress internet traffic requests and responses, but ingress traffic only originating from within the VPC.
+
+Here is a high level overview of how to do so:
 
 1. **Create a NAT gateway**
 2. **Place the NAT gateway within the public subnet**: Since public subnets are allowed egress and ingress traffic to the internet, the only this works is if we place the NAT gateway within a public subnet so it can send egress traffic to the internet.
@@ -2274,16 +2307,71 @@ The following steps are all about adding a NAT gateway to a private subnet so th
 
 ![](https://i.imgur.com/sAGt6KD.jpeg)
 
+### VPC in depth
+
+#### VPC DNS
+
+You have two options when it comes to DNS in VPC:
+
+1. **DNS resolution**: enable whether or not instances running within a VPC can use DNS to resolve public domain names on the internet.
+2. **DNS hostnames**: enable whether or not instances running within a VPC can get automatically assigned DNS host names.
+
+![](https://i.imgur.com/kp4wkXw.jpeg)
 
 
 
+### VPC flow logs
 
-### VPC peering
+VPC Flow Logs are a way to monitor network connections and both ingress and egress traffic originating from the VPC or going to a VPC.
 
-VPC peering allows you to connect two VPCs together so devices in different VPCs can communicate with each other. If you need cross-VPC communication across more than 2 VPCs, then you should use **transit gateways**
+The logs can be written either to an S3 bucket or CloudWatch Logs. 
 
-- **VPC peering**: allows devices in two different VPCs to communicate with each other by connecting two VPCs together.
+VPC flow logs lets you analyze traffic flow at the layer 4 level, where you can see request metadata but not the actual payload.
+
+![](https://i.imgur.com/leNaEpy.jpeg)
+
+Here is all the info in a single flow log:
+
+- **NIC**: the network interface the traffic is going to or originating from
+- **layer 4 information**: details the source IP and port of the network request, and destination IP and port.
+
+
+![](https://i.imgur.com/7C9309x.jpeg)
+
+
+### VPC peering and transit gateways
+
+
+
+**VPC peering** allows you to connect two VPCs together so devices in different VPCs can communicate with each other, in a one-to-one relationship.
+
+If you need cross-VPC communication across more than 2 VPCs, then you should use **transit gateways**.
+
+- **VPC peering**: allows devices in two different VPCs to communicate with each other by connecting two VPCs together, but only in a unidirectional manner
+	- Offers full private IP connection between instances in two different VPCs.
 - **transit gateway**: A gateway that connects one VPC to another VPC directly
+
+
+#### VPC peering
+
+![](https://i.imgur.com/Las8lKp.jpeg)
+
+VPC peering works in a decentralized manner peer-to-peer request between the default gateways of both VPCs:
+
+1. **initiate peering request**: one VPC initiates a peering request with the desired target VPC to connect to.
+2. **accept peering request**: the target VPC chooses whether or not to accept the peering request.
+3. **update route tables for both VPCs**: manually update the route table of the initiating VPC to route to the default gateway of the target VPC
+
+#### Transit gateway
+
+Transit gateway is VPC peering but for connecting unlimited VPCs together by foregoing peer-to-peer connections and instead opting for a centralized hub that manages all the connections between VPCs, called the **transit gateway**.
+
+
+![](https://i.imgur.com/gxJVzZr.jpeg)
+
+
+
+![](https://i.imgur.com/zvsflQk.jpeg)
 
 ### AWS privatelink
 
