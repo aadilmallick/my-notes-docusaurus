@@ -305,7 +305,10 @@ Once you provision the resources using terraform, all the provisioned resource i
 
 ### Variables
 
-You can define variables in Terraform that you can then use throughout your Terraform files, using the `terraform` block like so:
+You can define variables in Terraform that you can then use throughout your Terraform files, using the `terraform` block like so, with these meta-arguments:
+
+- `description`: the human-facing description of what the variable does or represents.
+- `default`: the default value of the variable
 
 ```hcl
 variable "instance_type" {
@@ -337,6 +340,106 @@ resource "aws_instance" "blog" {
     Name = "Learning Terraform"
   }
 }
+```
+
+#### Template interpolation and advanced variables
+
+In Terraform, use an **object type variable** when you want to group related configuration values together logically, like an AMI filter with both a name and owner, or an environment with a name and network prefix. 
+
+This helps keep your code organized and makes it easier to manage complex settings as a single unit.
+
+First, create variables like so:
+
+```hcl
+variable "instance_type" {
+  description = "Type of EC2 instance to provision"
+  default     = "t3.nano"
+}
+
+// define object type
+variable "ami_filter" {
+  description = "Name filter and owner for AMI"
+
+  type    = object ({
+    name  = string
+    owner = string
+  })
+
+  default = {
+    name  = "bitnami-tomcat-*-x86_64-hvm-ebs-nami"
+    owner = "979382823631" # Bitnami
+  }
+}
+
+// define object variable type
+variable "environment" {
+  description = "Deployment environment"
+
+  type        = object ({
+    name           = string
+    network_prefix = string
+  })
+  default = {
+    name           = "dev"
+    network_prefix = "10.0"
+  }
+}
+
+variable "asg_min" {
+  description = "Minimum instance count for the ASG"
+  default     = 1
+}
+
+variable "asg_max" {
+  description = "Maximum instance count for the ASG"
+  default     = 2
+}
+```
+
+Then you can use those advanced variables like this:
+
+```hcl
+data "aws_ami" "app_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = [var.ami_filter.name]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = [var.ami_filter.owner] # Bitnami
+}
+```
+
+```hcl
+module "blog_vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = var.environment.name
+  cidr = "${var.environment.network_prefix}.0.0/16"
+
+  azs             = ["us-west-2a","us-west-2b","us-west-2c"]
+  public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24", "${var.environment.network_prefix}.103.0/24"]
+
+
+  tags = {
+    Terraform = "true"
+    Environment = var.environment.name
+  }
+}
+```
+
+#### Variables with CLI
+
+You can run `terraform apply` and pass in variable values to have those values get injected into runtime:
+
+```bash
+terraform apply -var="var_name=value"
 ```
 ### Outputs
 
@@ -736,3 +839,77 @@ module "blog_sg" {
   egress_cidr_blocks = ["0.0.0.0/0"]
 }
 ```
+
+#### Organizing code with modules
+
+When using Terraform modules and multiple environments, a good practice is to organize your code into separate directories within the same repository:  
+  
+
+- **Modules Directory:** Contains reusable Terraform code grouped logically (e.g., a module for your blog infrastructure). This keeps your infrastructure code modular and manageable.  
+      
+    
+- **Environments Directory:** Contains subdirectories for each environment (like `dev`, `staging`, `prod`). Each environment directory holds configuration files and provider settings specific to that environment.  
+
+
+  
+This structure allows you to keep modules and environment-specific configurations side by side, making it easier to manage infrastructure without juggling multiple repositories or complex pull requests. 
+
+It also helps Terraform understand which environment it’s working with by specifying the working directory accordingly.
+
+Here’s a clear, step-by-step guide to modularizing your Terraform code based on the approach taught in the course:  
+  
+
+1. **Pull Out Configuration Values into Variables:**  
+      
+    
+    - Start by moving hard-coded values from your main Terraform files (like `main.tf`) into a separate `variables.tf` file.
+    - Define variables with types, defaults, and descriptions to make your code flexible and reusable.
+    
+      
+    
+2. **Create a Module Directory:**  
+      
+    
+    - In your repo root, create a folder named `modules`.
+    - Inside `modules`, create a subfolder for your module, e.g., `blog`.
+    - Move your main Terraform files (`main.tf`, `variables.tf`, `outputs.tf`, etc.) into this module folder.
+    
+      
+    
+3. **Define Outputs in the Module:**  
+      
+    
+    - Add an `outputs.tf` file in your module to expose useful information, like the DNS name of a load balancer.
+    - Outputs let other parts of your Terraform code access values from the module.
+    
+      
+    
+4. **Create Environment Directories:**  
+      
+    
+    - At the root level, create an `environments` folder.
+    - Inside `environments`, create subfolders for each environment, e.g., `dev`, `staging`, `prod`.
+    - Each environment folder will contain Terraform configuration files specific to that environment.
+    
+      
+    
+5. **Reference the Module in Environment Configurations:**  
+      
+    
+    - In each environment folder, create a `main.tf` that calls your module using the `module` block.
+    - Use the `source` attribute to point to your module path, e.g., `../../modules/blog`.
+    - Pass any required variables to customize the module per environment.
+    
+      
+    
+6. **Organize Provider and Backend Configurations:**  
+      
+    
+    - Keep provider settings (like AWS credentials) and backend configurations (state storage) in the environment folders.
+    - This keeps environment-specific settings isolated.
+    
+      
+    
+7. **Manage Terraform State Carefully:**  
+      
+    - When moving resources into modules, use Terraform’s `moved` blocks to update the state file without recreating resources.
