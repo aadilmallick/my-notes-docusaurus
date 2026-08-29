@@ -500,7 +500,9 @@ resource "aws_instance" "blog" {
 }
 ```
 
-### Basic resource types
+## Resources
+
+### Basics
 
 The nice thing about using Terraform is that the logical ID of a resource is a combination of the resource type and the actual human-facing logical ID used. 
 
@@ -512,7 +514,181 @@ You can also refer to the properties of another resource using dot-notation synt
 resource_type.logical_id.property
 ```
 
-#### Instances + VPCs
+### EC2 instances
+
+#### Instance basics: setup security group
+
+1. **Create SSH security group**: here is how to create a security group that allows all ingress SSH traffic in on port 22:
+
+```hcl
+resource "aws_security_group" "sg_ssh_allow_all" {
+  name        = "sg_ssh_allow_all"
+  description = "Allow SSH traffic"
+
+  // Allow all ingress to port 22 from any SSH process on the internet.
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+2. **Create HTTP security group**: here is how to create a security group that allows all ingress HTTP traffic in on port 80 and any egress traffic from the instance to anywhere.
+
+```hcl
+resource "aws_security_group" "sg_http_allow_all" {
+  name        = "sg_http_allow_all"
+  description = "Allow HTTP traffic"
+
+  // Allow all ingress to port 80 from any HTTP process on the internet.
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  // Allow all egress to any process on the internet.
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+3. Then to create an instance with security groups attached, we have to specify three important meta-arguments:
+	- `instance_type`: the instance type of the EC2 instance 
+	- `ami`: the image ID of the AMI to use
+	- `vpc_security_group_ids`: the array of security groups to use and attach to the instance, referenced by their IDs
+
+
+```hcl
+
+resource "aws_instance" "web" {
+  instance_type = "t2.micro"
+  ami = "ami-61ad6e59d7b0" // ubuntu 26.04
+
+  vpc_security_group_ids = [
+    aws_security_group.sg_ssh_allow_all.id,
+    aws_security_group.sg_http_allow_all.id
+  ]
+
+  tags = {
+    Name = "HelloWorld"
+  }
+}
+
+resource "aws_security_group" "sg_ssh_allow_all" {
+  name        = "sg_ssh_allow_all"
+  description = "Allow SSH traffic"
+
+  // Allow all ingress to port 22 from any SSH process on the internet.
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "sg_http_allow_all" {
+  name        = "sg_http_allow_all"
+  description = "Allow HTTP traffic"
+
+  // Allow all ingress to port 80 from any HTTP process on the internet.
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  // Allow all egress to any process on the internet.
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+#### Instance basics: add key pair
+
+1. Create an SSH key pair locally, in a `keys` directory, call it something like `keys/ec2_instance_key`
+
+```
+ssh-keygen -t ed25519
+```
+
+2. Create the keypair resource, specify the path to the public key that was created, which should end in a `.pub` extension. 
+
+```hcl
+resource "aws_key_pair" "my_key" {
+  key_name   = "my-key"
+  public_key = file("keys/ec2_instance_key.pub")
+}
+```
+
+3. specify that you want to use a key pair for the instance and reference the key pair name to use.
+
+```hcl
+resource "aws_instance" "web" {
+  instance_type = "t2.micro"
+  ami = var.ec2_instance_config.ami
+  
+  # specify which key pair to use
+  key_name = aws_key_pair.my_key.key_name
+
+  # need to allow SSH on port 22 from anywhere, else no point.
+  vpc_security_group_ids = [
+    aws_security_group.sg_ssh_allow_all.id,
+  ]
+}
+
+resource "aws_security_group" "sg_ssh_allow_all" {
+  name        = "sg_ssh_allow_all"
+  description = "Allow SSH traffic"
+
+  // Allow all ingress to port 22 from any SSH process on the internet.
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+#### Instance basics: outputs
+
+```hcl
+output "ec2_instance_id" {
+   value = aws_instance.web.id
+   description = "The ID of the EC2 instance"
+ }
+
+ output "ec2_instance_public_ip" {
+   value = aws_instance.web.public_ip
+   description = "The public IP address of the EC2 instance"
+ }
+
+ output "ec2_instance_private_ip" {
+   value = aws_instance.web.private_ip
+   description = "The private IP address of the EC2 instance"
+ }
+
+ output "ec2_instance_public_dns" {
+   value = aws_instance.web.public_dns
+   description = "The public DNS name of the EC2 instance"
+ }
+```
+
+#### Instances + data blocks
 
 ```hcl
 data "aws_ami" "app_ami" {
@@ -955,4 +1131,64 @@ For EC2 instances in localstack, make sure you have these two gotchas covered:
 2. **You are using Localstack-compatible AMI**: LocalStack comes shipped with two AMIs that are available for use. You can't use normal Amazon AMI IDs. 
 	- Ubuntu 26.04: `ami-61ad6e59d7b0`
 	- Amazon Linux 2023: `ami-024f768332f0`
+
+Here is an example of all the provider and variable setup:
+
+```hcl
+variable "aws_region" {
+  description = "The AWS region to deploy resources in"
+  type        = string
+  default     = "us-east-1"
+}
+
+provider "aws" {
+  access_key                  = "test"
+  secret_key                  = "test"
+  region                      = var.aws_region
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+  endpoints {
+    sqs                    = "http://localhost:4566"
+    ec2                    = "http://localhost:4566"
+    vpclattice             = "http://localhost:4566"
+    account                = "http://localhost:4566"
+    elasticloadbalancing   = "http://localhost:4566"
+    elasticloadbalancingv2 = "http://localhost:4566"
+    autoscaling            = "http://localhost:4566"
+    applicationautoscaling = "http://localhost:4566"
+    cloudwatch             = "http://localhost:4566"
+  }
+}
+
+variable "aws_localstack_ami_ubuntu" {
+  description = "The AMI ID for the localstack Ubuntu image"
+  type        = string
+  default     = "ami-61ad6e59d7b0" // localstack ubuntu AMI
+}
+
+variable "aws_localstack_ami_amazon_linux" {
+  description = "The AMI ID for the localstack Amazon Linux image"
+  type        = string
+  default     = "ami-024f768332f0" // localstack amazon linux AMI
+}
+
+variable "ec2_instance_config" {
+  type = object({
+    instance_type = string
+    ami           = string
+    tags          = map(string)
+  })
+
+  description = "Configuration for the EC2 instance"
+
+  default = {
+    instance_type = "t2.micro"
+    ami           =  "ami-61ad6e59d7b0"
+    tags = {
+      Name = "HelloWorld"
+    }
+  }
+}
+```
 
