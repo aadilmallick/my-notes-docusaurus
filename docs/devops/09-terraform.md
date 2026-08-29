@@ -95,6 +95,14 @@ It shows what resources will be created, changed, or destroyed without actually 
 - This helps you verify your setup before making any real modifications. 
 - You can also save the plan to a file to apply it later, ensuring consistency between planning and applying stages.
 
+**planning destruction**
+
+If you want to see a plan of what will happen and what resources will either get replaced, updated, orphaned, or destroyed upon using the `terraform destroy` command, then you should use the `-destroy` flag with the `terraform plan` command:
+
+```bash
+terraform plan -destroy
+```
+
 #### `terraform apply`
 
 The `terraform apply` command is the step where Terraform actually builds the infrastructure you've defined in your configuration. 
@@ -103,6 +111,14 @@ The `terraform apply` command is the step where Terraform actually builds the 
 2. Once you confirm by typing "yes," it creates the resources on AWS and generates a state file to track the current infrastructure. 
 
 This command is crucial because it turns your code into real cloud infrastructure, but it’s important to review the plan carefully and ensure your AWS credentials are properly configured before applying changes.
+
+**update by replacement**
+
+If you want to apply changes by replacing cloud resources, use the `-replace` flag and specify a resource to replace (delete then recreate)
+
+```bash
+terraform apply -replace="$RESOURCE_TYPE.$LOGICAL_ID"
+```
 
 #### Terraform state file
 
