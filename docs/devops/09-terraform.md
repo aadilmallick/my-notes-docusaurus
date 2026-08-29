@@ -723,6 +723,37 @@ output "ec2_instance_id" {
  }
 ```
 
+#### Instance basics: user data scripts + Cloud init scripts
+
+A cloud-init script is a declarative YAML configuration script that automates the setup and initialization of a cloud server right after it’s created.
+
+- A cloud-init script automates tasks like creating user groups and users with SSH access, updating the system, installing software such as the Apache web server and Python pip, and setting up a static website using MkDocs. 
+- Essentially, it simplifies and automates the manual steps you’d normally perform on a Linux server, making your infrastructure setup faster, repeatable, and more efficient within your Terraform workflow on AWS.
+
+Here is a cloud init YAML script that does two things:
+
+1. Declare NGINX as one of the packages to be installed in the `packages` section
+2. Use `systemctl` to enable and start NGINX in the background in the `runcmd` section:
+
+```yaml title="script/cloudinit.yaml"
+#cloud-config
+packages:
+  - nginx
+runcmd:
+  - systemctl start nginx
+  - systemctl enable nginx
+```
+
+Now once your cloud init script is created, all you have to do to register it as a user data script for an instance is to use the `user_data` meta argument when creating an instance in Terraform and reference the filepath to the cloud init script:
+
+```hcl
+resource "aws_instance" "web" {
+  instance_type = "t2.micro"
+  ami           = var.ec2_instance_config.ami
+  user_data     = file("script/cloudinit.yaml")
+}
+```
+
 #### Instances + data blocks
 
 ```hcl

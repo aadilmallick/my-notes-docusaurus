@@ -689,3 +689,51 @@ server {
 	}
 }
 ```
+
+## VPSs
+
+### Cloud init scripts
+
+A cloud-init script is a generic configuration script used to automate the setup and initialization of a cloud server right after it’s created. 
+
+It allows you to define tasks like creating user groups and users, setting up SSH access, installing software, running system updates, and configuring services automatically.
+
+A standard cloud init YAML script has these sections:
+
+
+- **`groups`:** Defines user groups to organize users on the server.
+
+```yaml
+groups:
+	- usergroup
+```
+
+- **`users`:** Creates users with specified settings like shell, groups, and SSH keys for secure access.
+
+```yaml
+users:
+ # This creates a user `myuser` with bash shell, adds them to `users` and `admin` groups, and sets their SSH public key
+  - name: myuser
+    shell: /bin/bash
+    groups: ["users", "admin"]
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC...
+```
+
+- **`runcmd`:** Runs shell commands automatically on first boot.
+
+```yaml
+runcmd:
+  - echo "Hello from cloud-init" > /home/myuser/welcome.txt
+  - apt-get update
+  - apt-get install -y nginx
+  - systemctl start nginx
+  - systemctl enable nginx
+```
+
+- `packages`: a list of packages to install with the provider's package manager, using `apt` or `yum` behind the scenes, depending on the OS running the cloud init script.
+
+```yaml
+packages:
+	- nginx
+```
