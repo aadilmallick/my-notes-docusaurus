@@ -721,7 +721,7 @@ module "blog_sg" {
   egress_cidr_blocks = ["0.0.0.0/0"]
 }
 ```
-### Terraform modules
+## Terraform modules
 
 A Terraform module is a way to group related Terraform code into a single, logical unit that can be managed together.
 
@@ -734,9 +734,9 @@ Using a Terraform module for security groups simplifies your code by bundling co
 - Instead of manually defining every rule and detail, the module handles much of that for you, reducing errors and saving time. 
 - Modules also make your infrastructure code cleaner and easier to maintain, and you can use pre-built, tested modules from the Terraform Registry, which helps ensure best practices and consistency in your setups.
 
-#### Example
+### Example
 
-Here are the steps where we use an offical terraform module for security groups to make the process of creating a security group simpler:
+Here are the steps where we use an official terraform module for security groups to make the process of creating a security group simpler:
 
 - **in-house way**: Create a `security_group` resource and then for each rule you want to add to the security group, create a `security_group_rule` resource.
 - **module way**: Just define meta-arguments for the security group module to create a security group with rules all at once.
@@ -840,7 +840,7 @@ module "blog_sg" {
 }
 ```
 
-#### Organizing code with modules
+### Organizing code with modules
 
 When using Terraform modules and multiple environments, a good practice is to organize your code into separate directories within the same repository:  
   
@@ -913,3 +913,40 @@ Here’s a clear, step-by-step guide to modularizing your Terraform code based o
 7. **Manage Terraform State Carefully:**  
       
     - When moving resources into modules, use Terraform’s `moved` blocks to update the state file without recreating resources.
+
+## Terraform with localstack
+### Setup
+
+1. Install the `tflocal` wrapper around the `terraform` CLI:
+
+```bash
+brew install terraform-local
+```
+
+2. In a `main.tf` file, override the AWS provider to point to localstack
+
+```hcl
+provider "aws" {
+ access_key = "test"
+ secret_key = "test"
+ region = "us-east-1"
+ skip_credentials_validation = true
+ skip_metadata_api_check = true
+ skip_requesting_account_id = true
+ endpoints {
+   sqs = "http://localhost:4566"
+ }
+}
+
+resource "aws_sqs_queue" "example_queue" {
+ name = "localstack-queue"
+ visibility_timeout_seconds = 30
+}
+```
+
+3. Initialize and apply configuration:
+
+```bash
+tflocal init
+tflocal apply
+```
