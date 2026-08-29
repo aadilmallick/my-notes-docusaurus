@@ -446,13 +446,43 @@ terraform apply -var="var_name=value"
 Outputs are like cloudformation outputs, defined by a `output` top level block.
 
 ```hcl
-output "instance_ami" {
-  value = aws_instance.blog.ami
+output "ec2_instance_id" {
+  value       = aws_instance.web.id
+  description = "The ID of the EC2 instance"
 }
 
-output "instance_arn" {
-  value = aws_instance.blog.arn
+output "ec2_instance_public_ip" {
+  value       = aws_instance.web.public_ip
+  description = "The public IP address of the EC2 instance"
 }
+
+output "ec2_instance_private_ip" {
+  value       = aws_instance.web.private_ip
+  description = "The private IP address of the EC2 instance"
+}
+
+output "ec2_instance_public_dns" {
+  value       = aws_instance.web.public_dns
+  description = "The public DNS name of the EC2 instance"
+}
+```
+
+Here are the meta-arguments to supply to an `output` block:
+
+- `value`: the output value
+- `description`: the human-facing description for the output 
+
+#### Output CLI
+
+You can also imperatively use the terraform CLI to fetch raw output values from your terraform code after the fact.
+
+This works by looking through the `tfstate` file to find all previous outputs, because the outputs are stored in that file.
+
+
+Here is the basic syntax:
+
+```bash
+terraform output -raw $OUTPUT_NAME
 ```
 
 ### Data blocks
@@ -664,6 +694,11 @@ resource "aws_security_group" "sg_ssh_allow_all" {
 }
 ```
 
+4. You can then connect via public IP or public DNS via `ssh`, using the private key as the connection input file, and connecting as `root`.
+
+```bash
+ssh -i keys/ec2_instance_key root@ec2-172-17-0-3.localhost.localstack.cloud
+```
 #### Instance basics: outputs
 
 ```hcl
