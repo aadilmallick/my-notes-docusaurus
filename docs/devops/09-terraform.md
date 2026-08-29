@@ -937,16 +937,22 @@ provider "aws" {
    sqs = "http://localhost:4566"
  }
 }
-
-resource "aws_sqs_queue" "example_queue" {
- name = "localstack-queue"
- visibility_timeout_seconds = 30
-}
 ```
 
 3. Initialize and apply configuration:
 
 ```bash
 tflocal init
+tflocal plan
 tflocal apply
 ```
+
+### EC2
+
+For EC2 instances in localstack, make sure you have these two gotchas covered:
+
+1. **AWS EC2 endpoint is set to localstack endpoint**: make sure that the AWS EC2 endpoint is set to `localhost:4566`. 
+2. **You are using Localstack-compatible AMI**: LocalStack comes shipped with two AMIs that are available for use. You can't use normal Amazon AMI IDs. 
+	- Ubuntu 26.04: `ami-61ad6e59d7b0`
+	- Amazon Linux 2023: `ami-024f768332f0`
+
