@@ -64,6 +64,10 @@ Then the basic workflow is:
 3. Validate the changes with `terraform validate` and `terraform plan`
 4. Apply the infra with `terraform apply`
 
+## Terraform CLI and config
+
+### Basics
+
 #### `terraform init`
 
 The `terraform init` command initializes your working directory for Terraform. 
@@ -115,6 +119,23 @@ A Terraform state file is a JSON-formatted text file that Terraform uses to keep
 #### `terraform destroy`
 
 The `terraform destroy` command looks at the state file and destroys all infra provisioned by terraform.
+
+### `terraform show`
+
+The `terraform show` command goes to the TF state file and outputs the details of all provisioned resources. 
+
+The `terraform state show <resource_type>.<logical_id>` command is used to show details of a specific resource.
+
+If you have multiple `terraform.tfstate` files since those files are scoped within a directory, you can specify the state file to use and query from for the `terraform state show` command with the `-state` option like so:
+
+```bash
+terraform state show -state="../terraform.tfstate" resource_type.logical_id
+```
+
+
+![](https://i.imgur.com/kIUgSPO.jpeg)
+
+
 ## Terraform basics
 
 ### First terraform
@@ -209,6 +230,7 @@ resource "aws_security_group_rule" "blog_everything_out" {
   security_group_id = aws_security_group.blog.id
 }
 ```
+
 
 ### Learning to create resources
 
