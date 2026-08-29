@@ -66,7 +66,34 @@ Then the basic workflow is:
 
 ## Terraform CLI and config
 
-### Basics
+### Terraform state file
+
+Terraform tracks the state of the infrastructure with a `terraform.tfstate` JSON file.
+
+A Terraform state file is a JSON-formatted text file that Terraform uses to keep track of the current state of your infrastructure. 
+
+- It records details about the resources Terraform manages, like your AWS instances and configurations. 
+- This file helps Terraform understand what exists in your environment so it can plan and apply only the necessary changes when you update your infrastructure code.
+
+> [!NOTE]
+> The state file represents a source of truth for resource provisioning with Terraform. 
+
+
+The Terraform state file is a critical component that keeps track of the real-world infrastructure Terraform manages. It stores metadata about your AWS resources so Terraform knows what exists and how to manage it.  
+  
+"Refreshing" the state means Terraform compares the information in the state file with the actual current state of your AWS infrastructure. This ensures Terraform's view is up to date before making any changes.  
+  
+Here’s how some Terraform CLI commands interact with the state file:  
+  
+
+- **terraform plan:** Refreshes the state to reflect the current infrastructure, then shows what changes will be made based on your configuration.
+- **terraform apply:** Also refreshes the state, applies the planned changes to AWS, and updates the state file to reflect the new infrastructure.
+- **terraform destroy:** Refreshes the state, then removes all resources defined in the state file, updating the state to show that resources are gone.
+
+  
+Keeping the state file accurate through refreshing is essential for Terraform to manage your infrastructure reliably and avoid unexpected changes or errors.
+
+### Basic workflow
 
 #### `terraform init`
 
@@ -120,17 +147,6 @@ If you want to apply changes by replacing cloud resources, use the `-replace` fl
 terraform apply -replace="$RESOURCE_TYPE.$LOGICAL_ID"
 ```
 
-#### Terraform state file
-
-Terraform tracks the state of the infrastructure with a `terraform.tfstate` JSON file.
-
-A Terraform state file is a JSON-formatted text file that Terraform uses to keep track of the current state of your infrastructure. 
-
-- It records details about the resources Terraform manages, like your AWS instances and configurations. 
-- This file helps Terraform understand what exists in your environment so it can plan and apply only the necessary changes when you update your infrastructure code.
-
-> [!NOTE]
-> The state file represents a source of truth for resource provisioning with Terraform. 
 
 #### `terraform destroy`
 
