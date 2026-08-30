@@ -920,7 +920,64 @@ module "blog_vpc" {
 ```
 
 
+#### Ternary expressions + Conditionals
 
+You have all these operators in terraform:
+
+```hcl
+!, - # (multiplication by -1)
+*, /, % # (modulo)
++, - # (subtraction)
+>, >=, <, <= # (comparison)
+==, != # (equality)
+&& # (AND)
+|| # (OR)
+```
+
+You can use ternary operators to supply a value conditionally.
+
+```hcl
+condition ? true_val : false_val
+
+# For example
+var.a != "" ? var.a : "default-a"
+```
+
+#### Numeric functions
+
+```hcl
+abs()
+ceil()
+floor()
+log()
+max()
+parseint() # parse as integer
+pow()
+signum() # sign of number
+```
+
+#### String functions
+
+```hcl
+chomp() # remove newlines at end
+format() # format number
+formatlist()
+indent()
+join()
+lower()
+regex()
+regexall()
+replace()
+split()
+strrev() # reverse string
+substr()
+title()
+trim()
+trimprefix()
+trimsuffix()
+trimspace()
+upper()
+```
 ## Resources
 
 ### Basics and meta-arguments
