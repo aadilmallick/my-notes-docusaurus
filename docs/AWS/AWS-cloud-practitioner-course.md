@@ -780,18 +780,30 @@ Both load balancer types have two important components:
 - **target group**: the group of servers to register for traffic distribution, either created by selecting individual instances, selecting by IP range, or other methods.
 	- All a target group does is collect instances together to prepare for load balancing. It doesn't do any traffic distribution itself, it only sets up the infrastructure.
 - **load balancer**: The actual load balancer component is what distributes traffic equally across the instances and dynamically changes how much traffic gets sent to each subnet/instance  by performing periodic health checks to check the status of instances.
+	- **listener**: the listener component of a load balancer is the actual brain behind how to route, redirect, and distribute traffic to the traffic group.
+
+
+![](https://i.imgur.com/nAjQWNr.jpeg)
+
 #### Creating a network load balancer
 
 A network load balancer's main use case is to equally distribute traffic across multiple subnets and thus instances within the same VPC, without any auto-scaling.
+
+**how a load balancer works**
 
 Here's the basic flow of how a network load balancer works:
 
 
 ![](https://i.imgur.com/Y9D0WmD.jpeg)
 
-1. The network load balancer receives traffic
-2. It distributes the traffic equally across the subnets registered with the load balancer
-3. Using the network load balancer, the subnets equally distribute traffic across the instances they contain.
+1. The network load balancer uses its listener components to install nodes inside each availability zone it targets.
+2. The network load balancer receives traffic
+3. It distributes the traffic equally across its target availability zones to the NICs of the nodes in those availability zones
+4. Within the subnet, the nodes equally distribute traffic across the registered targets in the target group within that availability zone
+
+If an availability zone goes down, so does the node within that availability zone, therefore the NLB removes the node within that AZ from its DNS and thus can't direct traffic to it anymore.
+
+**how to create a NLB**
 
 The general steps for creating a network load balancer are:
 
@@ -813,6 +825,21 @@ Here are the general steps:
 
 3. Select the exact instances in the VPC you want to include in the target group
 
+**create the network load balancer**
+
+1. Begin creation of the network load balancer, make it internet-facing, which assigns it a public IPv4 address.
+
+![](https://i.imgur.com/Nzhi7uB.jpeg)
+
+2. Select the VPC to put the load balancer in and then which availability zones the load balancer should place listeners in and thus distribute traffic to.
+	- **VPC**: only the VPCs with an internet gateway attached to them are going to be available for selection for internet-facing load balancers. 
+	- **subnets**: choose the subnet that you want to place the load balancer listener component in because it will only route traffic to these subnets. 
+
+
+
+![](https://i.imgur.com/yKhDie1.jpeg)
+
+3. Add a security group for the load balancer. Make sure that it is open for ingress form any source to HTTP 80
 #### Elasticity, Auto-scaling groups, and load balancers
 
 **Elasticity** refers to the concept of growing or shrinking infrastructure resources dynamically to respond to changes in demand. 

@@ -701,6 +701,45 @@ If you want to create snapshots from existing instances to create copies that al
 On the Amazon Linux AMI, the EFS filesystem is mounted at the `/mnt/efs` mount path, so any files you modify, create, or delete here changes those files for all consumers of that specific EFS volume.
 
 
+## EC2 + ALB + ASG
+
+### Load balancer DNS
+
+The DNS name of a load balancer contains several A records, one for each IP address of an EC2 instance in the target group.
+
+You have different addresses for different availability zones.
+
+
+![](https://i.imgur.com/KhAz7VL.jpeg)
+
+
+### Internet-facing vs internal load balancer
+
+- **internet-facing load balancer**: has a public IPv4 and DNS so it can accept ingress publicly on the internet, if configured to do so, and routes traffic across multiple availability zones.
+
+
+![](https://i.imgur.com/0vacCvm.jpeg)
+
+- **internal load balancer**: does not have a public address, only a private one, so it distributes traffic within a VPC to target instances. A public facing web server EC2 instance sends a request to an internal load balancer to distribute traffic to private instances within a target group
+	- **Benefit (availability)**: availability, loose coupling of availability where you can place many instances across many availability zones without configuring the public interface to work with those availability zones.
+	- **Benefit (privacy)**: encapsulates the load balancer, shields it from public traffic.
+	- **Benefit (loose coupling)**: decouples the scaling of server instances from the public-facing EC2 instance. The public interface has no knowledge of the actual number of servers, since it only queries the load balancer.
+
+
+
+
+![](https://i.imgur.com/i0GDbmi.jpeg)
+
+
+### Health checks
+
+
+![](https://i.imgur.com/Wx6QsgV.jpeg)
+
+
+- **unhealthy threshold**: how many times to tolerate unhealthy responses from health checks before you declare the instance as unhealthy.
+- **healthy threshold**: how many successful health check responses does an instance need to return before the load balancer can consider the instance healthy? 
+
 ## Docker Containers on AWS
 
 ### ECR setup
