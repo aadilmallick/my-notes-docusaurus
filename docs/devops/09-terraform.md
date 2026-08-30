@@ -70,7 +70,8 @@ Then the basic workflow is:
 
 Terraform tracks the state of the infrastructure with a `terraform.tfstate` JSON file.
 
-A Terraform state file is a JSON-formatted text file that Terraform uses to keep track of the current state of your infrastructure. 
+> [!NOTE]
+> A Terraform state file is a JSON-formatted text file that Terraform uses to keep track of the current state of your infrastructure.
 
 - It records details about the resources Terraform manages, like your AWS instances and configurations. 
 - This file helps Terraform understand what exists in your environment so it can plan and apply only the necessary changes when you update your infrastructure code.
@@ -93,7 +94,199 @@ Here’s how some Terraform CLI commands interact with the state file:
   
 Keeping the state file accurate through refreshing is essential for Terraform to manage your infrastructure reliably and avoid unexpected changes or errors.
 
+
+#### Local state file
+
+All Terraform CLI commands interact with the state file and modify it, and use it as a source of truth to provision or destroy cloud resources.
+
+This means that if you want github actions or a remote server with a CI/CD pipeline to use terraform CLI commands and be up-to-date on the current state of your infra, you must use the `terraform.tfstate` file as a source of truth for both your local and remote environments.
+
+However, to achieve this, you run into some issues:
+
+- **sensitive values are in plain text**: because the `terraform.tfstate` file is just a JSON file, sensitive values like access keys and env vars are in plain text and cannot be checked into source control.
+- **remotely storing `terraform.tfstate` file requires extra complexity**: You need to figure out stuff like encryption, which backend to host, and how to pull down the state.
+
+#### Remote storage
+
+Remote storage of the `terraform.tfstate` file brings key benefits:
+
+- **CI/CD capabilities**: now you can have CI/CD pipelines that use the `terraform` CLI based on the state file to provision your infra and test it.
+- **Collaboration**: multiple people on your team can work on terraform and use the same state file.
+
+Here are the three backends you can use for storing your `terraform.tfstate` file and how to configure them:
+
+- **terraform cloud**: free storage of the `terraform.tfstate` file and a first class code integration for pulling it down and marking the terraform environment as using remote state configuration.
+
+```hcl
+terraform {
+	backend "remote" {
+		organization = "my-org"
+		
+		workspaces {
+			name = "my-workspace"	
+		}
+	}
+}
+```
+
+- **S3**: AWS-managed storage using S3 and DynamoDB of the `terraform.tfstate` file and a first class code integration for pulling it down and marking the terraform environment as using remote state configuration.`
+
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "devops-directive-tf-state"
+    key            = "tf-infra/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-state-locking"
+    encrypt        = true
+  }
+}
+
+```
+
+##### Terraform Cloud flow
+
+Just use this:
+
+```hcl
+terraform {
+  backend "remote" {
+    organization = "devops-directive"
+
+    workspaces {
+      name = "devops-directive-terraform-course"
+    }
+  }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+```
+##### S3 flow
+
+Here is how to make the S3-based remote storage of the `terraform.tfstate` file work, starting off first using a local `terraform.tfstate` file:
+
+
+1. Provision the infra with terraform, making sure everything is named exactly:
+
+```hcl
+resource "aws_s3_bucket" "terraform_state" {
+  bucket        = "devops-directive-tf-state"
+  force_destroy = true
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "terraform-state-locking"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
+```
+
+2. Run `terraform apply`
+3. Specify the remote backend to be of the `"s3"` type, so from now on you will use the remote state file stored in S3.
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "devops-directive-tf-state"
+    key            = "tf-infra/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-state-locking"
+    encrypt        = true
+  }
+}
+
+```
+
+Here's the full flow:
+
+```hcl
+terraform {
+  #############################################################
+  ## AFTER RUNNING TERRAFORM APPLY (WITH LOCAL BACKEND)
+  ## YOU WILL UNCOMMENT THIS CODE THEN RERUN TERRAFORM INIT
+  ## TO SWITCH FROM LOCAL BACKEND TO REMOTE AWS BACKEND
+  #############################################################
+  # backend "s3" {
+  #   bucket         = "devops-directive-tf-state" # REPLACE WITH YOUR BUCKET NAME
+  #   key            = "03-basics/import-bootstrap/terraform.tfstate"
+  #   region         = "us-east-1"
+  #   dynamodb_table = "terraform-state-locking"
+  #   encrypt        = true
+  # }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "terraform_state" {
+  bucket        = "devops-directive-tf-state" # REPLACE WITH YOUR BUCKET NAME
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_versioning" "terraform_bucket_versioning" {
+  bucket = aws_s3_bucket.terraform_state.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state_crypto_conf" {
+  bucket        = aws_s3_bucket.terraform_state.bucket 
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "terraform-state-locking"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
+```
+
 ### Basic workflow
+
+
+All of these commands interact with the state file and modify it, and use it as a source of truth to provision or destroy cloud resources.
 
 #### `terraform init`
 
@@ -396,7 +589,53 @@ resource "aws_instance" "blog" {
 }
 ```
 
-#### Template interpolation and advanced variables
+#### Data types
+
+You have these three primitive data types you can use for variables:
+
+  - **string**: A sequence of characters. Requires double-quotes.
+    - Ex: `"hello world!"`.
+  - **number**: A numeric value. Does not use double-quotes.
+    - Ex: `2`, `20`, or `17.2014`.
+  - **bool**: A boolean value.
+    - Ex: `true` or `false`.
+    - These are used with conditional logic.
+- **null**: A `null` value is an omission of value. 
+	- Defaults will be used if the variable has one. 
+	- Used often in conditional expressions.
+
+You also have these complex data types:
+
+  - **list**: (also known as tuple) A sequence of values. Each value sits in double-quotes and are comma-separated. Uses square brackets `[]` as delimiters.
+
+```hcl
+variable names {
+	type: list
+	default = ["Alice", "Bob", "Charlie", "Denise"]
+}
+```
+
+  - **map**: (also known as object) a group of values using labels and values - collectively known as key pairs. Uses curly braces `{}` as delimiters.
+    - Ex: `{name = "Bob", occupation = "Programmer"}`
+    - In this case, `name` is a label, and `"Bob"` is a value for that label.
+
+```hcl
+variable "ami_filter" {
+  description = "Name filter and owner for AMI"
+
+  type    = object ({
+    name  = string
+    owner = string
+  })
+
+  default = {
+    name  = "bitnami-tomcat-*-x86_64-hvm-ebs-nami"
+    owner = "979382823631" # Bitnami
+  }
+}
+```
+
+#### Object type
 
 In Terraform, use an **object type variable** when you want to group related configuration values together logically, like an AMI filter with both a name and owner, or an environment with a name and network prefix. 
 
@@ -469,6 +708,10 @@ data "aws_ami" "app_ami" {
   owners = [var.ami_filter.owner] # Bitnami
 }
 ```
+
+#### Template interpolation
+
+In Terraform you can use template string interpolation syntax to use a variable's value within a string with the `${}` syntax.
 
 ```hcl
 module "blog_vpc" {
@@ -622,7 +865,7 @@ data "aws_vpc" "default" {
 }
 ```
 
-You can then use data block variables as normal variables:
+You can then access data block variable values through the `data` namespace via dot notation.
 
 ```hcl
 resource "aws_instance" "blog" {
@@ -936,7 +1179,206 @@ resource "aws_security_group_rule" "blog_everything_out" {
 }
 ```
 
-#### ALB + ASG
+#### ALB
+
+1. Define the variables
+
+```hcl
+variable "ami" {
+  description = "Amazon machine image to use for ec2 instance"
+  type        = string
+  default     = "ami-011899242bb902164" # Ubuntu 20.04 LTS // us-east-1
+}
+
+variable "instance_type" {
+  description = "ec2 instance type"
+  type        = string
+  default     = "t2.micro"
+}
+
+variable "domain" {
+  description = "Domain for website"
+  type        = string
+}
+```
+
+2. Fetch the default VPC and default subnet via `data` blocks
+
+```hcl
+data "aws_vpc" "default_vpc" {
+  default = true
+}
+
+data "aws_subnet_ids" "default_subnet" {
+  vpc_id = data.aws_vpc.default_vpc.id
+}
+```
+
+3. Create a security group that allows all ingress on port 8080
+
+```hcl
+resource "aws_security_group" "instances" {
+  name = "instance-security-group"
+}
+
+resource "aws_security_group_rule" "allow_http_inbound" {
+  type              = "ingress"
+  security_group_id = aws_security_group.instances.id
+
+  from_port   = 8080
+  to_port     = 8080
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+```
+
+4. Create two EC2 instances that are basically copies of each other, and use the same security group:
+
+```hcl
+resource "aws_instance" "instance_1" {
+  ami             = var.ami
+  instance_type   = var.instance_type
+  security_groups = [aws_security_group.instances.name]
+  user_data       = <<-EOF
+              #!/bin/bash
+              echo "Hello, World 1" > index.html
+              python3 -m http.server 8080 &
+              EOF
+}
+
+resource "aws_instance" "instance_2" {
+  ami             = var.ami
+  instance_type   = var.instance_type
+  security_groups = [aws_security_group.instances.name]
+  user_data       = <<-EOF
+              #!/bin/bash
+              echo "Hello, World 2" > index.html
+              python3 -m http.server 8080 &
+              EOF
+}
+```
+
+5. Create a target group for the load balancer and attach instances to it.
+
+```hcl
+resource "aws_lb_target_group" "instances" {
+  name     = "example-target-group"
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = data.aws_vpc.default_vpc.id
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 15
+    timeout             = 3
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_lb_target_group_attachment" "instance_1" {
+  target_group_arn = aws_lb_target_group.instances.arn
+  target_id        = aws_instance.instance_1.id
+  port             = 8080
+}
+
+resource "aws_lb_target_group_attachment" "instance_2" {
+  target_group_arn = aws_lb_target_group.instances.arn
+  target_id        = aws_instance.instance_2.id
+  port             = 8080
+}
+```
+
+6. Create a security group for the load balancer that allows all ingress on port 80 and egress traffic to anywhere on the internet:
+
+```hcl
+resource "aws_security_group" "alb" {
+  name = "alb-security-group"
+  
+  ingress {
+	  from_port   = 80
+	  to_port     = 80
+	  protocol    = "tcp"
+	  cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  egress {
+	  from_port   = 0
+	  to_port     = 0
+	  protocol    = "-1"
+	  cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+7. Create a load balancer and a listener component:
+
+```hcl
+resource "aws_lb" "load_balancer" {
+  name               = "web-app-lb"
+  load_balancer_type = "application"
+  subnets            = data.aws_subnet_ids.default_subnet.ids
+  security_groups    = [aws_security_group.alb.id]
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.load_balancer.arn
+
+  port = 80
+
+  protocol = "HTTP"
+
+  # By default, return a simple 404 page
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "404: page not found"
+      status_code  = 404
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "instances" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  condition {
+    path_pattern {
+      values = ["*"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.instances.arn
+  }
+}
+```
+
+8. Add a DNS A record for a domain you own via route 53 to alias it to the load balancer DNS.
+
+```hcl
+resource "aws_route53_zone" "primary" {
+  name = var.domain
+}
+
+resource "aws_route53_record" "root" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = var.domain
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.load_balancer.dns_name
+    zone_id                = aws_lb.load_balancer.zone_id
+    evaluate_target_health = true
+  }
+}
+```
+#### ALB + ASG 
 
 1. **Set Up the Load Balancer Module:**  
       
@@ -1069,6 +1511,47 @@ module "blog_sg" {
   egress_cidr_blocks = ["0.0.0.0/0"]
 }
 ```
+
+### S3 Buckets
+
+Here is a basic S3 bucket:
+
+```hcl
+resource "aws_s3_bucket" "bucket" {
+  bucket        = "devops-directive-web-app-data"
+  force_destroy = true
+  versioning {
+    enabled = true
+  }
+}
+```
+
+- `bucket`: **String**. the bucket name
+- `force_destroy`: **Boolean**. Whether or not to force destroy the bucket when running `terraform destroy`.
+- `versioning`
+	- `enabled`: enables object versioning.
+
+
+#### Server-side encryption
+
+```hcl
+resource "aws_s3_bucket" "bucket" {
+  bucket        = "devops-directive-web-app-data"
+  force_destroy = true
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+```
+
 ## Terraform modules
 
 A Terraform module is a way to group related Terraform code into a single, logical unit that can be managed together.
