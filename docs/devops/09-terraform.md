@@ -935,9 +935,15 @@ You can also refer to the properties of another resource using dot-notation synt
 resource_type.logical_id.property
 ```
 
+You specify the properties of a resource through **meta-arguments**, like the AMI ID or instance type of an EC2 instance, but you also have these built-in metaarguments:
+
+- `count`: **Number**, defines the number of duplicates you want to create of this resource.
+- `depends_on`: **String**, defines which resource is a dependency, so doesn't create the current resource until the resource it depends on is created
 #### `depends_on`
 
+Based on the meta-arguments and the references you have to other resources and variables throughout the entire code, Terraform automatically creates a dependency graph with the order of dependencies to create. 
 
+If two resources depend on each other but not on each other's data, then use the `depends_on` identifier, which manually specifies a resource's dependency on another resource
 ### EC2 instances
 
 #### Instance basics: setup security group
