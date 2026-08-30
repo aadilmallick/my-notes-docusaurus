@@ -488,6 +488,56 @@ module "blog_vpc" {
 }
 ```
 
+#### `terraform.tfvars`
+
+The `terraform.tfvars` file is a special file that uses `.env` syntax where in one file, you define a bunch of key value pairs in the syntax below, and then terraform will automatically inject those key-value pairs in that file as values for the terraform variables that you define with the `variable` block.
+
+```
+key=value
+```
+
+> [!NOTE]
+> The main purpose of this file is to supply values at runtime for the variables you define with the `variable` block.
+
+Here is a full example:
+
+1. Create `variable` blocks for those variables to define them in the terraform.
+
+```hcl
+variable "ami_id" {
+  description = "The AMI ID for the localstack Amazon Linux image"
+  type        = string
+  default     = "ami-024f768332f0" 
+}
+
+variable "ec2_instance_type" {
+  type        = string
+  default     = "t2.micro"
+}
+
+variable "instance_name" {
+  type        = string
+}
+```
+
+2. Create a `terraform.tfvars` file with the variables you want to use:
+
+```hcl title="terraform.tfvars"
+ec2_instance_type = "t2.micro"
+instance_name = "MyInstanceName"
+ami_id = "ami-024f768332f0"
+```
+
+2. Use the variables, which will be populated on the `var` object:
+
+```hcl title="main.tf"
+resource "aws_instance" "web" {
+  instance_type = var.ec2_instance_type
+  ami           = var.ami_id
+
+}
+```
+
 #### Variables with CLI
 
 You can run `terraform apply` and pass in variable values to have those values get injected into runtime:
@@ -495,6 +545,8 @@ You can run `terraform apply` and pass in variable values to have those values g
 ```bash
 terraform apply -var="var_name=value"
 ```
+
+
 ### Outputs
 
 Outputs are like cloudformation outputs, defined by a `output` top level block.
@@ -1030,7 +1082,7 @@ Using a Terraform module for security groups simplifies your code by bundling co
 - Instead of manually defining every rule and detail, the module handles much of that for you, reducing errors and saving time. 
 - Modules also make your infrastructure code cleaner and easier to maintain, and you can use pre-built, tested modules from the Terraform Registry, which helps ensure best practices and consistency in your setups.
 
-### Example
+### Example with security group module
 
 Here are the steps where we use an official terraform module for security groups to make the process of creating a security group simpler:
 
@@ -1059,7 +1111,9 @@ module "blog_vpc" {
 }
 ```
 
-2. Create a module that creates a security group
+2. Create a module that creates a security group with these rules:
+	- **ingress**: allow ingress from any source IP to HTTPS port 443 and HTTP port 80
+	- **egress**: allow all traffic from any process and port combo to all destinations.
 
 ```hcl
 module "blog_sg" {
@@ -1133,6 +1187,22 @@ module "blog_sg" {
   ingress_cidr_blocks = ["0.0.0.0/0"]
   egress_rules = ["all-all"]
   egress_cidr_blocks = ["0.0.0.0/0"]
+}
+
+module "blog_vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = "dev"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["us-west-2a","us-west-2b","us-west-2c"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+
+  tags = {
+    Terraform = "true"
+    Environment = "dev"
+  }
 }
 ```
 
