@@ -950,9 +950,11 @@ If two resources depend on each other but not on each other's data, then use the
 
 #### `lifecycle`
 
-A set of meta arguments to control terraform lifecycle behavior for a resource.
+A set of meta arguments to control terraform lifecycle behavior for a resource, especially upon a configuration update.
 
-- `create_before_destroy`: **Boolean**. If `true`, creates the new resourc
+- `create_before_destroy`: **Boolean**. If `true`, creates the new resource before destroying the old one
+- `ignore_changes`: a list of properties/meta-arguments to ignore for drift detection, meaning that if you manually change one of these properties in the AWS console, it's ok, terraform doesn't automatically fix drift for those irgnored properties being changed.
+- `prevent_destroy`: reject any plan that would destroy this resource.
 ### EC2 instances
 
 #### Instance basics: setup security group
