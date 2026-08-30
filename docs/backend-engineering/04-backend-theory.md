@@ -132,3 +132,31 @@ In summary, while the number of threads a CPU can manage imposes some limitation
 Asynchronous backend processing is using a messaging queue to handle long-running requests in a request-response cycle to a server, instead of a client synchronously waiting for a response from a server after processing.
 
 
+### Push
+
+A push model is when a server notifies a client unidirectionally without the client making a request. Here's how it works:
+
+1. Client connects to a server
+2. Server sends data to the client
+3. Client doesn't have to request anything.
+
+A push model connection can be bidirectional or unidirectional, with the most famous push models being RabbitMQ, SSE, and websockets.
+
+> [!NOTE]
+> The most important thing that distinguishes a push model from other similar models is that it pushes immediately to the client the moment the event is generated, with no scheduling or delaying.
+
+Here are some examples of push models:
+
+- **immediately broadcasting websocket server**: as soon as someone connects to the server and then sends a message, the websocket server loops through the client list and then broadcasts a message to all connected clients.
+
+**Pros**
+
+- **realtime**: pushes immediately to the client the moment the event is generated
+
+**Cons**
+
+- **client must be online**: You can only push messages to a client that is connected to the server and online.
+- **client may not handle load**: since messages are pushed as soon as they are generated, a client may suffer under many messages being frequently pushed and cannot handle the load.
+- **requires a bidirectional protocol**
+
+#### Websocket example
