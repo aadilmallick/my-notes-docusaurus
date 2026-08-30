@@ -1,4 +1,6 @@
 
+## LANs to the internet 
+
 ## OSI model
 
 ### Intro
@@ -12,6 +14,20 @@ It helps to visualize the flow of data and the protocols involved at each stage,
 
 
 ![](https://i.imgur.com/VOV6lwW.jpeg)
+
+Here is the basic data flow of the layers:
+
+- Layer 7: request/response abstraction over segments, establish a **session connection**.
+- Layer 4: **segments**, establish packet sequence and port destination
+	- Add destination port and source port.
+- Layer 3: **Packets**, establish IP address source and destination info
+	- Add destination IP address and source IP address
+- Layer 2: **frames**, establish MAC address destination
+	- Add destination MAC address and source MAC address
+- Layer 1: electricity or light
+
+
+![](https://i.imgur.com/0mkHptl.jpeg)
 
 
 **application layer**
@@ -89,15 +105,16 @@ Here is how the request content is formed, going in order:
 
 ### Layer 2
 
-**Layer 2 (Data Link Layer)** uses **MAC addresses** to deliver the data received from layer 3 to the correct physical device (like your local router) on your immediate, local network.
+**Layer 2 (Data Link Layer)** uses **MAC addresses** to deliver the data received from layer 3 to the correct physical device (like your local router) on your immediate, local network via **frames**
 
 Layer 2 includes these components:
 
-- MAC addresses of NIC interface
+- **MAC addresses** of NIC interface
+- **frames**
 - Switch
 - Router
 
-Layer 3 includes these protocols:
+Layer 2 includes these protocols:
 
 - ARP
 
@@ -117,6 +134,117 @@ Layer 3 includes these protocols:
     1. To send data from the source IP address to the default gateway, the layer 2 ARP broadcast executes to resolve the source IP to its associated MAC address
     2. Then it resolves the default gateway to the router’s MAC address and then sends ethernet frames of the layer 4 data packets from the source MAC to the destination MAC
 2. The router decides what hops to do and routes traffic through the hop list until it reaches the destination IP.
+
+### Layer 4
+
+Layer 4 is responsible for end-to-end communication and managing how data flows. It takes the big chunk of data from your application and chops it up into smaller, manageable pieces called **packets.**
+
+To do this, it primarily uses two different protocols:
+
+- **TCP (Transmission Control Protocol)**: Focuses on **reliability**. It checks to make sure every single piece of data arrives safely and in the correct order. If a piece gets lost, TCP asks for it to be sent again.
+- **UDP (User Datagram Protocol)**: Focuses on **speed**. It sends the data as fast as possible without stopping to check if the receiver actually got it.
+
+|properties|TCP|UDP|
+|---|---|---|
+|connection?|Maintains a connection so the client and server can perform error-checking, starting with a three-way handshake|connectionless|
+|error-checking|Error checks to make sure that packets always arrive in the correct order and without corruptionq|No error-checking|
+
+The packets vary in their data depending on which protocol is being used:
+
+- **TCP:** packet contains IP address of sender, payload, and TCP segment.
+- **UDP:** packet contains IP address of sender, payload, and UDP datagram.
+
+Aside from choosing between TCP and UDP, Layer 4 has one more critical job: it uses **Port Numbers** to host different application level protocols (forms structure of data) and then uses either TCP or UDP to control the data flow behavior.
+
+- **Example:** HTTP is a layer 7 protocol, but it uses port 80 by convention and TCP, which are layer 4 components.
+
+#### **port numbers**
+
+Think of your computer's IP address like the street address of a large apartment building. It gets the data to the correct building (your computer). But once the data arrives, how does your computer know which specific room (application) the data belongs to?
+
+Different port numbers correspond to different protocols, which correspond to different data flow and behavior.
+
+- 🚪 **Port Numbers** act like the apartment room numbers.
+- 🌐 For example, standard web traffic (HTTP) uses **Port 80**.
+
+When you open a web page, Layer 4 tags the data with Port 80 or 443 so your computer knows to hand that data to your web browser, rather than your email app or a video game.
+
+#### **TCP in depth**
+
+TCP is a connection-oriented protocol. Before it sends a single byte of data, it establishes a reliable connection with the receiver using a process called the **Three-Way Handshake,** which is used to initiate the start of the session.
+
+```
+[ Your Computer ]                      [ YouTube Server ]
+       |                                       |
+       | ------ SYN (Let's synchronize) -----> |
+       |                                       |
+       | <--- SYN-ACK (I'm ready, let's go) -- |
+       |                                       |
+       | ------ ACK (Got it! Sending data) --> |
+       v                                       v
+```
+
+Once the connection is active, TCP manages reliability through several advanced features:
+
+1. 📑 **Segmentation & Sequencing**: TCP chops large application payloads into smaller pieces called segments. It gives each segment a **sequence number** so the receiving computer can reassemble them in the perfect, original order—even if they arrive out of sequence.
+2. ↩️ **Acknowledgments (ACKs) & Retransmissions**: The receiver/client must send an acknowledgment back for the data it gets. If the server doesn't receive an ACK (an acknowledgement that the client received the data) within a certain timeframe, it assumes the data packet was lost in transit and automatically sends it again to the client.
+3. 🚦 **Flow Control**: If a fast server overloads a slower device with too much data, the receiver can signal the server to slow down, preventing the network buffer from overflowing.
+
+Each segment has a **destination port number** so TCP knows which running process on the specific device (specified by layer 2 and 3) to send data packets to.
+
+To make this happen simultaneously, your computer uses a combination of identifiers called a **socket**. A socket pairs an **IP address** (Layer 3) with a **Port number** (Layer 4).
+
+So under the hood, your computer sees two completely distinct destinations:
+
+- 🌐 `192.168.1.50:80` (Your IP + Port 80) -> Handled by the regular HTTP web browser process.
+- 🔒 `192.168.1.50:443` (Your IP + Port 443) -> Handled by the secure HTTPS web browser process
+
+##### **TCP segments**
+
+A **segment** in TCP is the name for the data sent via that protocol, and is part of the overall packets being sent in the protocol.
+
+Here are the components of the segment:
+
+- **sequence:** The sequence number of the packet, used for ordering packets so the data can be constructed in order.
+- **checksum:** A unique hash value calculated by inputting the segment sequence number and packet payload together. This is used for error checking.
+
+
+![](https://i.imgur.com/sOqVaXg.jpeg)
+
+TCP performs error-checking with two mechanisms:
+
+1. **checking sequence:** If the sequence numbers of packets received by client and server have a mismatch, then the server resends the packets that didn’t make it.
+2. **checking checksum:** The checksum ensures data integrity because if the checksums of the segments the server sends and client receives don’t match, that means the data is corrupted.
+
+TCP ensures data integrity knowing when a packet is corrupted because the checksums of the client and server don’t match, when the server sends the packet and the client receives it. This can happen because of one reason:
+
+1. **payload is corrupted:** The client and server have different versions of the actual data, so the checksum is different.
+
+> [!NOTE]
+> When a packet is corrupted, the client resends the packet.
+
+Imagine you are using an application that relies on TCP, and a momentary glitch on the physical wire drops 3 out of 10 data segments being transmitted. Let’s walk through what happens to ensure complete data transmission:
+
+1. **Spotting the Gap**: Your computer sends 10 segments, each stamped with a sequence number (e.g., 1 through 10). If segments 4, 5, and 6 get dropped by the network glitch, the receiving server notices the gap because it receives 1, 2, 3, and then suddenly jumps to 7.
+2. **The Request**: The server sends an ACK back to your computer, essentially saying, _"I safely got up to segment 3, but I am still waiting on segment 4."_
+3. **The Retransmission**: Your computer realizes that the timer for segments 4, 5, and 6 ran out without receiving an ACK. It **retransmits only those specific missing segments** until the server acknowledges they have arrived safely.
+
+#### UDP in depth
+
+UDP is a connectionless protocol. It does away with all the administrative overhead of handshakes, tracking, and acknowledgments to deliver the absolute fastest speed possible.
+
+Here are the two main properties of UDP:
+
+- 📤 **Fire and Forget**: UDP simply slaps a destination port number onto the data payload and shoots it out across the network. It does not check if the receiving device is online or ready.
+- 🤷 **No Guarantees**: There are no sequence numbers. If data packets arrive out of order, or if some are dropped entirely along the way, UDP does not care or attempt to recover them.
+
+Here are the use cases for UDP
+
+1. **voice over IP:** realtime talking, calls, etc.
+
+**terminology**
+
+- **datagrams**: the name for data packets sent via UDP
 
 ## Protocols
 
@@ -141,3 +269,4 @@ These are the core components behind protocols:
 > The main problem behind TCP is that it's sent as a stream while HTTP is message-based. Since HTTP uses TCP it has to constantly parse the stream to find where a message starts and ends, which is part of the overhead of TCP being used with HTTP.
 > 
 
+## Network topologies
