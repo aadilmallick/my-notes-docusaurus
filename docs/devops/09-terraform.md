@@ -659,6 +659,56 @@ variable "ami_filter" {
 }
 ```
 
+Here is a list of complex data types in action:
+
+```hcl
+# Input variable definitions
+
+variable "vpc_name" {
+  description = "Name of VPC"
+  type        = string
+  default     = "example-vpc"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "vpc_azs" {
+  description = "Availability zones for VPC"
+  type        = list(string)
+  default     = ["us-east-2a", "us-east-2b", "us-east-2c"]
+}
+
+variable "vpc_private_subnets" {
+  description = "Private subnets for VPC"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "vpc_public_subnets" {
+  description = "Public subnets for VPC"
+  type        = list(string)
+  default     = ["10.0.101.0/24", "10.0.102.0/24"]
+}
+
+variable "vpc_enable_nat_gateway" {
+  description = "Enable NAT gateway for VPC"
+  type        = bool
+  default     = true
+}
+
+variable "vpc_tags" {
+  description = "Tags to apply to resources created by VPC module"
+  type        = map(string)
+  default = {
+    Terraform   = "true"
+    Environment = "testing"
+  }
+}
+```
 #### Object type
 
 In Terraform, use an **object type variable** when you want to group related configuration values together logically, like an AMI filter with both a name and owner, or an environment with a name and network prefix. 
@@ -1005,6 +1055,43 @@ Based on the meta-arguments and the references you have to other resources and v
 
 If two resources depend on each other but not on each other's data, then use the `depends_on` identifier, which manually specifies a resource's dependency on another resource
 
+
+```hcl
+resource "aws_iam_role" "example" {
+  name               = "example"
+  assume_role_policy = "..."
+}
+
+resource "aws_iam_instance_profile" "example" {
+  role = aws_iam_role.example.name
+}
+
+resource "aws_iam_role_policy" "example" {
+  name   = "example"
+  role   = aws_iam_role.example.name
+  policy = jsonencode({
+    "Statement" = [{
+      "Action" = "s3:*",
+      "Effect" = "Allow",
+    }],
+  })
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+
+  iam_instance_profile = aws_iam_instance_profile.example.name
+
+  # creating the ec2 instance won't work without 
+  # the policy being created first, so we write this explicit dependcy
+  depends_on = [
+    aws_iam_role_policy.example,
+  ]
+}
+
+```
+
 #### `lifecycle`
 
 A set of meta arguments to control terraform lifecycle behavior for a resource, especially upon a configuration update.
@@ -1012,6 +1099,67 @@ A set of meta arguments to control terraform lifecycle behavior for a resource, 
 - `create_before_destroy`: **Boolean**. If `true`, creates the new resource before destroying the old one
 - `ignore_changes`: a list of properties/meta-arguments to ignore for drift detection, meaning that if you manually change one of these properties in the AWS console, it's ok, terraform doesn't automatically fix drift for those irgnored properties being changed.
 - `prevent_destroy`: reject any plan that would destroy this resource.
+
+```hcl
+resource "aws_instance" "server" {
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      # Some resources have metadata
+      # modified automatically outside
+      # of Terraform
+      tags
+    ]
+  }
+}
+```
+
+#### `count`
+
+The `count` meta-argument defines the number of duplicates you want to create of this resource, default is 1 for no copies.
+
+```hcl
+resource "aws_instance" "server" {
+  count = 4 # create four EC2 instances
+
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "Server ${count.index}"
+  }
+}
+```
+
+#### `foreach`
+
+1. Define an array variable with a value
+2. Within a resource, provide an array value to the `for_each` meta-argument
+3. Now you can use the `each` variable, which has the `each.key` representing the value of the current iterating element.
+
+```hcl
+locals {
+  subnet_ids = toset([
+    "subnet-abcdef",
+    "subnet-012345",
+  ])
+}
+
+resource "aws_instance" "server" {
+  for_each = local.subnet_ids
+
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+  subnet_id     = each.key
+
+  tags = {
+    Name = "Server ${each.key}"
+  }
+}
+```
 ### EC2 instances
 
 #### Instance basics: setup security group
@@ -1673,18 +1821,285 @@ resource "aws_s3_bucket" "bucket" {
 
 ## Terraform modules
 
+### Basics
+
+#### Why modules?
+
 A Terraform module is a way to group related Terraform code into a single, logical unit that can be managed together.
 
 Modules help you organize and reuse code, making it easier to manage complex infrastructure.
 
-A module can use `variable` and `output` blocks, but the content of a module is encapsulated and works like a black box, so the only way you can access code from a module is through exposing `output` blocks on it.
-
 Using a Terraform module for security groups simplifies your code by bundling complex configurations into reusable, manageable blocks. 
 
-- Instead of manually defining every rule and detail, the module handles much of that for you, reducing errors and saving time. 
-- Modules also make your infrastructure code cleaner and easier to maintain, and you can use pre-built, tested modules from the Terraform Registry, which helps ensure best practices and consistency in your setups.
+Instead of manually defining every rule and detail, the module handles much of that for you, reducing errors and saving time. 
 
-### Example with security group module
+Modules also make your infrastructure code cleaner and easier to maintain, and you can use pre-built, tested modules from the Terraform Registry, which helps ensure best practices and consistency in your setups.
+
+#### WHat is a module
+
+Modules are the main way to package and reuse resource configurations with Terraform. They are containers for multiple resources that are used together. 
+
+A module consists of a collection of `.tf` and `.tf.json` files kept together within a sub directory.
+
+Module sources can be one of these:
+
+- **local paths**: paths to custom modules you created
+- **terraform registry**: pointing to a third-party module
+
+
+![](https://i.imgur.com/I5RqYql.jpeg)
+
+#### Consuming a module
+
+A module has two main purposes:
+
+- **import resources, run terraform code**: Runs terraform code from a subdirectory, basically provisioning any resources you define in a module.
+- **provide access to module variables via `module` namespace**: The `module` namespace is used to access output variables defined on the module.
+
+> [!NOTE]
+> A module can use `variable` and `output` blocks, but the content of a module is encapsulated and works like a black box, so the only way you can access variable values from a module using the `module` namespace is through exposing `output` blocks on it.
+
+Here is an example of using a third-party source to create a module and then consuming it via the `module` namespace:
+
+1. Use the third-party source to create a module
+
+```hcl
+module "ec2_instances" {
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "5.0.0"
+
+  name           = "Cluster-A-${count.index}"
+  count = 3
+
+  ami                    = "ami-097a2df4ac947655f"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.public_subnets[0]
+
+  tags = {
+    Terraform   = "true"
+    Environment = "testing"
+    Why         = "Because we can"
+  }
+}
+```
+
+2. Consume the module outputs via the `module.<module_name>` syntax:
+
+```hcl
+output "ec2_instance_private_ips" {
+  description = "Private IP addresses of the EC2 instances"
+  value       = module.ec2_instances.*.private_ip
+}
+```
+### Creating a module
+
+There are two types of modules you can create
+
+- **root module**: default module containing all `.tf` files in the project root
+- **child module**: A separate external module referred to from a `.tf` file
+
+
+
+Here is a basic example:
+
+1. Create a subdirectory where your main terraform config lives, call it `main`
+2. Create a subdirectory where your module lives, call it `module`
+3. When defining a module inside the main code, point the `source` meta-argument to the path of the module directory, then supply key-value pairs for the input variables declared in the module code.
+
+```hcl
+module "my_module" {
+	source = "../module"
+	
+	# Input vars to inject
+	bucket_name = "mybucketname2022"
+	// ...
+}
+```
+
+
+Now you've basically imported all the resources, dynamically injecting variables to change the configuration without actually copying and pasting the code.
+
+Here is a more involved example:
+
+1. Create a subdirectory called `modules/webserver`, declare these input variables:
+
+```hcl title="modules/webserver/variables.tf"
+variable "vpc_id" {
+  type = string
+  description = "VPC ID"
+}
+
+variable "cidr_block" {
+  type = string
+  description = "CIDR BLOCK"
+}
+
+variable "ami" {
+  type = string
+  description = "AMI for the webserver instance"
+  # Pick an AMI that exists within your region and is free tier eligible
+}
+
+variable "instance_type" {
+  type = string
+  description = "Instance type"
+  # Go with t2.micro for free tier eligible AMIs
+}
+
+variable "webserver_name" {
+  type = string
+  description = "Name of the webserver"
+}
+```
+
+2. Create these resources in the module:
+
+```hcl title="modules/webserver/main.tf"
+terraform {
+  required_version = ">= 1.3.0"
+}
+
+resource "aws_subnet" "web_subnet" {
+  vpc_id = var.vpc_id
+  cidr_block = var.cidr_block
+}
+
+resource "aws_instance" "webserver" {
+  ami = var.ami
+  instance_type = var.instance_type
+  subnet_id = aws_subnet.web_subnet.id 
+
+  tags = {
+    Name = "${var.webserver_name} webserver"
+  }
+}
+```
+
+3. Create and edit a `main.tf` file. Add the following:
+	- **provider block**: Define a provider here to declare this as the main module.
+	- **module block**: Here you will call the module (with the _source_ argument), and assign values to the variables that are described in the module.
+
+```hcl
+module "webserver-dave" {
+  source     = "../modules/webserver"
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.0.0/16"
+  ami        = "ami-0c7c4e3c6b4941f0f"
+  # Remember, select an AMI that exists in your AWS region.
+  # If in doubt, use the AMI above and the us-east-2 region.
+  instance_type  = "t2.micro"
+  webserver_name = "Dave's"
+}
+```
+### Using third-party modules
+
+#### Basics
+
+
+
+```hcl
+# Input variable definitions
+
+variable "vpc_name" {
+  description = "Name of VPC"
+  type        = string
+  default     = "example-vpc"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "vpc_azs" {
+  description = "Availability zones for VPC"
+  type        = list(string)
+  default     = ["us-east-2a", "us-east-2b", "us-east-2c"]
+}
+
+variable "vpc_private_subnets" {
+  description = "Private subnets for VPC"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "vpc_public_subnets" {
+  description = "Public subnets for VPC"
+  type        = list(string)
+  default     = ["10.0.101.0/24", "10.0.102.0/24"]
+}
+
+variable "vpc_enable_nat_gateway" {
+  description = "Enable NAT gateway for VPC"
+  type        = bool
+  default     = true
+}
+
+variable "vpc_tags" {
+  description = "Tags to apply to resources created by VPC module"
+  type        = map(string)
+  default = {
+    Terraform   = "true"
+    Environment = "testing"
+  }
+}
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "4.66"
+    }
+  }
+
+  required_version = ">= 1.4.6"
+}
+
+provider "aws" {
+  region = "us-east-2"
+}
+
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  # To download the latest module, simply omit the version argument. 
+  # However, if you wanted a specific module version, you could list it as shown below.
+  # This version was released in 2023.
+  version = "4.0.2"
+
+  name = var.vpc_name
+  cidr = var.vpc_cidr
+
+  azs             = var.vpc_azs
+  private_subnets = var.vpc_private_subnets
+  public_subnets  = var.vpc_public_subnets
+
+  enable_nat_gateway = var.vpc_enable_nat_gateway
+
+  tags = var.vpc_tags
+}
+
+module "ec2_instances" {
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "5.0.0"
+
+  name           = "Cluster-A-${count.index}"
+  count = 3
+
+  ami                    = "ami-097a2df4ac947655f"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.public_subnets[0]
+
+  tags = {
+    Terraform   = "true"
+    Environment = "testing"
+    Why         = "Because we can"
+  }
+}
+```
+#### Example with security group module
 
 Here are the steps where we use an official terraform module for security groups to make the process of creating a security group simpler:
 
