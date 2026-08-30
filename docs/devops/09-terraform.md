@@ -579,6 +579,7 @@ You can define input variables in Terraform that you can then use throughout you
 - `description`: the human-facing description of what the variable does or represents.
 - `default`: the default value of the variable
 - `type`: the data type of the variable, default is string.
+- `sensitive`: a boolean type, where if you pass `true`, then it marks the variable and sensitive and will mask its value when outputted.
 
 ```hcl
 variable "instance_type" {
@@ -731,29 +732,6 @@ data "aws_ami" "app_ami" {
   owners = [var.ami_filter.owner] # Bitnami
 }
 ```
-
-#### Template interpolation
-
-In Terraform you can use template string interpolation syntax to use a variable's value within a string with the `${}` syntax.
-
-```hcl
-module "blog_vpc" {
-  source = "terraform-aws-modules/vpc/aws"
-
-  name = var.environment.name
-  cidr = "${var.environment.network_prefix}.0.0/16"
-
-  azs             = ["us-west-2a","us-west-2b","us-west-2c"]
-  public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24", "${var.environment.network_prefix}.103.0/24"]
-
-
-  tags = {
-    Terraform = "true"
-    Environment = var.environment.name
-  }
-}
-```
-
 
 #### Injecting values for input variables
 
@@ -912,6 +890,37 @@ resource "aws_instance" "blog" {
 }
 ```
 
+### Expressions and functions
+
+
+
+![](https://i.imgur.com/sOK3Ohu.jpeg)
+
+
+#### Template interpolation
+
+In Terraform you can use template string interpolation syntax to use a variable's value within a string with the `${}` syntax.
+
+```hcl
+module "blog_vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = var.environment.name
+  cidr = "${var.environment.network_prefix}.0.0/16"
+
+  azs             = ["us-west-2a","us-west-2b","us-west-2c"]
+  public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24", "${var.environment.network_prefix}.103.0/24"]
+
+
+  tags = {
+    Terraform = "true"
+    Environment = var.environment.name
+  }
+}
+```
+
+
+
 ## Resources
 
 ### Basics
@@ -920,11 +929,14 @@ The nice thing about using Terraform is that the logical ID of a resource is a c
 
 This means that you can scope logical IDs to a resource type and thus reuse logical IDs across your application as long as the combination of resource type and logical ID is unique. 
 
-You can also refer to the properties of another resource using dot-notation syntax
+You can also refer to the properties of another resource using dot-notation syntax on the namespace of the resource type, like `aws_security_group`.
 
 ```
 resource_type.logical_id.property
 ```
+
+#### `depends_on`
+
 
 ### EC2 instances
 
