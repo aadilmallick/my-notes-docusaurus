@@ -129,10 +129,15 @@ In summary, while the number of threads a CPU can manage imposes some limitation
 
 #### Sync vs Async workloads
 
+When thinking about a client to server request-response cycle, we can think of that cycle as either happening synchronously or asynchronously:
+
+- **sync**: Client sends a request to the server and waits for a response. 
+- **async**: Client sends a request to the server, then the server creates a background job and immediately returns the job metadata so the client can now poll for the job status without waiting on the response synchronously. 
+
 Asynchronous backend processing is using a messaging queue to handle long-running requests in a request-response cycle to a server, instead of a client synchronously waiting for a response from a server after processing.
 
 
-### Push
+### Push model
 
 A push model is when a server notifies a client unidirectionally without the client making a request. Here's how it works:
 
@@ -160,3 +165,109 @@ Here are some examples of push models:
 - **requires a bidirectional protocol**
 
 #### Websocket example
+
+Here is the server code:
+
+```ts
+const WebSocket = require('ws');
+
+const server = new WebSocket.Server({ port: 8080 });
+
+server.on('connection', (socket) => {
+    console.log('New client connected');
+
+    // Send a welcome message to the new client
+    socket.send('Welcome to the WebSocket server!');
+
+    // Listen for messages from the client
+    socket.on('message', (message) => {
+        console.log(`Received: ${message}`);
+        
+        // Broadcast the message to all clients
+        server.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    });
+
+    socket.on('close', () => {
+        console.log('Client disconnected');
+    });
+});
+
+console.log('WebSocket server is running on ws://localhost:8080');
+```
+
+Here is the client code:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Client</title>
+</head>
+<body>
+
+<script>
+    const socket = new WebSocket('ws://localhost:8080');
+
+    // Connection opened
+    socket.addEventListener('open', function (event) {
+        console.log('Connected to the WebSocket server');
+        socket.send('Hello Server!'); // Sending a message to the server
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event) {
+        console.log('Message from server:', event.data);
+    });
+    
+    // Handling connection closure
+    socket.addEventListener('close', function (event) {
+        console.log('Disconnected from WebSocket server');
+    });
+</script>
+
+</body>
+</html>
+```
+
+### Short polling
+
+Short polling is an asynchronous workload technique that the client uses to continuously poll for the status of a background job so it can be notified when the job is finished.
+
+Here's how it works:
+
+1. Client sends a request to initiate some long processing work
+2. Server delegates the work to a background job via a messaging queue, returns job metadata and identifier to client.
+3. Client polls in short intervals to an API route on a server to check the status of the job
+	- Polling for the job status is a very quick request-response cycle so this can be handled synchronously.
+
+
+![](https://i.imgur.com/Cy4yrLF.jpeg)
+
+**pros**
+
+- simple
+- good for long running requests that require a lot of processing
+- client can disconnect, no need to wait on server.
+
+**cons**
+
+- too chatty, short polling makes many network requests and consumes bandwidth on the server, making it more expensive.
+- wasted backend resources
+
+### Long polling
+
+Long polling is a different approach to short polling where the client sends an asynchronous, non-blocking request to the server to check for job status and the server only responds if the job status changed from the previous status.
+
+Basically the server stalls and only responds as necessary to inform the client of any changes, and then the client immediately requests the same job status endpoint again until the job status returns as finished.
+
+Here's how it works:
+
+1. Client sends a background job initiation request to the server
+2. Server immediately responds with job metadata, kicks off background job
+3. Client uses the job handle to check for status at some `/status/:jobId` endpoint, server does not reply until it has the response, either success or failure.
