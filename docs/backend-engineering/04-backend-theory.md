@@ -266,8 +266,23 @@ Long polling is a different approach to short polling where the client sends an 
 
 Basically the server stalls and only responds as necessary to inform the client of any changes, and then the client immediately requests the same job status endpoint again until the job status returns as finished.
 
+
+
+![](https://i.imgur.com/CMK2nsq.jpeg)
+
+
 Here's how it works:
 
 1. Client sends a background job initiation request to the server
 2. Server immediately responds with job metadata, kicks off background job
 3. Client uses the job handle to check for status at some `/status/:jobId` endpoint, server does not reply until it has the response, either success or failure.
+
+
+**pros**
+
+- Less chatty and thus saves bandwidth
+- Client can still disconnect, since it's asynchronous
+
+**cons**
+
+- Not realtime
