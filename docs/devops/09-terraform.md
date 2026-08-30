@@ -552,10 +552,33 @@ Once you provision the resources using terraform, all the provisioned resource i
 
 ### Variables
 
-You can define variables in Terraform that you can then use throughout your Terraform files, using the `terraform` block like so, with these meta-arguments:
+A **variable** in Terraform is basically a typed key-value pair .
+
+You have many different ways of creating variables in terraform and there are different types of variables:
+
+- **input variables**: variables that are declared but don't have a value until runtime, and you inject values in `terraform apply` or through `terraform.tfvars`. 
+	- Use the `variable` block for this.
+- **local variables**: standard key-value pairs that act basically as config objects that you can immediately use in your terraform code. 
+	- Use the `locals` block for this.
+
+#### Local variables
+
+Local variables are basically just key-value pairs with values already there, so you can access them through the `locals` namespace.
+
+```hcl
+locals {
+	service_name = "My service"
+	owner = "me"
+}
+```
+
+#### Input variables
+
+You can define input variables in Terraform that you can then use throughout your Terraform files, using the `variable` block like so, with these meta-arguments:
 
 - `description`: the human-facing description of what the variable does or represents.
 - `default`: the default value of the variable
+- `type`: the data type of the variable, default is string.
 
 ```hcl
 variable "instance_type" {
@@ -564,7 +587,7 @@ variable "instance_type" {
 }
 ```
 
-And then you can access variables through the `var` namespace via dot notation:
+For input variables defined with the `variable` block, you can access variables through the `var` namespace via dot notation:
 
 ```
 var.<variable_name>
@@ -731,7 +754,17 @@ module "blog_vpc" {
 }
 ```
 
-#### `terraform.tfvars`
+
+#### Injecting values for input variables
+
+Here is the priority order for the injection precedence of the different ways to inject values for the input variables at runtime, lowest to highest.
+
+1. Default value in a declaration block
+2. `TF_VAR_<VARNAME>` environment variables in the current shell session
+3. `terraform.tfvars` file
+4. `*.auto.tfvars` file
+5. Using `terraform apply` or `terraform plan` with the `-var` flag.
+##### `terraform.tfvars`
 
 The `terraform.tfvars` file is a special file that uses `.env` syntax where in one file, you define a bunch of key value pairs in the syntax below, and then terraform will automatically inject those key-value pairs in that file as values for the terraform variables that you define with the `variable` block.
 
@@ -781,7 +814,7 @@ resource "aws_instance" "web" {
 }
 ```
 
-#### Variables with CLI
+##### Variables with CLI
 
 You can run `terraform apply` and pass in variable values to have those values get injected into runtime:
 
