@@ -277,6 +277,9 @@ Here's how it works:
 2. Server immediately responds with job metadata, kicks off background job
 3. Client uses the job handle to check for status at some `/status/:jobId` endpoint, server does not reply until it has the response, either success or failure.
 
+> [!NOTE]
+> How is this different than the synchronous workload request-response cycle? Well in long polling, you still decouple the request-response cycle from the processing work by delegating the computation to a background job, which makes the actual work being processed more robust and not tightly coupled to the actual client request if it disconnects.
+
 
 **pros**
 
@@ -286,3 +289,193 @@ Here's how it works:
 **cons**
 
 - Not realtime
+
+### SSE
+
+SSE is a brilliant trick where you basically use HTTP where the client sends one request to the server, and the server responds with a very long, never-ending response that constantly stays open and streams data to the client.
+
+Any and all HTTP servers support SSE since SSE is just a trick abstracting an HTTP request into a stream.
+
+Here's how it works:
+
+1. Client sends a request
+2. Server sends logical events as part of response
+3. Server never writes the end of the response
+
+> [!NOTE]
+> The most important thing to understand about server-sent events is that it is still an HTTP request but the server sends a never-ending response. 
+
+SSE is possible due to how TCP works, where you can send the response in chunks, not having to send the response all at once.
+
+
+
+![](https://i.imgur.com/BcecAeP.jpeg)
+
+**pros**
+
+- **realtime**
+- **compatible with HTTP**
+
+**cons**
+
+- **client must be online**
+- **client might not be able to handle message throughput**: too many events may be sent by server in frequent bursts. The client may not be able to handle it.
+- **polling is preferred for light clients**
+- **starves HTTP connections**: HTTP 1.1 can only have 6 connections open simultaneously, so if you have one SSE channel which has a constantly open request, that starves an open connection and thus there are only 5 connections available.
+
+#### HTTP 1.1 problem and SSE
+
+HTTP 1.1 can only have 6 connections open simultaneously, meaning somehting like 6 HTTP requests that can be processed simultaneously.
+
+While this sounds pretty good, the problem is that SSE maintains an open connection for the lifetime of the client, starving available connections.
+
+> [!WARNING]
+> If you have 6 SSE channels on the client listening for messages on the server, congratulations! You've starved all the HTTP connections and now you can't even download stuff like CSS, JavaScript, or make any other network requests. 
+
+> [!NOTE]
+> HTTP2 is a better approach to use over than SSE if you have a lot of realtime connections you want the server to push to the client, since HTTP2 is built for pushing messages to the client via streaming.
+
+
+#### SSE example
+
+Server sent events are like websockets except the connections are one-way for the server sending data to the client, it's HTTP based, and data is always sent as plain text. 
+
+> [!WARNING]
+>  When **not used over HTTP/2**, SSE suffers from a limitation to the maximum number of open connections, which can be especially painful when opening multiple tabs, as the limit is _per browser_ and is set to a very low number (6).
+
+All data sent from the server to the client will be in the form `data: <some-string>`, and we basically just parse the string that comes after the `data: ` prefix. We can get clever and just send JSON as some string. 
+
+
+**server-side**
+
+Here is a full example of sending server-sent data from a server to a client. 
+
+The **server side** must comply with these rules:
+
+1. Must send back a `ReadableStream` as a response
+2. Must send back these headers, with a `text/event-stream` content type.
+
+```ts
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+```
+
+
+Here's a real example:
+
+```ts
+app.get("/realtime/:id", async (_req, info, params) => {
+  const shortCode = info?.pathname.groups["id"] as string;
+  const response = await fetch("/public/bruh.png");
+  const stream = response.body?.getReader();
+  if (!stream) {
+    return app.text("Stream not found", 404);
+  }
+  // Create stream response body
+  const body = new ReadableStream({
+    async start(controller) {
+      // Fetch initial data if needed
+      // const initialData = await getShortLink(shortCode);
+      // controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ clickCount: initialData.clickCount })}\n\n`));
+
+      while (true) {
+        const { done, value } = await stream.read();
+        if (done) {
+          return;
+        }
+        const bits = value?.length;
+
+		// this is how we keep adding to the stream
+        controller.enqueue(
+          new TextEncoder().encode(
+            `data: ${JSON.stringify({
+              bits,
+            })}\n\n`
+          )
+        );
+        console.log("Stream updated");
+      }
+    },
+    cancel() {
+      stream.cancel();
+    },
+  });
+
+	// exact headers required to start event stream
+  return new Response(body, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+});
+```
+
+**client-side**
+
+1. Instantiate an `new EventSource(url)` object that connects to your server route that specifically sends back a 200 status response and must send back the `Content-Type: text/event-stream` on this route. 
+
+```ts
+const eventSource = new EventSource("/events/subscribe", {
+	withCredentials: true
+});
+```
+
+2. Listen for messages from the `"message"` event on the event source:
+
+```ts
+eventSource.addEventListener("message", (e) => {
+	const data = e.data
+})
+```
+
+You can close the connection with `eventSource.close()`. Whenever you want to reconnect, you need to instantiate a fresh object. 
+
+There are three events you can add listeners for on the event source object: 
+
+- `message` – a message received, available as `event.data`.
+- `open` – the connection is open.
+- `error` – the connection could not be established, e.g. the server returned HTTP 500 status.
+
+Here is how you would consume from the frontend:
+
+```ts
+document.addEventListener('DOMContentLoaded', (event) => {
+    console.log('realtime script loaded')
+    const pathParts = window.location.pathname.split('/');
+    const shortCode = pathParts[pathParts.length - 1];
+
+	// 1. create event source listening to route on current origin
+    const eventSource = new EventSource('/realtime/' + shortCode);
+
+	// 2.  create handle message handler
+    eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log(data)
+        document.getElementById('clickCount').innerText = data.clickCount
+    };
+
+	// 3. create handle error handler
+    eventSource.onerror = (error) => {
+        console.error('EventSource failed:', error);
+        eventSource.close();
+    };
+});
+```
+
+### Pub-sub
+
+Pub-sub is great for a microservices architecture to avoid complex integration of multiple services, where instead we opt for decoupling of services by posting events to an event bus, and then service subscribers to the event bus process events as they relate to them.
+
+It's called pub-sub because microservices can either be publishers/producers or subscribers/consumers of events in the event bus.
+
+- **publisher**: service that triggers an event to be added to the event bus
+- **subscriber**: service that polls and listens for an event  that comes through in the event bus and then consumes that event, executing some action based on that event.
+
+
+![](https://i.imgur.com/kH2Mnpw.jpeg)
+
