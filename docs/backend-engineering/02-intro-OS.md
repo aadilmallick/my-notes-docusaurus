@@ -73,6 +73,203 @@ Here’s the high-level process for how the ALU performs computation:
 
 ![](https://i.imgur.com/XtLaX17.jpeg)
 
+### How RAM works
+
+#### Remembering a bit
+
+What does it mean to have memory? Well, you have to remember something.
+
+Forget remembering 32gb of RAM, how do you remember even a single bit? 
+
+Use logic gates.
+
+To remember 1s and 0s you can feed the output bit of a boolean logic gate back into itself as an input bit.
+
+- **remember a 1:** This is an example of a circuit using a OR gate that remembers a 1, because once the output reaches 1 it can’t be undone.
+
+![](https://i.imgur.com/c15dXgP.jpeg)
+
+- **remember a 0:** This is an example of a circuit using a AND gate that remembers a 0, because once the output reaches 0 it can’t be undone.
+
+![](https://i.imgur.com/5TKMa9H.jpeg)
+
+##### AND-OR Latch
+
+An AND-OR latch is a combination of these permanent remember 0s and 1s gates, where you have two input bits that when inputted into the circuit, have meaningful controls:
+
+- **set bit:** If set to 1, then it sets the stored output to 1, else does nothing.
+- **reset bit:** If turned on to 1, the reset essentially resets the output to 0.
+
+
+![](https://i.imgur.com/ysJHCpS.jpeg)
+
+If both the set and reset bits are 0, then it just outputs whatever was the previously stored output. 
+
+> [!NOTE]
+> In other words, it remembers a bit of information, hence memory.
+
+
+##### Gated latch
+
+The gated latch circuit is an improvement to the AND-OR latch and is the backbone of modern memory.
+
+This gate takes in two inputs and has an output that is the stored, remembered bit. Here are the components for this gated latch circuit:
+
+- **DATA IN bit:** The bit value to write to storage, where writing a 0 stores 0, writing a 1 stores 1.
+- **WRITE ENABLE bit:** A boolean flag where if turned on to 1, it allows writing to storage, but if turned off to 0, then no writing is allowed and the stored bit cannot be overwritten.
+
+![](https://i.imgur.com/01dzPGG.jpeg)
+
+
+#### Registers
+
+Just remembering one bit isn’t that useful, but by combining multiple gated latches together, we can store multiple bits of information.
+
+A grouping of gated latches working together to store a single binary number is what’s called a **register**, where the number of bits the register can remember (number of gated latches there are) is called the **width** of the register
+
+We can enable writing to a register by running one wire across all the WRITE ENABLE bits for each gated latch, being able to control all the read/write permissions for all the gated latches simultaneously.
+
+
+![](https://i.imgur.com/jq3N11u.jpeg)
+
+Building a register via making a circuit of gated latches together works okay for a small register width, but quickly becomes intractable when trying to make many registers, each with large widths, because of the amount of wires you have to set up:
+
+For a register with width $n$, here is how many wires we would need in this naive model:
+
+- **data in wires: $n$ wires**
+- **data out wires: $n$ wires**
+- **write enable wires:** 1 wire.
+
+So in total, for a register with width $n$, we would need $2n + 1$ wires.
+
+> [!NOTE]
+> If we wanted to store a 64 bit number (8 bytes), we would need 129 wires.
+
+The solution is a latch matrix, where we arrange a bunch of latches into a grid. This gives us neat properties:
+
+1. **less wires:** A register with width $n$ now only needs $n$ wires
+2. **individual bit writing:** Rather than writing to all bits at once as we did for the previous model, we can choose individual bits in the register to read and write to one at a time.
+
+This 16 x 16 latch matrix below is an example of creating a $256$ bit register with only 256 wires, halving the number of wires needed from the previous model.
+
+
+![](https://i.imgur.com/Kaqt8Hb.jpeg)
+
+To activate any one latch (write/read a bit) we have to send electricity through a corresponding row and columnn wire turning them on by sending a 1 bit down both the row and column wires, where at their intersection they wire into the desired gated latch.
+
+The desired behavior is to activate the gated latch at the intersection of the row and column wire we send electricity down, and to leave all other gated latches inactive.
+
+How do we get this behavior? Here’s the process:
+
+1. Send a 1 down a row wire and 1 down a column wire.
+    
+2. The gated latch at the wire intersection should have a preliminary AND gate which tests if the gated latch is being selected.
+
+
+![](https://i.imgur.com/FCztVX6.jpeg)
+
+
+3. Based on the value of the AND gate, reading and writing to the latch gate is either enabled or disabled.
+    
+    1. If the result of the AND gate is 0, then both read/write are disabled.
+    2. If the result of the AND gate is 1 (only when row and column wires are both set to 1) and we set WRITE ENABLE to 1, then writing is enabled.
+    3. If the result of the AND gate is 1 (only when row and column wires are both set to 1) and we set READ ENABLE to 1, then reading is enabled.
+
+This matrix can target individual bits to read and write to by identifying the row and column gated latch to target. If we have a $n \times n$ matrix, then there are $n$ possible rows and columns, and thus we use $\log_2 n$ bits to uniquely identify a row and $\log_2 n$ bits to uniquely identify a column.
+
+Then the address for a specific latch just concatenates the row identifier binary number and the column identifier binary number together.
+
+- **multiplexer**: In a 16 x 16 matrix, row 12 corresponds to binary number 1100, and column 8 corresponds to binary number 1000, so the address of the gated latch within the 256 bit register storing a specific bit is 11001000
+
+To convert between a gated latch address to actually sending 1s down the associated row and column wires, we use the **multiplexer** component, which is a fancy name for something that does something really simple: it just converts a binary number $b$ to its decimal version $d$ and chooses the $d$th row or column.
+
+We need one multiplexer for the column and one multiplexer for the row.
+
+Here is the final abstraction for 256 bits:
+
+
+![](https://i.imgur.com/GM4Kd09.jpeg)
+
+
+Using a 16 x 16 latch matrix for our memory, here is the microarchitecture:
+
+- **input 8-bit address:** The 8-bit address used to select the desired gated latch
+- **data:** A single bit of data to pass into the selected gated latch’s DATA IN wire
+- **WRITE ENABLE:** A single bit of data to pass into the selected gated latch’s WRITE ENABLE wire
+- **READ ENABLE:** A single bit of data to pass into the selected gated latch’s READ ENABLE wire
+
+#### RAM
+
+Rather than just writing one bit at a time, it’s much more convenient to write bytes of data at a time, where we can store 256 bytes at 256 different addresses
+
+
+
+![](https://i.imgur.com/hhfclUC.jpeg)
+
+This is basically a single building block of RAM because we can randomly access any byte of data in any order (by giving a gated latch address).
+
+We can combine these RAM blocks together and make larger matrices (and larger gated latch addresses) to make RAM that’s a gigabyte or more.
+
+### CPU
+
+#### Intro
+
+The CPUs main purpose is to execute two types of instructions:
+
+1. **arithmetic instructions:** Hands off arithmetic instruction operations to the ALU, giving the data from the registers as needed.
+2. **memory instructions:** Reads from RAM and registers to execute instructions requiring memory.
+
+The CPU requires these special components to work properly:
+
+- **list of registers:** Available registers for holding variable data
+- **instruction address register:** The address of the current CPU instruction in RAM is stored here, so the CPU fetches this address from RAM to get the actual instruction operation code from that address.
+- **instruction register:** A register used for storing the current instruction operation code the CPU should execute.
+
+Here is a high-level overview of the phases the CPU goes through to complete a single instruction:
+
+1. **fetch phase:** Fetches the instruction code from RAM which lives under the instruction address stored in the instruction address register
+2. **decode phase:** Decodes the fetched instruction code into an OPCODE and payload, and then runs the OPCODE through several circuits to discover which instruction it corresponds to.
+3. **execute phase:** Once the specific instruction is discerned, CPU can read/write to RAM and also write data to registers.
+4. **repeat:** The CPU increments the instruction address stored in the instruction address register so it can repeat the cycle with a new instruction.
+
+To continuously run the CPU through loops of these phases, called a **cycle**, CPUs have a **clock**, and the speed at which a CPU can complete an entire cycle is called **clock speed**, measured in hertz.
+
+- 1 Hz = 1 cycle per second, meaning this would be a CPU that could only execute one instruction per second.
+- Modern computers have over 4 GHz of clock speed.
+- To much overclocking (speeding up your clock beyond the hardware capacities) will overburden your computer.
+
+#### Fetch phase
+
+Fetch phase is all about initializing the CPU with the instruction it has to do.
+
+
+![](https://i.imgur.com/kvOHZfw.jpeg)
+
+1. When the computer boots up, all registers are initialized to 0.
+2. The CPU reads the instruction address from the instruction address register, which has the decimal value of 0 (since all registers were initialized to 0).
+3. The CPU then takes the instruction address of 0, fetches that address in RAM, and gets back the instruction code from that.
+4. The CPU stores the instruction code in the instruction register.
+
+#### Decode phase
+
+The decode phase is all about using logic gates to actually decode the instruction code currently loaded in the instruction register.
+
+
+![](https://i.imgur.com/BoXfMyn.jpeg)
+
+There are two components to the instruction code we fetched from RAM:
+
+1. **OPCODE:** The first half of the binary number is the OPCODE, or the actual CPU instruction that should be run.
+2. **payload:** The second half of the binary number is the payload to use in the CPU instruction. In this case, since the opcode is 0010, the payload is the 4-bit RAM address to fetch from RAM.
+
+
+![](https://i.imgur.com/bvUkR0G.jpeg)
+
+During the decoding phase, we need to find out which instruction the OPCODE corresponds to, which we can do via a different logic gate circuit for each specific type of instruction.
+
+
+![](https://i.imgur.com/DVSkUJq.jpeg)
+
 ## Data storage
 
 ### Hard Drive Disk 
