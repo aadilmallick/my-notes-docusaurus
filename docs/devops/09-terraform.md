@@ -923,7 +923,7 @@ module "blog_vpc" {
 
 ## Resources
 
-### Basics
+### Basics and meta-arguments
 
 The nice thing about using Terraform is that the logical ID of a resource is a combination of the resource type and the actual human-facing logical ID used. 
 
@@ -939,11 +939,20 @@ You specify the properties of a resource through **meta-arguments**, like the AM
 
 - `count`: **Number**, defines the number of duplicates you want to create of this resource.
 - `depends_on`: **String**, defines which resource is a dependency, so doesn't create the current resource until the resource it depends on is created
+- `for_each`: **Array**, basically populates an array from some value you you inject it with, then you can use `each` to refer to the current element in the iteration. 
+	- This lets you create multiple resources dynamically through an array with more control than just creating duplicates with `count`.
+- `lifecycle`: **Object**, controls the lifecycle of a resource with properties like being replaced upon update and what property changes to ignore on update.
 #### `depends_on`
 
 Based on the meta-arguments and the references you have to other resources and variables throughout the entire code, Terraform automatically creates a dependency graph with the order of dependencies to create. 
 
 If two resources depend on each other but not on each other's data, then use the `depends_on` identifier, which manually specifies a resource's dependency on another resource
+
+#### `lifecycle`
+
+A set of meta arguments to control terraform lifecycle behavior for a resource.
+
+- `create_before_destroy`: **Boolean**. If `true`, creates the new resourc
 ### EC2 instances
 
 #### Instance basics: setup security group
