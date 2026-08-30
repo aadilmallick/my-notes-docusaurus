@@ -1208,6 +1208,72 @@ const bucket = new Bucket(this, 'AssetsBucket', {
 
 ### Lambda functions
 
+#### Creating lambda infra
+
+To create a basic lambda function with NodeJS, use the `NodejsFunction` subclass of the `LambdaFunction` basic L2 construct.
+
+> [!NOTE]
+> The key advantage of using this subclass is that you get bundling automatically built in so you can use external libraries in the Lambda function source code. 
+
+```ts
+const handler = new NodejsFunction(scope, logicalId, options)
+```
+
+Here are the different options you have access to:
+
+- `runtime`: pass `Runtime.NODEJS_24_X` to specify Node 24 for this function
+- `entry`: the directory containing the lambda source code
+- `handler`: the file and exported handler function, in `<file-basename>.<function_name>` syntax.
+- `environment`: an object of key-value pairs to pass in as ENV vars to the lambda function.
+
+
+Here is this helper:
+
+```ts
+import * as path from "path";
+
+const cwd = process.cwd();
+const lambdaCodeDirectory = path.join(cwd, "bin", "lambda_code");
+
+export const config = {
+  lambdaCodeDirectory,
+};
+```
+
+```ts
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
+import { Duration } from "aws-cdk-lib";
+import * as path from "node:path";
+import { Construct } from "constructs";
+import { config } from "../utils/config";
+
+export const LambdaConstructs = {
+  basicLambda: (
+    scope: Construct,
+    functionName: string,
+    options: {
+      entryPoint: string;
+      environment?: { [key: string]: string };
+      timeoutSeconds?: number;
+      exportedFunctionName?: string;
+      memorySize?: number;
+    },
+  ) => {
+    const handler = new NodejsFunction(scope, functionName, {
+      runtime: Runtime.NODEJS_24_X,
+      entry: path.join(config.lambdaCodeDirectory, options.entryPoint),
+      handler: options.exportedFunctionName || "handler",
+      memorySize: options.memorySize || 128,
+      timeout: Duration.seconds(options.timeoutSeconds || 10),
+      environment: options.environment,
+    });
+    return handler;
+  },
+};
+```
+
+#### Lambda with API gateway
 ## CDK CLI
 
 ### Installation and setup
