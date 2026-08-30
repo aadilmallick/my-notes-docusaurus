@@ -70,6 +70,21 @@ Here is an example of Node code that illustrates synchronous I/O requests perfec
 2. **synchronous I/O request**: a sync I/O request blocks and freezes the process until the I/O request finishes, and an I/O request always takes at least 10ms to complete cuz it has to reach out to disk and also wait for the process the CPU context switched to to finish work.
 3. **process resumes**: After the I/O request finishes and the program is ready to resume, the CPU context switches back to the process to resume its instruction execution.
 
+#### Async I/O 
+
+here is how async I/O works:
+
+1. **send I/O request**: Caller sends a I/O request asynchronously
+2. **nonblocking execution**: Caller can have the CPU execute the rest of its non-I/O synchronous instructions until it gets a response, but how does it check that it got a response?
+3. **check for response**: There are three methods processes can use to check for when the response has completed:
+	- **use `epoll` long polling**: check for the response via long polling via the `epoll` system call
+	- **receiver calls back**: receiver calls back when it's done via the `io_uring` interrupt
+	- **create new synchronous thread for reading the I/O request**: spin up a new thread that synchronously reads the I/O request and then responds back to the main thread with the payload.
+
+> [!NOTE]
+> NodeJS uses the hack to spin up a synchronous thread to handle an async I/O request, so it appears like async execution while all it does is delegate the synchronous work to someone else.
+
+
 #### Threads
 
 The number of threads a CPU can handle varies depending on the CPU architecture. Typically, CPUs can handle threads according to their cores and whether hyper-threading is enabled. 
@@ -97,26 +112,23 @@ The number of promises that can be executed in parallel is not directly tied to 
 4. **Task Handling**: If all worker threads are busy handling tasks, Node.js can still accept new promises and enqueue them to be processed once threads become available. Thus, the number of promises processed simultaneously is not confined to the number of threads the CPU can handle.
 
 In summary, while the number of threads a CPU can manage imposes some limitations on concurrent processing, Node.js utilizes an event-driven approach that allows it to handle many more promises than the strict thread count would suggest.
-#### Async I/O 
 
-here is how async I/O works:
+#### Async/await in NodeJS
 
-1. **send I/O request**: Caller sends a I/O request asynchronously
-2. **nonblocking execution**: Caller can have the CPU execute the rest of its non-I/O synchronous instructions until it gets a response, but how does it check that it got a response?
-3. **check for response**: There are three methods processes can use to check for when the response has completed:
-	- **use `epoll` long polling**: check for the response via long polling via the `epoll` system call
-	- **receiver calls back**: receiver calls back when it's done via the `io_uring` interrupt
-	- **create new synchronous thread for reading the I/O request**: spin up a new thread that synchronously reads the I/O request and then responds back to the main thread with the payload.
+`async` and `await` in Node.js provide a way to work with asynchronous code more intuitively, resembling synchronous execution while still being non-blocking under the hood. Here’s a breakdown of how it works:
 
-> [!NOTE]
-> NodeJS uses the hack to spin up a synchronous thread to handle an async I/O request, so it appears like async execution while all it does is delegate the synchronous work to someone else.
+1. **Async Functions**: When you declare a function as `async`, it will always return a Promise. This allows you to use `await` inside the function to pause execution until the Promise is resolved.
+    
+2. **How Await Works**: When the code execution reaches `await`, it effectively pauses the execution of the function. The rest of the code inside the `async` function will not proceed until the awaited Promise is resolved:
+    - While it appears to block execution in that function, it does **not** block the entire event loop. Other operations and asynchronous tasks can still be processed in the background.
 
-
+3. **Event Loop**: Node.js maintains an event loop that constantly checks for callbacks or pending tasks. When `await` is encountered, the current function's context is "saved" and a callback (that resumes execution) is registered for when the Promise resolves. This allows the event loop to continue handling other requests and tasks, making Node.js highly efficient.
+    
+4. **Comparison with Promises**: With traditional Promises, if you call a function that returns a Promise and then immediately proceed to the next line of code, that next line runs without waiting for the Promise to resolve. In contrast, with `async/await`, the execution pauses until the Promise resolves, thus leading to clearer and more readable code.
 
 
+#### Sync vs Async workloads
 
-
-
-
+Asynchronous backend processing is using a messaging queue to handle long-running requests in a request-response cycle to a server, instead of a client synchronously waiting for a response from a server after processing.
 
 
