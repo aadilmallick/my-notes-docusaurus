@@ -26,12 +26,13 @@ curl http://localhost:4566/_localstack/info | jq
 
 ### Connecting to Localstack
 
+
+#### AWS credential overrides
+
 There are two ways to programmatically use LocalStack with AWS:
 
 1. **CLI**: use the `awslocal` CLI or the `aws` CLI and point environment variables to localstack.
 2. **AWS local profile**: create a dedicated "localstack" profile in your `~/.aws/config` and `~/.aws/credentials` files. Once this is set up, all IaC solutions like Cloudformation, SAM, and AWS CDK will pull the localstack credentials from the localstack profile and be able to work.
-
-#### AWS credential overrides
 
 **method 1: `aws` way with `--endpoint-url`**
 
@@ -175,7 +176,14 @@ lstk update --check
 lstk update
 ```
 
+
 #### `lstk` for emulator management
+
+```bash
+lstk # downloads latest image
+lstk login # authenticates
+lstk start # starts emulator
+```
 
 - `lstk start`: authenticates and starts the emulator.
 - `lstk logs`: view logs from emulator
@@ -299,12 +307,123 @@ The Resource Browser allows you to perform the following actions:
 - **Edit Amplify applications**: Edit the configuration of an existing Amplify application by clicking on the application ID and then clicking **Edit App**.
 - **Delete Amplify applications**: Delete an existing Amplify application by selecting the application, followed by clicking **Actions** and then **Remove Selected**.
 
+### Localstack with Terraform
+
+
+#### using `lstk`
+
+The `lstk terraform` CLI is used as a better `tflocal`, and is a drop-in replacement for the `terraform` CLI.
+
+
+#### using `tflocal`: deprecated
+
+1. Install the `tflocal` wrapper around the `terraform` CLI:
+
+```bash
+brew install terraform-local
+```
+
+2. In a `main.tf` file, override the AWS provider to point to localstack
+
+```hcl
+provider "aws" {
+ access_key = "test"
+ secret_key = "test"
+ region = "us-east-1"
+ skip_credentials_validation = true
+ skip_metadata_api_check = true
+ skip_requesting_account_id = true
+ endpoints {
+   sqs = "http://localhost:4566"
+ }
+}
+```
+
+3. Initialize and apply configuration:
+
+```bash
+tflocal init
+tflocal plan
+tflocal apply
+```
+
+#### EC2
+
+For EC2 instances in localstack, make sure you have these two gotchas covered:
+
+1. **AWS EC2 endpoint is set to localstack endpoint**: make sure that the AWS EC2 endpoint is set to `localhost:4566`. 
+2. **You are using Localstack-compatible AMI**: LocalStack comes shipped with two AMIs that are available for use. You can't use normal Amazon AMI IDs. 
+	- Ubuntu 26.04: `ami-61ad6e59d7b0`
+	- Amazon Linux 2023: `ami-024f768332f0`
+
+Here is an example of all the provider and variable setup:
+
+```hcl
+variable "aws_region" {
+  description = "The AWS region to deploy resources in"
+  type        = string
+  default     = "us-east-1"
+}
+
+provider "aws" {
+  access_key                  = "test"
+  secret_key                  = "test"
+  region                      = var.aws_region
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+  endpoints {
+    sqs                    = "http://localhost:4566"
+    ec2                    = "http://localhost:4566"
+    vpclattice             = "http://localhost:4566"
+    account                = "http://localhost:4566"
+    elasticloadbalancing   = "http://localhost:4566"
+    elasticloadbalancingv2 = "http://localhost:4566"
+    autoscaling            = "http://localhost:4566"
+    applicationautoscaling = "http://localhost:4566"
+    cloudwatch             = "http://localhost:4566"
+  }
+}
+
+variable "aws_localstack_ami_ubuntu" {
+  description = "The AMI ID for the localstack Ubuntu image"
+  type        = string
+  default     = "ami-61ad6e59d7b0" // localstack ubuntu AMI
+}
+
+variable "aws_localstack_ami_amazon_linux" {
+  description = "The AMI ID for the localstack Amazon Linux image"
+  type        = string
+  default     = "ami-024f768332f0" // localstack amazon linux AMI
+}
+
+variable "ec2_instance_config" {
+  type = object({
+    instance_type = string
+    ami           = string
+    tags          = map(string)
+  })
+
+  description = "Configuration for the EC2 instance"
+
+  default = {
+    instance_type = "t2.micro"
+    ami           =  "ami-61ad6e59d7b0"
+    tags = {
+      Name = "HelloWorld"
+    }
+  }
+}
+```
+
+
 
 ### Examples
 
 #### Creating Lambdas and SNS with aws CLI
 
-The `000000000000` is the AWS account ID for localstack, because since you're developing locally, 
+> [!NOTE]
+> The `000000000000` is the AWS account ID for localstack.
 
 ```bash
 #!/bin/bash
@@ -341,7 +460,85 @@ awslocal lambda create-function-url-config \
     --auth-type NONE
 ```
 
+#### Lambda with dynamoDB CLI
 
+1. Write the code in Python using `boto3` to handle DynamoDB and lambda code:
+
+```python title="/tmp/localstack-demo/handler.py"
+import json, boto3, os, uuid
+
+def handler(event, context):
+	# 1. get table
+    table = boto3.resource('dynamodb').Table(os.environ['TABLE_NAME'])
+    # 2. get HTTP method
+    method = event
+			    .get('requestContext', {}) \
+			    .get('http', {}) \
+			    .get('method', 'GET')
+    # 3. if Function URL POST, or direct invoke (e.g. Resource Browser) with a message
+    if method == 'POST' or 'message' in event:
+        data = json.loads(event.get('body', '{}')) if method == 'POST' else event
+        # add an item to the table
+        item = {'id': str(uuid.uuid4()), **data}
+        table.put_item(Item=item)
+        return {'statusCode': 200, 'body': json.dumps(item)}
+        
+    # 4. on GET, return all items in table
+    result = table.scan()
+    return {'statusCode': 200, 'body': json.dumps(result['Items'])}
+```
+
+2. Create the dynamoDB table:
+
+```bash
+lstk aws dynamodb create-table \
+  --table-name Messages \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST
+```
+
+3. Deploy the lambda function:
+
+```bash
+lstk aws lambda create-function \
+  --function-name messages-api \
+  --runtime python3.12 \
+  --handler handler.handler \
+  --zip-file fileb:///tmp/localstack-demo/handler.zip \
+  --role arn:aws:iam::000000000000:role/lambda-role \
+  --environment Variables={TABLE_NAME=Messages}
+
+lstk aws lambda wait function-active --function-name messages-api
+```
+
+4. Configure a function URL and retrieve the endpoint:
+
+```bash
+lstk aws lambda create-function-url-config \
+  --function-name messages-api \
+  --auth-type NONE
+
+LAMBDA_URL=$(lstk aws lambda list-function-url-configs \
+  --function-name messages-api \
+  --query 'FunctionUrlConfigs[0].FunctionUrl' \
+  --output text)
+  
+echo $LAMBDA_URL
+```
+
+5. Test the lambda
+
+
+```bash
+# 1. make a POST request to the lambda
+curl -X POST "$LAMBDA_URL" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello, LocalStack!"}'
+
+# 2. make a get request to the lambda
+curl "$LAMBDA_URL"
+```
 ## Localemu
 
 ### Installation
@@ -511,3 +708,30 @@ The dashboard shows:
 - **Live activity feed** showing API calls as they happen, filterable by service
 
 The dashboard starts automatically with LocalEmu. No configuration needed.
+
+### LocalEmu with Amplify
+
+### LocalEmu with Terraform
+
+#### Setup
+
+1. Start the emulator with `localemu start`
+2. Point the AWS provider endpoints to `http://localhost:4566`
+
+```hcl
+provider "aws" {
+  access_key                  = "AKIAIOSFODNN7EXAMPLE"
+  secret_key                  = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  region                      = "us-east-1"
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+
+  endpoints {
+    s3       = "http://localhost:4566"
+    dynamodb = "http://localhost:4566"
+    lambda   = "http://localhost:4566"
+    sqs      = "http://localhost:4566"
+    # all services on the same endpoint
+  }
+}
+```
