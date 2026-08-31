@@ -177,23 +177,39 @@ lstk update
 ```
 
 
-#### `lstk` for emulator management
-
-```bash
-lstk # downloads latest image
-lstk login # authenticates
-lstk start # starts emulator
-```
-
-- `lstk start`: authenticates and starts the emulator.
-- `lstk logs`: view logs from emulator
-
 #### `lstk` drop-ins
 
 The amazing thing about `lstk` is that it covers drop-in replacements for all sorts of tools with a single CLI:
 
 - `lstk aws`: the `lstk aws` CLI is a drop-in replacement wrapper for the `aws` CLI, where all AWS CLI actions now are applied to the localstack backend.
 - `lstk terraform`: the `lstk terraform` CLI is a drop-in replacement wrapper for the `terraform` CLI, where all AWS CLI actions now are applied to the terraform backend.
+- `lstk cdk`: drop-in replacement for the `cdk` package
+- `lstk sam`: drop-in replacement for the `sam` package.
+
+#### Connecting to AWS
+
+`lstk aws` proxies your host `aws` CLI with the endpoint, credentials, and region pre-configured, so you don’t have to pass `--endpoint-url` or set test credentials yourself.
+
+
+```bash
+lstk aws s3 ls
+lstk aws sqs list-queues
+lstk aws s3 mb s3://my-bucket
+```
+
+It is equivalent to running with `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` and the `--endpoint-url` flag set automatically:
+
+
+```bash
+aws --endpoint-url http://localhost:4566 <args>
+```
+
+
+
+`lstk aws` injects credentials in one of two ways:
+
+- **Profile mode**: if a complete `localstack` profile exists in both `~/.aws/config` and `~/.aws/credentials`, `lstk` appends `--profile localstack` and lets `aws` read the region, credentials, and endpoint from that profile.
+- **Profile-less mode**: if the profile is not present, `lstk` runs `aws` with `AWS_ACCESS_KEY_ID=test`, `AWS_SECRET_ACCESS_KEY=test`, and `AWS_DEFAULT_REGION=us-east-1` injected only when those variables are not already set in your environment.
 
 #### `lstk` config
 
@@ -218,6 +234,24 @@ Here are the important vars you need to know:
 - `DEBUG`: **Type is (0 or 1, boolean)**. If set to 1/true, then enables verbose logging, which is helpful for debugging.
 ##### Environment variable method
 
+Since `lstk start` forwards host environment variables prefixed with `LOCALSTACK_` to the emulator, for all of the possible env vars to set, if you are doing it the manual way, you must prefix those vars with `LOCALSTACK_`:
+
+```bash
+# run lstk start with persistence
+LOCALSTACK_PERSISTENCE=1 lstk start
+```
+
+`lstk` injects several environment variables into the LocalStack container on every start, in addition to any profiles you configure:
+
+| Variable                    | Default value                            | Description                                      |
+| --------------------------- | ---------------------------------------- | ------------------------------------------------ |
+| `LOCALSTACK_AUTH_TOKEN`     | (your resolved token)                    | Passed from the CLI to activate the license.     |
+| `GATEWAY_LISTEN`            | `:4566,:443`                             | Ports the emulator binds inside the container.   |
+| `MAIN_CONTAINER_NAME`       | `localstack-aws`                         | Container name for internal references.          |
+| `LOCALSTACK_HOST`           | `localhost.localstack.cloud:<host port>` | Hostname/port the emulator advertises.           |
+| `LOCALSTACK_PERSISTENCE`    | `1` (only with `--persist`)              | Enables state persistence across restarts.       |
+| `LOCALSTACK_CLIENT_NAME`    | `lstk`                                   | Identifies the client that started the emulator. |
+| `LOCALSTACK_CLIENT_VERSION` | (the `lstk` version)                     | Version of the client that started the emulator. |
 ##### Config basics
 
 `lstk` uses a TOML configuration file, created automatically on first run.
@@ -327,7 +361,7 @@ If passing environment variables manually isn't your thing, you can use **enviro
 
 Define reusable environment profiles under `[env.<name>]` and reference them in your container config:
 
-```toml
+```toml title=".lstk/config.toml"
 [[containers]]
 type = "aws"
 tag  = "latest"
@@ -346,9 +380,104 @@ SERVICES = "s3,sqs"
 EAGER_SERVICE_LOADING = "1"
 ```
 
-When `lstk start` runs, the key-value pairs from each referenced profile are injected as environment variables into the LocalStack container. Keys are uppercased automatically.
+When `lstk start` runs, the key-value pairs from each referenced profile are injected as environment variables into the LocalStack container. 
 
-#### deprecated `localstack` CLI
+- Keys are uppercased automatically.
+- This is most useful for project-level overrides, when you have `.lstk/config.toml` in the CWD and then you override with certain environment variables that are automatically loaded.
+
+#### `lstk` emulator management commands
+
+```bash
+lstk # downloads latest image
+lstk login # authenticates
+lstk start # starts emulator
+```
+
+- `lstk start`: authenticates and starts the emulator.
+- `lstk logs`: view logs from emulator
+
+##### `lstk start`
+
+The `lstk start` command starts the LocalStack emulator. 
+
+- Launches the TUI in interactive terminals and prints plain output otherwise. 
+- `lstk start` launches the emulator defined in the first `[[containers]]` entry of the resolved `config.toml` (not necessarily AWS).
+
+
+```bash
+lstk start
+lstk start --persist
+lstk start --non-interactive
+```
+
+| Option                       | Description                                                                                                                                                                                                                                                                        |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--persist`                  | Persist emulator state across restarts (sets `LOCALSTACK_PERSISTENCE=1` in the container)                                                                                                                                                                                          |
+| `--type <type>`, `-t <type>` | Select the emulator to start (`aws`, `snowflake`, or `azure`) non-interactively, recording the choice in `config.toml`. See [Selecting the emulator with `--type`](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/#selecting-the-emulator-with---type). |
+| `--snapshot <REF>`           | Auto-load this snapshot after the emulator starts, overriding the configured `snapshot` for one run (AWS only)                                                                                                                                                                     |
+| `--no-snapshot`              | Skip auto-loading the configured `snapshot` for this run                                                                                                                                                                                                                           |
+| `--timeout <duration>`       | Maximum time to wait for the emulator to become ready, as a Go duration (e.g. `90s`, `2m`). Overrides `LSTK_STARTUP_TIMEOUT` for this run; `0` uses the per-mode default.                                                                                                          |
+| `--non-interactive`          | Disable the interactive TUI and use plain output                                                                                                                                                                                                                                   |
+
+> [!NOTE]
+> `lstk start` forwards host environment variables prefixed with `LOCALSTACK_` to the emulator
+
+**enabling persistence**
+
+By default the emulator starts with a fresh state on every run. 
+
+- Pass `--persist` to keep data across restarts: `lstk` injects `LOCALSTACK_PERSISTENCE=1` into the container so state is written to the mounted [`volume`](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/#config-field-reference) and reloaded on the next start. 
+- When persistence is active, the AWS emulator’s startup summary includes a `• Persistence: Enabled` line.
+
+```bash
+# Start with persistent state
+lstk start --persist
+```
+
+##### `lstk restart`
+
+The `lstk restart` command stops the localstack emulator container and then restarts it, pulling in any fresh config changes.
+
+```bash
+lstk restart
+lstk restart --persist
+```
+
+By default, emulator state is **not** retained across the restart and the container starts clean. Pass `--persist` to keep the emulator’s state so it survives the restart.
+
+##### `lstk status`
+
+Show the status of a running emulator and its deployed resources.
+
+```bash
+lstk status
+lstk --non-interactive status
+```
+
+##### `lstk logs`
+
+Show or stream emulator logs:
+
+```bash
+lstk logs [options]
+```
+
+| Option                 | Description                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--follow`, `-f`       | Stream logs in real-time. Without this flag, `lstk` prints the currently available logs and exits.                                                      |
+| `--verbose`, `-v`      | Show all logs without filtering. By default, `lstk` drops noisy lines (internal request logs, provider chatter); `--verbose` shows every line verbatim. |
+| `--tail <N>`, `-n <N>` | Show only the last `N` lines from the end of the logs. Accepts a non-negative integer or `all` (the default, showing all available lines).              |
+#### Logging in localstack
+
+
+`lstk` writes its own diagnostic logs to `lstk.log` in the same directory as the active config file. This is separate from the LocalStack container logs (which you view with `lstk logs`).
+
+- The log file is created automatically and appended to across runs.
+- When the file exceeds **1 MB**, it is cleared on the next run.
+- Use `lstk config path` to find the config directory; `lstk.log` sits alongside `config.toml`.
+
+#### `lstk` CI/CD
+### deprecated `localstack` CLI
 
 > [!NOTE]
 > [`lstk`](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/) is our new Go-based CLI with an interactive terminal UI for lifecycle (`start`, `stop`), monitoring (`status`, `logs`), storage (`snapshot`), and more.
@@ -357,6 +486,8 @@ Here are the basic `localstack` CLI commands:
 
 - `localstack start`: starts localstack on `localhost:4566`
 - `localstack logs`: views the logs on localstack
+
+
 ### Localstack VSCode extension development
 
 Read this for more info:
@@ -459,34 +590,53 @@ lstk aws bedrock-runtime converse \
 ```
 ### Localstack with CDK
 
-To run localstack with CDK, use the `cdklocal` command as a drop-in replacement for the `cdk` package.
+To run localstack with CDK, use the `lstk cdk` drop-in replacment:
 
 ```bash
-npm install -g aws-cdk-local aws-cdk
-cdklocal --version
+lstk cdk bootstrap
+lstk cdk --region us-west-1 deploy
+lstk cdk synth
 ```
 
-
-
-#### Connecting to CDK
-
-Before doing anything with CDK and starting a new project, you must have a fresh slate. You can do this by stopping localstack and then restarting the cloud instance of localstack.
-
-To connect to CDK, you can follow these patterns:
-
-**method 1: connect to AWS localstack profile**
-
-1. Run the `cdklocal init app --language typescript` to scaffold the boilerplate.
-2. Export these environment variables:
+1. Setup a `localstack` profile in your AWS profile and credentials, if you haven't done so already:
 
 ```bash
-export AWS_PROFILE=localstack
-export AWS_ACCESS_KEY_ID="test"
-export AWS_SECRET_ACCESS_KEY="test"
-export AWS_DEFAULT_REGION="us-east-1"
+lstk setup aws
 ```
 
-3. Now run the `cdklocal bootstrap` command to setup resources.
+2. Bootstrap the app
+
+```bash
+lstk cdk bootstrap
+```
+
+### Localstack with SAM
+
+Use `lstk sam` as a drop-in replacement to run the AWS SAM CLI against LocalStack.
+
+> [!IMPORTANT]
+> Requires the AWS SAM CLI version `1.95.0` or newer on your `PATH` (older versions ignore `AWS_ENDPOINT_URL` and would target real AWS).
+
+
+```bash
+lstk sam build
+lstk sam --region us-west-2 deploy
+lstk sam validate
+```
+
+The `lstk sam` is syntactic sugar over providing the following configuration:
+
+- `--region <region>` (default `us-east-1`)
+- `--account <id>` (12 digits, default `000000000000`). 
+- Relevant environment variables: 
+	- `AWS_ENDPOINT_URL`
+	- `AWS_ENDPOINT_URL_S3`
+	- `LSTK_SAM_CMD` (default `sam`)
+	- `AWS_REGION` (fallback for `--region`)
+	- `AWS_ACCESS_KEY_ID` (fallback for `--account`).
+
+> [!NOTE]
+> Compared with `samlocal`, image/container-based Lambda (ECR) deploys and nested CloudFormation stacks are not supported; use `samlocal` for those workflows.
 
 ### Localstack with Amplify
 
@@ -756,6 +906,72 @@ curl -X POST "$LAMBDA_URL" \
 # 2. make a get request to the lambda
 curl "$LAMBDA_URL"
 ```
+
+## Advanced LocalStack
+
+### Localstack Cloud pods
+
+LocalStack Cloud pods allow you to save your LocalStack state and storage and share it on the cloud so other teammates can use the exact same configuration and storage and provisioned resources.
+
+Use the `lstk snapshot` CLI to manage cloud pods, also called emulator snapshots.
+
+ A snapshot captures the running emulator’s state, either as a local file on disk, as a Cloud Pod on the LocalStack platform, or in your own S3 bucket. 
+ 
+ The `lstk snapshot` command groups five subcommands — `save`, `load`, `list`, `remove`, and `show`. 
+
+- `lstk save`: Save a snapshot of the currently running emulator’s state. The emulator must already be running; this command does **not** auto-start it.
+- `lstk load`: Load a snapshot into the emulator, **auto-starting it first** if it is not already running.
+- `lstk snapshot list`: List the Cloud Pod snapshots available on the LocalStack platform.
+	- By default, only snapshots you created are listed; pass `--all` to include every snapshot in your organization. 
+	- This subcommand operates on Cloud Pods, so it requires authentication.
+- `lstk snapshot remove`: Delete a Cloud Pod snapshot from the LocalStack platform. Only cloud snapshots (the `pod:` prefix) can be removed; local snapshots are plain files you delete yourself. 
+	- This operation cannot be undone.
+- `lstk snapshot show`: Show metadata for a single Cloud Pod snapshot on the LocalStack platform: its name, created date, size, LocalStack version, message, the services it contains, and per-service resource counts (resource counts render only when the platform has them for that snapshot). 
+	- This subcommand is cloud-only and requires authentication.
+ 
+
+> [!NOTE]
+>  The first two are also exposed as the top-level aliases `lstk save` and `lstk load`.
+
+
+#### Auto-loading snapshot on start
+
+For the **AWS emulator**, you can have `lstk` load a snapshot automatically every time it starts the emulator via overriding the lstk config.
+
+1. Set the `snapshot` field on the container block to any load REF (a `pod:<name>` Cloud Pod or a local path):
+
+```toml title=".lstk/config.toml"
+[[containers]]
+type     = "aws"
+port     = "4566"
+snapshot = "pod:my-baseline"
+```
+
+2. The snapshot is loaded only when the emulator is **freshly started** this run; if it is already running, the auto-load is skipped. Override it for a single run with `--snapshot REF`, or skip it entirely with `--no-snapshot`:
+
+```bash
+# Start and load a different snapshot for this run only
+lstk start --snapshot pod:other-baseline
+
+# Start without loading the configured snapshot
+lstk start --no-snapshot
+```
+
+#### Cloud pods in CI/CD
+
+The great thing about cloud pods is that they save you time from having to wait for provisioning resources, which may take several minutes and thus cost you expensive runner time when running your CI/CD pipeline to provision those resources and then test them.
+
+Cloud pods avoid most of the time spent syncing by skipping the provisioning of resources, allowing you to just test a preloaded provisioned environment and go off of that to save time in your GitHub Actions.
+
+Here are the steps to take to enable cloud pods in your CI/CD environment:
+
+1. Create a github action that installs and runs the `lstk snapshot` CLI to load a snapshot:
+
+```yaml
+```
+
+### Chaos Engineering
+
 ## Localemu
 
 ### Installation
