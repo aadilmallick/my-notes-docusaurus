@@ -16,12 +16,7 @@ All the different ways to use LocalStack require the same thing: an **auth token
 There are two ways to supply an auth token:
 
 1. **env var method**: export the `LOCALSTACK_AUTH_TOKEN` environment variable into the shell session before interacting with the CLI
-2. **CLI way**: use the `localstack` CLI to run the `localstack auth set-token` command to set your auth token for localstack and gain permanent authentication:
-
-```bash
-localstack auth set-token <YOUR_AUTH_TOKEN>
-localstack start
-```
+2. **CLI way**: run the `lstk` CLI to authenticate.
 
 To debug if the localstack process is currently running, you can make a curl request to `localhost:4566`, which is the port the localhost process runs on.
 
@@ -35,6 +30,8 @@ There are two ways to programmatically use LocalStack with AWS:
 
 1. **CLI**: use the `awslocal` CLI or the `aws` CLI and point environment variables to localstack.
 2. **AWS local profile**: create a dedicated "localstack" profile in your `~/.aws/config` and `~/.aws/credentials` files. Once this is set up, all IaC solutions like Cloudformation, SAM, and AWS CDK will pull the localstack credentials from the localstack profile and be able to work.
+
+#### AWS credential overrides
 
 **method 1: `aws` way with `--endpoint-url`**
 
@@ -91,19 +88,107 @@ pip install awscli-local[ver1] # installs version compatiable of v1 of AWS CLI
 ```
 
 
+#### Docker compose
+
+Use Docker Compose when you want a reusable configuration file that can be shared across a team or checked into a project repository. Create a `docker-compose.yml` with the following configuration:
+
+```yaml
+services:
+  localstack:
+    container_name: '${LOCALSTACK_DOCKER_NAME:-localstack-main}'
+    image: localstack/localstack
+    ports:
+      - '127.0.0.1:4566:4566' # LocalStack Gateway
+      - '127.0.0.1:4510-4559:4510-4559' # external services port range
+      - '127.0.0.1:443:443' # LocalStack HTTPS Gateway
+    environment:
+      # Activate LocalStack for AWS: https://docs.localstack.cloud/getting-started/auth-token/
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?}
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - DEBUG=${DEBUG:-0}
+      - PERSISTENCE=${PERSISTENCE:-0}
+    volumes:
+      - '${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+```
 
 
+Execute `docker compose up` to start.
 
-### Localstack CLI
+
+#### Docker CLI
+
+Use the Docker CLI for one-off starts or when you want to test a container configuration before moving it into Compose:
+
+```bash
+docker run \
+  --rm -it \
+  -p 127.0.0.1:4566:4566 \
+  -p 127.0.0.1:4510-4559:4510-4559 \
+  -p 127.0.0.1:443:443 \
+  -e LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?} \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack
+```
+
+The Docker Compose and Docker CLI examples above use the same runtime settings:
+
+- The `4566` port exposes the LocalStack Gateway.
+- The `4510-4559` range exposes external service ports used by services that bind additional endpoints.
+- The `443` port exposes the LocalStack HTTPS Gateway.
+- The Docker socket mount is required for services that start additional containers, such as Lambda.
+- Docker reuses a local image if one already exists. Pull explicitly or pin an image tag, such as `localstack/localstack:<version>`, when you need reproducible CI or team environments.
+- If you use Docker bridge networking, container name resolution may not work as expected from other containers. Prefer the default LocalStack networking setup unless you have a specific reason to customize it.
+- Configuration variables can be prefixed with `LOCALSTACK_` in Docker. For instance, setting `LOCALSTACK_PERSISTENCE=1` is equivalent to `PERSISTENCE=1`.
+### `lstk` CLI
+
+`lstk` is a high-performance command-line interface for LocalStack, built in Go. It provides a built-in terminal UI (TUI) for interactive use and plain text output for CI/CD pipelines and scripting.
+
+`lstk` handles the full emulator lifecycle: authentication, pulling the Docker image, starting, stopping, and restarting the container, streaming logs, and checking status. 
+
+- It can also save and load emulator state (as local snapshots or Cloud Pods) reset running state, run AWS CLI commands against the emulator, and manage the on-disk volume.
+- Running `lstk` with no arguments takes you through the entire startup flow automatically.
+
+`lstk` also proxies developer tools so they run directly against LocalStack: the AWS CLI (`lstk aws`), the Azure CLI (`lstk az`), Terraform (`lstk terraform`), the AWS CDK (`lstk cdk`), and the AWS SAM CLI (`lstk sam`).
+
+#### Installation and updating
+
+Here's how to install with brew:
+
+```bash
+brew install localstack/tap/lstk
+```
+
+Here's how to install with npm globally
+
+```bash
+npm install -g @localstack/lstk
+```
+
+You can then update with `lstk update`:
+
+```bash
+# Check for updates without installing
+lstk update --check
+
+# Update to the latest version
+lstk update
+```
+
+#### `lstk` for emulator management
+
+- `lstk start`: authenticates and starts the emulator.
+- `lstk logs`: view logs from emulator
+
+#### deprecated `localstack` CLI
+
+> [!NOTE]
+> [`lstk`](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/) is our new Go-based CLI with an interactive terminal UI for lifecycle (`start`, `stop`), monitoring (`status`, `logs`), storage (`snapshot`), and more.
 
 Here are the basic `localstack` CLI commands:
 
 - `localstack start`: starts localstack on `localhost:4566`
 - `localstack logs`: views the logs on localstack
-
-
-
-
 ### Localstack VSCode extension development
 
 Read this for more info:
@@ -180,6 +265,8 @@ export AWS_DEFAULT_REGION="us-east-1"
 
 ### Localstack with Amplify
 
+#### Installation and setup
+
 [Amplify LocalStack Plugin](https://github.com/localstack/amplify-localstack) allows the `amplify` CLI tool to create resources on your local machine instead of AWS. It achieves this by redirecting any requests to AWS to a LocalStack container running locally on your machine.
 
 To install the Amplify LocalStack Plugin, install the [amplify-localstack](https://www.npmjs.com/package/amplify-localstack) package from the npm registry and add the plugin to your Amplify setup:
@@ -188,6 +275,30 @@ To install the Amplify LocalStack Plugin, install the [amplify-localstack](http
 npm install -g amplify-localstack
 amplify plugin add amplify-localstack
 ```
+
+After installing the plugin, you can deploy your resources to LocalStack using the `amplify init` or `amplify push` commands. The console will prompt you to select whether to deploy to LocalStack or AWS.
+
+You can also add the parameter `--use-localstack true` to your commands to avoid being prompted and automatically use LocalStack. Here is an example:
+
+```bash
+amplify init --use-localstack true
+amplify add api
+amplify push --use-localstack true
+```
+
+#### Resource browser
+
+The LocalStack Web Application provides a Resource Browser for managing Amplify applications. You can access the Resource Browser by opening the LocalStack Web Application in your browser, navigating to the **Resource Browser** section, and then clicking on **Amplify** under the **Front-end Web & Mobile** section.
+
+![](https://docs.localstack.cloud/images/aws/amplify-resource-browser.png)
+
+The Resource Browser allows you to perform the following actions:
+
+- **Create new Amplify applications**: Create new Amplify applications by clicking **Create App** and filling in the required details.
+- **View Amplify applications**: View the list of Amplify applications created in LocalStack by clicking on the application ID.
+- **Edit Amplify applications**: Edit the configuration of an existing Amplify application by clicking on the application ID and then clicking **Edit App**.
+- **Delete Amplify applications**: Delete an existing Amplify application by selecting the application, followed by clicking **Actions** and then **Remove Selected**.
+
 
 ### Examples
 
