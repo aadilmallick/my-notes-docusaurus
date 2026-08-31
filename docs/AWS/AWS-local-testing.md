@@ -245,8 +245,21 @@ localemu start
 
 ### CLI
 
+```
+Commands:
+  export    Export running LocalEmu state to deployable Terraform /...
+  import    Replay a snapshot into a LocalEmu or AWS endpoint.
+  services  List supported services, or show operations for a specific...
+  ssh       SSH into a Docker-backed EC2 instance.
+  start     Start LocalEmu.
+  status    Check LocalEmu status and running services.
+  stop      Stop LocalEmu.
+  vpc-ip    Show the addressing-redesign view of a container or instance.
+```
+
 - `localemu start`: start the emulator
 - `localemu stop`: stop the emulator
+- `localemu services`: List supported services
 ### AWSEMU
 
 `awsemu` is a thin wrapper around the standard AWS CLI. When you run any `awsemu` command, it automatically sets:
