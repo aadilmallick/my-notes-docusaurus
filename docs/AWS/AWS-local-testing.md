@@ -178,6 +178,16 @@ export AWS_DEFAULT_REGION="us-east-1"
 
 3. Now run the `cdklocal bootstrap` command to setup resources.
 
+### Localstack with Amplify
+
+[Amplify LocalStack Plugin](https://github.com/localstack/amplify-localstack) allows the `amplify` CLI tool to create resources on your local machine instead of AWS. It achieves this by redirecting any requests to AWS to a LocalStack container running locally on your machine.
+
+To install the Amplify LocalStack Plugin, install the [amplify-localstack](https://www.npmjs.com/package/amplify-localstack) package from the npm registry and add the plugin to your Amplify setup:
+
+```bash
+npm install -g amplify-localstack
+amplify plugin add amplify-localstack
+```
 
 ### Examples
 
