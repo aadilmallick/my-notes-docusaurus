@@ -222,3 +222,65 @@ awslocal lambda create-function-url-config \
 
 
 ## Localemu
+
+### Installation
+
+1. Install `pipx` to manage global packages for you
+
+```
+brew install pipx
+```
+
+2. Use `pipx` to install `localemu`
+
+```
+pipx install localemu
+```
+
+3. Start localemu
+
+```bash
+localemu start
+```
+
+### CLI
+
+- `localemu start`: start the emulator
+- `localemu stop`: stop the emulator
+### AWSEMU
+
+`awsemu` is a thin wrapper around the standard AWS CLI. When you run any `awsemu` command, it automatically sets:
+
+- *`--endpoint-url=http://localhost:4566`
+- *`AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE`
+- *`AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`
+- *`AWS_DEFAULT_REGION=us-east-1`
+
+> [!NOTE]
+> Every AWS CLI command works with `awsemu`. Just replace `aws` with `awsemu`.
+
+
+```bash
+# Without awsemu (verbose, error-prone)
+$ aws --endpoint-url=http://localhost:4566 \
+    --region us-east-1 \
+    s3 ls
+
+# With awsemu (same result, zero config)
+$ awsemu s3 ls
+```
+
+```bash
+$ awsemu s3 mb s3://my-bucket
+make_bucket: my-bucket
+
+$ awsemu dynamodb create-table --table-name Users \
+    --key-schema AttributeName=id,KeyType=HASH \
+    --attribute-definitions AttributeName=id,AttributeType=S \
+    --billing-mode PAY_PER_REQUEST
+TableStatus: ACTIVE
+
+$ awsemu sqs create-queue --queue-name my-queue
+QueueUrl: http://sqs.us-east-1.localhost:4566/000000000000/my-queue
+```
+

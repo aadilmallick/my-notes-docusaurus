@@ -2530,8 +2530,10 @@ jobs:
 
 
 
-## Terraform with localstack
-### Setup
+## Terraform locally
+
+### Localstack
+#### Setup
 
 1. Install the `tflocal` wrapper around the `terraform` CLI:
 
@@ -2563,7 +2565,7 @@ tflocal plan
 tflocal apply
 ```
 
-### EC2
+#### EC2
 
 For EC2 instances in localstack, make sure you have these two gotchas covered:
 
@@ -2632,6 +2634,13 @@ variable "ec2_instance_config" {
 }
 ```
 
+
+### LocalEmu
+
+#### Setup
+
+1. Start the emulator with `localemu start`
+2. 
 ## Terragrunt
 
 
