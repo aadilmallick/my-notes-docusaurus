@@ -2640,7 +2640,25 @@ variable "ec2_instance_config" {
 #### Setup
 
 1. Start the emulator with `localemu start`
-2. 
+2. Point the AWS provider endpoints to `http://localhost:4566`
+
+```hcl
+provider "aws" {
+  access_key                  = "AKIAIOSFODNN7EXAMPLE"
+  secret_key                  = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  region                      = "us-east-1"
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+
+  endpoints {
+    s3       = "http://localhost:4566"
+    dynamodb = "http://localhost:4566"
+    lambda   = "http://localhost:4566"
+    sqs      = "http://localhost:4566"
+    # all services on the same endpoint
+  }
+}
+```
 ## Terragrunt
 
 

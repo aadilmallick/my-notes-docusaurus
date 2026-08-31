@@ -237,7 +237,16 @@ brew install pipx
 pipx install localemu
 ```
 
-3. Start localemu
+3. Set these environment variables in your current shell session
+
+```bash
+export AWS_ENDPOINT_URL="http://localhost:4566"
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+4. Start localemu
 
 ```bash
 localemu start
@@ -276,6 +285,13 @@ localemu status
 
 # Stop
 localemu stop
+```
+
+By default, LocalEmu state is ephemeral. To keep your resources across restarts:
+
+```bash
+# Local
+PERSISTENCE=1 localemu start
 ```
 ### AWSEMU
 
