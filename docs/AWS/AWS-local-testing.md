@@ -225,6 +225,46 @@ awslocal lambda create-function-url-config \
 
 ### Installation
 
+#### Virtual environment method
+
+1. Create a virtual environment using the Python version as Python 3.12
+
+```bash
+uv --python 3.12 venv .venv
+```
+
+2. Activate the virtual environment
+
+```bash
+source .venv/bin/activate
+```
+
+3. Install localemu v1.2.0 into the virtual environment
+
+```bash
+uv pip install "localemu==1.2.0"
+```
+
+Now follow the verification steps:
+
+1. List and find `localemu` in the isntalled packages within the virtual environment:
+
+```bash
+pip list
+pip show localemu
+```
+
+2. Deactivate the virtual environment once done with using localemu.
+
+```bash
+deactivate
+```
+
+
+#### `uv` method
+
+#### `pipx` method
+
 1. Install `pipx` to manage global packages for you
 
 ```
@@ -237,7 +277,10 @@ brew install pipx
 pipx install localemu
 ```
 
-3. Set these environment variables in your current shell session
+
+### Setup
+
+1. Set these environment variables in your current shell session
 
 ```bash
 export AWS_ENDPOINT_URL="http://localhost:4566"
@@ -246,7 +289,7 @@ export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 export AWS_DEFAULT_REGION="us-east-1"
 ```
 
-4. Start localemu
+2. Start localemu
 
 ```bash
 localemu start
