@@ -259,7 +259,24 @@ Commands:
 
 - `localemu start`: start the emulator
 - `localemu stop`: stop the emulator
+- `localemu status`: check emulator status
 - `localemu services`: List supported services
+
+```bash
+# List all supported services
+localemu services
+
+# Show operations for a specific service
+localemu services s3
+localemu services lambda
+localemu services dynamodb
+
+# Check running services
+localemu status
+
+# Stop
+localemu stop
+```
 ### AWSEMU
 
 `awsemu` is a thin wrapper around the standard AWS CLI. When you run any `awsemu` command, it automatically sets:
@@ -297,3 +314,20 @@ $ awsemu sqs create-queue --queue-name my-queue
 QueueUrl: http://sqs.us-east-1.localhost:4566/000000000000/my-queue
 ```
 
+### LocalEmu dashboard
+
+LocalEmu includes a built-in web dashboard for monitoring and exploring your local AWS environment in real time.
+
+```
+http://localhost:4566/_localemu/dashboard
+```
+
+The dashboard shows:
+
+- **Service overview** with resource counts and status indicators for all active services
+- **Resource drill-down**: click any service to see tables, buckets, queues, functions, instances, and more
+- **S3 object browser** and **DynamoDB item viewer** with click-through navigation
+- **CloudTrail event history** with expandable request/response details
+- **Live activity feed** showing API calls as they happen, filterable by service
+
+The dashboard starts automatically with LocalEmu. No configuration needed.
