@@ -188,6 +188,166 @@ lstk start # starts emulator
 - `lstk start`: authenticates and starts the emulator.
 - `lstk logs`: view logs from emulator
 
+#### `lstk` drop-ins
+
+The amazing thing about `lstk` is that it covers drop-in replacements for all sorts of tools with a single CLI:
+
+- `lstk aws`: the `lstk aws` CLI is a drop-in replacement wrapper for the `aws` CLI, where all AWS CLI actions now are applied to the localstack backend.
+- `lstk terraform`: the `lstk terraform` CLI is a drop-in replacement wrapper for the `terraform` CLI, where all AWS CLI actions now are applied to the terraform backend.
+
+#### `lstk` config
+
+You can configure the behavior of the emulator and emulated services with changing the localstack config, of which there are two ways to do so:
+
+1. **pass in environment variables when starting localstack**: when running `lstk start`, you can export environment variables into the current shell session so localstack reads those env vars and uses it as config overrides:
+
+```bash
+BEDROCK_PREWARM=1 lstk start
+```
+
+2. **change the lstk TOML**: You can retrieve the path to the global `lstk` config through the `lstk config path` command, or use a project-scoped TOML that overrides the global one.
+
+```bash
+vi $(lstk config path)
+```
+
+Here are the important vars you need to know:
+
+- `BEDROCK_PREWARM`: **Type is (0 or 1, boolean)**. If set to 1/true, then prewarms the local bedrock service so there are no cold starts when calling the AI models.
+- `PERSISTENCE`: **Type is (0 or 1, boolean)**. If set to 1/true, then persists data in Localstack like emulated cloud resources across restarts using a volume.
+- `DEBUG`: **Type is (0 or 1, boolean)**. If set to 1/true, then enables verbose logging, which is helpful for debugging.
+##### Environment variable method
+
+##### Config basics
+
+`lstk` uses a TOML configuration file, created automatically on first run.
+
+`lstk` uses the first `config.toml` it finds in this order:
+
+1. `./.lstk/config.toml`: project-local config in the current directory.
+2. `$HOME/.config/lstk/config.toml`: user config (created here if `$HOME/.config/` exists).
+
+To see the global active config file path:
+
+
+```bash
+lstk config path
+```
+
+To use a specific config file, pass the `--config <config-filepath>`  flag when using the `lstk` CLI.
+
+
+```bash
+lstk --config /path/to/config.toml start
+```
+
+This is what the default `config.toml` looks like:
+
+```bash
+# lstk configuration file
+# Run 'lstk config path' to see where this file lives.
+
+# Each [[containers]] block defines an emulator instance.
+# Only one [[containers]] block may be enabled at a time — running multiple
+# emulators together (e.g. AWS and Snowflake) is not supported yet, so
+# 'lstk start' refuses to start with more than one block.
+
+[[containers]]
+type = "aws"     # Emulator type. Currently supported: "aws", "snowflake", "azure"
+tag  = "latest"  # Docker image tag, e.g. "latest", "2026.4"
+port = "4566"    # Host port the emulator will be accessible on
+# container_name = ""   # Container name (default: "localstack-<type>", plus "-<tag>"
+#                # when tag is not "latest"). Set it when something outside lstk
+#                # addresses the emulator by a fixed name, e.g. a sidecar proxy on a
+#                # CI agent. It is also what the emulator reports as MAIN_CONTAINER_NAME.
+# image = ""     # Custom image to use instead of the default Docker Hub image, e.g.
+#                # an internal registry mirror or a locally loaded offline image.
+#                # If it carries no tag, 'tag' above is appended; if it already
+#                # carries a tag, 'tag' above is dropped.
+# volume = ""    # Host directory for persistent state (default: OS cache dir)
+# env = []       # Named environment profiles to apply (see [env.*] sections below)
+# volumes = []   # Extra bind mounts, each "host:container[:ro]". Relative host paths
+#                # resolve against this config file's directory; a leading ~/ is expanded.
+#                # A "volumes" entry targeting /var/lib/localstack sets the persistent
+#                # state directory (equivalent to "volume" above).
+#                #
+#                # Mount Snowflake init hooks (scripts run on startup) — see
+#                # https://docs.localstack.cloud/snowflake/capabilities/init-hooks/
+#                # volumes = ["./test.sf.sql:/etc/localstack/init/ready.d/test.sf.sql"]
+# snapshot = "pod:my-baseline"  # Snapshot REF auto-loaded on start (AWS only); skip once with 'lstk start --no-snapshot'
+
+# Environment profiles let you group environment variables and reference
+# them by name in one or more containers via the 'env' field above.
+#
+# Example variables based on commonly used current config options:
+#
+#   DEBUG=1                 - Enable verbose logging
+#   PERSISTENCE=1           - Persist LocalStack state across restarts
+#   ENFORCE_IAM=1           - Enable IAM policy enforcement
+#   SERVICES=s3,sqs         - Limit services to load
+#   EAGER_SERVICE_LOADING=1 - Preload services at startup
+#
+#   GATEWAY_LISTEN=:4566,:443  - Ports the gateway listens on (default shown).
+#                                The first entry's host sets what IP published
+#                                ports bind to — use "0.0.0.0:4566,0.0.0.0:443"
+#                                to make the emulator reachable from other
+#                                machines (e.g. on EC2). Extra ports listed
+#                                (e.g. :8443) are published too.
+#
+# See full list of configuration options:
+# > https://docs.localstack.cloud/references/configuration/
+#
+# Example profiles:
+#
+# [env.debug]
+# DEBUG = "1"
+# PERSISTENCE = "1"
+# ENFORCE_IAM = "1"
+#
+# [env.ci]
+# SERVICES = "s3,sqs"
+# EAGER_SERVICE_LOADING = "1"
+```
+
+These are the important meta-arguments that determine how localstack works:
+
+| Field      | Type     | Default    | Description                                                                                                                                                                                                                                                           |
+| ---------- | -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`     | string   | `"aws"`    | Emulator type. One of `"aws"`, `"snowflake"`, `"azure"`. Run a single `[[containers]]` block at a time. See [Emulator types](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/#emulator-types).                                              |
+| `tag`      | string   | `"latest"` | Docker image tag (`"latest"`, `"2026.4"`, etc.). Useful for pinning a specific version. Zero-padded months (`"2026.04"`) are normalized to `"2026.4"`.                                                                                                                |
+| `port`     | string   | `"4566"`   | Host port the emulator listens on (1–65535). The in-container port is always `4566`.                                                                                                                                                                                  |
+| `image`    | string   | (default)  | Full image reference that overrides the default Docker Hub image, e.g. an internal-registry mirror or a locally loaded offline image. If it already carries a tag, `tag` is ignored; otherwise `tag` (or `latest`) is appended.                                       |
+| `volume`   | string   | (OS cache) | Host directory for persistent emulator state. Defaults to `<os-cache>/lstk/volume/<container-name>`. See also `volumes`.                                                                                                                                              |
+| `volumes`  | string[] | `[]`       | Docker-style `"host:container[:ro]"` bind mounts (e.g. init hooks). May also carry the persistence mount (target `/var/lib/localstack`). See [Volume mounts](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/#volume-mounts).               |
+| `env`      | string[] | `[]`       | List of named environment profiles to inject into the container (see below).                                                                                                                                                                                          |
+| `snapshot` | string   | `""`       | Snapshot REF (e.g. `pod:my-baseline` or a local path) to auto-load after the emulator starts. AWS emulator only. See [Auto-loading a snapshot on start](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/#auto-loading-a-snapshot-on-start). |
+##### Passing environment variables with environment profiles
+
+If passing environment variables manually isn't your thing, you can use **environment profiles** in the `config.toml`.
+
+Define reusable environment profiles under `[env.<name>]` and reference them in your container config:
+
+```toml
+[[containers]]
+type = "aws"
+tag  = "latest"
+port = "4566"
+env  = ["debug", "ci"] # load the "debug" and "cli" profiles as available
+
+# create a "debug" profile with these env vars set
+[env.debug]
+DEBUG = "1"
+ENFORCE_IAM = "1"
+PERSISTENCE = "1"
+
+# create a "ci" profile with these env vars set
+[env.ci]
+SERVICES = "s3,sqs"
+EAGER_SERVICE_LOADING = "1"
+```
+
+When `lstk start` runs, the key-value pairs from each referenced profile are injected as environment variables into the LocalStack container. Keys are uppercased automatically.
+
 #### deprecated `localstack` CLI
 
 > [!NOTE]
@@ -240,6 +400,63 @@ aws_secret_access_key = test
 > [!NOTE]
 > Note that the installer will add these entries to the end of your existing files, but only if you don’t already have a `localstack` profile. Nothing else in these files will be modified.
 
+
+### Localstack services
+
+#### Bedrock
+
+If you have the localstack student plan, that allows you to actually use bedrock models hosted on localstack cloud so you have actual AI inference you can use. 
+
+LocalStack’s Bedrock emulation supports models from the [Ollama Models library](https://ollama.com/search).
+
+> [!WARNING]
+> Keep in mind they only offer shitty as fuck models like Llama 3.
+
+Bedrock has a huge cold start so to start bedrock warm, you can set this environment variable or set it in the `lstk config path` filepath.
+
+```bash
+BEDROCK_PREWARM=1 lstk start
+```
+
+You can then use bedrock as normal through the `lstk aws` CLI:
+
+**list foundation models**
+
+```bash
+lstk aws bedrock list-foundation-models
+```
+
+**run inference**
+
+This example saves inference output to a text file:
+
+```bash
+lstk aws bedrock-runtime invoke-model \
+    --model-id "meta.llama3-8b-instruct-v1:0" \
+    --body '{
+        "prompt": "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\nSay Hello!\n<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>",
+        "max_gen_len": 2,
+        "temperature": 0.9
+    }' --cli-binary-format raw-in-base64-out outfile.txt
+```
+
+**run conversation inference**:
+
+Bedrock provides a higher-level conversation API that makes it easier to maintain context in a chat-like interaction using the [`Converse`](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html) API. You can specify both system prompts and user messages.
+
+```bash
+lstk aws bedrock-runtime converse \
+    --model-id "meta.llama3-8b-instruct-v1:0" \
+    --messages '[{
+        "role": "user",
+        "content": [{
+            "text": "Say Hello!"
+        }]
+    }]' \
+    --system '[{
+        "text": "You'\''re a chatbot that can only say '\''Hello!'\''"
+    }]'
+```
 ### Localstack with CDK
 
 To run localstack with CDK, use the `cdklocal` command as a drop-in replacement for the `cdk` package.
