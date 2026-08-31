@@ -1,6 +1,14 @@
 ## Basics
 
+### How amplify works
+
+Behind the scenes, amplify is just a **glue service** that uses CloudFormation and CDK to basically abstract over provisioning infra for you, where Amplify manages the infra and all you manage is the code.
+
 ![](https://docs.amplify.aws/images/gen2/how-amplify-works/nextImageExportOptimizer/amplify-flow-opt-1920.WEBP)
+Here is a list of all the services you can enable with Amplify, where all you do is write the code to use the service and then Amplify will provision the required infra and manage it for you behind the scenes.
+
+
+![](https://i.imgur.com/X9MrCln.jpeg)
 
 ### Gen 1 v Gen 2
 
