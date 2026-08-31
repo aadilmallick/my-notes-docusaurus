@@ -783,6 +783,7 @@ data "aws_ami" "app_ami" {
 }
 ```
 
+
 #### Injecting values for input variables
 
 Here is the priority order for the injection precedence of the different ways to inject values for the input variables at runtime, lowest to highest.
@@ -850,7 +851,21 @@ You can run `terraform apply` and pass in variable values to have those values g
 terraform apply -var="var_name=value"
 ```
 
+#### Variable runtime validation
 
+If you want runtime type safety and validation like zod for terraform variables, then you can use the `validation` meta-argument on the `variable` block like so, where the `validation.error_message` error is thrown when `validation.condition` is false.
+
+```hcl
+variable "short_variable" {
+	type = string
+	
+	// shows error_message when condition == false
+	validation {
+		condition = length(var.short_variable) < 4,
+		error_message = "Short must be less than 4!"
+	}
+}
+```
 ### Outputs
 
 Outputs are like cloudformation outputs, defined by a `output` top level block.
@@ -1119,7 +1134,13 @@ resource "aws_instance" "server" {
 
 #### `count`
 
-The `count` meta-argument defines the number of duplicates you want to create of this resource, default is 1 for no copies.
+The `count` meta-argument defines the number of instances you want to create of this resource.
+
+- `count = 0`: don't create this resource, want none of it.
+- `count = 1`: create this resource once.
+- `count = 2`: create two instances of this resource.
+
+Then if you want to dynamically change a property of the resource depending on the current count, you can use the `count.index` variable, which represents the current iterating number.
 
 ```hcl
 resource "aws_instance" "server" {
@@ -2223,14 +2244,81 @@ module "blog_vpc" {
 }
 ```
 
-### Organizing code with modules
+### Organizing code with modules across environments
 
-When using Terraform modules and multiple environments, a good practice is to organize your code into separate directories within the same repository:  
-  
+If you want to organize your infrastructure as code across different environments like local, production, or staging, then you have two main approaches here:
+
+1. Workspaces, which is a first-class object in Terraform that you can use to separate different environments.
+2. Having a special file structure by using modules and then subfolders that use those modules and override them differently with input variable injection.
+
+
+![](https://i.imgur.com/vJkvjyH.jpeg)
+
+
+#### Workspaces approach
+
+Workspaces are controlled through the `terraform workspace` CLI and is just syntactic sugar for injecting the current workspace name as the `terraform.workspace` global variable now available in your code.
+
+> [!NOTE]
+> Having no workspace is just being in the `default` workspace.
+
+- **pro**: The workspaces approach is easy to get started with and the `terraform.workspace` variable is easy to use, and also minimizes code duplication.
+- **con**: one state file instead of multiple state files for the multiple environments, and is prone to human error, overwrite state file with different workspaces.
+
+Here are the CLI commands:
+
+- `terraform workspace new <workspace-name>`: creates a new workspace
+- `terraform workspace select <workspace-name>`: switches to the specified workspace
+- `teraform workspace list`: lists all workspaces.
+
+Here are the steps to use workspaces well:
+
+1. Create a new workspace:
+
+```bash
+terraform workspace new $ENVIRONMENT_NAME
+```
+
+2. Use the `terraform.workspace` variable to dynamically do different things in the IaC depending on the current workspace.
+
+```hcl
+locals {
+  environment_name = terraform.workspace
+}
+
+module "web_app" {
+  source = "../../06-organization-and-modules/web-app-module"
+
+  # Input Variables
+  bucket_prefix    = "web-app-data-${local.environment_name}"
+  domain           = "devopsdeployed.com"
+  environment_name = local.environment_name
+  instance_type    = "t2.micro"
+  create_dns_zone  = terraform.workspace == "production" ? true : false
+  db_name          = "${local.environment_name}mydb"
+  db_user          = "foo"
+  db_pass          = var.db_pass
+}
+```
+
+3. Build out the IaC for this environment/workspace:
+
+```bash
+terraform plan
+terraform apply
+```
+
+#### File directory approach
+
+When using Terraform modules and multiple environments, a good practice is to organize your code into separate directories within the same repository, which offers the following propertiesL
+
+- **Pro - Isolation of backends**: decreased potential of human error, and each subfolder/environment has its own `terraform.tfstate` file so you can isolate different environments for the backends.
+- **Con - code duplication**: there is more code duplication, but it can be minimized with shared modules.
+
+
+Here are the two folder types you need for this approach:
 
 - **Modules Directory:** Contains reusable Terraform code grouped logically (e.g., a module for your blog infrastructure). This keeps your infrastructure code modular and manageable.  
-      
-    
 - **Environments Directory:** Contains subdirectories for each environment (like `dev`, `staging`, `prod`). Each environment directory holds configuration files and provider settings specific to that environment.  
 
 
@@ -2296,6 +2384,151 @@ Here’s a clear, step-by-step guide to modularizing your Terraform code based o
 7. **Manage Terraform State Carefully:**  
       
     - When moving resources into modules, use Terraform’s `moved` blocks to update the state file without recreating resources.
+
+## Testing Terraform
+
+## Terraform CI/CD
+
+### Testing CI/CD pipeline
+
+This is a Github Action that uses a terraform codebase with a remote state file and then runs `terraform plan` and tests the output of that command.
+
+```yaml
+name: "Terraform Plan"
+
+on:
+  pull_request:
+
+env:
+  TF_CLOUD_ORGANIZATION: "YOUR-ORGANIZATION-HERE"
+  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_WORKSPACE: "learn-terraform-github-actions"
+  CONFIG_DIRECTORY: "./"
+
+jobs:
+  terraform:
+    if: github.repository != 'hashicorp-education/learn-terraform-github-actions'
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    permissions:
+      # so GitHub can check out this repo using the default github.token
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Upload Configuration
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
+        id: plan-upload
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
+          speculative: true
+
+      - name: Create Plan Run
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        id: plan-run
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.plan-upload.outputs.configuration_version_id }}
+          plan_only: true
+
+      - name: Get Plan Output
+        uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.0.0
+        id: plan-output
+        with:
+          plan: ${{ fromJSON(steps.plan-run.outputs.payload).data.relationships.plan.data.id }}
+
+      - name: Update PR
+        uses: actions/github-script@v6
+        id: plan-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform Cloud Plan Output')
+            });
+            const output = `#### Terraform Cloud Plan Output
+               \`\`\`
+               Plan: ${{ steps.plan-output.outputs.add }} to add, ${{ steps.plan-output.outputs.change }} to change, ${{ steps.plan-output.outputs.destroy }} to destroy.
+               \`\`\`
+               [Terraform Cloud Plan](${{ steps.plan-run.outputs.run_link }})
+               `;
+            // 3. Delete previous comment so PR timeline makes sense
+            if (botComment) {
+              github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+              });
+            }
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+```
+### Provision the resources
+
+```yaml
+name: "Terraform Apply"
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  TF_CLOUD_ORGANIZATION: "YOUR-ORGANIZATION-HERE"
+  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_WORKSPACE: "learn-terraform-github-actions"
+  CONFIG_DIRECTORY: "./"
+
+
+jobs:
+  terraform:
+    if: github.repository != 'hashicorp-education/learn-terraform-github-actions'
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    permissions: # granular permissions
+      # so GitHub can check out this repo using the default github.token
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Upload Configuration
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
+        id: apply-upload
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
+
+      - name: Create Apply Run
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        id: apply-run
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
+
+      - name: Apply
+        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
+        if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
+        id: apply
+        with:
+          run: ${{ steps.apply-run.outputs.run_id }}
+          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
+```
+
+
 
 ## Terraform with localstack
 ### Setup
@@ -2398,4 +2631,7 @@ variable "ec2_instance_config" {
   }
 }
 ```
+
+## Terragrunt
+
 
