@@ -385,6 +385,18 @@ When `lstk start` runs, the key-value pairs from each referenced profile are i
 - Keys are uppercased automatically.
 - This is most useful for project-level overrides, when you have `.lstk/config.toml` in the CWD and then you override with certain environment variables that are automatically loaded.
 
+#### `lstk` TUI vs non-interactive
+
+`lstk` automatically selects its output mode:
+
+- **Interactive mode** (TUI): used when both stdin and stdout are connected to a terminal. Commands like `start`, `stop`, `restart`, `status`, `login`, `update`, and the confirmation prompts of `reset`/`volume clear` display a Bubble Tea-powered terminal UI.
+- **Non-interactive mode** (plain text): used when the output is piped, redirected, or running in CI. Force this in a TTY with `--non-interactive`.
+
+```bash
+# Force plain output even in an interactive terminal
+lstk --non-interactive start
+```
+
 #### `lstk` emulator management commands
 
 ```bash
@@ -454,6 +466,12 @@ lstk status
 lstk --non-interactive status
 ```
 
+##### `lstk reset`
+
+```bash
+lstk reset
+lstk reset --force
+```
 ##### `lstk logs`
 
 Show or stream emulator logs:
@@ -909,13 +927,18 @@ curl "$LAMBDA_URL"
 
 ## Advanced LocalStack
 
-### Localstack Cloud pods
+### Localstack Cloud pods and snapshots
 
 LocalStack Cloud pods allow you to save your LocalStack state and storage and share it on the cloud so other teammates can use the exact same configuration and storage and provisioned resources.
 
-Use the `lstk snapshot` CLI to manage cloud pods, also called emulator snapshots.
-
  A snapshot captures the running emulator’s state, either as a local file on disk, as a Cloud Pod on the LocalStack platform, or in your own S3 bucket. 
+
+Snapshots come in two types:
+
+- **snapshot**: locally stored on your device
+- **cloud pod**: stored on the localstack managed cloud or in your own S3 bucket, able to be remotely accessed with use cases in CI/CD or collaboration.
+
+Use the `lstk snapshot` CLI to manage cloud pods and emulator snapshots. 
  
  The `lstk snapshot` command groups five subcommands — `save`, `load`, `list`, `remove`, and `show`. 
 
@@ -933,7 +956,161 @@ Use the `lstk snapshot` CLI to manage cloud pods, also called emulator snapshots
 > [!NOTE]
 >  The first two are also exposed as the top-level aliases `lstk save` and `lstk load`.
 
+#### Cloud Pods
 
+Cloud pods are able to stored and managed via localstack cloud or uploaded to your own S3 bucket via an S3 url.
+
+For localstack to understand what is a cloud pod vs snapshot, you need to follow a special naming scheme, also accounting for cloud pod storage medium:
+
+- **localstack cloud-stored cloud pod**: Localstack recognizes cloud pods stored in the localstack cloud via the `pod:` prefix when naming pods.
+
+```bash
+# Save to a Cloud Pod on the LocalStack platform (requires auth)
+
+lstk snapshot save pod:my-pod-name
+```
+
+- **S3-stored cloud pod**: A cloud pod stored in S3 is referenced by a combination of the pod name and the S3 file URL to where it is stored:
+
+```bash
+# Save to your own S3 bucket (pod name is auto-generated if omitted)
+
+lstk snapshot save my-pod s3://my-bucket/prefix
+```
+
+> [!NOTE]
+> Pod operations require an auth token (`LOCALSTACK_AUTH_TOKEN` or a prior `lstk login`); local-file snapshots do not.
+
+#### Snapshots
+
+Snapshots are completely local and don't require authentication or any special naming scheme.
+#### CLI
+
+###### `lstk snapshot save`
+
+Save a snapshot of the running emulator’s state with the `lstk snapshot save` command, also aliased as `lstk save`.
+
+The basic syntax is as so:
+
+```bash
+lstk save [destination] [options]
+```
+
+```bash
+# Auto-named snapshot file in the current directory
+lstk snapshot save
+
+# Save to a specific local path
+lstk snapshot save ./my-snapshot
+
+# Save to a Cloud Pod on the LocalStack platform (requires auth)
+lstk snapshot save pod:my-baseline
+
+# Save to your own S3 bucket (pod name is auto-generated if omitted)
+lstk snapshot save my-pod s3://my-bucket/prefix
+
+# Limit the snapshot to a subset of services
+lstk snapshot save --services s3,lambda
+```
+
+The optional `[destination]` argument takes one of these forms:
+
+| Destination                     | Description                                                                                                                                                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (omitted)                       | Auto-generates a timestamped snapshot file in the current directory (`./snapshot-<timestamp>-<hex>.snapshot`).                                                                                             |
+| local path                      | Writes a snapshot archive to that path. The `.snapshot` extension is forced.                                                                                                                               |
+| `pod:<name>`                    | Saves a Cloud Pod to the LocalStack platform. Requires authentication.                                                                                                                                     |
+| `<pod-name> s3://bucket/prefix` | Saves to your own S3 bucket. The pod name is a separate positional (auto-generated when omitted). See [S3 remotes](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/#s3-remotes). |
+By default a snapshot captures every service’s state. Pass `-s`/`--services` with a comma-separated list to limit it to a subset; this applies uniformly to local files, `pod:` Cloud Pods, and `s3://` remotes.
+
+| Option                           | Description                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--services <list>`, `-s <list>` | Comma-separated list of services to include in the snapshot (all services by default). Applies to local, `pod:`, and `s3://` destinations. |
+| `--profile <name>`               | AWS profile to read S3 credentials from (used only for `s3://` destinations). Defaults to `AWS_*` env vars, then `AWS_PROFILE`.            |
+
+##### `lstk snapshot save`
+
+Load a snapshot into the emulator, **auto-starting it first** if it is not already running.
+
+```bash
+# Load a local snapshot by path or name
+
+lstk snapshot load my-baseline
+
+lstk snapshot load ./checkpoint
+
+# Load from a Cloud Pod (requires auth)
+
+lstk snapshot load pod:my-baseline
+
+# Load from your own S3 bucket (pod name is required)
+
+lstk snapshot load my-pod s3://my-bucket/prefix
+
+# Control how the snapshot merges with running state
+
+lstk snapshot load pod:my-baseline --merge=overwrite
+
+# Preview what a Cloud Pod load would change, without applying it
+
+lstk snapshot load pod:my-baseline --dry-run
+```
+
+|Option|Description|
+|---|---|
+|`--merge <strategy>`|How the loaded state combines with running state. One of `account-region-merge` (default), `overwrite`, `service-merge`.|
+|`--dry-run`|Preview the resource additions and modifications the load would produce, per service, without changing any state. Supported for `pod:` refs only; requires a running emulator (it does not auto-start one).|
+|`--profile <name>`|AWS profile to read S3 credentials from (used only for `s3://` sources). Defaults to `AWS_*` env vars, then `AWS_PROFILE`.|
+
+- `account-region-merge` (default): the snapshot wins on any `(service, account, region)` overlap.
+- `overwrite`: running state is reset first, then the snapshot is imported onto a clean state.
+- `service-merge`: the snapshot wins per resource; non-overlapping resources are combined.
+
+##### `lstk snapshot list`
+
+List the Cloud Pod snapshots available on the LocalStack platform. 
+
+By default, only snapshots you created are listed; pass `--all` to include every snapshot in your organization, which includes cloud pods.
+
+```bash
+# Snapshots you created locally
+lstk snapshot list
+
+# Every snapshot in your organization (includes cloud pods)
+lstk snapshot list --all
+
+# List snapshots in your own S3 bucket (requires a running emulator)
+lstk snapshot list s3://my-bucket/prefix
+```
+
+| Option             | Description                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--all`            | List all snapshots in your organization, not just your own.                                                                     |
+| `--profile <name>` | AWS profile to read S3 credentials from (used only with an `s3://` location). Defaults to `AWS_*` env vars, then `AWS_PROFILE`. |
+
+##### `lstk snapshot remove`
+
+Delete a Cloud Pod snapshot from the LocalStack platform.
+
+```bash
+lstk snapshot remove pod:my-baseline
+
+# Skip the confirmation prompt (required in non-interactive mode)
+lstk snapshot remove pod:my-baseline --force
+```
+
+- This subcommand is cloud-only and requires authentication.
+- The snapshot reference to pass must be a `pod:<name>` Cloud Pod reference.
+##### `lstk snapshot show`
+
+Show metadata for a single Cloud Pod snapshot on the LocalStack platform: its name, created date, size, LocalStack version, message, the services it contains, and per-service resource counts (resource counts render only when the platform has them for that snapshot). 
+
+```bash
+lstk snapshot show pod:my-baseline
+```
+
+- This subcommand is cloud-only and requires authentication.
+- The snapshot reference to pass must be a `pod:<name>` Cloud Pod reference.
 #### Auto-loading snapshot on start
 
 For the **AWS emulator**, you can have `lstk` load a snapshot automatically every time it starts the emulator via overriding the lstk config.
@@ -956,6 +1133,7 @@ lstk start --snapshot pod:other-baseline
 # Start without loading the configured snapshot
 lstk start --no-snapshot
 ```
+
 
 #### Cloud pods in CI/CD
 
