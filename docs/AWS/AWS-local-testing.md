@@ -507,10 +507,17 @@ A typical CI job with LocalStack follows this flow:
 5. Run integration tests against the LocalStack endpoint.
 6. Collect logs, test reports, and artifacts from the job.
 
+For CI or headless environments, set `LOCALSTACK_AUTH_TOKEN` and use `--non-interactive` so you automatically authenticate with `lstk`
+
+```bash
+LOCALSTACK_AUTH_TOKEN=<your-ci-auth-token> lstk --non-interactive
+```
+
 So here are the steps to create a basic action:
 
 1. **Create a new localstack auth token**: CI environments should use a CI Auth Token. Create one from the [Auth Tokens page](https://app.localstack.cloud/workspace/auth-tokens), then store it as `LOCALSTACK_AUTH_TOKEN` in your CI provider’s secret manager.
-2. **Install localstack in the action**: Use the `LocalStack/setup-localstack@main` github action workflow to install localstack and authenticate with it
+2. **Install `lstk`**: Install via brew
+3. **Install localstack in the action**: Use the `LocalStack/setup-localstack@main` github action workflow to install localstack and authenticate with it
 
 ```yaml
 - name: Start LocalStack
@@ -520,6 +527,85 @@ So here are the steps to create a basic action:
     install-awslocal: 'true'
   env:
     LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+```
+
+4. **Authenticate with `lstk`**: use the `LOCALSTACK_AUTH_TOKEN` variable to non-interactively authenticate with `lstk`
+
+
+Here is the full file:
+
+```yaml
+name: Test on LocalStack
+
+on:
+  push:
+    branches: [ main ]           # run on pushes to main
+  pull_request:
+    branches: [ main ]           # run on PRs targeting main
+  workflow_dispatch:              # allow manual runs from the Actions tab
+
+jobs:
+  localstack-test:
+    name: Deploy on LocalStack
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Get your repo files onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2) Python for tests and boto3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 3) Node for AWS CDK tooling
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 4) Install your app and test dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 5) Install CDK and CDKLocal, confirm cdklocal is available
+      - name: Install CDK and CDKLocal
+        run: |
+          npm install -g aws-cdk-local aws-cdk
+          cdklocal --version
+
+      # 6) Start LocalStack with Pro features enabled
+      - name: Start LocalStack
+        uses: LocalStack/setup-localstack@main
+        with:
+          image-tag: 'latest'        # pull the latest LocalStack image
+          install-awslocal: true     # also install the awslocal helper
+          use-pro: true              # turn on Pro features
+        env:
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+      # 7) Deploy your CDK app into LocalStack
+      - name: Deploy CDK stack
+        run: |
+          cdklocal bootstrap                # one-time infra bootstrap in LocalStack
+          cdklocal deploy --require-approval never
+
+      # 8) Run your tests against the deployed stack
+      - name: Run tests
+        env:
+          AWS_DEFAULT_REGION: us-east-1     # dummy creds are fine with LocalStack
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          # Optional, helps boto3 find LocalStack if your tests read this env:
+          # AWS_ENDPOINT_URL: http://localhost:4566
+        run: |
+          pip3 install boto3 pytest
+          pytest --disable-warnings
 ```
 
 Most CI jobs should start with a clean LocalStack instance. A fresh instance makes test runs reproducible and avoids hidden dependencies between jobs.
@@ -1212,9 +1298,19 @@ Cloud pods avoid most of the time spent syncing by skipping the provisioning of 
 
 Here are the steps to take to enable cloud pods in your CI/CD environment:
 
-1. Create a github action that installs and runs the `lstk snapshot` CLI to load a snapshot:
+1. Save your current state as a cloud pod
+
+```bash
+lstk snapshot save pod:my-pod-name
+```
+
+2. Create a github action that installs `lstk`, authenticates with it, and then runs the `lstk snapshot` CLI to load a snapshot:
 
 ```yaml
+- name: Load Cloud Pod before testing
+  run: |
+    export LOCALSTACK_AUTH_TOKEN=${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+    lstk snapshot load pod:my-pod-name
 ```
 
 ### Chaos Engineering
