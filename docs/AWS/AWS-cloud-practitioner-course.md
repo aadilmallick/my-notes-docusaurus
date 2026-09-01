@@ -1896,6 +1896,54 @@ Behind the scenes, Elastic Beanstalk does this for you:
 5. **Creates cloudwatch alarms**: Creates two alarms: one to monitor load and another to trigger when traffic for the auto-scaling group is not appropriate.
 6. **Creates a domain name**: Creates a domain name that points to the underlying instance running your web server code.
 
+### App runner
+
+App runner is a fully managed container deployment service which is an abstraction over ECS using Fargate instances.
+
+Here are the different features you have:
+
+- **container deployment on CI/CD**: automatic Github push to deployment workflow. 
+- **certificate + networking setup**: automatic networking + SSL setup
+- **load balancing + autoscaling**: handles load balancing and autoscaling the containers for you.
+- **logging**: log and metric integration with AWS cloudwatch
+
+When creating an app runner app, you have to specify these options:
+
+1. **CI/CD**: whether to build images from ECR or Github source, and if to enable automatic deployments for additional cost, with these two options:
+	- **ECR image upload**: automatic deployment from an ECR image
+	- **Github source update**: automatic deployment from your Github repo
+2. **compute**: choose how many vCPUS you want (1-2) and memory per container host (2GB to 4GB)
+
+#### Pricing
+
+
+![](https://i.imgur.com/wgxJszG.jpeg)
+
+- **provisioned instances**: You pay $0.007 / hr times the number of GB per provisioned container host instances, meaning you pay 24/7 even if no CPU time is being run.
+
+#### Creating an app runner app
+
+1. Specify the source for the container image, either ECR or Github
+
+
+![](https://i.imgur.com/dpVciyB.jpeg)
+
+2. Specify the deployment settings for the source, and whether to set up automatic deployments.
+
+
+![](https://i.imgur.com/y2VqR72.jpeg)
+
+3. Specify the container exposed port the main container process is running on, any environment variables to pass to the container, and the compute for the container host.
+
+
+![](https://i.imgur.com/Id252z3.jpeg)
+
+4. Choose the auto-scaling settings to define the minimum and maximum bounds of container host numbers:
+
+
+![](https://i.imgur.com/7tDCgTZ.jpeg)
+
+5. Create the app
 ## App integration
 
 Web servers often need external services like a messaging queue or email service or web scraper instance, but there is extra overhead in writing APIs for all of these services and managing the instances and networking settings for those services as well.
@@ -2759,6 +2807,7 @@ So here are the key benefits using a secrets manager has over using environment 
 1. **reduces attack surface**: if you store your environment variables on your machine in `.env` files and then upload them to the server, if an attacker every gets access to your machine, then they know your environment variables. 
 	- If using a secrets manager, you make an API call, and that API call is protected via access keys and short-lived auth tokens.
 2. **enables RBAC**: with secrets manager, you can use IAM to offer fine-grained RBAC for what secrets users can or can't access.
+	- You can attach **resource policies** to individual secrets to control who can access that secret.
 ### Parameter Store
 
 ### KMS
