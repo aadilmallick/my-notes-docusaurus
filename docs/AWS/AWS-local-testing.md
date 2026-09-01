@@ -495,6 +495,41 @@ lstk logs [options]
 - Use `lstk config path` to find the config directory; `lstk.log` sits alongside `config.toml`.
 
 #### `lstk` CI/CD
+
+A typical CI job with LocalStack follows this flow:
+
+1. Check out your application code.
+2. Start localstack in the background with `lstk start`
+	- Start LocalStack non-interactively as part of the job.
+3. Configure a CI Auth Token through the CI provider’s secret manager to pass the `LOCALSTACK_AUTH_TOKEN` to the runner.
+	- Store `LOCALSTACK_AUTH_TOKEN` as a protected CI secret.
+4. Provision test infrastructure with tools such as `awslocal`, `tflocal`, `cdklocal`, or using `lstk`.
+5. Run integration tests against the LocalStack endpoint.
+6. Collect logs, test reports, and artifacts from the job.
+
+So here are the steps to create a basic action:
+
+1. **Create a new localstack auth token**: CI environments should use a CI Auth Token. Create one from the [Auth Tokens page](https://app.localstack.cloud/workspace/auth-tokens), then store it as `LOCALSTACK_AUTH_TOKEN` in your CI provider’s secret manager.
+2. **Install localstack in the action**: Use the `LocalStack/setup-localstack@main` github action workflow to install localstack and authenticate with it
+
+```yaml
+- name: Start LocalStack
+  uses: LocalStack/setup-localstack@main
+  with:
+    image-tag: 'latest'
+    install-awslocal: 'true'
+  env:
+    LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+```
+
+Most CI jobs should start with a clean LocalStack instance. A fresh instance makes test runs reproducible and avoids hidden dependencies between jobs.
+
+If your pipeline needs state across jobs or workflow stages, use one of the state management options documented outside this getting started page:
+
+- [Cloud Pods](https://docs.localstack.cloud/aws/developer-tools/snapshots/cloud-pods/) to save and restore named LocalStack state snapshots.
+- [State export and import](https://docs.localstack.cloud/aws/developer-tools/snapshots/export-import-state/) to move state through artifacts or caches.
+- [Persistence](https://docs.localstack.cloud/aws/developer-tools/snapshots/persistence/) when the same runner keeps a mounted LocalStack volume.
+
 ### deprecated `localstack` CLI
 
 > [!NOTE]
@@ -549,7 +584,33 @@ aws_secret_access_key = test
 > [!NOTE]
 > Note that the installer will add these entries to the end of your existing files, but only if you don’t already have a `localstack` profile. Nothing else in these files will be modified.
 
+### Localstack MCP server
 
+The LocalStack MCP server allows AI agents to interact with your provisioned LocalStack resources, making it pretty much identical to the AWS MCP server but there are no security vulnerabilities since you're not dealing with real infra.
+
+The quickest way to get started with the MCP server is to use the interactive setup wizard:
+
+```bash
+npx -y @localstack/localstack-mcp-server init
+```
+
+The wizard detects your installed clients, asks how you want to run the server, and writes the configuration for you. You need a valid [Auth Token](https://docs.localstack.cloud/aws/getting-started/auth-token/) to configure the server.
+
+If you want to manually configure the MCP, use this JSON config
+
+```json
+{
+  "mcpServers": {
+    "localstack-mcp-server": {
+      "command": "npx",
+      "args": ["-y", "@localstack/localstack-mcp-server"],
+      "env": {
+        "LOCALSTACK_AUTH_TOKEN": "<YOUR_TOKEN>"
+      }
+    }
+  }
+}
+```
 ### Localstack services
 
 #### Bedrock
@@ -1028,7 +1089,7 @@ By default a snapshot captures every service’s state. Pass `-s`/`--services`�
 | `--services <list>`, `-s <list>` | Comma-separated list of services to include in the snapshot (all services by default). Applies to local, `pod:`, and `s3://` destinations. |
 | `--profile <name>`               | AWS profile to read S3 credentials from (used only for `s3://` destinations). Defaults to `AWS_*` env vars, then `AWS_PROFILE`.            |
 
-##### `lstk snapshot save`
+##### `lstk snapshot load`
 
 Load a snapshot into the emulator, **auto-starting it first** if it is not already running.
 
@@ -1061,6 +1122,14 @@ lstk snapshot load pod:my-baseline --dry-run
 |`--merge <strategy>`|How the loaded state combines with running state. One of `account-region-merge` (default), `overwrite`, `service-merge`.|
 |`--dry-run`|Preview the resource additions and modifications the load would produce, per service, without changing any state. Supported for `pod:` refs only; requires a running emulator (it does not auto-start one).|
 |`--profile <name>`|AWS profile to read S3 credentials from (used only for `s3://` sources). Defaults to `AWS_*` env vars, then `AWS_PROFILE`.|
+
+Want finer control when loading? Use the `--merge` flag:
+
+- `--merge service-merge` combines new resources without overwriting
+- `--merge overwrite` wipes the running state before loading
+- `--merge account-region-merge` (the default) lets the snapshot win on overlapping resources
+
+In depth:
 
 - `account-region-merge` (default): the snapshot wins on any `(service, account, region)` overlap.
 - `overwrite`: running state is reset first, then the snapshot is imported onto a clean state.
