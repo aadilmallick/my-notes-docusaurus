@@ -1923,6 +1923,26 @@ When creating an app runner app, you have to specify these options:
 
 #### Creating an app runner app
 
+Let's upload this container image via App Runner:
+
+```Dockerfile
+FROM python:3.7-slim
+
+COPY ./requirements.txt /app/requirements.txt
+
+WORKDIR /app
+
+RUN pip install -r requirements.txt
+
+COPY . /app
+
+EXPOSE 8081
+
+ENTRYPOINT [ "python" ]
+
+CMD [ "app.py" ]
+```
+
 1. Specify the source for the container image, either ECR or Github
 
 
@@ -1944,6 +1964,7 @@ When creating an app runner app, you have to specify these options:
 ![](https://i.imgur.com/7tDCgTZ.jpeg)
 
 5. Create the app
+
 ## App integration
 
 Web servers often need external services like a messaging queue or email service or web scraper instance, but there is extra overhead in writing APIs for all of these services and managing the instances and networking settings for those services as well.
