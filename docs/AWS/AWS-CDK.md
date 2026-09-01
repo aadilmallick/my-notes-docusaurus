@@ -778,6 +778,13 @@ const tableName = StringParameter.valueForStringParameter(
 
 The trade-off: you lose CDK's automatic dependency ordering, so you're responsible for deploying the producer before the consumer.
 
+#### Sharing via Outputs
+
+1. Create `CfnOutput` instances in a stack that output the ARNs or IDs of a provisioned resource.
+2. Store these outputs as class properties.
+3. When creating the CDK app, instantiate the stack that is passing the properties to the other stack beforehand.
+4. When instantiating the stack that wants to use the shared outputs, have it accept the outputs as props and then use that in its constructor.
+
 ### Testing
 
 Because CDK is code, you can unit-test your infrastructure. CDK ships an assertions library (`aws-cdk-lib/assertions`) that lets you make claims about the synthesized template without deploying anything.
@@ -1158,6 +1165,7 @@ export class ServerlessApiStack extends Stack {
 }
 ```
 
+### Cognito + Amplify
 ## CDK code reference
 
 ### VPCs

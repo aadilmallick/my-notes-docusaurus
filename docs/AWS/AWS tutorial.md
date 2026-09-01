@@ -285,6 +285,38 @@ These two key features are made possible through two pools:
 - **user pools**: provide authentication for in-app users
 - **identity pools**: provide AWS credentials for users or authorizes them to access certain services, whether authenticated or not depending on the policies you set up.
 
+### User pool vs identity pool
+
+In Amazon Cognito, **user pools** and **identity pools** serve different but complementary purposes:  
+  
+
+- **User pools** manage user authentication. 
+	- They act like a secure user directory, handling sign-up, sign-in, and user management. 
+	- They verify who the user is and issue JSON Web Tokens (JWT) to confirm identity.  
+      
+    
+- **Identity pools** handle authorization. 
+	- They grant users temporary AWS credentials to access AWS resources like S3 or DynamoDB based on assigned roles. 
+	- They determine what authenticated users (and even guests) are allowed to do.  
+
+  
+Together, user pools authenticate users, and identity pools authorize their access to AWS services. Heres' how:
+
+1. A user logs in through a user pool via a federated provider and then obtains a JWT. 
+2. The JWT is then sent to the Cognito identity pool, which then issues temporary credentials and an IAM role for the authenticated user to use and gain access to AWS services. 
+3. The user can now access AWS resources like DynamoDB or S3 based on their assigned permissions. 
+
+#### Creating a user pool
+
+To setup a user pool for your app, you need two things:
+
+1. **user pool**: create a user pool that defines how to authenticate users, whether to verify emails, etc.
+2. **user pool client**: A user pool client in Amazon Cognito acts like an application ID card that allows your web app to interact with the Cognito authentication services. 
+	- It's essential because it enables your app to connect to the user pool for handling sign-in, sign-up, and authentication processes. 
+	- For typical web apps, this client doesn't need a secret, making it simpler to manage user authentication securely and efficiently.
+
+#### Creating an identity pool
+
 ### Complete authentication flow
 
 Identity pools handle all the authorization behind application users being able to access certain AWS services.
@@ -298,14 +330,16 @@ Identity providers (IdP) are the different authentication providers you can use 
 
 1. Create an identity pool
 2. Create a user pool
-3. In the user pool, create an app client
+3. In the user pool, create a user pool client.
+
+```
+```
+
 4. Copy the user pool id and the app client ID to add an identity provider to the identity pool.
 
 Now when a user logs in via the identity provider, they are stored into the user pool and thus given the roles specified by the identity pool.
 
-### unauthenticated entities
 
-When creating an identity pool, if you want public unauthenticated and unauthorized access to an AWS resource, like a public S3 bucket, then you can bypass the requirement for user auth by creating an **unauthenticated entity**.
 
 ## S3
 
