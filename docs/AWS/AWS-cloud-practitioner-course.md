@@ -1436,7 +1436,7 @@ Besides being performant, DynamoDB offers three useful capacities:
 2. **global tables**: make tables global instead of just regional, replicating data across the entire world for lower latency.
 3. **DAX**: an in-memory cache layer on top of DynamoDB that implements query caching behind the scenes to speed up querying.
 
-**table structure**
+##### **table structure**
 
 In DynamoDB, you can have multiple tables, and each table is data storage for multiple items, which can have different attributes.
 
@@ -1447,7 +1447,7 @@ In DynamoDB, you can have multiple tables, and each table is data storage for mu
 
 
 
-#### Partition key + Sort key
+##### Partition key + Sort key
 
 DynamoDB is unique in that it allows you to pick one of two setups for how you structure your primary key.
 
@@ -1469,13 +1469,9 @@ When querying with the partition key and sort key combination, it allows for use
 
 ![](https://i.imgur.com/1kfPf3D.jpeg)
 
-#### Creating a DynamoDB table
 
-1. **Choose the primary key**: specify a partition key or a partition + sort key combination
-2. **Choose the table class**: Either choose between standard DynamoDB (optimized for frequent reads/writes) or archive DynamoDB (costs less, archive storage)
-3. **Choose the pricing option**: Either choose on-demand pricing (auto-scales for availability and load balancing) or **provisioned**, where you guess read/write capacity in advance so it costs less.
 
-**performance**
+##### **performance**
 
 DynamoDB's implementation of having a partition key and sort key makes for easy sharding.
 
@@ -1485,7 +1481,7 @@ This means the db doesn't slow down as your data grows. A table with 100 entries
 > DynamoDB automatically scales to handle millions of requests per second with low latency, which is harder to achieve with relational databases.
 
 
-**Flexibility in schemas**
+##### **Flexibility in schemas**
 
 Unlike traditional relational databases that use multiple related tables with foreign keys and complex SQL queries, DynamoDB uses a single table structure without relationships between tables, offering a flexible schema that can easily adapt as your application grows.
 
@@ -1493,7 +1489,7 @@ DynamoDB supports flexible schemas and stores data as items (rows) with attribut
 
 
 
-#### Relational vs Dynamo DB
+##### Relational vs Dynamo DB
 
 - **row vs item**: in traditional relational databases a single record is called a row while in DynamoDB it is called an **item**. 
 - **column vs attribute**: in DynamoDB an **attribute** is the no-SQL equivalent of a column. 
@@ -1512,7 +1508,8 @@ There are two types of indices in DynamoDB, both of which make querying faster:
 	- **con**: it's slower since it performs searches over all partitions of the table. 
 
 
-
+> [!NOTE]
+> Keep in mind that GSIs incur additional costs when you query them, so add them and query them mindfully.
 
 #### Streaming
 
@@ -1534,6 +1531,13 @@ A DynamoDB transaction provides an all-or-nothing atomic operation change to mul
 
 DAX, which stands for Amazon DynamoDB Accelerator, is an in-memory cache for Amazon DynamoDB that is fully managed and highly available and delivers fast response times for accessing eventually consistent data. 
 
+#### Point-in-time-recovery
+
+Point-in-time recovery (PITR) provides continuous backups for your DYnamoDB table for 35 days, ensuring you always have a backup of your data.
+
+> [!WARNING]
+> This incurs additional charges.
+
 #### Scaling
 
 DynamoDB performance is measured with these two metrics:
@@ -1548,6 +1552,9 @@ DynamoDB offers two modes to control scaling and the cost of scaling:
 	- You're also at risk of over provisioning or under provisioning. 
 2. **on-demand capacity mode**: this is suitable for applications with inconsistent traffic or varying access patterns where you want scaling to be immediate and quick and you can't really predict a standard RCU or WCU for your DynamoDB table. 
 	- The trade-off is that this is more expensive because scaling is automatic and very quick. 
+
+> [!NOTE]
+> Keep in mind that even though on-demand capacity is more expensive in general, if you set high autoscaling limits for the max and min RCU and WCU for a provisioned capacity mode, you'll pay even more than on-demand pricing, so maintaining observability over your application data load here is crucial.
 
 ## Lambda
 
@@ -2734,6 +2741,24 @@ To set up a pipeline generically:
 ## Secrets and app config
 ### Secrets Manager
 
+Secrets manager allows you to store sensitive values in your AWS account, managed via the Secrets Manager service, and then make a programmatic API call to that service to return the secret.
+
+> [!NOTE]
+> Why is this secure? Because you can only make that API call to the secrets manager if you are:
+> 
+> 1. authenticated with AWS via access keys or token
+> 2. have appropriate IAM permissions to access secrets manager.
+
+
+
+![](https://i.imgur.com/455PIam.jpeg)
+
+
+So here are the key benefits using a secrets manager has over using environment variables on the server:
+
+1. **reduces attack surface**: if you store your environment variables on your machine in `.env` files and then upload them to the server, if an attacker every gets access to your machine, then they know your environment variables. 
+	- If using a secrets manager, you make an API call, and that API call is protected via access keys and short-lived auth tokens.
+2. **enables RBAC**: with secrets manager, you can use IAM to offer fine-grained RBAC for what secrets users can or can't access.
 ### Parameter Store
 
 ### KMS
@@ -2833,14 +2858,6 @@ Encyrption at rest can be achieved with **KMS** or **CloudHSM** services. Here a
 
 
 To encrypt data in transit, use ACM (AWS Certificate Manager) to acquire free SSL certificates and use HTTPS to encrypt data in traffic. You can then use this with services like Cloudfront or ALB.
-
-
-#### Secrets manager
-
-THis service allows you to securely store secret values with secrets manager and rotate secrets.
-
-Some services like RDS automatically interface and have integrations with secrets manager to automatically pull secrets from that service and rotate secrets regularly.
-
 #### Macie
 
 This service uses machine learning to search all of your AWS resources and services for any potentially sensitive information that you might be exposing publicly and warns you about it. 

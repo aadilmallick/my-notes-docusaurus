@@ -597,28 +597,31 @@ Here are the two setups:
 
 1. **partition key alone**: records are considered unique or not based on the partition key value. No two records can have the same partition key value
 2. **partition key + sort key**: uniqueness of records is based on the combination of the partition key and sort key values. No two record can have the same combination of partition key and sort key values.
-### DynamoDB vs RDS
 
-#### Performance
+### Creating a DynamoDB table
 
-DynamoDB's implementation of having a partition key and sort key makes for easy sharding.
-
-This means the db doesn't slow down as your data grows. A table with 100 entries operates at the exact same speed as a table with 100 million entries, because AWS uses the Partition Key to calculate exactly which physical hard drive your data lives on instantly!
-
-> [!NOTE]
-> DynamoDB automatically scales to handle millions of requests per second with low latency, which is harder to achieve with relational databases.
-
-#### Flexibility in schemas
-
-Unlike traditional relational databases that use multiple related tables with foreign keys and complex SQL queries, DynamoDB uses a single table structure without relationships between tables, offering a flexible schema that can easily adapt as your application grows.
-
-DynamoDB supports flexible schemas and stores data as items (rows) with attributes (columns), similar to JSON documents, whereas relational databases require a fixed schema.
+1. **Choose the primary key**: specify a partition key or a partition + sort key combination
+2. **Choose the table class**: Either choose between standard DynamoDB (optimized for frequent reads/writes) or archive DynamoDB (costs less, archive storage)
+3. **Choose the pricing option**: Either choose on-demand pricing (auto-scales for availability and load balancing) or **provisioned**, where you guess read/write capacity in advance so it costs less.
 
 
-#### Indexing
+![](https://i.imgur.com/w6xUv9k.jpeg)
 
-It uses primary keys (partition and optional sort keys) and secondary indexes (local and global) to optimize queries, differing from SQL indexes.
 
+### Querying a DynamoDB table
+
+When trying to explore table items in the AWS console of a DynamoDB table, you have two options available:
+
+- **query**: Query items by a partition key or partition key + sort key combination.
+
+
+![](https://i.imgur.com/W5bwHEc.jpeg)
+
+
+- **scan**: return all items in the table and then apply certain filters to only get certain items back that satisfy some conditional attribute criteria.
+
+
+![](https://i.imgur.com/2ZsREfm.jpeg)
 
 
 ## EC2
