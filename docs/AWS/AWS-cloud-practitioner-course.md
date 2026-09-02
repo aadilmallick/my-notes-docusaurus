@@ -1714,7 +1714,9 @@ There are three different types of concurrency:
 > [!NOTE]
 > The default max lambda concurrency is **1000 concurrent executions per region**, meaning per region, the max number of lambda functions you can have running at the same time is 1000, but you can get this quota increased.
 
-Throttling is what occurs when you surpass the max lambda concurrency limit per region (across all lambdas), so AWS throws an error if you go over that.
+Throttling is what occurs when the number of in-flight lambda invocations exceeds the max available lambda concurrency limit either configured or the default one per region (across all lambdas), so AWS throws a `RateExceeded` error if you go over concurrency limit.
+
+
 
 
 
