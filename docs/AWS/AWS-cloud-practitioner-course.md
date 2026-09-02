@@ -1704,7 +1704,11 @@ Here are the rules of lambda concurrency:
 
 1. **New containers are spawned for each concurrent request**: if another in-flight request comes in before the current function execution finishes, then another container with the Lambda code is spun up in order to deal with that incoming request. 
 
+There are three different types of concurrency:
 
+- **unreserved**
+- **reserved**
+- **provisioned**
 
 
 > [!NOTE]
