@@ -1686,23 +1686,32 @@ Lambdas has maximum 15 minutes before an automatic timeout, and they will automa
 
 Therefore setting your timeout threshold to be low helps in avoiding the cost of infinite loops and long-hanging dependencies.
 
-#### **lambda concurrency**
-
-Here are the default limits for lambda:
-
-- **1000 concurrent executions per region**: per region, the max number of lambda functions you can have running at the same time is 1000, but you can get this quota increased.
-
 #### Lambda compute
 
 - **memory**: defines the amount of memory available to the cloud function at runtime, between 128mb - 10GB
-
-
 
 
 Here are pro tips when it comes to memory:
 
 - Memory increase does not result in linear performance gain.
 - Increasing memory determines instance type behind the scenes, where more memory ends up in a beefier instance running the container, which results in more expenses.
+
+#### **lambda concurrency**
+
+Lambda concurrency is the number of requests being served at a given moment, meaning the number of current lambda functions computing in parallel.
+
+Here are the rules of lambda concurrency:
+
+1. **New containers are spawned for each concurrent request**: if another in-flight request comes in before the current function execution finishes, then another container with the Lambda code is spun up in order to deal with that incoming request. 
+
+
+
+
+> [!NOTE]
+> The default max lambda concurrency is **1000 concurrent executions per region**, meaning per region, the max number of lambda functions you can have running at the same time is 1000, but you can get this quota increased.
+
+Throttling is what occurs when you surpass the max lambda concurrency limit per region (across all lambdas), so AWS throws an error if you go over that.
+
 
 
 
@@ -1730,6 +1739,33 @@ The time between an instance being yanked out of the lambda holding pool and the
 
 
 ![](https://i.imgur.com/gQUYFII.jpeg)
+
+Here are the steps behind a function execution:
+
+1. **Cold start**: occurs as the delay due to the process of moving an instance out of the lambda holding pool and into the load balancer target group to receive traffic, or if you update your application code.
+2. **Code download**
+3. **Start execution environment**
+4. **Execute init code**: execute any code that lives outside of the handler function, like establishing globals, helpers, etc.
+5. **Execute handler code**: actually runs the handler code
+
+After one loop through a function execution, if a subsequent request comes again, you can skip the cold start and rerun the function execution with a **warm start**.
+
+- **full cold start**: moving an instance out of the lambda holding pool and into the load balancer target group to receive traffic, which results in the handler code download and creating the execution environment.
+- **partial code start**: occurs when the lambda is reaped of its resources, but the lambda instance is still able to receive traffic from the load balancer, so all that happens again is executing the init code.
+- **warm start**: After a function execution, if a subsequent request comes again, you can skip the cold starts and rerun the function execution with a warm start.
+
+
+![](https://i.imgur.com/g9tcgwC.jpeg)
+
+#### Strategies to minimize cold starts
+
+- **minimize number of library dependencies and only import what you need**: reduces the amount of time the *init code* stage takes to execute, which reduces partial cold starts.
+- **raise memory configuration**: raising the allocated memory for a Lambda increases the instance RAM and CPU power, which makes all stages of the cold start faster.
+	- **pro**: very easy to implement and works well to reduce cold start times, since cold starts are CPU-bound phenomena.
+	- **con**: very expensive.
+- **use provisioned concurrency**: provision a certain number of lambdas to always be on and running, like EC2 instances.
+	- **pro**: very easy to implement and makes everything a warm start, not just making cold starts faster.
+	- **con**: very expensive.
 
 
 ### Triggers
