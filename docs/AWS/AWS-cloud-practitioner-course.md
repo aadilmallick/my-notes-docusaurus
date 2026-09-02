@@ -1404,9 +1404,9 @@ Here is what you can configure with the Elasticache service:
 
 Basically MongoDB
 
-### DynamoDB
+## DynamoDB
 
-#### Primer
+### Primer
 
 
 Amazon DynamoDB is a fully managed, serverless NoSQL database service designed for high scalability and ultra-fast performance.
@@ -1436,7 +1436,7 @@ Besides being performant, DynamoDB offers three useful capacities:
 2. **global tables**: make tables global instead of just regional, replicating data across the entire world for lower latency.
 3. **DAX**: an in-memory cache layer on top of DynamoDB that implements query caching behind the scenes to speed up querying.
 
-##### **table structure**
+#### **table structure**
 
 In DynamoDB, you can have multiple tables, and each table is data storage for multiple items, which can have different attributes.
 
@@ -1447,13 +1447,14 @@ In DynamoDB, you can have multiple tables, and each table is data storage for mu
 
 
 
-##### Partition key + Sort key
+#### Partition key + Sort key
 
 DynamoDB is unique in that it allows you to pick one of two setups for how you structure your primary key.
 
 Here is the terminology:
 
-- **partition key**: The partition key is part of the table's primary key. It is a hash value that is used to retrieve items from your table and allocate data across hosts for scalability and availability by literally partitioning the table across multiple load-balanced database instances.
+- **partition key**: The partition key is part of the table's primary key. 
+	- It is a hash value that is used to retrieve items from your table and allocate data across hosts for scalability and availability by literally partitioning the table across multiple load-balanced database instances.
 - **sort key**: You can use a sort key as the second part of a table's primary key. The sort key allows you to sort or search among all items sharing the same partition key.
 
 Here are the two setups:
@@ -1470,8 +1471,10 @@ When querying with the partition key and sort key combination, it allows for use
 ![](https://i.imgur.com/1kfPf3D.jpeg)
 
 
+The primary key is used to distribute load across partitions of a dataset via sharding.
 
-##### **performance**
+When you write or read data, DynamoDB hashes your partition key to decide which partition to use for that data.
+#### **performance** + sharding
 
 DynamoDB's implementation of having a partition key and sort key makes for easy sharding.
 
@@ -1481,7 +1484,7 @@ This means the db doesn't slow down as your data grows. A table with 100 entries
 > DynamoDB automatically scales to handle millions of requests per second with low latency, which is harder to achieve with relational databases.
 
 
-##### **Flexibility in schemas**
+#### **Flexibility in schemas**
 
 Unlike traditional relational databases that use multiple related tables with foreign keys and complex SQL queries, DynamoDB uses a single table structure without relationships between tables, offering a flexible schema that can easily adapt as your application grows.
 
@@ -1489,14 +1492,14 @@ DynamoDB supports flexible schemas and stores data as items (rows) with attribut
 
 
 
-##### Relational vs Dynamo DB
+#### Relational vs Dynamo DB
 
 - **row vs item**: in traditional relational databases a single record is called a row while in DynamoDB it is called an **item**. 
 - **column vs attribute**: in DynamoDB an **attribute** is the no-SQL equivalent of a column. 
 - **index vs secondary index**: in DynamoDB since the combination of the primary key and partition key is the primary index, we call all other indices that you set as a **secondary index**. 
 - **view vs GSI**: in relational databases a view is a snapshot of a certain reusable table query but in DynamoDB that same thing is called a GSI or a **global secondary index** that you can query in a reusable fashion. 
 
-#### Indices
+### Indices
 
 There are two types of indices in DynamoDB, both of which make querying faster:
 
@@ -1511,40 +1514,65 @@ There are two types of indices in DynamoDB, both of which make querying faster:
 > [!NOTE]
 > Keep in mind that GSIs incur additional costs when you query them, so add them and query them mindfully.
 
-#### Streaming
+### Streaming
 
 A DynamoDB stream is a data stream that captures each and every data change made to any item in the table. 
 
 You can listen to DynamoDB streams with the lambda that gets triggered on a certain filtering of data getting modified from the stream. 
 
-#### TTL
+### TTL
 
 DynamoDB also allows you to set a TTL on items to basically expire them and delete them from the table automatically after a certain amount of time. 
 
-#### Transactions
+### Transactions
 
 By default NoSQL databases like DynamoDB are not ACID compliant but DynamoDB offers a feature called Amazon DynamoDB Transactions, which provides ACID properties to create transactional workloads. 
 
 A DynamoDB transaction provides an all-or-nothing atomic operation change to multiple items both within and across DynamoDB table
 
-#### DAX
+### DAX
 
 DAX, which stands for Amazon DynamoDB Accelerator, is an in-memory cache for Amazon DynamoDB that is fully managed and highly available and delivers fast response times for accessing eventually consistent data. 
 
-#### Point-in-time-recovery
+### Point-in-time-recovery
 
 Point-in-time recovery (PITR) provides continuous backups for your DYnamoDB table for 35 days, ensuring you always have a backup of your data.
 
 > [!WARNING]
 > This incurs additional charges.
 
-#### Scaling
+### Performance
+#### RCUs and WCUs
 
 DynamoDB performance is measured with these two metrics:
 
 - **RCU (read capacity unit)**: how many reads per second for an item up to 1kb in size
 - **WCU (write capacity unit)**: how many writes per second for an item up to 1kb in size
 
+**WCUs**
+
+![](https://i.imgur.com/nob7O9Q.jpeg)
+
+
+![](https://i.imgur.com/GPjtqFI.jpeg)
+
+**RCUs**
+
+There are two types of RCUs and they factor in differently to cost predictions:
+
+- **strongly consistent reads**: Reads data from the primary node and ensures that all writes have been applied, so you always get back the most recent data, guaranteed.
+	- **pricing**: costs twice as much as an eventually consistent read.
+- **eventually consistent reads**: with eventually consistent reads DynamoDB might return slightly stale data for a brief moment after a write while data replicates between nodes. 
+	- **pricing**: you get 2 eventually consistent reads for every 1 RCU.
+
+> [!NOTE]
+> Eventually consistent reads are the default mode.
+
+
+![](https://i.imgur.com/CPPI17J.jpeg)
+
+
+#### Scaling modes
 
 
 DynamoDB offers two modes to control scaling and the cost of scaling:
@@ -1554,18 +1582,47 @@ DynamoDB offers two modes to control scaling and the cost of scaling:
 	- You're also at risk of over provisioning or under provisioning. 
 2. **on-demand capacity mode**: this is suitable for applications with inconsistent traffic or varying access patterns where you want scaling to be immediate and quick and you can't really predict a standard RCU or WCU for your DynamoDB table. 
 	- The trade-off is that this is more expensive because scaling is automatic and very quick. 
+	- You now use RRU and WRU instead of RCU and WCU
 
 Here are how they compare:
 
 
-|         | provisioned capacity                                                                                                                                | on-demand                                                                                                                                                                                                                                     |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| pricing | Pay per hour for the provisioned capacity units, but cheaper than on-demand for the same RCU and WCU usage. <br><br>You pay for what you provision. | Pay only when the database is being queried or written to, but more expensive for the same RCU and WCU than provisioned. On-demand is 2.5x more expensive than provisioned capacity for the same RCU and WCU<br><br>You pay for what you use. |
-| scaling | Set scaling boundaries via an auto-scaling rule determining min and max RCU and WCU.                                                                | Infinitely and automatically scales                                                                                                                                                                                                           |
+|          | provisioned capacity                                                                                                                                | on-demand                                                                                                                                                                                                                                     |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pricing  | Pay per hour for the provisioned capacity units, but cheaper than on-demand for the same RCU and WCU usage. <br><br>You pay for what you provision. | Pay only when the database is being queried or written to, but more expensive for the same RCU and WCU than provisioned. On-demand is 2.5x more expensive than provisioned capacity for the same RCU and WCU<br><br>You pay for what you use. |
+| scaling  | Set scaling boundaries via an auto-scaling rule determining min and max RCU and WCU.                                                                | Infinitely and automatically scales                                                                                                                                                                                                           |
+| use case | for predictable workloads                                                                                                                           | for unpredictable workloads, where you don't really know when something will happen                                                                                                                                                           |
 
 
 > [!NOTE]
 > Keep in mind that even though on-demand capacity is more expensive in general, if you set high autoscaling limits for the max and min RCU and WCU for a provisioned capacity mode, you'll pay even more than on-demand pricing, so maintaining observability over your application data load here is crucial.
+
+#### Handling over-capacity in provisioned mode
+
+What if your database receives too much traffic and starts writing and reading so much that you surpass your RCU and WCU limits?
+
+If you go over your provisioned RCUs or WCUs temporarily, DynamoDB lets you burst beyond your limits using a **burst capacity pool**. 
+
+But if you proceed the limits of the burst capacity pool for too long, then you'll start getting a `ProvisionedThroughputExceededError` getting thrown.
+
+There are three ways to remediate this:
+
+- **exponential backoff and retry**: slow down DB operations for your app, try them in exponential backoff.
+- **switch to on-demand**: accept the pricing and then get infinite scaling in return.
+- **partition your data better**: redesign your partition keys to spread load evenly across multiple partitions.
+
+**partition your data better**
+
+> [!NOTE]
+> If you provision 10 RCUs and 10 WCUs, DynamoDB creates 10 partitions, each partition getting 1 RCU and 1 WCU.
+
+
+If one partition gets disproportionally too much traffic, that's called a **hot partition**.
+
+> [!TIP]
+> That's why choosing a **high-cardinality** partition key is important, meaning that the possible set of partition keys is super high cardinality (very large).
+
+
 
 ## Lambda
 
