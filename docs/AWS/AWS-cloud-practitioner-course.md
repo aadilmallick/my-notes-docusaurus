@@ -1704,16 +1704,9 @@ Here are pro tips when it comes to memory:
 - Memory increase does not result in linear performance gain.
 - Increasing memory determines instance type behind the scenes, where more memory ends up in a beefier instance running the container, which results in more expenses.
 
-#### layers
 
 
-- **layers**: reusable pieces of code you can inject into other lambdas, like a custom logging library.
-
-#### Replicas
-
-- **replicas**: replicas of your lambdas that you can push to regions or local zones closer to your users to reduce latency, since lambda is a regional service.
-
-### **lambda pricing**
+#### **lambda pricing**
 
 Lambda is a pay-per-usage service where you only pay for the total amount of function execution time, based on three main categories:
 
@@ -1787,6 +1780,18 @@ A **dead letter queue** will send on an alarm based on a retry policy, where if 
 - **HTTPS lambdas**: you can create lambdas that are invokeable via an HTTP request by setting up the **function URL** for the lambda and choosing whether to make calling this require IAM authentication or not.
 	- **if IAM auth required**: users have to be identified into a user pool via cognito or be an IAM user of the account to trigger this lambda
 	- **if no auth required**: this lambda is completely free and public to the world to use.
+
+### Lambda configuration
+
+
+### layers
+
+
+- **layers**: reusable pieces of code you can inject into other lambdas, like a custom logging library.
+
+### Replicas
+
+- **replicas**: replicas of your lambdas that you can push to regions or local zones closer to your users to reduce latency, since lambda is a regional service.
 
 ## Containers with AWS
 
