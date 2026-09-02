@@ -1696,7 +1696,7 @@ Here are pro tips when it comes to memory:
 - Memory increase does not result in linear performance gain.
 - Increasing memory determines instance type behind the scenes, where more memory ends up in a beefier instance running the container, which results in more expenses.
 
-#### **lambda concurrency**
+### **lambda concurrency**
 
 Lambda concurrency is the number of requests being served at a given moment, meaning the number of current lambda functions computing in parallel.
 
@@ -1704,24 +1704,37 @@ Here are the rules of lambda concurrency:
 
 1. **New containers are spawned for each concurrent request**: if another in-flight request comes in before the current function execution finishes, then another container with the Lambda code is spun up in order to deal with that incoming request. 
 
-There are three different types of concurrency:
+There are three different types of concurrency, which use **concurrency units** (the number of possible concurrent lambda functions) to describe each one:
 
-- **unreserved**
-- **reserved**
-- **provisioned**
+
+![](https://i.imgur.com/bxX0T1E.jpeg)
+
+
+- **unreserved**: using a common concurrency pool, where all lambdas in your AWS account use concurrency units up from this region-based pool
+	- by default you have max 1000 account-wide concurrency units available
+- **reserved**: lets you reserve X number of concurrent units to reserve a certain amount of concurrent units for a lambda function.
+- **provisioned**: Creates a dedicated and "always on" concurrency pool so you have both reserved concurrency and warm starts.
+	- More expensive than reserved because you're avoiding cold starts and enabling warm starts.
+
+
+![](https://i.imgur.com/UKs5SPN.jpeg)
+
 
 
 > [!NOTE]
 > The default max lambda concurrency is **1000 concurrent executions per region**, meaning per region, the max number of lambda functions you can have running at the same time is 1000, but you can get this quota increased.
 
-Throttling is what occurs when the number of in-flight lambda invocations exceeds the max available lambda concurrency limit either configured or the default one per region (across all lambdas), so AWS throws a `RateExceeded` error if you go over concurrency limit.
+**Throttling** is what occurs when the number of in-flight lambda invocations exceeds the max available lambda concurrency limit either configured or the default one per region (across all lambdas), so AWS throws a `RateExceeded` error if you go over concurrency limit.
+
+#### Reserved concurrency
+
+#### Provisioned concurrency
 
 
 
 
 
-
-#### **lambda pricing**
+### **lambda pricing**
 
 Lambda is a pay-per-usage service where you only pay for the total amount of function execution time, based on three main categories:
 
