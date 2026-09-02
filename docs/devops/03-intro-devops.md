@@ -182,3 +182,6 @@ The four key characteristics of GitOps according to OpenGitOps are:
 ### Policies as code
 
 **Policies as code** help prevent risky configurations (like open network ports or missing encryption) before they reach production, using tools such as TFSEC, Chekov, Dry Run Security, and Open Policy Agent.
+
+
+
