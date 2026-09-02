@@ -1678,34 +1678,93 @@ A lambda function is made of three main components:
 2. **event**: Some sort of trigger like an HTTP request or an AWS-service-based trigger like uploading a file to a specific S3 bucket.
 3. **configuration**: Changing the behavior of the function by specifying things like max memory to load for the VM running the function, max function timeout, roles for which AWS services it has access to, a persistent filesystem like EBS
 
-**lambda pricing**
+#### **lambda pricing**
 
 Lambda is a pay-per-usage service where you only pay for the total amount of function execution time. 
 
-**lambda limits**
+#### Lambda duration and timeouts
+
+Lambdas has maximum 15 minutes before an automatic timeout, and they will automatically timeout once the limit is reached.
+
+Therefore setting your timeout threshold to be low helps in avoiding the cost of infinite loops and long-hanging dependencies.
+
+#### **lambda concurrency**
 
 Here are the default limits for lambda:
 
 - **1000 concurrent executions per region**: per region, the max number of lambda functions you can have running at the same time is 1000, but you can get this quota increased.
 
-**lambda invocation type**
+#### Lambda
 
-There are two ways you can design the behavior of your lambda invocation to be:
 
-- **synchronous**: the function will run and stay alive until it completely finishes its workload or until it reaches the maximum timeout of 15 minutes, and then directly returns the result.
-- **asynchronous**: the function works in the background for an unlimited amount of time and immediately returns a background job ID because it offloads the result to some messaging queue implementation like SNS or to eventbridge.
-
-**types of lambdas**
+#### **types of lambdas**
 
 - **HTTPS lambdas**: you can create lambdas that are invokeable via an HTTP request by setting up the **function URL** for the lambda and choosing whether to make calling this require IAM authentication or not.
 	- **if IAM auth required**: users have to be identified into a user pool via cognito or be an IAM user of the account to trigger this lambda
 	- **if no auth required**: this lambda is completely free and public to the world to use.
 
-**extra lambda resources**
+#### layers
 
-- **event source mappings**: A list of events that automatically trigger lambdas. This tab in the console shows which lambdas are set to automatically trigger on the occurrence of a specific event.
+
 - **layers**: reusable pieces of code you can inject into other lambdas, like a custom logging library.
+
+#### Replicas
+
 - **replicas**: replicas of your lambdas that you can push to regions or local zones closer to your users to reduce latency, since lambda is a regional service.
+
+### How lambda works under the hood
+
+1. EC2 instances that host docker images of your lambda code are running and on standby in a **lambda holding pool**
+2. When a request is invoked to your lambda function, it first goes to a load balancer meant to distribute traffic across many instances that run your function code as a container.
+3. Depending on the amount of traffic coming into your function, an increasing number of instances are yanked out of the lambda holding pool, and then made available for the load balancer distributes traffic to the instances which contain containers running your lambda code 
+
+The time between an instance being yanked out of the lambda holding pool and then made ready to receive traffic from the load balancer is called initialization time or commonly known as a **cold start**.
+
+
+![](https://i.imgur.com/gQUYFII.jpeg)
+
+
+### Triggers
+
+Lambda can have many different triggers.
+
+**event source mappings** are list of events that automatically trigger lambdas, like Eventbridge or DynamoDB streams
+
+Here are a list of common triggers:
+
+- Cloudwatch alarms
+- API gateway
+- SNS
+- SQS
+- DynamoDB streams
+- Eventbridge
+
+### Sync vs Async execution
+
+Based on system design, there are two ways you can design the behavior of your lambda invocation to be and change the behavior of the lambda via an SDK.
+
+- **synchronous**: you make a manual request to the function and then will run and stay alive until it completely finishes its workload or until it reaches the maximum timeout of 15 minutes, and then directly returns the result.
+	- **Mental model**: request and response
+- **asynchronous**: the function works in the background for an unlimited amount of time and immediately returns a background job ID because it offloads the result to some messaging queue implementation like SNS or to eventbridge.
+	- **Mental model**: fire and forget
+
+
+![](https://i.imgur.com/YWECA5o.jpeg)
+
+
+#### Asynchronous execution design
+
+Here is the happy path for using serverless async workloads:
+
+1. User dumps request into a messaging queue
+2. Lambda listens for new message in queue and processes message successfully
+3. Lambda deletes message from queue
+
+But during the case that message processing errors out, we need to handle failure via a **retry policy**, which just re-pushes the message back into the queue if message processing fails.
+
+The default retry policy tries for a minimum of 3 times and a maximum of 10 times
+
+A **dead letter queue** will send on an alarm based on a retry policy, where if the number of retries on processing a message surpasses some threshold, then send an alarm via SNS.
 
 ## Containers with AWS
 
