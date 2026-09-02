@@ -1678,9 +1678,7 @@ A lambda function is made of three main components:
 2. **event**: Some sort of trigger like an HTTP request or an AWS-service-based trigger like uploading a file to a specific S3 bucket.
 3. **configuration**: Changing the behavior of the function by specifying things like max memory to load for the VM running the function, max function timeout, roles for which AWS services it has access to, a persistent filesystem like EBS
 
-#### **lambda pricing**
 
-Lambda is a pay-per-usage service where you only pay for the total amount of function execution time. 
 
 #### Lambda duration and timeouts
 
@@ -1694,14 +1692,17 @@ Here are the default limits for lambda:
 
 - **1000 concurrent executions per region**: per region, the max number of lambda functions you can have running at the same time is 1000, but you can get this quota increased.
 
-#### Lambda
+#### Lambda compute
+
+- **memory**: defines the amount of memory available to the cloud function at runtime, between 128mb - 10GB
 
 
-#### **types of lambdas**
 
-- **HTTPS lambdas**: you can create lambdas that are invokeable via an HTTP request by setting up the **function URL** for the lambda and choosing whether to make calling this require IAM authentication or not.
-	- **if IAM auth required**: users have to be identified into a user pool via cognito or be an IAM user of the account to trigger this lambda
-	- **if no auth required**: this lambda is completely free and public to the world to use.
+
+Here are pro tips when it comes to memory:
+
+- Memory increase does not result in linear performance gain.
+- Increasing memory determines instance type behind the scenes, where more memory ends up in a beefier instance running the container, which results in more expenses.
 
 #### layers
 
@@ -1711,6 +1712,20 @@ Here are the default limits for lambda:
 #### Replicas
 
 - **replicas**: replicas of your lambdas that you can push to regions or local zones closer to your users to reduce latency, since lambda is a regional service.
+
+### **lambda pricing**
+
+Lambda is a pay-per-usage service where you only pay for the total amount of function execution time, based on three main categories:
+
+1. **invocation count**: $.20 per 1 million requests
+2. **memory**: the amount of memory you provision, not the memory you use.
+3. **duration**: how long your invocations run for
+
+
+![](https://i.imgur.com/ErBBRFx.jpeg)
+
+> [!NOTE]
+> The cost of running a lambda is a function of 1) the number of invocations, 2) the amount of memory allocated for that lambda, and 3) the function runtime duration.
 
 ### How lambda works under the hood
 
@@ -1765,6 +1780,13 @@ But during the case that message processing errors out, we need to handle failur
 The default retry policy tries for a minimum of 3 times and a maximum of 10 times
 
 A **dead letter queue** will send on an alarm based on a retry policy, where if the number of retries on processing a message surpasses some threshold, then send an alarm via SNS.
+
+
+### **types of lambdas**
+
+- **HTTPS lambdas**: you can create lambdas that are invokeable via an HTTP request by setting up the **function URL** for the lambda and choosing whether to make calling this require IAM authentication or not.
+	- **if IAM auth required**: users have to be identified into a user pool via cognito or be an IAM user of the account to trigger this lambda
+	- **if no auth required**: this lambda is completely free and public to the world to use.
 
 ## Containers with AWS
 
