@@ -1542,8 +1542,10 @@ Point-in-time recovery (PITR) provides continuous backups for your DYnamoDB tabl
 
 DynamoDB performance is measured with these two metrics:
 
-- **RCU (read capacity unit)**: how many units per millisecond DynamoDB is able to read
-- **WCU (write capacity unit)**: how many units per millisecond DynamoDB is able to write
+- **RCU (read capacity unit)**: how many reads per second for an item up to 1kb in size
+- **WCU (write capacity unit)**: how many writes per second for an item up to 1kb in size
+
+
 
 DynamoDB offers two modes to control scaling and the cost of scaling:
 
@@ -1552,6 +1554,15 @@ DynamoDB offers two modes to control scaling and the cost of scaling:
 	- You're also at risk of over provisioning or under provisioning. 
 2. **on-demand capacity mode**: this is suitable for applications with inconsistent traffic or varying access patterns where you want scaling to be immediate and quick and you can't really predict a standard RCU or WCU for your DynamoDB table. 
 	- The trade-off is that this is more expensive because scaling is automatic and very quick. 
+
+Here are how they compare:
+
+
+|         | provisioned capacity                                                                                                                                | on-demand                                                                                                                                                                                                                                     |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pricing | Pay per hour for the provisioned capacity units, but cheaper than on-demand for the same RCU and WCU usage. <br><br>You pay for what you provision. | Pay only when the database is being queried or written to, but more expensive for the same RCU and WCU than provisioned. On-demand is 2.5x more expensive than provisioned capacity for the same RCU and WCU<br><br>You pay for what you use. |
+| scaling | Set scaling boundaries via an auto-scaling rule determining min and max RCU and WCU.                                                                | Infinitely and automatically scales                                                                                                                                                                                                           |
+
 
 > [!NOTE]
 > Keep in mind that even though on-demand capacity is more expensive in general, if you set high autoscaling limits for the max and min RCU and WCU for a provisioned capacity mode, you'll pay even more than on-demand pricing, so maintaining observability over your application data load here is crucial.
