@@ -598,9 +598,17 @@ Here are the two setups:
 1. **partition key alone**: records are considered unique or not based on the partition key value. No two records can have the same partition key value
 2. **partition key + sort key**: uniqueness of records is based on the combination of the partition key and sort key values. No two record can have the same combination of partition key and sort key values.
 
+> [!NOTE]
+> The reason why it's so important for a partition key to be unique is because that helps with sharding and ensuring that partitions have equal amounts of data. 
+
 ### Creating a DynamoDB table
 
 1. **Choose the primary key**: specify a partition key or a partition + sort key combination
+
+
+![](https://i.imgur.com/htN3iRW.jpeg)
+
+
 2. **Choose the table class**: Either choose between standard DynamoDB (optimized for frequent reads/writes) or archive DynamoDB (costs less, archive storage)
 3. **Choose the pricing option**: Either choose on-demand pricing (auto-scales for availability and load balancing) or **provisioned**, where you guess read/write capacity in advance so it costs less.
 
