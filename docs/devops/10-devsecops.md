@@ -18,3 +18,27 @@ However, even with Agile, we are still missing essential components that DevOps 
 >  DevOps is a culture shift that integrates Agile to make both development and release cycle very fast 
 
 ![](https://i.imgur.com/QQ5GV1D.jpeg)
+
+### Why devsecops
+
+The old way of security testing was manual and took a long time
+
+![](https://i.imgur.com/ciqgqe0.jpeg)
+
+The DevSecOps approach aims to improve security testing speed via two approaches:
+
+1. **increase speed by automation**: include automation scripts that run code analysis checks
+2. **enable developers to participate in security**: developers should be responsible for the security of the code they write. Enable them with security tools for this purpose.
+
+
+> [!NOTE]
+> DevSecOps is the merging of the security team into the DevOps process, to further the goal of giving dev teams more ownership over security by integrating automated security checks into every step of the process.
+
+Here is how DevSecOps differs from traditional security:
+
+- **Traditional security** is often slow and manual, with security teams running scans and reviewing code over weeks, which doesn't fit the fast pace of DevOps.
+- **DevSecOps** integrates security directly into the development pipeline, automating tests and giving developers ownership of security tasks. 
+
+This means developers get real-time feedback within their workflow and can fix issues quickly, while security teams shift to an auditing role. 
+
+The focus is on empowering developers with tools and education to handle security themselves, making security a continuous, fast, and collaborative process.
