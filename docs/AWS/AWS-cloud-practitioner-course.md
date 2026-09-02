@@ -1501,15 +1501,59 @@ DynamoDB supports flexible schemas and stores data as items (rows) with attribut
 
 ### Indices
 
+**Secondary indices** in DynamoDB are additional ways to create additional indices and new partition + sort key combinations to organize your table and search it faster.
+
 There are two types of indices in DynamoDB, both of which make querying faster:
 
-- **local secondary index**: Queries data over a single partition, and can only be set at table initialization.
+- **local secondary index (LSI)**: An index you create with the same partition key as the table, but a new attribute choice for the sort key.
+	- **querying nature**: Queries data over a single partition
+	- **table flexibility**: can only be set at table initialization.
 	- **pro**: it's faster because you're performing a query over a smaller subset of the table. 
 	- **con**: it's less flexible because it can only be set once at the first time you create a table. 
-- **global secondary index**: Queries data across all partitions of the entire table and can be added or deleted at any time.
+- **global secondary index (GSI)**: An index you create where you can choose any two attributes from the table as the new partition + sort key combination.
+	- **querying nature**: Queries data across all partitions of the entire table
+	- **table flexibility**: can be added or deleted at any time.
 	- **pro**: it's flexible and can be added and deleted at any time. 
 	- **con**: it's slower since it performs searches over all partitions of the table. 
 
+|             | Local secondary index                                               | Global secondary index                               |
+| ----------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
+| limit       | 5 per table max                                                     | 20 GSIs per table                                    |
+| flexibility | can only create at table initialization; you cannot add LSIs later. | you can add, delete, modify them whenever            |
+| performance | uses RCUs and WCUs of the table                                     | has individual RCUs and WCUs you can set on the GSI. |
+
+#### Projections
+
+For each index, you can define a **projection** of the table to include in that index.
+
+A **projection** is a list of attributes to copy over from the main table into the index, and you have these three options for the projection type when creating an index:
+
+- **All**: include all attributes/columns from the original table
+- **Only keys**: only include the new partition + sort key columns from the index.
+- **Include**: specify the attributes you want to include and copy over from the original table.
+
+
+![](https://i.imgur.com/ZjWMA5T.jpeg)
+
+
+#### LSIs
+
+> [!IMPORTANT]
+> For each partition key and its related items, there is a 10GB limit. 
+> 
+> For example, if you have a partition key B001, the sum of all the storage bytes of all items with that partition key cannot exceed 10GB.
+
+
+
+> [!NOTE]
+> Don't over-index, as indices incur additional costs. Only create LSIs for queries you actually need.
+
+
+#### GSIs
+
+You should think of global secondary indexes as the same thing as materialized views in SQL, where you're basically just creating another table but you're just rearranging the data and you're querying by different columns. 
+
+That's why GSIs get their own RCU and WCU - because they act like a normal table.
 
 > [!NOTE]
 > Keep in mind that GSIs incur additional costs when you query them, so add them and query them mindfully.
