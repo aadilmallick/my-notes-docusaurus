@@ -105,3 +105,31 @@ There are 3 types of metrics:
 > [!NOTE]
 > Track metrics that encourage good behaviors and practice, like limiting vulnerabilities.
 
+## Static code analysis
+
+### Intro
+
+There are two types of pipelines that a product goes through:
+
+- **build pipeline**: packages certain source code for deployment
+- **release pipeline**: pipeline that handles the process of releasing code to a target environment, prod, staging, or preprod.
+
+> [!NOTE]
+> The main reason why you would want to separate these two pipelines is so you can run them a different number of times or where you only want to build once but then you want to release to multiple different environments from one single build. 
+
+Here are the two main types of testing:
+
+- **white-box testing**: you have full knowledge of the codebase, so you test internal logic.
+
+
+
+![](https://i.imgur.com/adWpCxn.jpeg)
+
+- **black-box testing**: the code is a black box to you - like testing an external API - so you test functional logic
+![](https://i.imgur.com/AbfmqJp.jpeg)
+
+From those two main categories, you have these testing categories:
+
+- **Software composition analysis (SCA)**: analyzes open source packages to see if they are vulnerability-free and up to date
+- **Static code analysis (SCA)**: analyzes code in an automated manner to check for known vulnerabilities by analyzing code patterns.
+- **Static application security testing (SAST)**
