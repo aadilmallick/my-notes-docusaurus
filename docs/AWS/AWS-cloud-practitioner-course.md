@@ -1726,7 +1726,25 @@ There are three different types of concurrency, which use **concurrency units** 
 
 **Throttling** is what occurs when the number of in-flight lambda invocations exceeds the max available lambda concurrency limit either configured or the default one per region (across all lambdas), so AWS throws a `RateExceeded` error if you go over concurrency limit.
 
+#### Unreserved concurrency
+
+Unreserved concurrency refers to an account-wide regional limit for the number of concurrent functions that are allowed to be run at once. 
+
+By default, this limit is 1000 unreserved concurrency units, and are assigned out at will to functions as traffic reaches them.
+
+- **pro**: simple, each function has an equal chance to scale up
+- **con**: if one function consumes all the concurrency, the others will get throttled
+
+> [!NOTE]
+> The 1000 unit limit for the default unreserved concurrency max is there to protect you, so that infinite loops don't result in an infinite bill.
+
 #### Reserved concurrency
+
+Reserved concurrency is an amount of concurrency units allocated for a specific function, so that it will always have that amount of max concurrency guaranteed for its reserves.
+
+The main advantage of reserved concurrency is not in scaling up but rather *scaling down*, where you limit the max concurrency of a lambda function so that it can't have that many parallel instances of the function running.
+
+This saves in money and event processing load.
 
 #### Provisioned concurrency
 
