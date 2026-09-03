@@ -1748,8 +1748,17 @@ This saves in money and event processing load.
 
 #### Provisioned concurrency
 
+Provisioned concurrency is reserved concurrency but also warming up the concurrent function host instances as to avoid cold starts.
 
+> [!NOTE]
+> Think of it as a pool of concurrency that is **always on**. This solves the cold start problem, but it's very expensive.
 
+The pricing is $34/month for 5 units of provisioned concurrency and 1 million requests.
+
+#### Best practices
+
+- **alarms on throttles**: add CloudWatch alarms on the throttles of a Lambda function for early indicators of issues and to be notified of any throttling going on. 
+- **have client code use exponential backoff**: always wrap any Lambda requesting code in exponential backoff and retry mechanics to avoid retry storms and to avoid throttling. 
 
 
 ### **lambda pricing**
@@ -1843,10 +1852,35 @@ Here is the happy path for using serverless async workloads:
 
 But during the case that message processing errors out, we need to handle failure via a **retry policy**, which just re-pushes the message back into the queue if message processing fails.
 
-The default retry policy tries for a minimum of 3 times and a maximum of 10 times
+> [!NOTE]
+> The default retry policy tries for a minimum of 3 times and a maximum of 10 times
 
-A **dead letter queue** will send on an alarm based on a retry policy, where if the number of retries on processing a message surpasses some threshold, then send an alarm via SNS.
+#### Lambdas + Dead Letter Queues
 
+A **dead letter queue** is a destination to temporarily hold failed invocation message content, then based on that enqueued content, you can do things like trigger an alarm via SNS to notify users.
+
+There are two main methods to enqueue into a DLQ:
+
+1. **manual enqueuing**: programmatically send messages to the AWS SQS DLQ service.
+
+
+![](https://i.imgur.com/37Oh4Ok.jpeg)
+
+
+2. **enqueuing based on a retry policy**: failed messages only get enqueued after they surpass a retry policy's max retry limit set on something like an SQS queue.
+
+
+![](https://i.imgur.com/PTgrkLl.jpeg)
+
+
+> [!NOTE]
+> The best way is the second option, to automatically enqueue and redrive failed messages via a retry policy from SQS enqueuing messages into the DLQ
+
+Here are the best practices:
+
+1. Always use a DLQ for production applications, or something similar like inngest or upstash.
+2. Set up an alarm to trigger an SNS topic on DLQ size > 0
+3. Have a programmatic process to redrive messages, have it run in code.
 
 ### **types of lambdas**
 
@@ -1856,11 +1890,63 @@ A **dead letter queue** will send on an alarm based on a retry policy, where if 
 
 ### Lambda configuration
 
+- **versions**: snapshots of the code and settings of a lambda function, allowing version history of the lambda and rollbacks.
 
-### layers
+#### Versions and aliases
 
 
-- **layers**: reusable pieces of code you can inject into other lambdas, like a custom logging library.
+Lambdas have version history, so it's important to refer to a specific version of your lambda code.
+
+![](https://i.imgur.com/3Aqryev.jpeg)
+
+- `$LATEST`: always refers to the latest version, used by default if you don't specify a version.
+
+**Aliases** are named pointers to a specific version of a lambda.
+
+Aliases are helpful for these usecases:
+
+- **beta or preprod environments**: instead of referring to version 2 of a lambda, you can refer to version `prod`.
+- **A/B testing**: you can assign weights to different versions of the lambda to load balance across those versions and distribute traffic to those lambda versions according to their alias weights. This helps with A/B testing.
+
+![](https://i.imgur.com/wND7Llt.jpeg)
+
+### Lambda + VPC
+
+If your lambda function needs to access resources not accessible over the internet, like an AWS EC2 instance or DB in a private subnet, then you need to place your lambda inside a VPC and specifically within the same private subnet the private resources are located in.
+
+Behind the scenes, Lambda creates ENIs (elastic network interface) for each subnet the function is deployed into, giving each Lambda a private IP address in the VPC.
+
+> [!NOTE]
+> In the past, attaching an ENI for the lambda function took a bit of time and exacerbated the cold start problem, but now that's mostly solved and lambdas within a VPC no longer contribute to a cold start latency.
+
+
+While you could create the NAT gateway routing with the private subnet yourself to have the lambda accept ingress internet traffic as well as perform egress to resources within the private subnet, Lambda offers a direct path to talk to private resources via **VPC endpoints**.
+
+VPC endpoints can be used to let a Lambda communicate with AWS services privately, like S3 and DynamoDB.
+
+**standard lambda networking**
+
+
+![](https://i.imgur.com/DIEeNnm.jpeg)
+
+
+### layers and filesystems
+
+- **layers** are reusable pieces of code you can inject into and across other lambdas, like a custom logging library, external libraries, or config files.
+- **lambda filesystems**: let you mount EFS instances to your lambda function so you can access shared filesystem contents.
+
+### Lambda + Docker
+
+You can deploy your functions using a Docker image, which gives you a lot more flexibility as opposed to a simple ZIP file, as well as the size benefits:
+
+- **zip file**: max 250 mb limit.
+- **Dockerfile**: the image created from the Dockerfile has a 10GB size limit
+
+AWS provides base images for lambda, so it's pretty simple to use. Just follow these steps:
+
+1. Create a dockerfile that uses the lambda node 24 base image
+2. Build the docker image, upload that docker image to ECR
+3. Create a lambda from the uploaded docker image
 
 ### Replicas
 
@@ -3053,6 +3139,21 @@ CodeDeploy is a managed deployment service that allows you to configure deployme
 
 - You can manually run deployments or set up triggers for them.
 - You can retry or roll back deployments.
+
+#### Everything at once
+
+Here are the preliminary steps to set up the pipeline and the necessary components
+
+- **AWS CodeCommit**: configure Github or CodeCommit as a source repository
+
+
+Now here is what happens with the entire CI/CD process from the moment you push up a new commit all the way to new infrastructure getting deployed on AWS via this complete pipeline.
+
+1. Upload your code to github with a `buildspec.yml`
+2. AWS codebuild recognizes the `buildspec.yml` and follows these instructions configured from the YAML:
+	- upload the source code to S3, output a CloudFormation template
+	- Trigger cloudformation to read the cloudformation template stored in S3
+	- Cloudformation builds the infra
 
 ### CodePipeline
 

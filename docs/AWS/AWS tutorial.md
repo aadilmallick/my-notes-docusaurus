@@ -1268,6 +1268,27 @@ Create a new task definition
 
 ## Lambda 
 
+### Lambda configuration
+
+#### Adding versions and aliases
+
+1. Create a new alias or version like so for a lambda, or use the version tab:
+
+![](https://i.imgur.com/B4pTJkX.jpeg)
+
+![](https://i.imgur.com/ivb1ze9.jpeg)
+
+2. Publish a new version, note the versioned ARN of the lambda
+
+
+![](https://i.imgur.com/xHDgqcQ.jpeg)
+
+3. Create an alias, where you have a name point to a version number.
+
+
+![](https://i.imgur.com/1ivWfNG.jpeg)
+
+
 ### Lambda Development Basics
 
 #### Lambda Monitoring
