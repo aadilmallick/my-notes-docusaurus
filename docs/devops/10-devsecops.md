@@ -98,6 +98,8 @@ There are 3 types of metrics:
 	- MTTR (mean time to recover)
 	- MTTD (mean time to delivery)
 	- Deployment frequency
+	- flow time: detection to resolution
+- **vulnerabilities**: number of critical vulnerabilities, and vulnerabilities by type.
 - **code metrics**: focus on security and quality assurance of code.
 	- **application coverage**: measures test coverage percentage
 	- **vulnerability remediation time**: how quickly issues get fixed
@@ -105,9 +107,8 @@ There are 3 types of metrics:
 > [!NOTE]
 > Track metrics that encourage good behaviors and practice, like limiting vulnerabilities.
 
-## Static code analysis
+## Intro to security testing
 
-### Intro
 
 There are two types of pipelines that a product goes through:
 
@@ -128,8 +129,153 @@ Here are the two main types of testing:
 - **black-box testing**: the code is a black box to you - like testing an external API - so you test functional logic
 ![](https://i.imgur.com/AbfmqJp.jpeg)
 
-From those two main categories, you have these testing categories:
+You can further subdivide those blanket testing categories into two more categories of testing:
+
+- **static security testing**: analyzes source code for security vulnerabilities. 
+	- **con**: It is language specific and can lead to several false positives.
+	- **pro**: very quick
+- **dynamic security testing**: tests an app while it is currently running to test application flow and discovers vulnerabilities by interacting with the website./
+	- **pro**: catches elusive bugs and vulnerabilities
+	- **con**: a black-box approach that takes a lot of time to complete
+
+Here are the static security testing techniques:
 
 - **Software composition analysis (SCA)**: analyzes open source packages to see if they are vulnerability-free and up to date
-- **Static code analysis (SCA)**: analyzes code in an automated manner to check for known vulnerabilities by analyzing code patterns.
-- **Static application security testing (SAST)**
+- **Static code analysis (SCA)**: analyzes IaC in an automated manner to check for known vulnerabilities when creating the infra by analyzing code patterns.
+	- **Pro**: quick, automated, no need for devs to know intimate security details.
+	- **Con**: not 100% effective, may lead to false positives or may not find everything.
+- **Static application security testing (SAST)**: a white-box testing method with normal application code testing via unit and integration tests
+
+Here are the dynamic security testing techniques:
+
+- **Dynamic application security testing (DAST)**: black-box testing method that examines an application while it's running to find vulnerabilities, testing the app as it runs.
+- **runtime testing**: testing suspicious API calls, networking, commands run on the server, audit trails.
+
+
+![](https://i.imgur.com/eAwLpai.jpeg)
+
+### Static testing
+#### Static code analysis
+
+Static code analysis works by first defining checks or policies based on what your organization wants and then, based on those policies, scanning for common security vulnerabilities, deployment best practices, and coding best practices.
+
+#### Continuous secret scanning
+
+**Secret scanning** is a white-box testing approach that statically searches for exposed secrets in your codebase via Regex or Entropy-based searching (entropy-based is better).
+
+Secret scanning is crucial to prevent accidental exposure of sensitive credentials like AWS keys, passwords, and API tokens, especially in infrastructure as code files.
+
+Here are the best practices: 
+
+- **add pre-commit hooks to block exposed secrets**: implement pre-commit hooks that block commits if secrets are detected, ensuring secrets are caught early in the development process.
+- **use automated secret-scanning tools**: Tools like Aikido and TruffleHog can automate secret scanning by integrating with code repositories and CI/CD pipelines, enabling continuous protection as part of your DevSecOps workflow.
+
+
+![](https://i.imgur.com/GYkfWyu.jpeg)
+
+#### Continuous dependency scanning
+
+**Continuous dependency scanning** uses an automated dependency scanner tool that scans your codebase's third party packages for vulnerabilities or outdated dependencies.
+
+
+> [!NOTE]
+> Automated dependency scanning integrated into your CI/CD pipeline helps quickly identify vulnerable components by comparing dependencies against known vulnerability databases (CVEs).
+
+
+![](https://i.imgur.com/fITNC1F.jpeg)
+
+#### Continuous container scanning
+
+**Continuous container scanning** scans these three main security focus areas for containerized applications:
+  
+- **image vulnerabilities:** Identifying known vulnerabilities in the container's base image and its installed libraries and dependencies.
+- **Policy Enforcement:** Ensuring containers are built and configured following security best practices, such as those outlined in CIS Benchmarks.
+- **Runtime Protection:** Monitoring running containers for suspicious activity and preventing container breakouts.
+
+
+![](https://i.imgur.com/xNfutGI.jpeg)
+
+#### Continuous IaC scanning
+
+Continuous IaC scanning scans your IaC code with static analysis tools like Checkov that can be fit into CI/CD pipelines to catch misconfigurations with your infra design.
+
+
+
+![](https://i.imgur.com/0RXAmF0.jpeg)
+
+> [!NOTE]
+> A single misconfiguration in IaC can propagate across all deployments, so integrating security checks early in the development process is crucial to catch issues when they are cheapest to fix.
+
+Security scanning tools like Akido Security and open-source Checkov can analyze IaC for vulnerabilities, providing instant feedback through IDE integration and bug tracking systems.
+
+### Dynamic testing
+
+#### Dynamic code analysis
+
+For DevSecOps, dynamic scans should run asynchronously in CI/CD pipelines to avoid blocking builds, and tools should be fast, accurate, support automation (API/CLI), and integrate with bug trackers
+
+#### IAST
+
+IAST stands for interactive app security testing, and is a combination of DAST with SAST, where it performs testing by integrating into the runtime.
+
+Interactive Application Security Testing (IAST) works by instrumenting the application during runtime, allowing real-time monitoring of data flows and behavior to detect vulnerabilities accurately.
+
+> [!NOTE]
+> IAST offers continuous security testing with fewer false positives compared to static or dynamic scanning, making it well-suited for integration into DevSecOps pipelines.
+
+
+#### Continous application runtime monitoring
+
+Continuous monitoring is essential because new vulnerabilities and threats emerge daily, and traditional periodic scans can't catch everything, especially zero-day vulnerabilities.
+
+Runtime monitoring detects suspicious activities in real time, such as unusual processes, unexpected connections, and unauthorized changes, enabling rapid incident response.
+
+AWS GuardDuty is an example of a runtime monitoring solution that collects logs from various sources (like EC2 and Aurora) to detect suspicious API calls, malware, and misconfigurations, providing comprehensive visibility across your cloud environment.
+
+
+### Complete pipeline
+
+![](https://i.imgur.com/CwZYfKI.jpeg)
+
+## Checkov
+
+Checkov is a popular static code analysis tool used to scan cloud infrastructure configurations across major cloud providers, used for scanning vulnerabilities in IaC cocdebases.
+
+1. It works by applying pre-built policies that enforce security and compliance best practices, and you can also add custom policies if needed. 
+2. In the pipeline you're watching, Checkov is installed and run to scan the entire code directory, generating a report of any security vulnerabilities found. 
+
+This helps catch issues early in the build process, ensuring your infrastructure code follows industry standards and improving overall security and compliance in your deployments.
+
+Here's how to use it generally:
+
+1. Install checkov
+
+```bash
+pip3 install checkov
+```
+
+2. Scan a directory
+
+```bash
+checkov --directory src/ --soft-fail -o junitxml --output-file-path checkovreport.xml
+```
+
+Here are the flags on the `checkov` command you can set:
+
+- `--directory / -d`: accepts a folder path to scan all code in
+- `--soft-fail`: exits with a 0 exit code no matter what
+- `-o <output-style>`: outputs the security testing analysis results in a certain output style, of which you have these possible values:
+	- `junitxml`: outputs results in XML
+- `--output-file-path <filepath>`: the filepath to publish test results to.
+
+
+> [!NOTE]
+> Checkov always returns a zero exit code by default.
+
+
+### Skipping checkov checks
+
+You can use comments with Checkov in order to skip checking certain problematic lines of code that you know are not vulnerabilities but Checkov flags them as false positives. 
+
+
+![](https://i.imgur.com/wzXyNpT.jpeg)
