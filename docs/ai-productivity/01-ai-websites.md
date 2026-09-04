@@ -23,23 +23,33 @@ For example, you could ask gpt to send you the latest ai news every morning
 
 ## ChatGPT Work
 
+
+![](https://i.imgur.com/A2uRbLU.jpeg)
+
+
 ### Working in projects
 
 With ChatGPT work projects, you are just using a local folder on your computer, but not really doing it for coding and stuff like that. It's basically the same thing as Codex but you're just using it in a business context. 
 
-To work in projects, you should use these components:
+Work projects consist of several **source folders** from your filesystem, of which there are two types:
+
+- **primary source folder**: The folder that GPT looks in to find `AGENTS.md` and documentation about the project.
+- **secondary source folder**: just folders on your filesystem that you grant GPT access to.
+
+
+A source folder should have these two components:
 
 - `AGENTS.md`: rules for the project that always loads in context.
 - `tools.md`: a semantic md file that you tell GPT to use as the source of truth for how to use plugins and rules for the plugins within the scope of your project.
 
-**Adding to `AGENTS.md`**
+#### **Adding to `AGENTS.md`**
 
 Whenever you want ChatGPT to remember a rule or add it to the agents.md, you should just preface whatever your prompt is with "remember this rule":
 
 >"Remember this rule: Whenever I ask you to rename image files, use a short but descriptive name so I know what each image is without opening it."
 
 
-**Adding to tools MD**
+#### **Adding to tools MD**
 
 WHen adding a lot of connectors and rules for each plugin, your `AGENTS.md` file can get very messy, so it's important to keep it clean by offloading plugin rules to another file.
 
