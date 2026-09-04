@@ -112,7 +112,7 @@ Level up your workflows with prompt engineering, AI development patterns, and LL
 
 | What do you want to learn? | Where to find it on this site | Description / Key Highlights |
 | :--- | :--- | :--- |
-| **Prompt Engineering Basics** | [AI Engineering: Prompt Engineering](./ai-engineering/04-prompt-engineering.md) | The 4 essential ingredients of any successful prompt. |
+| **Prompt Engineering Basics** | [AI Engineering: Prompt Engineering](04-prompt-engineering.md) | The 4 essential ingredients of any successful prompt. |
 | **AI Agentic Workflows** | [AI Engineering: Agentic AI Development](./ai-engineering/05-agentic-AI-development.md) | Constructing autonomous agents, system loops, tools, and execution contexts. |
 | **AI assisted Coding** | [AI Engineering: AI Slop Mastery](./ai-engineering/06-AI-slop-mastery.md) | Optimal workflows for context isolation and writing high-quality code. |
 | **Claude & Anthropic Tips** | [AI Engineering: Anthropic Slop Mastery](./ai-engineering/01-Anthropic-slop-mastery.md) | Advanced prompting strategies specific to Anthropic's Claude models. |
