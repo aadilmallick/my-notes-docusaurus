@@ -99,6 +99,24 @@ You can initiate a side chat with `/side`
 
 ![](https://i.imgur.com/8MQpyzX.jpeg)
 
+### Skills
+
+Any action that you do with ChatGPT work, you can then turn into a repeatable skill using the **skill creator** built-in skill.
+
+![](https://i.imgur.com/YXupBoR.jpeg)
+
+It builds full-fledged apps with these properties:
+
+- **chatgpt login**: you login with chatgpt to access the site
+- **custom domain**: immediately publishes to the internet
+- **RBAC**: you can share the site with people (chatgpt + email auth) or publish it to the web (no auth)
+- **environment variables**: set env vars
+### Sites
+
+By typing in `@sites` into the chat, you can prompt ChatGPT to make a web app
+
+
+![](https://i.imgur.com/8PSj4sz.jpeg)
 
 ## Microsoft copilot
 
