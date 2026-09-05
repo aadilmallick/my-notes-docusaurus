@@ -49,4 +49,18 @@ Use built-in functions like `$(shell command)` for dynamic values.
 - `$<` : First prerequisite.
 - `$^` : All prerequisites.
 
+### Conditionals
 
+Conditionals let your Makefile adapt to environments, like debug vs. release builds. Use `ifdef`, `ifndef`, `ifeq`, `ifneq`.
+
+Here's a practical example with platform detection:
+
+```make
+OS := $(shell uname -s)  # Detect OS
+
+ifeq ($(OS),Linux)
+    LIBS = -lm
+else ifeq ($(OS),Darwin)
+    LIBS =
+endif
+```
