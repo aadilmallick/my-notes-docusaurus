@@ -2284,6 +2284,19 @@ Terminology
 
 AppSync is a managed GraphQL API service where you take care of defining the schema, resolvers, and mutations, and AppSync takes care of the rest by setting up the API, supporting web sockets, and optimizing with caching.
 
+ 
+#### Creating an API
+
+1. Create a DynamoDB table you want to use as a data source
+2. Create an AppSync API and choose an existing DynamoDB table as a data source.
+
+
+![](https://i.imgur.com/5lfKrJ0.jpeg)
+
+3. After AppSync generates the GraphQL schema from the DynamoDB table, choose the authentication provider to be either a **user pool** if integrating with Cognito or **API key** if you want to easily kickstart your API.
+
+
+![](https://i.imgur.com/6sAsoCQ.jpeg)
 
 ## AWS easy ways to deploy apps
 

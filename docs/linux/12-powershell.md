@@ -179,13 +179,83 @@ Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGIN
 
 - `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
 - `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
-## File-handling
 
-### Listing directory
+## Modules
 
-Use the `Get-ChildItem` command to list a directory.
+A module is a collection of cmdlets for a particular function or application.
 
+A PowerShell module is essentially a package that contains a collection of related cmdlets (commands) designed for a specific function or technology. 
 
+- For example, there are modules for VMware, Citrix, Azure, and Office 365, each providing commands tailored to manage those environments. 
+- Modules help organize and extend PowerShell's capabilities, allowing you to easily access and run commands related to particular tasks
+
+### Modules basics
+
+#### List modules
+
+To list all available modules, run the `Get-Module` command:
+
+```powershell
+Get-Module -ListAvailable
+```
+#### Import module manually
+
+In PowerShell 3.0 and later, modules can even load automatically when you run a command from them, making it easier to work with a wide range of tools without manually importing each module.
+
+However, the syntax is still there if you want to manually import/load a module using the `Import-Module` cmdlet
+
+```powershell
+Import-Module -name applocker
+```
+
+### Installating third-party modules
+
+Use the `Install-Module` cmdlet to install third-party modules.
+
+Here is the basic syntax:
+
+```powershell
+Install-Module -Name $packagename
+```
+
+And here is how to install Azure as a third-party module:
+
+```powershell
+Install-Module -Name AzureAD
+```
+### Execution policies
+
+PowerShell execution policies control which scripts are allowed to run on your system to help protect against running untrusted code. Here are the four main policies:  
+  
+
+- **Restricted**: No scripts are allowed to run. This is the most secure setting and blocks all scripts, including those you create locally.
+- **AllSigned**: Only scripts that are digitally signed by a trusted publisher can run, whether they are local or downloaded.
+- **RemoteSigned** (default): Locally created scripts run without restriction, but scripts downloaded from the internet must be digitally signed.
+- **Unrestricted**: All scripts can run regardless of signature. This is risky for production environments and should only be used temporarily for testing.
+
+> [!NOTE]
+> The default policy is `RemoteSigned`, balancing security and usability. 
+
+If you encounter errors running scripts, it’s often due to these policies, and you can change them with the `Set-ExecutionPolicy` command. 
+
+> [!WARNING]
+> Just be cautious, especially with Unrestricted, to avoid security risks.
+
+#### Getting the execution policy
+
+To get the current execution policy of PowerShell, use the `Get-ExecutionPolicy` cmdlet
+
+```powershell
+Get-ExecutionPolicy
+```
+
+#### Setting the execution policy
+
+To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy` cmdlet and then pass in as the argument one of the 4 available execution policies to choose from.
+
+```powershell
+Set-ExecutionPolicy restricted
+```
 ## Powershell ISE
 
 The `ise` command in pwoershell gives you an IDE to write powershell scripts with intellisense on steroids.
@@ -238,3 +308,12 @@ If you want to filter object properties beforehand before piping the data stream
 Get-Service | Select-Object DisplayName, Status, ServiceType | Out-GridView
 ```
 
+## Azure Powershell
+
+Azure integrates with powershell very well and has three types of ways to use azure in the command-line:
+
+- **Azure powershell**: client-based shell that you install on your local machine, comes with Azure module installed to allow you to run azure commands.
+- **Azure cloud shell**: Shell in the azure cloud that you can use. It comes with all commands and authentication already there.
+- **Azure CLI**: a cross-platform CLI you install.
+
+![](https://i.imgur.com/mZG4OEB.jpeg)
