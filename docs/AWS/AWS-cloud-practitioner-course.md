@@ -2204,20 +2204,17 @@ You can create S3 buckets to store cloudtrail logs. These buckets are called **t
 
 ### API Gateway
 
-API gateway is a managed server AWS service where AWS manages incoming HTTP and websocket requests for you and all you have to do is provide the workload that gets triggered on a route match and define how you want the request body and search parameters to look like and what the response should look like.
+API gateway is a managed server AWS service where AWS manages incoming HTTP and websocket requests for you and all you have to do is provide the workload or AWS service that gets triggered on a route match, which forwards the traffic to that AWS service or workload via a **service proxy**
 
 - **example**: using API gateway, you can define a lambda to get triggered on a GET request to the `/posts` route and enforce certain query parameters, and then API gateway will take care of parsing the request body, headers, and ensuring the lambda gets triggered and returns the desired response from the API
 
-**what you manage**
+A service proxy forwards traffic from the public-facing API gateway routes to private AWS resources like a Lambda or DynamoDB.
 
-- The actual work to get done upon a route request and the structure of the response and desired status code to return.
-- Which route pattern and HTTP method points to which workload.
 
-**what AWS manages**
+- **what API gateway manages**: controlling the service proxy to forward traffic to workloads per route, load balancing, and scaling up.
+- **what you manage**: the actual business logic
 
-- staging for APIs, allowing API versioning
-- parsing of request body, headers, route parameters, search parameters, and response body.
-
+API gateway can also handle rate limiting, caching, monitoring, security via WAF, and deployment environments and API versions.
 #### **type of gateways**
 
 There are three main types of API Gateways you can make:
@@ -2225,8 +2222,65 @@ There are three main types of API Gateways you can make:
 - **REST API**: older version, has more features like built-in auth and integration with AWS services like Cognito, slower, and is more expensive.
 	- **integrated services list**: Cognito + authorizers, WAF (web application firewall)
 - **HTTP API**: newer version, faster, simpler, and less expensive, allowing you to build low latency cost-effective REST APIs
+- **websocket endpoint**: support websocket protocol
+
+> [!NOTE]
+> How to choose between REST or HTTP? If REST has a bunch of features that you're not going to use in your API, like auth or authorizers or WAF, then just use HTTP.
 
 
+![](https://i.imgur.com/0yMbSiJ.jpeg)
+
+##### HTTP API gateway
+
+![](https://i.imgur.com/De7IRBU.jpeg)
+
+##### Websocket API gateway
+
+The service proxy will handle websocket connections, and the lambda is the workload that handles websocket events, where API gateway is the one actually managing the connections.
+
+
+![](https://i.imgur.com/ufkHVMY.jpeg)
+
+
+
+
+#### Routes + Stages
+
+- **route**: A route is a combination of a HTTP method + a route resource, like `GET /dogs`
+- **stage**: A stage lets you version your API and create a staging URL for the API gateway, which is useful for testing.
+
+
+![](https://i.imgur.com/6oVQFcV.jpeg)
+
+
+#### Throttling
+
+Throttling lets you rate limit requesters of your API based on traffic patterns or other stuff. 
+
+While the HTTP API gateway and the WebSockets API gateway only let you throttle based on the route or the requesting account, the REST API gateway allows you to look at the user's authentication and throttle based on that. 
+
+#### HTTP vs REST vs Websockets
+
+Terminology
+
+- **validation**: configuration for validating request body
+- **transformers**: mapping request parameters to another name or value
+- **authorization**: authenticating an API and protecting routes with authorization via IAM, JWT, Lambda, or Cognito
+
+
+
+![](https://i.imgur.com/FAAE0j5.jpeg)
+
+#### Pricing
+
+
+![](https://i.imgur.com/UlS1VFJ.jpeg)
+
+
+#### Limit
+
+- **timeout limit**: route execution cannot take longer than 30 seconds.
+- **max payload size**: the request body cannot be larger than 10 megabytes
 ### AppSync
 
 AppSync is a managed GraphQL API service where you take care of defining the schema, resolvers, and mutations, and AppSync takes care of the rest by setting up the API, supporting web sockets, and optimizing with caching.
