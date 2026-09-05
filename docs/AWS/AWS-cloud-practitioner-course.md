@@ -1631,12 +1631,11 @@ DynamoDB offers two modes to control scaling and the cost of scaling:
 Here are how they compare:
 
 
-|          | provisioned capacity                                                                                                                                | on-demand                                                                                                                                                                                                                                     |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| pricing  | Pay per hour for the provisioned capacity units, but cheaper than on-demand for the same RCU and WCU usage. <br><br>You pay for what you provision. | Pay only when the database is being queried or written to, but more expensive for the same RCU and WCU than provisioned. On-demand is 2.5x more expensive than provisioned capacity for the same RCU and WCU<br><br>You pay for what you use. |
-| scaling  | Set scaling boundaries via an auto-scaling rule determining min and max RCU and WCU.                                                                | Infinitely and automatically scales                                                                                                                                                                                                           |
-| use case | for predictable workloads                                                                                                                           | for unpredictable workloads, where you don't really know when something will happen                                                                                                                                                           |
-
+|          | provisioned capacity | on-demand |
+|----------|----------------------|-----------|
+| pricing | Pay per hour for the provisioned capacity units, but cheaper than on-demand for the same RCU and WCU usage. You pay for what you provision. | Pay only when the database is being queried or written to, but more expensive for the same RCU and WCU than provisioned. On-demand is 2.5x more expensive than provisioned capacity for the same RCU and WCU. You pay for what you use. |
+| scaling | Set scaling boundaries via an auto-scaling rule determining min and max RCU and WCU. | Infinitely and automatically scales. |
+| use case | For predictable workloads. | For unpredictable workloads, where you don't really know when something will happen. |
 
 > [!NOTE]
 > Keep in mind that even though on-demand capacity is more expensive in general, if you set high autoscaling limits for the max and min RCU and WCU for a provisioned capacity mode, you'll pay even more than on-demand pricing, so maintaining observability over your application data load here is crucial.
