@@ -1560,7 +1560,7 @@ console.log(response.output_text);
 
 
 
-### AWS bedrock API inference
+#### AWS bedrock API inference
 
 
 1. Export the env var `AWS_BEARER_TOKEN_BEDROCK` into the shell session
