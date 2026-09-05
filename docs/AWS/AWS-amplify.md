@@ -671,6 +671,9 @@ export const auth = defineAuth({
 
 
 
+
+
+
 ## Amplify with React
 
 ### Setup
@@ -714,9 +717,30 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 npx ampx sandbox
 npm run dev
 ```
-#### Auth setup
+### Auth 
 
-use the context provider:
+You have two different ways of implementing auth in react:
+
+- **vanilla way**: Use the amplify backend SDK client to write your own methods encapsulating the auth logic and wire it up to your own authentication UI.
+- **provider way**: wraps all components that need auth info in the `<Authenticator />` provider, which lets you use the `useAuthenticator()` hook to dynamically fetch auth info.
+
+#### Vanilla way
+
+#### Provider method: `<Authenticator />` and `useAuthenticator()`
+
+The provider approach wraps all components that need auth info in the `<Authenticator />` provider, which lets you use the `useAuthenticator()` hook to dynamically fetch auth info.
+
+The `<Authenticator />` provider component does two things:
+
+1. Render auth blocking modal to force user to sign in if unauthenticated.
+
+
+![](https://i.imgur.com/RPTJ8Sa.jpeg)
+
+2. Allows children components to use the `useAuthenticator()` hook to dynamically fetch authentication info.
+
+
+Here are the steps to implement this approach:
 
 1. Setup the `<Authenticator />` context provider
 
@@ -771,7 +795,7 @@ function App() {
 export default App;
 ```
 
-#### Data setup
+### Data setup
 
 1. Generate the DB client in the frontend, importing the exported schema type so you have end-to-end typing
 
@@ -819,5 +843,6 @@ function App() {
 
 export default App;
 ```
+
 
 ## Amplify with NextJS
