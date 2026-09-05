@@ -457,6 +457,42 @@ function App() {
 export default App;
 ```
 
+#### Storage
+
+You can provision S3 buckets for use and authenticated CRUD operations with Cognito users using the **storage** resource:
+
+1. Define S3 bucket policies in a `amplify/storage/resource.ts`
+
+```ts
+import { defineStorage } from "@aws-amplify/backend";
+
+export const storage = defineStorage({
+  name: "amplifyNotesDrive",
+  access: (allow) => ({
+    "media/{entity_id}/*": [
+      allow.entity("identity").to(["read", "write", "delete"]),
+    ],
+  }),
+});
+```
+
+2. Import the `storage` object into the backend:
+
+```ts
+import { defineBackend } from '@aws-amplify/backend';
+import { auth } from './auth/resource';
+import { data } from './data/resource';
+import { storage } from './storage/resource';
+/**
+ * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
+ */
+defineBackend({
+  auth,
+  data,
+  storage
+});
+
+```
 
 #### All together
 

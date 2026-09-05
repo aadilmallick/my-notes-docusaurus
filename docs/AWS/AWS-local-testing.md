@@ -805,7 +805,7 @@ The `lstk sam` is syntactic sugar over providing the following configuration:
 
 ### Localstack with Amplify
 
-#### Installation and setup
+#### Gen 1: Installation and setup
 
 [Amplify LocalStack Plugin](https://github.com/localstack/amplify-localstack) allows the `amplify` CLI tool to create resources on your local machine instead of AWS. It achieves this by redirecting any requests to AWS to a LocalStack container running locally on your machine.
 
@@ -826,6 +826,59 @@ amplify add api
 amplify push --use-localstack true
 ```
 
+#### Gen 2: Installation and setup
+
+The hard thing about gen 2 is that localstack doesn't officially support it yet, so we have to find a workaround by just deploying the provisioned Amplify backend resources via CDK.
+
+1. Start the emulator with `lstk start`
+2. Make sure these environment variables are defined and exported into the current shell environment
+
+```bash
+# Choose EITHER a profile OR explicit credentials, not both. 
+# For LocalStack, setting explicit test credentials is easiest:
+unset AWS_PROFILE
+export AWS_ACCESS_KEY_ID="test"
+export AWS_SECRET_ACCESS_KEY="test"
+export AWS_DEFAULT_REGION="us-east-1"
+export AWS_REGION="us-east-1"
+
+# Target localstack edge port
+export AWS_ENDPOINT_URL="http://localhost:4566"
+```
+
+3. Force Amplify to synthesize your backend code into CloudFormation templates without deploying them to the cloud:
+
+```bash
+npx ampx pipeline-deploy --dry-run
+```
+
+4. Deploy the resulting CDK stack directly into your running localstack container:
+```
+lstk cdk deploy --all
+```
+
+5. **Manually configure your frontend client**: Because you are bypassing `ampx sandbox`, Amplify will not automatically generate a local-friendly `amplify_outputs.json` file. You will need to manually pass your LocalStack endpoints to `Amplify.configure()` in your frontend code (e.g., `main.ts` or `App.tsx`)
+
+```ts
+import { Amplify } from 'aws-amplify';
+
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      userPoolId: 'us-east-1_localPoolId', // Get this from cdklocal deploy output
+      userPoolClientId: 'localClientId',
+      endpoint: 'http://localhost:4566' // Force Auth to use LocalStack
+    }
+  },
+  API: {
+    GraphQL: {
+      endpoint: 'http://localhost:4566/graphql',
+      region: 'us-east-1',
+      defaultAuthMode: 'userPool'
+    }
+  }
+});
+```
 #### Resource browser
 
 The LocalStack Web Application provides a Resource Browser for managing Amplify applications. You can access the Resource Browser by opening the LocalStack Web Application in your browser, navigating to the **Resource Browser** section, and then clicking on **Amplify** under the **Front-end Web & Mobile** section.
