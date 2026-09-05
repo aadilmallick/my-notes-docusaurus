@@ -1560,7 +1560,7 @@ console.log(response.output_text);
 
 
 
-#### AWS bedrock API inference
+#### AWS bedrock API inference basics
 
 
 1. Export the env var `AWS_BEARER_TOKEN_BEDROCK` into the shell session
@@ -1593,4 +1593,109 @@ const response = await client.send(new ConverseCommand({
 }));
 
 console.log(response.output.message.content[0].text);
+```
+
+#### SDK in depth
+
+```ts
+import {
+  BedrockRuntimeClient,
+  ConverseCommand,
+  Message,
+} from "@aws-sdk/client-bedrock-runtime";
+import { z } from "zod";
+
+export class MessagesManager {
+  static createTextMessage(
+    role: "system" | "user" | "assistant",
+    content: string,
+  ): Message {
+    return {
+      role,
+      content: [
+        {
+          text: content,
+        },
+      ],
+    };
+  }
+}
+
+export class BedrockRuntimeClientWrapper {
+  constructor(
+    private client: BedrockRuntimeClient,
+    private modelId: string,
+  ) {}
+
+  private async converse(messages: Message[]) {
+    const command = new ConverseCommand({
+      modelId: this.modelId,
+      messages,
+    });
+    const response = await this.client.send(command);
+
+    return response;
+  }
+
+  public async converseMessage(messages: Message[]) {
+    const response = await this.converse(messages);
+    return {
+      role: z.string().parse("assistant"),
+      content: [
+        {
+          text: z.string().parse(response!.output!.message!.content![0].text),
+        },
+      ],
+    } as Message;
+  }
+
+  public async converseResponse(messages: Message[]) {
+    const response = await this.converse(messages);
+    return z.string().parse(response!.output!.message!.content![0].text);
+  }
+
+  public async oneShotConverseResponse(
+    systemMessage: string,
+    userMessage: string,
+  ) {
+    const messages = [
+      MessagesManager.createTextMessage("system", systemMessage),
+      MessagesManager.createTextMessage("user", userMessage),
+    ];
+    return await this.converseResponse(messages);
+  }
+
+  static getClient(): BedrockRuntimeClient {
+    return new BedrockRuntimeClient({
+      endpoint: "http://localhost:4566",
+      region: "us-east-1",
+      credentials: {
+        accessKeyId: "test",
+        secretAccessKey: "test",
+      },
+    });
+  }
+}
+
+if (import.meta.main) {
+  const client = BedrockRuntimeClientWrapper.getClient();
+  const wrapper = new BedrockRuntimeClientWrapper(
+    client,
+    "meta.llama3-8b-instruct-v1:0",
+  );
+
+  async function main() {
+    const systemMessage = "You are a helpful assistant.";
+    const userMessage = "What is the capital of France?";
+
+    const response = await wrapper.oneShotConverseResponse(
+      systemMessage,
+      userMessage,
+    );
+
+    console.log("Response:", response);
+  }
+
+  await main();
+}
 ```
