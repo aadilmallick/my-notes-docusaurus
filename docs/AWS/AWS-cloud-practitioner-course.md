@@ -3155,20 +3155,204 @@ Now here is what happens with the entire CI/CD process from the moment you push 
 	- Trigger cloudformation to read the cloudformation template stored in S3
 	- Cloudformation builds the infra
 
-### CodePipeline
+### CodePipeline + CodeBui;d
+
+
+```embed
+title: "GitHub - LinkedInLearning/continuous-integration-tools-4490242 This is a repository for the LinkedIn Learning course Continuous Integration"
+image: "https://opengraph.githubassets.com/2eeb3fb876f8a761a0f20b9ba67af5e2b158cac4f50448a9008ed28c5bc4d600/LinkedInLearning/continuous-integration-tools-4490242"
+description: "This is a repository for the LinkedIn Learning course Continuous Integration Tools - LinkedInLearning/continuous-integration-tools-4490242"
+url: "https://github.com/LinkedInLearning/continuous-integration-tools-4490242"
+favicon: ""
+aspectRatio: "50"
+```
 
 AWS CodePipeline is a fully managed service that automates your software release process by orchestrating the steps needed to build, test, and deploy your application. It connects various AWS services to create a continuous integration and continuous delivery (CI/CD) workflow.
 
-CodePipeline combines CodeCommit, COdeBuild, CodeArtifact, and CodeDeploy all at one to provide a DevSecOps CI/CD pipeline easily.
+> [!NOTE]
+> CodePipeline combines CodeCommit, COdeBuild, CodeArtifact, and CodeDeploy all at one to provide a DevSecOps CI/CD pipeline easily.
 
-Here’s a generic overview of how CodePipeline works and how to set one up:  
+
+CodePipeline works well with CodeBuild:
+
+- **CodePipeline**: models pipeline stages
+- **CodeBuild**: implements steps for building, delivering, and deploying code
+
+Here’s a generic overview of how CodePipeline works and its stage components:
 
 - **Source Stage:** CodePipeline starts by connecting to your source code repository, such as AWS CodeCommit, GitHub, or S3, to detect changes.
 - **Build Stage:** When changes are detected, CodePipeline triggers a build using AWS CodeBuild, which compiles your code, runs tests, and produces build artifacts.
 - **Deploy Stage:** After a successful build, CodePipeline deploys your application using services like AWS CodeDeploy or AWS CloudFormation, which can provision infrastructure and update resources.
 
+Here are all the components of a stage:
 
-Each stage shows status indicators (green for success, yellow for in progress, red for failure) so you can monitor the pipeline easily.  
+- **action provider**: You can use YAML files to define the specific behaviors of each stage and how to execute the instructions in that stage via **action providers**. Stages call their respective action providers to execute the instructions for that stage.
+- **status indicator**: Each stage shows status indicators (green for success, yellow for in progress, red for failure) so you can monitor the pipeline easily.  
+
+You can choose action providers like CloudFormation, EC2, ECS, etc., or even select third-party action providers like Terraform. What all of these action providers have in common is some sort of recognized, declarative way to describe what the action provider should do.
+
+> [!NOTE]
+> CodeBuild is the most common action provider.
+
+#### CodeBuild
+
+CodeBuild is a built-in action provider in AWS that recognizes a `buildspec.yml` to declaratively define how the build stage should run and artifact storage.
+
+CodeBuild uses Windows and Linux AMIs for the runners.
+
+1. Create a `Makefile` as an abstraction over bash scripts to run the CI/CD pipeline
+
+```make
+FUNCTION=undefined
+PLATFORM=undefined
+URL=undefined
+VERSION=undefined
+BUILD_NUMBER=undefined
+CODE=$(shell ls *.py)
+
+ifneq (,$(findstring -staging,$(FUNCTION)))
+	ENVIRONMENT = STAGING
+else ifneq (,$(findstring -production,$(FUNCTION)))
+	ENVIRONMENT = PRODUCTION
+else
+	ENVIRONMENT = undefined
+endif
+
+hello:
+	@echo "Here are the targets for this Makefile:"
+	@echo "  requirements   - install the project requirements"
+	@echo "  lint           - run linters on the code"
+	@echo "  black          - run black to format the code"
+	@echo "  test           - run the tests"
+	@echo "  build          - build the lambda.zip file"
+	@echo "  deploy         - deploy the lambda.zip file to AWS"
+	@echo "  testdeployment - test the deployment"
+	@echo "  clean          - remove the lambda.zip file"
+	@echo "  all            - clean, lint, black, test, build, and deploy"
+	@echo
+	@echo
+	@echo "You must set the FUNCTION variables to use the deploy target."
+	@echo "FUNCTION must be set to the name of an existing lambda function to update."
+	@echo "For example:"
+	@echo
+	@echo "  make deploy FUNCTION=sample-application-staging"
+	@echo
+	@echo "Optional deploy variables are:"
+	@echo "  VERSION       - the version of the code being deployed (default: undefined)"
+	@echo "  PLATFORM      - the platform being used for the deployment (default: undefined)"
+	@echo "  BUILD_NUMBER  - the build number assigned by the deployment platform (default: undefined)"
+	@echo "  URL           - the URL to use for testing the deployment (default: undefined)"
+	@echo
+
+requirements:
+	pip install -U pip
+	pip install --requirement requirements.txt
+
+check:
+	set
+	zip --version
+	python --version
+	pylint --version
+	flake8 --version
+	aws --version
+
+lint:
+	pylint --exit-zero --errors-only --disable=C0301 --disable=C0326 --disable=R,C $(CODE)
+	flake8 --exit-zero --ignore=E501,E231 $(CODE)
+
+
+black:
+	black --diff $(CODE)
+
+test:
+	python -m unittest -v index_test
+
+build:
+	zip lambda.zip index.py data.json template.html
+
+deploy:
+	aws sts get-caller-identity
+
+	aws lambda wait function-active \
+		--function-name="$(FUNCTION)"
+
+	aws lambda update-function-configuration \
+		--function-name="$(FUNCTION)" \
+		--environment "Variables={PLATFORM=$(PLATFORM),VERSION=$(VERSION),BUILD_NUMBER=$(BUILD_NUMBER),ENVIRONMENT=$(ENVIRONMENT)}"
+
+	aws lambda wait function-updated \
+		--function-name="$(FUNCTION)"
+
+	aws lambda update-function-code \
+		--function-name="$(FUNCTION)" \
+	 	--zip-file=fileb://lambda.zip
+
+	aws lambda wait function-updated \
+		--function-name="$(FUNCTION)"
+
+testdeployment:
+	curl -s $(URL) | grep $(VERSION)
+
+clean:
+	rm -vf lambda.zip
+
+all: clean lint black test build deploy
+
+.PHONY: test build deploy all clean
+```
+
+2. Create a `buildspec.yml`
+
+```yaml
+# AWS CodeBuild specification version.
+version: 0.2
+
+# Define the shell and environment variables for the build.
+env:
+  shell: bash
+  variables:
+    FUNCTION_NAME: 
+    URL: 
+
+# Define the different phases of the build lifecycle.
+phases:
+  
+  # Install necessary dependencies.
+  install:
+    commands:
+      - python3 -m venv local
+      - . ./local/bin/activate
+      - make requirements
+
+  # Pre-build phase for code quality checks and testing.
+  pre_build:
+    commands:
+      - . ./local/bin/activate
+      - make check lint
+      - make test
+
+  # Main build phase.
+  build:
+    commands:
+      - make build
+
+  # Post-build phase, usually for deployments or further testing.
+  post_build:
+    commands:
+      - make deploy PLATFORM="AWS CodeBuild" FUNCTION=$FUNCTION_NAME VERSION=$CODEBUILD_RESOLVED_SOURCE_VERSION BUILD_NUMBER=$CODEBUILD_BUILD_NUMBER
+      - make testdeployment URL=$URL VERSION=$CODEBUILD_RESOLVED_SOURCE_VERSION
+
+# Specify build artifacts to be stored.
+artifacts:
+  files:
+    - 'lambda.zip'
+```
+#### Pricing
+
+
+![](https://i.imgur.com/m7Knr4k.jpeg)
+
+#### Creating a pipeline with CodeBuild + CodePipeline
   
 To set up a pipeline generically:  
   

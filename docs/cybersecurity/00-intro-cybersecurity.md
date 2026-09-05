@@ -31,6 +31,108 @@ There are three main types of cloud services:
 	- Advantages: Quickly finds vulnerabilities in open-source components
 	- Disadvantages: Might miss custom vulnerabilities or issues in your own code, and it does not understand the context of how the component is being used
 
+## Cyber threats
+
+### Cyber kill chain
+
+The cyber kill chain refers to a general process of stages attackers follow to compromise a target and achieve their goal:
+
+
+![](https://i.imgur.com/3gOGYZv.jpeg)
+
+- **Reconnaissance:** The attacker gathers information about the target, like scanning IP addresses and open ports on a company's internet domain to find vulnerabilities.
+	- **internet domain**: all public IP addresses a company owns/uses
+	- **IP address scan**: scanning all IP addresses living within an internet domain
+	- **port scan**: for a single IP address, scanning all open ports running on that IP
+- **Weaponization:** The attacker customizes malware to exploit specific vulnerabilities in the target's systems.
+- **Delivery:** The malware is delivered to the target, often via phishing emails, infected websites, or compromised credentials. There are 5 types of malware delivery
+	- **phishing**: attackers send an infected file or crafts a fake website that a victim visits or opens, which then automatically installs the malware onto the system.
+	- **compromised website**: An attacker compromises a website beforehand which installs malware on any user that visits the website.
+	- **stolen credentials**: attacker steals credentials via social engineering or keylogging to steal user password credentials and install malware on the system.
+	- **exposed vulnerability**: use vulnerabilities in third-party packages to deliver the malware
+	- **infected flash drive**: victim plugs in flash drive into their machine, installs the malware automatically.
+- **Exploitation:** The malware takes advantage of a vulnerability to execute on the target system.
+- **Installation:** The malware installs itself on the system, often setting up persistence to survive reboots.
+- **Command and Control:** The malware connects back to the attacker’s server to receive instructions and maintain access.
+- **Action:** The attacker carries out their goal, such as stealing data, defacing websites, or extorting money.
+
+### Malware distribution tactics
+
+#### botnets
+
+Botnets are a legion of compromised computers called **zombies** that an attacker uses to perform the cyber-kill chain against a target.
+
+Botnets can be formed via malware, where phishing through infected websites or files can hijack a victim's computer to be a part of the botnet.
+
+Here is how a botnet works:
+
+- **botmaster**: criminal who controls the command and control servers from a central server. 
+- **command and control servers**: physical server racks that have the code to control botnets
+- **zombies**: infected machines that work as botnets to attack targets.
+
+There are three main use cases for botnets:
+
+1. **DDoS attacks**: legions of zombies flood traffic to a list of targets in order to overflood their servers with requests.
+2. **email spam**: legions of zombies email a certain victim with spam.
+
+
+![](https://i.imgur.com/6OKRujB.jpeg)
+
+**Botnet secrecy techniques**
+
+To stay hidden and maintain control, botnets often change their command servers using techniques like domain generation algorithms.
+
+Here are techniques used in a botnet in order to get away with the crime:
+
+- **botmaster RPC encryption tactics**: the botmaster encrypts RPC calls to command and control servers to make it look like legitimate internet traffic
+- **domain generation algorithms**: To stay hidden and maintain control, botnets often change their command servers using techniques like domain generation algorithms.
+	- DGAs dynamically let zombies find command and control servers even if their IP addresses change.
+
+**Zeus**
+
+Zeus is the most notorious botnet, and is a botnet construction kit that anybody else can use.
+
+Here's how it works:
+
+1. Steals online credentials
+2. Infects computers and smartphones by authenticating with credentials.
+
+**Banking fraud campaign**
+
+A banking fraud campaign in cybercrime works like this:  
+  
+
+- Organized criminals plan the campaign and select vulnerable targets through surveillance.
+- Malware developers create customized malware tailored to attack specific bank websites or systems.
+- A testing team ensures the malware works effectively.
+- The malware is delivered and installed on victims' systems using botnets.
+- Successful attacks steal funds, which are transferred to disposable bank accounts.
+- Money mules, who may be small-time criminals or professional services, withdraw the stolen money as cash to break the electronic trail.
+
+#### Alternate data streams
+
+Malware often hides by using Windows system features designed to conceal files, such as hidden folders that are invisible in normal directory listings and Windows Explorer.
+
+Alternate Data Streams (ADS) in NTFS allow malware to store hidden data or even executable files within a normal file, making detection difficult.
+
+Tools like the command line with specific options (e.g., `dir /r`) can reveal these hidden streams, and special commands can execute hidden malware.
+
+A hidden file stays hidden by attaching these file attributes to it:
+
+- `CLSID`: hides the file when searching in the terminal
+- `UICLSID`: hides the file in the file explorer
+
+
+```
+C:\Users\User\AppData\Local\Microsoft\Windows\History>type desktop.ini
+[.ShellClassInfo]
+ConfirmFileOp=0
+CLSID={FF393560-C2A7-11CF-BFF4-444553540000}
+UICLSID={7BD29E00-76C1-11CF-9DD0-00A0C9034933}
+```
+
+
+
 ## OWASP top 10
 
 ### Broken access control
