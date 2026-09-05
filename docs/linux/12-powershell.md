@@ -28,7 +28,15 @@ When you run a powershell command, it returns an object describing the resource.
 
 ![](https://i.imgur.com/Frt6zau.jpeg)
 
-#### cmdlet
+
+### Piping
+
+The pipe operator `|` works the exact same way it does in bash, piping output from one command as input to another command.
+
+```powershell
+get-service | out-file c:\services.txt
+```
+
 
 
 ### Important cmdlets
@@ -91,6 +99,9 @@ The `-confirm` flag will ask you to confirm the command execution for each objec
 ```powershell
 Get-Service | Stop-Service -confirm
 ```
+
+
+
 ### Object-oriented info with`Get-Member`
 
 Since objects in powershell are based off of classes in .NET, you have a powerfull way of listing methods and properties on object isntances and then being able to use them.
@@ -137,19 +148,37 @@ function add
 ```
 
 
+### Object formatting
 
-
-
-
-### Piping
-
-The pipe operator `|` works the exact same way it does in bash, piping output from one command as input to another command.
+Object formatting allows you to format and transform lists of objects you get back from a powershell cmdlet:
 
 ```powershell
-get-service | out-file c:\services.txt
+Get-Service | format-list DisplayName, Status
+Get-Service | format-list *
+Get-Service | Sort-Object -Property status | format-table DisplayName, Status
 ```
 
+Here are the different cmdlets you can use to format the data you get back and perform transformations on, and then write the data to stdout, finishing the stream:
 
+- `Format-List`: displays list of objects in a list format. It accepts a comma-separated list of object properties to show in the list.
+- `Format-Table`: displays list of objects in a table format. It accepts a comma-separated list of object properties to show in the list.
+
+Here are the transformation cmdlets that work as streams, meaning you can pass their output as stdin to another command.
+
+- `Sort-Object`: groups objects or sorts by them, accepts these flags:
+	- `-Property <propertyname>`: the property to group by
+
+> [!NOTE]
+> When referencing properties on a cmdlet, you can use `*` to refer to all properties.
+
+### Output
+
+```powershell
+Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
+```
+
+- `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
+- `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
 ## File-handling
 
 ### Listing directory
@@ -159,4 +188,53 @@ Use the `Get-ChildItem` command to list a directory.
 
 ## Powershell ISE
 
-The `ise` command in pwoershell gives you an IDE to write powershell scripts
+The `ise` command in pwoershell gives you an IDE to write powershell scripts with intellisense on steroids.
+
+
+![](https://i.imgur.com/7lRRVm7.jpeg)
+
+When writing a powershell script, you have two choices of execution:
+
+- **execute entire script**: press `FN + F5` to run the entire script
+- **execute selection**: highlight some lines of code, and then press `FN + F8` to run only the selected lines of code
+
+Here are the intellisense tips to keep in mind:
+
+- **use the correct case**: Intellisense only works when you use the correct casing, like `Get-Service`.
+- **use `CTRL + SPACE`**: this shortcut works exactly like VSCode to give you intellisense options directly
+
+### SSHing into a remote windows server
+
+You can also SSH into a remote Windows server and run PowerShell ISE on there. 
+
+![](https://i.imgur.com/HgFnyxr.jpeg)
+
+The shortcut to do this is `CTRL + SHIFT + R`
+
+#### Running commands remotely
+
+You can use RPC with powershell super simply with the `-ComputerName` flag:
+
+```powershell
+Get-Service -ComputerName mycomputer | Out-Gridview
+```
+
+### Grid View
+
+You can view all of the properties and methods on an object easier through the **gridview** in ISE, which pulls up a GUI showcasing all of the different properties and methods of the object in detail.
+
+To achieve this, pipe object output into the `Out-Gridview` cmdlet
+
+```powershell
+Get-Service | Out-Gridview
+```
+
+> [!NOTE]
+> What makes this so useful? You have a GUI to easily view and filter properties.
+
+If you want to filter object properties beforehand before piping the data stream to the gridview, use the `Select-Object` cmdlet to select specific properties first, then piping the output of that command to the gridview.
+
+```powershell
+Get-Service | Select-Object DisplayName, Status, ServiceType | Out-GridView
+```
+
