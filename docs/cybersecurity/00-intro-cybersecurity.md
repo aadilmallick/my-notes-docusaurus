@@ -31,9 +31,9 @@ There are three main types of cloud services:
 	- Advantages: Quickly finds vulnerabilities in open-source components
 	- Disadvantages: Might miss custom vulnerabilities or issues in your own code, and it does not understand the context of how the component is being used
 
-### OWASP top 10
+## OWASP top 10
 
-#### Broken access control
+### Broken access control
 
 here are examples of broken access control
 
@@ -45,7 +45,7 @@ Failure to address broken access control could allow an attacker to access confi
 
 To avoid broken access control, it's essential for front-end developers to implement proper authorization checks and validate user permissions. Additionally, back-end developers should enforce authorization rules, manage user roles and permissions, and implement robust authentication mechanisms.
 
-#### Security misconfiguration
+### Security misconfiguration
 
 Misconfigured applications could allow attackers to perform unauthorized actions or run malicious scripts or commands. They could also compromise the application by taking control of it or disrupting its functionality.
 
@@ -63,7 +63,7 @@ Here are some examples of security misconfiguration:
 - Implement strong network security through proper configuration of firewalls, routers, and other network devices
 - Conduct regular security assessments: Perform vulnerability scans and penetration testing to identify and address potential misconfigurations
 
-#### Software Supply Chain Failures
+### Software Supply Chain Failures
 
 In modern development, software supply chain failures occur when there is a breakdown or compromise in the process of building, distributing, or updating software. Attackers no longer just look for known bugs in your code; they target the tools you trust. By injecting malicious code into a popular library or compromising a CI/CD pipeline, they can gain unauthorized access to systems that allows them to spread malware and steal data.
 
@@ -76,7 +76,7 @@ Similarly, relying on unhardened build environments or untrusted sources creates
 - Removing unused dependencies, unnecessary features, components, files, and documentation
 - Hardening the delivery pipeline by regularly updating CI/CD tools and IDEs while enforcing a strict separation of duties for all code promotions
 
-#### Cryptographic failures
+### Cryptographic failures
 
 Cryptographic failures refer to the improper handling of sensitive data, such as credit card numbers, personal information, passwords, or trade secrets. Failure to properly use cryptography can lead to that data being exposed or stolen.
 
@@ -89,7 +89,7 @@ Here are some examples of how to mitigate these cryptographic failures:
 - Limiting data access by only granting access to those who need it
 - Regularly reviewing and updating security measures to keep your defenses strong
 
-#### Injection
+### Injection
 
 
 One of the most common and dangerous vulnerabilities is injection. This occurs when an attacker introduces malicious data into an application's input points. Attackers can use injection vulnerabilities to steal or modify data or gain unauthorized access to systems.
@@ -99,7 +99,7 @@ Imagine, for example, a web application that allows users to search for products
 Other types of injection attacks include command injection and LDAP injection. These vulnerabilities can be exploited to execute arbitrary commands on the server or gain unauthorized access to directory services.
 
 
-#### Insecure design
+### Insecure design
 
 Insecure design consists of:
 
@@ -116,7 +116,7 @@ Insecure design consists of:
 - Keep security professionals involved during the design and development process
 - Lastly, perform regular and continuous security testing to check your application for vulnerabilities throughout the entire development lifecycle
 
-#### Authentication failures
+### Authentication failures
 
 Authentication failures occur when weak authentication processes allow unauthorized individuals to gain access to user accounts or an application.
 
@@ -128,7 +128,7 @@ Here are example attacks against authentication:
 - Password spraying by attempting to access with the same password against multiple accounts, hoping one will work
 - Credential stuffing, an automated attack using stolen usernames and passwords
 
-#### Software and Data Integrity Failures
+### Software and Data Integrity Failures
 
 
 Examples of software and data integrity failures include:
@@ -138,7 +138,7 @@ Examples of software and data integrity failures include:
 - Storing data in a format that is easily manipulated
 - Not verifying the integrity of data during processing
 
-#### Security logging and alerting failures
+### Security logging and alerting failures
 
 Security logging and alerting failures refer to applications or processes that don't properly track and record user activity, system events, and security incidents. This can significantly hinder your ability to detect, investigate, and respond to security threats in a timely manner.
 
@@ -162,7 +162,7 @@ Examples of security logging and monitoring failures include:
 - Use a centralized logging system to capture system events, security alerts, and error messages
 - Store logs in a secure location separate from the application itself to prevent tampering
 - Determine how long logs should be retained based on regulatory requirements and internal policies
-#### Mishandling of Exceptional Conditions
+### Mishandling of Exceptional Conditions
 
 
 Mishandling exceptional conditions happens when an application fails to properly prevent, detect, or respond to unpredictable situations. Any time an application is unsure of its next instruction, an exceptional condition has been mishandled. This can lead to the application failing to prevent an unusual situation from happening and responding poorly or not at all to the situation afterwards.
