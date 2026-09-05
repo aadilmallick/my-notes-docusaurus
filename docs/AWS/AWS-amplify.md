@@ -708,4 +708,116 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 ```
 
+3. Start the frontend and sandbox simultaneously
+
+```ts
+npx ampx sandbox
+npm run dev
+```
+#### Auth setup
+
+use the context provider:
+
+1. Setup the `<Authenticator />` context provider
+
+```tsx title="index.tsx"
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Amplify } from 'aws-amplify';
+import App from './App.tsx';
+import outputs from '../amplify_outputs.json';
+import './index.css';
+
+// 1. import authenticator and auth component styles
+import { Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+
+// 2. configure amplify output
+Amplify.configure(outputs);
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <Authenticator>
+      <App />
+    </Authenticator>
+  </React.StrictMode>
+);
+```
+
+2. Use the `useAuthenticator()` hook within children components of the provider to access auth data.
+
+```tsx title="App.tsx"
+import type { Schema } from '../amplify/data/resource';
+import { useAuthenticator } from '@aws-amplify/ui-react';
+import { useEffect, useState } from 'react';
+import { generateClient } from 'aws-amplify/data';
+
+const client = generateClient<Schema>();
+
+function App() {
+  const { user, signOut } = useAuthenticator();
+
+  // ...
+
+  return (
+    <main>
+      {/* ... */}
+      <h1>{user?.signInDetails?.loginId}'s todos</h1>
+      <button onClick={signOut}>Sign out</button>
+    </main>
+  );
+}
+
+export default App;
+```
+
+#### Data setup
+
+1. Generate the DB client in the frontend, importing the exported schema type so you have end-to-end typing
+
+```ts title="src/db/client.ts"
+import type { Schema } from "../../amplify/data/resource";
+import { generateClient } from "aws-amplify/data";
+
+export const client = generateClient<Schema>();
+```
+
+2. Use it like so:
+
+```tsx title="src/App.tsx"
+import { useEffect, useState } from "react";
+import {client} from "db/client"
+
+function App() {
+  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+
+  useEffect(() => {
+    client.models.Todo.observeQuery().subscribe({
+      next: (data) => setTodos([...data.items]),
+    });
+  }, []);
+
+  function createTodo() {
+    client.models.Todo.create({ content: window.prompt("Todo content") });
+  }
+
+  return (
+    <main>
+      <h1>My todos</h1>
+      <button onClick={createTodo}>+ new</button>
+      <ul>
+        {todos.map((todo) => (
+          <li key={todo.id}>{todo.content}</li>
+        ))}
+      </ul>
+      <div>
+        🥳 App successfully hosted. Try creating a new todo.
+      </div>
+    </main>
+  );
+}
+
+export default App;
+```
+
 ## Amplify with NextJS
