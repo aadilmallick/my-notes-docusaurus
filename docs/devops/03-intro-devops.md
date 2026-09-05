@@ -1498,3 +1498,40 @@ TortoiseGit is a windows tool to make using git easier with windows and availabl
 
 ### Gitlab
 
+#### Pull requests
+
+Within pull requests, there are some cool things you can do:
+
+- **add tasks**: markdown todo lists actually create real tasks that are then tracked via DB and shown for all users, creating a nice todo list of tasks to finish on the PR
+
+#### Todo list
+
+When you tag something with an `@<username>` mention, it automatically creates a todo item in the **todo list** for their account.
+
+Also, issues assigned to you are also automatically added to your todo list
+
+#### Issues
+
+Here is how to create an issue
+
+
+![](https://i.imgur.com/FwjREIo.jpeg)
+
+A created issue makes a branch behind the scenes, thus you can also create pull requests based on issues and merge issues in.
+
+**labels**
+
+You can also add labels to the issues. 
+
+![](https://i.imgur.com/xOOadAc.jpeg)
+
+You can also subscribe to labels to receive notifications and updates from issues tagged with those labels:
+
+
+![](https://i.imgur.com/URqfbFd.jpeg)
+
+Based on filtering with labels, you can view them in boards and save those views
+
+
+
+![](https://i.imgur.com/YCjnhEO.jpeg)
