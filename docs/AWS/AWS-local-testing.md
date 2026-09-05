@@ -1643,3 +1643,42 @@ provider "aws" {
   }
 }
 ```
+
+## Floci
+
+Floci is faster than Localstack and is just 90mb for the docker iamge size, and is better than localstack and is free.
+
+Floci is a proper emulator - it actually runs the containers the same way they would run in AWS, so it's a proper tester and mocker.
+
+### Installation and setup
+
+1. Start the docker container
+
+```bash
+docker run -d --name floci -p 4566:4566 floci/floci:latest
+```
+
+2. Override the AWS-specific environment variables to point to floci
+
+```bash
+export AWS_ACCESS_KEY_ID="test"
+export AWS_SECRET_ACCESS_KEY="test"
+export AWS_DEFAULT_REGION="us-east-1"
+export AWS_ENDPOINT_URL="http://localhost:4566"
+```
+
+3. create a dedicated "floci" profile in your `~/.aws/config` and `~/.aws/credentials` files.
+
+```bash title="~/.aws/config"
+[profile floci]
+region=us-east-1
+output=json
+endpoint_url = http://localhost:4566
+```
+
+```bash title="~/.aws/credentials"
+[floci]
+aws_access_key_id=test
+aws_secret_access_key=test
+```
+
