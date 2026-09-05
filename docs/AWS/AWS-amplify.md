@@ -404,18 +404,21 @@ export default withAuthenticator(App);
 
 Or you can just use the context provider:
 
-1. Setup the context provider
+1. Setup the `<Authenticator />` context provider
 
 ```tsx title="index.tsx"
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Authenticator } from '@aws-amplify/ui-react';
 import { Amplify } from 'aws-amplify';
 import App from './App.tsx';
 import outputs from '../amplify_outputs.json';
 import './index.css';
+
+// 1. import authenticator and auth component styles
+import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 
+// 2. configure amplify output
 Amplify.configure(outputs);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
