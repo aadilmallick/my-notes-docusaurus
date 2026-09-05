@@ -88,6 +88,9 @@ npx ampx sandbox # boostrap with default profile
 npx ampx sandbox --profile admin-developer # bootstrap with specific profile
 ```
 
+#### React setup
+
+Check out [[#Amplify with React]] to understand how to set up the frontend to call AWS services provisioned by amplify.
 ### Examining folder structure
 
 This is what a bare-bones folder structure should look like:
@@ -207,9 +210,22 @@ npx ampx sandbox --once
 
 The `@aws-amplify/backend` library offers a TypeScript-first `Data` library for setting up fully typed real-time APIs (powered by AWS AppSync GraphQL APIs) and NoSQL databases (powered by Amazon DynamoDB tables). 
 
+The db model in Amplify has these three components
+
+1. **model**: represents a single object family in DynamoDB, with authorization rules to access each object.
+2. **schema**: A grouping of models to form the entire DynamoDB table
+3. **data**: defines global policies and authorization rules for the schema.
+
+The data object is what Amplify looks at to provision infra and Cognito IAM policies for accessing DynamoDB data.
+
+**backend**
+***
+
 After you generate an Amplify backend, you will have an `amplify/data/resource.ts` file, which will contain your app's data schema. The `defineData` function turns the schema into a fully functioning data backend with all the boilerplate handled automatically.
 
-```ts
+```ts title="amplify/data/resource.ts"
+import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+
 const schema = a.schema({
   Chat: a.model({
     name: a.string(),
@@ -221,7 +237,23 @@ const schema = a.schema({
     chatId: a.id()
   }),
 }).authorization((allow) => allow.owner());
+
+export type Schema = ClientSchema<typeof schema>;
+
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: "apiKey",
+    // API Key is used for a.allow.public() rules
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
+  },
+});
 ```
+
+**frontend**
+***
 
 On your app's frontend, you can use the `generateClient` function, which provides a typed client instance, making it easy to integrate CRUD (create, read, update, delete) operations for your models in your application code.
 
@@ -238,26 +270,117 @@ const { errors, data: newMessage } = await client.models.Message.create({
 });
 ```
 
+**complete flow**
+
+So in general, these are the steps to connect your data schema to the backend for provisioning and then using it in a frontend example:
+
+1. Create the data object
+
+```ts title="amplify/data/resource.ts"
+import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+
+/*== STEP 1 ===============================================================
+The section below creates a Todo database table with a "content" field. Try
+adding a new "isDone" field as a boolean. The authorization rule below
+specifies that any user authenticated via an API key can "create", "read",
+"update", and "delete" any "Todo" records.
+=========================================================================*/
+const schema = a.schema({
+  Todo: a
+    .model({
+      content: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+});
+
+export type Schema = ClientSchema<typeof schema>;
+
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: "apiKey",
+    // API Key is used for a.allow.public() rules
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
+  },
+});
+```
+
+2. Import the schema into the backend
+
+```ts title="amplify/backend.ts"
+import { defineBackend } from '@aws-amplify/backend';
+import { data } from './data/resource';
+
+defineBackend({
+  data,
+});
+```
+
+3. Run your sandbox to provision the new infra
+
+```bash
+npx ampx sandbox
+```
+
+4. Generate the DB client in the frontend
+
+```ts title="src/db/client.ts"
+import type { Schema } from "../../amplify/data/resource";
+import { generateClient } from "aws-amplify/data";
+
+export const client = generateClient<Schema>();
+```
+
+5. Use it like so:
+
+```tsx title="src/App.tsx"
+import { useEffect, useState } from "react";
+import {client} from "db/client"
+
+function App() {
+  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+
+  useEffect(() => {
+    client.models.Todo.observeQuery().subscribe({
+      next: (data) => setTodos([...data.items]),
+    });
+  }, []);
+
+  function createTodo() {
+    client.models.Todo.create({ content: window.prompt("Todo content") });
+  }
+
+  return (
+    <main>
+      <h1>My todos</h1>
+      <button onClick={createTodo}>+ new</button>
+      <ul>
+        {todos.map((todo) => (
+          <li key={todo.id}>{todo.content}</li>
+        ))}
+      </ul>
+      <div>
+        🥳 App successfully hosted. Try creating a new todo.
+      </div>
+    </main>
+  );
+}
+
+export default App;
+```
 
 #### Auth
 
-Auth works similarly to data. You can configure the authentication settings you want for your app in `amplify/auth/resource.ts`. If you want to change the verification email's subject line, you can change out the default generated code with the following:
-
-
-```ts
-export const auth = defineAuth({
-  loginWith: {
-    email: {
-      verificationEmailSubject: 'Welcome 👋 Verify your email!'
-    }
-  }
-});
-```
+Auth works similarly to data. You can configure the authentication settings you want for your app in `amplify/auth/resource.ts`, and then import that auth configuration into the `amplify/backend.ts` file to provision the Cognito infra.
 
 You can customize your authentication flow with customized sign-in and registration flows, multi-factor authentication (MFA), and third-party social providers. 
 
 > [!NOTE]
 > Amplify deploys an Amazon Cognito instance in your AWS account when you add auth to your app.
+
+**frontend**
 
 Then, you could use the Amplify `Authenticator` component or the client libraries to add user flows.
 
@@ -280,6 +403,31 @@ export default withAuthenticator(App);
 ```
 
 Or you can just use the context provider:
+
+1. Setup the context provider
+
+```tsx title="index.tsx"
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Authenticator } from '@aws-amplify/ui-react';
+import { Amplify } from 'aws-amplify';
+import App from './App.tsx';
+import outputs from '../amplify_outputs.json';
+import './index.css';
+import '@aws-amplify/ui-react/styles.css';
+
+Amplify.configure(outputs);
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <Authenticator>
+      <App />
+    </Authenticator>
+  </React.StrictMode>
+);
+```
+
+2. Use the `useAuthenticator()` hook within children components of the provider to access auth data.
 
 ```tsx title="App.tsx"
 import type { Schema } from '../amplify/data/resource';
@@ -306,50 +454,8 @@ function App() {
 export default App;
 ```
 
-```tsx title="index.tsx"
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { Authenticator } from '@aws-amplify/ui-react';
-import { Amplify } from 'aws-amplify';
-import App from './App.tsx';
-import outputs from '../amplify_outputs.json';
-import './index.css';
-import '@aws-amplify/ui-react/styles.css';
 
-Amplify.configure(outputs);
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <Authenticator>
-      <App />
-    </Authenticator>
-  </React.StrictMode>
-);
-```
-
-Then to connect authenticated access control with data, you can specify authorization rules on the data model:
-
-```ts
-import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
-
-const schema = a.schema({
-  Todo: a.model({
-    content: a.string(),
-  }).authorization(allow => [allow.owner()]),
-});
-
-export type Schema = ClientSchema<typeof schema>;
-
-export const data = defineData({
-  schema,
-  authorizationModes: {
-    // This tells the data client in your app (generateClient())
-    // to sign API requests with the user authentication token.
-    defaultAuthorizationMode: 'userPool',
-  },
-```
-
-#### Backend SDK basics
+#### All together
 
 You can use `define*` functions to _define_ your resources and then import them all into the `backend.ts`
 
@@ -403,7 +509,7 @@ defineBackend({
 
 
 
-#### Amplify with CDK
+### Amplify with CDK
 
 Gen 2 is layered on top of [AWS Cloud Development Kit (CDK)](https://docs.aws.amazon.com/cdk/api/v2/)—the Data and Auth capabilities in `@aws-amplify/backend` wrap L3 AWS CDK constructs. As a result, extending the resources generated by Amplify does not require any special configuration. The following example adds Amazon Location Services by adding a file: `amplify/custom/maps/resource.ts`.
 
@@ -489,6 +595,20 @@ export const auth = defineAuth({
 });
 ```
 
+With verification enabled:
+
+
+```ts
+export const auth = defineAuth({
+  loginWith: {
+    email: {
+      verificationEmailSubject: 'Welcome 👋 Verify your email!'
+    }
+  }
+});
+```
+
+
 #### Google setup
 
 ```ts
@@ -516,13 +636,37 @@ export const auth = defineAuth({
 
 ### Setup
 
-1. Install client-side libraries:
+The prerequisites are the following: 
+
+1. **define the backend**: Define the backend resources in the `amplify` folder
+2. **bootstrap the sandbox**: Run `npx ampx sandbox` to provision the infra and create an `amplify_outputs.json`
+
+3. Install client-side libraries:
 
 ```bash
 npm install aws-amplify
 
 # optional, for the <Authenticator> component
 npm install @aws-amplify/ui-react   
+```
+
+2. Configure the frontend to connect to the cloud resources provisioned by Amplify through the `amplify_outputs.json`:
+
+```ts
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+import { Amplify } from "aws-amplify";
+import outputs from "../amplify_outputs.json";
+
+Amplify.configure(outputs);
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 ```
 
 ## Amplify with NextJS
