@@ -120,7 +120,7 @@ The convention is simple: **one folder per backend category, one `resource.ts` f
 
 #### `amplify_outputs.json`
 
-This file is generated (not hand-written). It contains your deployed backend's endpoint URLs, region, API keys or Cognito pool IDs, and other connection metadata. Your frontend reads it once to configure the Amplify client:
+This file is generated (not hand-written). It contains your deployed backend's endpoint URLs, region, API keys or Cognito pool IDs, and other connection metadata that your frontend reads it once to configure the Amplify client:
 
 ```ts
 // src/main.tsx
@@ -129,6 +129,9 @@ import outputs from '../amplify_outputs.json';
 
 Amplify.configure(outputs);
 ```
+
+> [!NOTE]
+> This file is incredibly important because without it, the frontend has no idea how to query the provisioned cloud resources.
 
 It's regenerated automatically every time you deploy (sandbox or cloud), so treat it like a build artifact — don't hand-edit it.
 
