@@ -155,3 +155,8 @@ get-service | out-file c:\services.txt
 ### Listing directory
 
 Use the `Get-ChildItem` command to list a directory.
+
+
+## Powershell ISE
+
+The `ise` command in pwoershell gives you an IDE to write powershell scripts
