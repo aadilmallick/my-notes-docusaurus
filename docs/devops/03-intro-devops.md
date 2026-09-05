@@ -1323,21 +1323,170 @@ pipelines:
 
 ### Subversion 
 
-Subversion (SVN) is a centralized version control system, which means it uses a central repository where all code changes are stored. 
+Subversion (SVN) is a centralized version control system, which means it uses a central repository where all code changes are stored, where developers sync their code with this central location to manage versions. 
 
-- Developers sync their code with this central location to manage versions. 
-- It's an open-source project by the Apache Software Foundation, designed to be safe, simple, and reliable, suitable for projects from small to large corporate operations. 
+> [!NOTE]
+> It's an open-source project by the Apache Software Foundation, designed to be safe, simple, and reliable, suitable for projects from small to large corporate operations. 
 
 On Windows, you can use SVN through command line or graphical tools like TortoiseSVN, which integrates into the system for easier use.
+
+Subversion (SVN) and Git are both version control systems but differ mainly in architecture and workflow:  
+
+- **Subversion (SVN)** is a centralized system where all code changes are synced to a central repository. This means you always work with a single source of truth stored on a server.
+- **Git** is a distributed system, so every developer has a full copy of the entire repository history locally, allowing for more flexible workflows and offline work.
+
+#### Subversion repositories
+
+Since subversion repos are centralized, that means that they are a single source of truth, and the only way to make changes is to checkout a branch and then push it up to change the centralized version.
+
+To let other developers access the repo, you should put the centralized repo on a virtual machine every developer can SSH into.
+
+In short, here are the different components:
+
+- **centralized repo**: the centralized source of truth for the source code that nobody can change directly.
+- **checked out repo**: a local repo branching off of the centralized repo to let you add local changes and push them up.
+
+In a repo, you have three important subfolders which basically control the VCS system for your repo:
+
+- `branches`: subfolder that contains all branches
+- `tags`:
+- `trunk`: where all source code goes and all TortoiseSVN operations are supposed to be performed on.
+
 
 
 #### TortoiseSVN
 
-1. Install
+
+TortoiseSVN is a tool to create subversion repositories and kickstart the dev process.
+
+1. Install tortoise SVN
 
 ```bash
 winget install -e --id TortoiseSVN.TortoiseSVN
 ```
+
+2. On a folder, create a new repository using tortoise SVN
+
+
+![](https://i.imgur.com/VakqTtP.jpeg)
+
+3. Click on **Create folder structure**
+
+
+![](https://i.imgur.com/ev6mbOb.jpeg)
+
+
+4. Create a new folder to checkout the centralized repo by clicking on the **SVN checkout** folder option.
+
+
+![](https://i.imgur.com/tkpaHp1.jpeg)
+
+
+5. Finish checkout, which will then create a `branch`, `tags`, and `trunk` subfolder within the local checked out repo.
+
+
+![](https://i.imgur.com/emdP2bM.jpeg)
+
+##### **Tortoize SVN workflow**
+
+This is how the commit process works:
+
+1. Add a file to the repository
+
+
+![](https://i.imgur.com/jIPNNZI.jpeg)
+
+
+2. Click on the **SVN Commit** option to commit a file
+
+
+![](https://i.imgur.com/mbKT0vd.jpeg)
+
+
+3. Commit the file or files
+
+
+![](https://i.imgur.com/escgeZH.jpeg)
+
+##### **View logs**
+
+![](https://i.imgur.com/Ypzu7bh.jpeg)
+
+
+##### Reverting changes
+
+1. Click on **TortoiseSVN** -> **Update to revision**
+
+![](https://i.imgur.com/whOr91n.jpeg)
+
+2. Click on **show log** to view the list of the commits and choose which commit you want to revert to.
+
+
+![](https://i.imgur.com/bwsoJrq.jpeg)
+
+3. To see which commit to use, go to a certain commit, right click, and then select **compare with working copy** to view the diff between that commit and the current state of the repo.
+
+
+
+![](https://i.imgur.com/OuzJr9K.jpeg)
+
+4. Complete the revision
+
+##### Branches
+
+1. Right click on the `trunk` folder, select **TortoiseSVN**, then click on **Branch/tag** to create a new branch or tag.
+
+
+![](https://i.imgur.com/EVMsYMW.jpeg)
+
+2. The name of the branch is the same as the name of the subfolder you will create within the `branches` folder
+
+
+
+![](https://i.imgur.com/dGnjiGq.jpeg)
+
+3. To switch to a branch, right click on the `trunk` folder, select **TortoiseSVN**, then click on **switch** to create a new branch or tag.
+
+
+![](https://i.imgur.com/pbsujUJ.jpeg)
+
+4. Select the branch you want to switch to, make sure to select the **fully recursive** option.
+
+
+![](https://i.imgur.com/GX0gv6g.jpeg)
+
+5. When you add and commit a file, it will now be added to the branch folder:
+
+
+![](https://i.imgur.com/7q63YuC.jpeg)
+
+##### Merging branches
+
+To merge branches, you need to switch back to the trunk branch and then merge a specific branch into the trunk branch.
+
+1. Switch to the trunk branch
+
+
+![](https://i.imgur.com/EpCHAUr.jpeg)
+
+
+![](https://i.imgur.com/djqiO59.jpeg)
+
+2. To merge a branch into `trunk`, right click on the `trunk` folder, select **TortoiseSVN**, then click on **merge**:
+
+
+![](https://i.imgur.com/ywrbB5L.jpeg)
+
+3. Select the **merge two different trees option**
+
+
+![](https://i.imgur.com/NHzbzn1.jpeg)
+
+
+4. I know it sounds counterintuitive but the "From" branch should be trunk and the "To" branch should be the branch you want to merge into trunk (because the idea is that we're moving trunk from an old commit to the new commit on branch). 
+
+
+![](https://i.imgur.com/l9JTJdh.jpeg)
 
 #### TortoiseGit
 
