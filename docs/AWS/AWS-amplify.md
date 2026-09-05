@@ -204,6 +204,39 @@ npx ampx sandbox --once
 
 #### Setting sandbox secrets
 
+The `secret()` method pulls encrypted values you configure per-sandbox/branch with `npx ampx sandbox secret` CLI (locally) or via the Amplify Console (for deployed branches) — secrets are never committed to source.
+
+Here's how to get started:
+
+1. Set secrets with the `npx ampx sandbox secret` CLI:
+
+```
+npx ampx sandbox secret GOOGLE_CLIENT_ID="client_id_here"
+npx ampx sandbox secret GOOGLE_CLIENT_SECRET="client_secret_here"
+```
+
+2. Use the `secret(secretName: str)` method to read a secret you set
+
+```ts
+import { defineAuth, secret } from '@aws-amplify/backend';
+
+export const auth = defineAuth({
+  loginWith: {
+    email: true,
+    externalProviders: {
+      google: {
+        clientId: secret('GOOGLE_CLIENT_ID'),
+        clientSecret: secret('GOOGLE_CLIENT_SECRET'),
+        scopes: ['email', 'profile'],
+      },
+      callbackUrls: ['http://localhost:5173/', 'https://myapp.com/'],
+      logoutUrls: ['http://localhost:5173/', 'https://myapp.com/'],
+    },
+  },
+});
+```
+
+
 
 ## Amplify backend basics
 ### Data
@@ -716,8 +749,96 @@ export const auth = defineAuth({
 
 ## Data
 
+### Schema in depth
+
+`defineData()` combines a **GraphQL-style schema builder** (`a.schema(...)`) with automatic API + database provisioning (AppSync + DynamoDB by default).
+
+#### Data types
+
+```ts
+// amplify/data/resource.ts
+import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+
+const schema = a.schema({
+  Todo: a
+    .model({
+      content: a.string(),
+      isDone: a.boolean().default(false),
+      priority: a.enum(['LOW', 'MEDIUM', 'HIGH']),
+    })
+    .authorization((allow) => [allow.owner()]),
+});
+
+export type Schema = ClientSchema<typeof schema>;
+
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: 'userPool',
+  },
+});
+```
+
+Field types available on `a.*` include `string`, `integer`, `float`, `boolean`, `date`, `datetime`, `email`, `phone`, `url`, `json`, `enum([...])`, and more, each chainable with `.required()`, `.default(...)`, or `.array()`.
+
+#### Model relationships
+
+```ts
+const schema = a.schema({
+  Team: a.model({
+    name: a.string().required(),
+    members: a.hasMany('Member', 'teamId'),
+  }).authorization((allow) => [allow.authenticated()]),
+
+  Member: a.model({
+    name: a.string().required(),
+    teamId: a.id(),
+    team: a.belongsTo('Team', 'teamId'),
+  }).authorization((allow) => [allow.authenticated()]),
+});
+```
+
+Amplify supports `hasOne`, `hasMany`, `belongsTo`, and `manyToMany` (which generates the join table for you automatically).
+
 ### Authorization
 
+Authorization is declared **per model** (and can be layered per-field) using the `.authorization(allow => [...])` callback. The most common rules:
+
+|Rule|Meaning|
+|---|---|
+|`allow.owner()`|Only the record's creator (via Cognito identity) can read/write it|
+|`allow.authenticated()`|Any signed-in user can read/write|
+|`allow.publicApiKey()`|Anyone with the project's API key can read/write (good for public/demo data)|
+|`allow.group('Admin')`|Only members of the `Admin` Cognito group|
+|`allow.owner().to(['read'])`|Restrict which operations a rule grants (`create`, `read`, `update`, `delete`)|
+|`allow.guest()`|Unauthenticated (Cognito Identity Pool guest) access|
+
+Multiple rules combine additively:
+
+```ts
+Post: a
+  .model({
+    title: a.string().required(),
+    body: a.string(),
+  })
+  .authorization((allow) => [
+    allow.owner(),                 // owners get full CRUD
+    allow.group('Admin'),          // admins get full CRUD too
+    allow.authenticated().to(['read']), // everyone signed in can read
+  ]),
+```
+
+Because there can be more than one authorization mode active in a project (e.g., API key for public data _and_ Cognito user pool for owner-based data), set `defaultAuthorizationMode` in `defineData` and list any secondary modes:
+
+```ts
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: 'userPool',
+    apiKeyAuthorizationMode: { expiresInDays: 30 },
+  },
+});
+```
 #### ApiKey authorization
 
 #### userpool authorization
@@ -745,9 +866,160 @@ export const data = defineData({
 ```
 
 
-When specifying authorization on a model, you have these different ways of doing it:
 
-- `allow.owner()`: allow a user to perform CRUD operations on whatever resources they own, which is what you want most of the time.
+### frontend
+
+On the frontend, this is basic CRUD and how you create a data client:
+
+```tsx
+// src/App.tsx
+import { useEffect, useState } from 'react';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../amplify/data/resource';
+
+// 1. generate client
+const client = generateClient<Schema>();
+
+// 2. get table type
+type Todo = Schema['Todo']['type']
+
+function App() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+
+  useEffect(() => {
+    // Real-time subscription — fires on create/update/delete
+    const sub = client.models.Todo.observeQuery().subscribe({
+      next: ({ items }) => setTodos([...items]),
+    });
+    return () => sub.unsubscribe();
+  }, []);
+
+  function createTodo() {
+    client.models.Todo.create({
+      content: window.prompt('Todo content') ?? '',
+    });
+  }
+
+  function deleteTodo(id: string) {
+    client.models.Todo.delete({ id });
+  }
+
+  return (
+    <main>
+      <h1>My todos</h1>
+      <button onClick={createTodo}>+ new</button>
+      <ul>
+        {todos.map((todo) => (
+          <li onClick={() => deleteTodo(todo.id)} key={todo.id}>
+            {todo.content}
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+
+export default App;
+```
+
+A few things worth calling out:
+
+- **`Schema['Todo']['type']`** gives you the exact TypeScript shape of a `Todo` record, generated straight from your backend schema — no manual type duplication.
+- **`observeQuery()`** gives you a live, auto-updating list (it reconciles an initial fetch with a real-time subscription under the hood) — ideal for list views.
+- For one-off fetches instead of live subscriptions, use `client.models.Todo.list()` or `client.models.Todo.get({ id })`, both of which return promises.
+- Mutations (`create`, `update`, `delete`) automatically respect the authorization rules you defined — an unauthorized call fails client-side with a clear error rather than silently succeeding.
+
+#### Subscriptions
+
+#### Fetching with pagination and filters
+
+```ts
+const { data: todos, nextToken } = await client.models.Todo.list({
+  filter: { isDone: { eq: false } },
+  limit: 20,
+});
+```
+
+## Storage
+
+### Basics
+
+`defineStorage` provisions an S3 bucket with path-based access rules:
+
+```ts
+// amplify/storage/resource.ts
+import { defineStorage } from '@aws-amplify/backend';
+
+export const storage = defineStorage({
+  name: 'myAppFiles',
+  access: (allow) => ({
+    'profile-pictures/{entity_id}/*': [
+      allow.entity('identity').to(['read', 'write', 'delete']),
+    ],
+    'public/*': [
+      allow.authenticated.to(['read']),
+      allow.guest.to(['read']),
+    ],
+  }),
+});
+```
+
+### Frontend
+
+To use in the frontend, do like so.
+
+> [!NOTE]
+> The `{entity_id}` token in the access map automatically resolves to the current user's Cognito identity ID, giving you per-user private storage paths without writing any custom authorization logic.
+
+```ts
+import { uploadData, getUrl, remove, list } from 'aws-amplify/storage';
+
+async function upload(file: File) {
+	// Upload
+	return await uploadData({
+	  path: ({ identityId }) => `profile-pictures/${identityId}/avatar.jpg`,
+	  data: file, // a File or Blob from an <input type="file">
+	}).result;
+}
+
+async function getPresignedURL(objectKey: string) {
+	// Get a signed URL to display/download
+	const { url } = await getUrl({ path: objectKey });
+	return url
+}
+
+async function listObjects(prefix: string) {
+	// List files under a prefix
+	const { items } = await list({ path: objectKey });
+	return items
+}
+
+async function getPresignedURL(objectKey: string) {
+	// Delete
+	await remove({ path: objectKey });
+}
+```
+
+Here is a straight up example
+
+```ts
+import { uploadData, getUrl, remove, list } from 'aws-amplify/storage';
+
+// Upload
+await uploadData({
+  path: ({ identityId }) => `profile-pictures/${identityId}/avatar.jpg`,
+  data: file, // a File or Blob from an <input type="file">
+}).result;
+
+// Get a signed URL to display/download
+const { url } = await getUrl({ path: 'public/logo.png' });
+
+// List files under a prefix
+const { items } = await list({ path: 'public/' });
+
+// Delete
+await remove({ path: 'public/logo.png' });
+```
 
 ## Amplify with React
 
@@ -806,6 +1078,8 @@ You have two different ways of implementing auth in react:
 - **provider way**: wraps all components that need auth info in the `<Authenticator />` provider, which lets you use the `useAuthenticator()` hook to dynamically fetch auth info.
 
 #### Vanilla way
+
+If you'd rather build a fully custom UI, use the underlying `aws-amplify/auth` functions directly (`signUp`, `signIn`, `confirmSignUp`, `signOut`, `getCurrentUser`, `fetchAuthSession`), which work identically regardless of which UI you build on top.
 
 #### Provider method: `<Authenticator />` and `useAuthenticator()`
 
@@ -957,6 +1231,7 @@ Here are the properties on the `user` object:
 - `user.username`: the username of the user, which can be a real username or just their email. Either way, it's a unique natural language identifier for the user.
 
 ### Data
+
 #### Custom hook
 
 1. Create the client
