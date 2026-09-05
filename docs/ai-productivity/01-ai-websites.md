@@ -70,6 +70,9 @@ IN ChatGPT work, you can enable the in-app browser and then navigate to a site s
 
 2. Use the **annotation mode** to highlight specific elements and ask ChatGPT to do something with them.
 
+> [!NOTE]
+> You can also tag the `@browser` identifier to tell GPT to spin up the browser for you.
+
 Here are the main use cases for using the in-app browser with GPT:
 
 - **web elements context**: You can give ChatGPT context as to the visual nature of a website, which leads to these use cases:
