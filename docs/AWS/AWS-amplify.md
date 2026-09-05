@@ -418,6 +418,11 @@ You can customize your authentication flow with customized sign-in and registrat
 > Amplify deploys an Amazon Cognito instance in your AWS account when you add auth to your app.
 
 #### Backend
+
+This is simple email verification auth
+
+```ts
+```
 #### **frontend**
 
 Then, you could use the Amplify `Authenticator` component or the client libraries to add user flows.
@@ -709,10 +714,40 @@ export const auth = defineAuth({
 });
 ```
 
+## Data
+
+### Authorization
+
+#### ApiKey authorization
+
+#### userpool authorization
+
+Set the `defaultAuthorizationMode` to `"userPool"` to use Cognito userpool auth and authorization.
+
+```ts
+const schema = a.schema({
+  Todo: a
+    .model({
+      content: a.string(),
+      isDone: a.boolean(),
+    })
+    .authorization((allow) => [allow.owner()]),
+});
+
+export type Schema = ClientSchema<typeof schema>;
+
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: "userPool",
+  },
+});
+```
 
 
+When specifying authorization on a model, you have these different ways of doing it:
 
-
+- `allow.owner()`: allow a user to perform CRUD operations on whatever resources they own, which is what you want most of the time.
 
 ## Amplify with React
 
@@ -732,23 +767,29 @@ npm install aws-amplify
 npm install @aws-amplify/ui-react   
 ```
 
-2. Configure the frontend to connect to the cloud resources provisioned by Amplify through the `amplify_outputs.json`:
+2. Configure the frontend to connect to the cloud resources provisioned by Amplify through the `amplify_outputs.json`, making sure that amplify gets registered before the frontend ever renders.
 
 ```ts
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
 import "./index.css";
 import { Amplify } from "aws-amplify";
 import outputs from "../amplify_outputs.json";
 
-Amplify.configure(outputs);
+async function main() {
+  Amplify.configure(outputs);
+  const { default: App } = await import("./App");
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+}
+
+main().catch((error) => {
+  console.error("Error loading the app:", error);
+});
 ```
 
 3. Start the frontend and sandbox simultaneously
@@ -890,6 +931,7 @@ export default App;
 
 #### Using `useAuthenticator()` hook
 
+
 ```tsx
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useTodo } from "./db/useTodo";
@@ -905,6 +947,15 @@ const Main = () => {
   );
 };
 ```
+
+Here are the methods available for use:
+
+- `signOut()`: when invoked, logs the currently logged in user out.
+
+Here are the properties on the `user` object:
+
+- `user.username`: the username of the user, which can be a real username or just their email. Either way, it's a unique natural language identifier for the user.
+
 ### Data
 #### Custom hook
 
