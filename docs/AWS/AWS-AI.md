@@ -17,3 +17,11 @@ Agentcore providers users a front-facing abstraction over API gateway for runnin
 - **MCP**: convert any Lambda or APIs into MCP
 - **authorization add-ons**: integrates with Cognito to have protected authenticated access.
 
+### Strands
+
+Strands is a Python and TypeScript agent framework that is AWS-native and provider-agnostic.
+
+
+![](https://i.imgur.com/fUcUo3F.jpeg)
+
+
