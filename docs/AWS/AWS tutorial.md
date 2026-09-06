@@ -675,7 +675,69 @@ Here is the flow:
 ![](https://i.imgur.com/sfSUlyV.jpeg)
 
 
-2. Create a lambda type authorizer
+2. The lambda code takes in an **API Gateway Authorizer Event** and must return a policy document string.
+
+
+![](https://i.imgur.com/IkCKq1o.jpeg)
+
+```ts
+// TODO: make this a real token validation
+function validateToken(token) {
+  return true
+}
+
+function createAllowPolicyDocument(event) {
+  return {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Principal: "*",
+        Action: "execute-api:Invoke",
+        Resource: event.methodArn
+      }
+    ]
+  }
+}
+
+function createDenyPolicyDocument(event) {
+  return {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Deny",
+        Principal: "*",
+        Action: "execute-api:Invoke",
+        Resource: event.methodArn
+      }
+    ]
+  }
+}
+
+
+export const handler = async (event) => {
+
+  // 1. accept token source: request.headers.Authorization
+  if (event.headers.Authorization) {
+    // 2. if valid token, authorize with API gateway permission execution
+    if (validateToken(event.headers.Authorization)) {
+      return createAllowPolicyDocument(event)
+    }
+  }
+  
+  // 3. if invalid token, deny with policy
+  return createDenyPolicyDocument(event)
+};
+
+```
+
+3. Create a lambda type authorizer:
+	- **token source**: set this to what you set in the lambda, which is `Authorization`
+	- **ttl**: set this very low so there is no caching of lambda code, which is annoying during development to receive a stale authorizer
+
+
+![](https://i.imgur.com/DwpmbjU.jpeg)
+
 
 
 ## S3
