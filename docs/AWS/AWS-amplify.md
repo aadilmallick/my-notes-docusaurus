@@ -211,8 +211,8 @@ Here's how to get started:
 1. Set secrets with the `npx ampx sandbox secret` CLI:
 
 ```
-npx ampx sandbox secret GOOGLE_CLIENT_ID="client_id_here"
-npx ampx sandbox secret GOOGLE_CLIENT_SECRET="client_secret_here"
+npx ampx sandbox secret GOOGLE_CLIENT_ID
+npx ampx sandbox secret GOOGLE_CLIENT_SECRET
 ```
 
 2. Use the `secret(secretName: str)` method to read a secret you set
@@ -570,6 +570,48 @@ defineBackend({
 
 ```
 
+3. Query the S3 object from the frontend:
+
+```ts
+```
+
+
+### Functions
+
+`defineFunction` provisions a Lambda function from TypeScript source, with automatic bundling:
+
+1. Create a function with a name, entrypoint, and other configuration options, using `defineFunction`
+
+```ts
+// amplify/functions/say-hello/resource.ts
+import { defineFunction } from '@aws-amplify/backend';
+
+export const sayHello = defineFunction({
+  name: 'say-hello',
+  entry: './handler.ts',
+});
+```
+
+```ts
+// amplify/functions/say-hello/handler.ts
+import type { Handler } from 'aws-lambda';
+
+export const handler: Handler = async (event) => {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: 'Hello from Lambda!' }),
+  };
+};
+```
+
+2. Register it in the `amplify/backend.ts`
+
+```ts
+// amplify/backend.ts
+import { sayHello } from './functions/say-hello/resource';
+
+defineBackend({ auth, data, storage, sayHello });
+```
 ### All together
 
 You can use `define*` functions to _define_ your resources and then import them all into the `backend.ts`
@@ -622,7 +664,27 @@ defineBackend({
 });
 ```
 
+### Deployment
 
+- Push your repo to GitHub (or GitLab/Bitbucket/CodeCommit).
+- In the AWS Amplify Console, choose **Deploy an app** → connect your repository and branch.
+- Amplify auto-detects the framework, builds your frontend, deploys your backend from `amplify/`, and hosts the result on a global CDN — all from the same commit.
+- Every subsequent `git push` to that branch triggers a new full-stack deployment automatically, including **PR previews** if enabled (a temporary, isolated backend + frontend per pull request).
+### Testing
+
+Because backend resources are plain TypeScript objects/functions, you can unit test Lambda handlers directly with your normal test runner (Vitest, Jest):
+
+
+```typescript
+import { handler } from '../amplify/functions/say-hello/handler';
+
+test('returns a greeting', async () => {
+  const result = await handler({} as any, {} as any, {} as any);
+  expect(JSON.parse(result.body).message).toBe('Hello from Lambda!');
+});
+```
+
+For integration-level testing of your data/auth layer, run your test suite against a live sandbox (`npx ampx sandbox --once` in CI, then point tests at the generated `amplify_outputs.json`), which gives you a real (if disposable) AWS backend rather than a mock.
 
 
 ## Connecting to existing AWS resources
@@ -747,6 +809,25 @@ export const auth = defineAuth({
 });
 ```
 
+### Auth triggers
+
+Functions become genuinely powerful when wired into your data layer as a **custom query/mutation handler**, or as an **auth trigger** (pre sign-up, post confirmation, etc.):
+
+1. Create a lambda function via `defineFunction()`, with the intent of running this lambda as being triggered by a certain event of the user authentication lifecycle.
+2. When defining the auth, add a `triggers` object and add a `triggers.postConfirmation` key for example and pass in the lambda you want to be triggered on the `postConfirmation` lifecycle event in the user auth cycle.
+
+```ts
+// amplify/auth/resource.ts
+import { defineAuth } from '@aws-amplify/backend';
+import { postConfirmation } from '../functions/post-confirmation/resource';
+
+export const auth = defineAuth({
+  loginWith: { email: true },
+  triggers: {
+    postConfirmation,
+  },
+});
+```
 ## Data
 
 ### Schema in depth
@@ -800,7 +881,7 @@ const schema = a.schema({
 
 Amplify supports `hasOne`, `hasMany`, `belongsTo`, and `manyToMany` (which generates the join table for you automatically).
 
-### Authorization
+#### Authorization
 
 Authorization is declared **per model** (and can be layered per-field) using the `.authorization(allow => [...])` callback. The most common rules:
 
@@ -839,35 +920,45 @@ export const data = defineData({
   },
 });
 ```
-#### ApiKey authorization
 
-#### userpool authorization
+### Adding custom GraphQL queries
 
-Set the `defaultAuthorizationMode` to `"userPool"` to use Cognito userpool auth and authorization.
+Beyond the CRUD operations Amplify generates automatically per model, you can define fully custom GraphQL operations backed by your own Lambda logic — useful for things like calling a third-party API, running aggregate calculations, or sending an email.
+
+You can define a property on the schema to be a graphQL query or mutation with the `a.query()` method, and then chain on these methods to fill out the resolver for that query:
+
+- `query.arguments(schema)`: specifies the arguments to pass in
+- `query.returns(schema)`: specifies the return type of the query
+- `query.authorization()`: you should also specify authorization rules for this query.
+- `query.handler()`: pass in the lambda function handler to specify as a resolver for this query.
 
 ```ts
+// amplify/data/resource.ts
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
+import { generateReport } from '../functions/generate-report/resource';
+
 const schema = a.schema({
-  Todo: a
-    .model({
-      content: a.string(),
-      isDone: a.boolean(),
-    })
-    .authorization((allow) => [allow.owner()]),
+  Todo: a.model({ content: a.string() }).authorization((allow) => [allow.owner()]),
+
+  generateReport: a
+    .query()
+    .arguments({ month: a.string().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(generateReport)),
 });
 
 export type Schema = ClientSchema<typeof schema>;
-
-export const data = defineData({
-  schema,
-  authorizationModes: {
-    defaultAuthorizationMode: "userPool",
-  },
-});
+export const data = defineData({ schema });
 ```
 
+Call it from React exactly like a generated operation:
 
+```ts
+const { data: report } = await client.queries.generateReport({ month: '2026-08' });
+```
 
-### frontend
+### Frontend
 
 On the frontend, this is basic CRUD and how you create a data client:
 
@@ -928,6 +1019,7 @@ A few things worth calling out:
 - **`observeQuery()`** gives you a live, auto-updating list (it reconciles an initial fetch with a real-time subscription under the hood) — ideal for list views.
 - For one-off fetches instead of live subscriptions, use `client.models.Todo.list()` or `client.models.Todo.get({ id })`, both of which return promises.
 - Mutations (`create`, `update`, `delete`) automatically respect the authorization rules you defined — an unauthorized call fails client-side with a clear error rather than silently succeeding.
+
 
 #### Subscriptions
 
@@ -1021,6 +1113,23 @@ const { items } = await list({ path: 'public/' });
 await remove({ path: 'public/logo.png' });
 ```
 
+## Functions
+
+### Passing in environment variables
+
+When wanting to pass in environment variables into the lambda execution environment, you have two options to choose dependending on the type of env var you want to bake into the execution environment:
+
+- **Insensitive environment variables**: can be passed in as plaintext
+- **sensitive environment variables**: Should use the `secret()` method to inject the secret into the environment.
+
+```ts
+  export const myFunction = defineFunction({
+    entry: './handler.ts',
+    environment: {
+      STAGE: 'production',
+    },
+  });
+```
 ## Amplify with React
 
 ### Setup
@@ -1203,7 +1312,7 @@ export default App;
 
 ### Auth
 
-#### Using `useAuthenticator()` hook
+#### `useAuthenticator()` hook in depth
 
 
 ```tsx
@@ -1229,6 +1338,19 @@ Here are the methods available for use:
 Here are the properties on the `user` object:
 
 - `user.username`: the username of the user, which can be a real username or just their email. Either way, it's a unique natural language identifier for the user.
+
+#### Creating a protected route
+
+```ts
+import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { authStatus } = useAuthenticator((ctx) => [ctx.authStatus]);
+  if (authStatus !== 'authenticated') return <Navigate to="/login" />;
+  return <>{children}</>;
+}
+```
 
 ### Data
 
