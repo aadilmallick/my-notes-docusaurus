@@ -1166,6 +1166,286 @@ export class ServerlessApiStack extends Stack {
 ```
 
 ### Cognito + Amplify
+
+#### Create the cognito resources
+
+Here is what we want to accomplish:
+
+1. Create a user pool
+
+```ts
+// Create User Pool
+const userPool = new UserPool(this, 'UserPoolTodoWebApp', {
+	userPoolName: 'UserPoolTodoWebApp',
+	selfSignUpEnabled: true, // Allow users to sign up
+	autoVerify: { email: true }, // Verify email addresses by sending a verification code
+	signInAliases: { email: true }, // Set email as an alias
+});
+```
+
+2. Create a user pool client
+
+```ts
+//Create User Pool Client
+const userPoolClient = new UserPoolClient(
+	this,
+	'UserPoolClientTodoWebApp',
+	{
+		userPool,
+		generateSecret: false, // Don't need to generate secret for web app running on browsers
+	}
+);
+```
+
+3. Create an identity pool that uses Cognito as an identity provider:
+
+```ts
+// Create an Identity Pool
+const identityPool = new IdentityPool(this, 'IdentityPoolTodoWebApp', {
+	allowUnauthenticatedIdentities: true,
+	authenticationProviders: {
+		userPools: [
+			new UserPoolAuthenticationProvider({
+				userPool: userPool,
+				userPoolClient: userPoolClient,
+			 })
+		 ],
+	}
+})
+```
+
+4. Expose outputs on the stack so those values can be passed into the Amplify stack so it can gain access to the user pool and user pool IDs.
+
+```ts
+this.userPoolId = new CfnOutput(this, 'CFUserPoolTodoWebApp', {
+	value: userPool.userPoolId,
+});
+this.userPoolClientId = new CfnOutput(this, 'CFUserPoolClientTodoWebApp', {
+	value: userPoolClient.userPoolClientId,
+});
+this.identityPoolId = new CfnOutput(this, 'CFIdentityPoolTodoWebApp', {
+	value: identityPool.identityPoolId,
+});
+this.userPoolArn = new CfnOutput(this, 'CFUserPoolArnTodoWebApp', {
+	value: userPool.userPoolArn,
+});
+```
+
+```ts
+import { CfnOutput, Stack, StackProps } from "aws-cdk-lib";
+import { UserPool, UserPoolClient } from "aws-cdk-lib/aws-cognito";
+import { IdentityPool, UserPoolAuthenticationProvider } from "aws-cdk-lib/aws-cognito-identitypool";
+import { Construct } from "constructs";
+
+export class CognitoStack extends Stack {
+	public readonly userPoolId: CfnOutput;
+	public readonly userPoolClientId: CfnOutput;
+	public readonly identityPoolId: CfnOutput;
+	public readonly userPoolArn: CfnOutput;
+
+    constructor(scope: Construct, id: string,  props?:StackProps) {
+		super(scope, id, props);
+
+        // Create User Pool
+		const userPool = new UserPool(this, 'UserPoolTodoWebApp', {
+            userPoolName: 'UserPoolTodoWebApp',
+			selfSignUpEnabled: true, // Allow users to sign up
+			autoVerify: { email: true }, // Verify email addresses by sending a verification code
+			signInAliases: { email: true }, // Set email as an alias
+		});
+
+        //Create User Pool Client
+		const userPoolClient = new UserPoolClient(
+			this,
+			'UserPoolClientTodoWebApp',
+			{
+				userPool,
+				generateSecret: false, // Don't need to generate secret for web app running on browsers
+			}
+		);
+
+        // Create an Identity Pool
+        const identityPool = new IdentityPool(this, 'IdentityPoolTodoWebApp', {
+			allowUnauthenticatedIdentities: true,
+			authenticationProviders: {
+				userPools: [
+					new UserPoolAuthenticationProvider({ 
+						userPool: userPool,
+						userPoolClient: userPoolClient,
+					 })
+				 ],
+			}
+		})
+
+		this.userPoolId = new CfnOutput(this, 'CFUserPoolTodoWebApp', {
+			value: userPool.userPoolId,
+		});
+		this.userPoolClientId = new CfnOutput(this, 'CFUserPoolClientTodoWebApp', {
+			value: userPoolClient.userPoolClientId,
+		});
+		this.identityPoolId = new CfnOutput(this, 'CFIdentityPoolTodoWebApp', {
+			value: identityPool.identityPoolId,
+		});
+		this.userPoolArn = new CfnOutput(this, 'CFUserPoolArnTodoWebApp', {
+			value: userPool.userPoolArn,
+		});
+    }
+}
+```
+
+#### Create the amplify resources
+
+Here is what we want to accomplish:
+
+1. Create an amplify app construct that uploads a Github repo of Amplify code, let it upload environment variables automatically on each deployment.
+
+```ts
+import {
+	App,
+	GitHubSourceCodeProvider,
+	RedirectStatus,
+} from '@aws-cdk/aws-amplify-alpha';
+
+interface AmplifyStackProps extends StackProps {
+	readonly userPoolId: string;
+	readonly userPoolClientId: string;
+	readonly identityPoolId: string;
+	readonly serverURL: string;
+}
+
+export class AmplifyHostingStack extends Stack {
+	constructor(scope: Construct, id: string, props: AmplifyStackProps) {
+		super(scope, id, props);
+
+        // Create the Amplify application
+		const amplifyApp = new App(this, `TodoWebApp`, {
+			sourceCodeProvider: new GitHubSourceCodeProvider({
+				owner: 'mavi888',
+				repository: 'linkedin-todo-webapp',
+				oauthToken: SecretValue.secretsManager('github-token'),
+			}),
+			environmentVariables: {
+				REGION: this.region,
+				IS_MOCK: 'false',
+				USER_POOL_ID: props.userPoolId,
+				USER_POOL_CLIENT_ID: props.userPoolClientId,
+				IDENTITY_POOL_ID: props.identityPoolId,
+				SERVER_URL: props.serverURL,
+            },
+		});
+}
+```
+
+2. Add a main production branch for automatic deployment
+
+```ts
+// Add a branch
+const main = amplifyApp.addBranch('main', {
+	autoBuild: true,
+	stage: 'PRODUCTION'
+});
+```
+
+3. Add route rewrites for SPAs
+
+```ts
+amplifyApp.addCustomRule({
+	source:
+		'</^[^.]+$|\\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>',
+	target: '/index.html',
+	status: RedirectStatus.REWRITE,
+});
+```
+
+Here's the complete things:
+
+```ts
+import { CfnOutput, SecretValue, Stack, StackProps } from "aws-cdk-lib";
+import { Construct } from "constructs";
+import {
+	App,
+	GitHubSourceCodeProvider,
+	RedirectStatus,
+} from '@aws-cdk/aws-amplify-alpha';
+
+interface AmplifyStackProps extends StackProps {
+	readonly userPoolId: string;
+	readonly userPoolClientId: string;
+	readonly identityPoolId: string;
+	readonly serverURL: string;
+}
+
+export class AmplifyHostingStack extends Stack {
+	constructor(scope: Construct, id: string, props: AmplifyStackProps) {
+		super(scope, id, props);
+
+        // Create the Amplify application
+		const amplifyApp = new App(this, `TodoWebApp`, {
+			sourceCodeProvider: new GitHubSourceCodeProvider({
+				owner: 'mavi888',
+				repository: 'linkedin-todo-webapp',
+				oauthToken: SecretValue.secretsManager('github-token'),
+			}),
+			environmentVariables: {
+				REGION: this.region,
+				IS_MOCK: 'false',
+				USER_POOL_ID: props.userPoolId,
+				USER_POOL_CLIENT_ID: props.userPoolClientId,
+				IDENTITY_POOL_ID: props.identityPoolId,
+				SERVER_URL: props.serverURL,
+            },
+		});
+
+        // Add a branch
+        const main = amplifyApp.addBranch('main', {
+            autoBuild: true,
+            stage: 'PRODUCTION'
+        });
+
+        amplifyApp.addCustomRule({
+			source:
+				'</^[^.]+$|\\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>',
+			target: '/index.html',
+			status: RedirectStatus.REWRITE,
+		});
+
+        new CfnOutput(this, 'AmplifyAppName', {
+			value: amplifyApp.appName,
+		});
+
+		new CfnOutput(this, 'AmplifyURL', {
+			value: `https://main.${amplifyApp.defaultDomain}`,
+		});
+    }
+}
+```
+
+#### Passing values between stacks
+
+In order for the amplify stack to read values like the user pool id, user pool client ID, and identity pool ID from the cognito stack, you need to follow these steps:
+
+1. Expose class properties on the cognito stack and set their values with `CfnOutput()` instance values.
+2. In the file where you create the CDK app from all the stacks, create the cognito stack first, then pass in its output values into the amplify stack as additional props.
+
+```ts
+#!/usr/bin/env node
+import * as cdk from 'aws-cdk-lib';
+import { AmplifyHostingStack } from '../lib/amplify-stack';
+import { CognitoStack } from '../lib/cognito-stack';
+import { BackendStack } from '../lib/backend-stack';
+
+const app = new cdk.App();
+
+const cognitoStack = new CognitoStack(app, 'TodoAppCognitoStack', {});
+
+const amplifyStack = new AmplifyHostingStack(app, 'TodoAppAmplifyHostingStack', {
+    userPoolId: cognitoStack.userPoolId.value,
+    userPoolClientId: cognitoStack.userPoolClientId.value,
+    identityPoolId: cognitoStack.identityPoolId.value,
+    serverURL: backendStack.apiUrl.value
+});
+```
+
 ## CDK code reference
 
 ### VPCs

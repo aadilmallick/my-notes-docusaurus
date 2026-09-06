@@ -751,6 +751,23 @@ new LocationMapStack(
 ```
 
 
+### Connecting to custom auth infra
+
+Custom auth with user pools and identity pools requires these three values from your infra:
+
+1. **user pool id**
+2. **user pool client id**
+3. **identity pool id**
+
+Then you can use those values to connect to auth infra instead of the local cloud resources from the `amplify_outputs.json`:
+
+
+```ts
+const userPoolId = import.meta.env.VITE_USER_POOL_ID;
+const userPoolClientId = import.meta.env.VITE_USER_POOL_CLIENT_ID;
+const identityPoolId = import.meta.env.VITE_IDENTITY_POOL_ID;
+```
+
 
 
 ## Authentication
@@ -828,6 +845,9 @@ export const auth = defineAuth({
   },
 });
 ```
+
+
+
 ## Data
 
 ### Schema in depth
@@ -1189,6 +1209,8 @@ You have two different ways of implementing auth in react:
 #### Vanilla way
 
 If you'd rather build a fully custom UI, use the underlying `aws-amplify/auth` functions directly (`signUp`, `signIn`, `confirmSignUp`, `signOut`, `getCurrentUser`, `fetchAuthSession`), which work identically regardless of which UI you build on top.
+
+
 
 #### Provider method: `<Authenticator />` and `useAuthenticator()`
 
