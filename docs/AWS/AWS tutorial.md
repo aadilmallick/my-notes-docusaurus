@@ -434,10 +434,11 @@ Now when a user logs in via the identity provider, they are stored into the user
 **Cognito steps**
 
 1. Create a user pool, which automatically creates a user pool client
-2. Create an identity provider.
+2. Get the cognito domain for the user pool, which is important for specifying the google Redirects
 
 
-![](https://i.imgur.com/DFgdJNe.jpeg)
+![](https://i.imgur.com/F9GdW9e.jpeg)
+
 
 **Google client steps**
 
@@ -448,8 +449,19 @@ The next steps require you to add your google auth credentials.
 2. Create OAuth 2.0 credentials for a web application.
     
 3. Add `https://<your user pool domain>/oauth2/idpresponse` to your project as an authorized redirect URI.
+
+
+
+![](https://i.imgur.com/FAW5Qmo.jpeg)
+
     
-4. Add the OAuth client ID and client secret for your Google project to your user pool IDP configuration.
+4. Add the OAuth client ID and client secret for your Google project to your user pool IDP configuration. By creating an identity provider.
+
+
+![](https://i.imgur.com/DFgdJNe.jpeg)
+
+
+
 
 ## API gateway
 
