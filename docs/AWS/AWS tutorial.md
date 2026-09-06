@@ -328,6 +328,14 @@ Cognito offers two types of identity providers.
 - **cognito**: if using basic email and password with email verification, cognito itself acts as an identity provider for the user pool
 - **third-party providers**: providers with OAuth 2.0 or SSO can be delegated to for obtaining JWT credentials and authenticating a user.
 
+
+#### User pool client in depth
+
+A user pool client (also called ) in Amazon Cognito enables multi-tenancy, where a single 
+
+- It's essential because it enables your app to connect to the user pool for handling sign-in, sign-up, and authentication processes. 
+- For typical web apps, this client doesn't need a secret, making it simpler to manage user authentication securely and efficiently.
+
 #### what user pools store
 
 User pools store the following information:
@@ -417,6 +425,8 @@ App integration with Cognito has two possibilities depending on how immersed int
 4. Copy the user pool id and the app client ID to add an identity provider to the identity pool.
 
 Now when a user logs in via the identity provider, they are stored into the user pool and thus given the roles specified by the identity pool.
+
+#### Google login
 
 ## API gateway
 
