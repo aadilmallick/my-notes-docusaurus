@@ -733,11 +733,11 @@ export const handler = async (event) => {
 ```
 
 3. Create a lambda type authorizer:
-	- **token source**: set this to what you set in the lambda, which is `Authorization`
+	- **token source**: set this to what you set in the lambda, which is `authorizationToken`
 	- **ttl**: set this very low so there is no caching of lambda code, which is annoying during development to receive a stale authorizer
 
+![](https://i.imgur.com/FQCU6xo.jpeg)
 
-![](https://i.imgur.com/DwpmbjU.jpeg)
 
 4. Now when testing your authorizer, let's say you're getting IAM errors. This means you have to add permissions to the API gateway to allow it to execute lambdas
 
