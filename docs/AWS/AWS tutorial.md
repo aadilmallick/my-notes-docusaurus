@@ -738,6 +738,10 @@ export const handler = async (event) => {
 
 ![](https://i.imgur.com/DwpmbjU.jpeg)
 
+4. Now when testing your authorizer, let's say you're getting IAM errors. This means you have to add permissions to the API gateway to allow it to execute lambdas
+
+
+![](https://i.imgur.com/YFYu4uZ.jpeg)
 
 
 ## S3
