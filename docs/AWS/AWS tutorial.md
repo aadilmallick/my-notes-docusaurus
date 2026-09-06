@@ -331,10 +331,13 @@ Cognito offers two types of identity providers.
 
 #### User pool client in depth
 
-A user pool client (also called ) in Amazon Cognito enables multi-tenancy, where a single 
+A single user pool has **multitenancy** enabled, meaning that it can be leveraged by several app clients so users have different ways of authenticating into the user pool via an app client.
 
-- It's essential because it enables your app to connect to the user pool for handling sign-in, sign-up, and authentication processes. 
-- For typical web apps, this client doesn't need a secret, making it simpler to manage user authentication securely and efficiently.
+A user pool client (also called app client) in Amazon Cognito allows users to authenticate through an identity provider you configure, and you can have multiple user pool clients, like Cognito, Google, Apple, etc.
+
+
+> [!NOTE]
+> For typical web apps, the user pool client doesn't need a secret, making it simpler to manage user authentication securely and efficiently.
 
 #### what user pools store
 
