@@ -626,6 +626,58 @@ https://<api-domain>/<api-stage>/<resource>
 
 ![](https://i.imgur.com/7OMadNI.jpeg)
 
+
+### API gateway with Lambda authorizers
+
+
+
+
+![](https://i.imgur.com/0d6bk6y.jpeg)
+
+
+- **goal**: have lambdas accept authorization tokens in headers sent in requests to API gateway, and if token is valid, forward request to workload lambda handler.
+- **resources to create**: 
+	1. API gateway with at least one resource + method combo,
+	2. **Lambda-type authorizer**: an authorizer for the API gateway with authorizer type "lambda", used to check authorization tokens by invoking a lambda function to delegate the token-checking logic to based on the incoming request.
+	3. **authorizer lambda**: the lambda that runs the token-checking logic to authorize based on the incoming request, and is invoked by the lambda-type authorizer
+
+Here is the flow:
+
+1. **the request**: User calls resource + method combo in API gateway, providing an authorization token in the request headers
+2. **invoke authorizer**: **Lambda-type authorizer** is configured to seek the authorization token value at a header property name specified by the **token source** on an authorizer, then invokes the registered **authorizer lambda** with the purpose of trying to authorize the token
+3. **check authorization**: the authorizer Lambda rolls its own custom logic to validate the request and authorization token against your business logic, codebase, and data sources (like checking for the JWT in a sessions table that you own on some database, for example). 
+4. **send back authorization response**: If the authorization token is valid and we should validate the request, then the function sends back an **IAM policy document** to attach to the user to authorize them and give them permissions
+
+
+![](https://i.imgur.com/gVXdTJd.jpeg)
+
+5. **forward authorized traffic**: If authorized, then the authorizer lambda sends back a "token is valid" response to the API gateway, and then API gateway forwards the original request traffic to the resource + method handler specified.
+
+
+#### Create the API gateway
+
+1. Create a new resource + method combo in an API gateway, have the route handler forward to a lambda function.
+
+
+![](https://i.imgur.com/3jQlQqA.jpeg)
+
+2. Deploy the API
+3. Test that the resource + method + handler works
+
+
+![](https://i.imgur.com/Y9QnPOL.jpeg)
+
+#### Create the Lambda-type authorizer + Authorizer Lambda
+
+1. Create an authorizer lambda that you will set as a target for the lambda-type authorizer in step 3.
+
+
+![](https://i.imgur.com/sfSUlyV.jpeg)
+
+
+2. Create a lambda type authorizer
+
+
 ## S3
 
 ### Intro
