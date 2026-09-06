@@ -26,6 +26,16 @@ Strands is a Python and TypeScript agent framework that is AWS-native and provid
 
 ## Bedrock fundamentals
 
+Amazon Bedrock offers a range of powerful capabilities for building AI applications, including:  
+  
+
+- **Foundation Model Service:** Access and interact with large-scale pretrained models from providers like Anthropic, Amazon, and Mistral through a unified API.
+- **Model Inference and Prompts:** Generate outputs from inputs using structured prompts, with control over parameters like token limits and response temperature to optimize behavior.
+- **Embeddings and Knowledge Bases:** Create vector-based representations of text and images to support advanced search and retrieval, enhancing accuracy with Retrieval-Augmented Generation (RAG) to ground AI responses in specific data.
+- **Orchestration and Agents:** Coordinate models with enterprise systems to automate tasks such as code fixing, testing, and decision-making workflows.
+- **Model Customization and Evaluation:** Fine-tune models, perform pre-training, optimize hyperparameters, and define custom evaluation metrics to tailor AI performance.
+- **Throughput Provisioning:** Allocate dedicated capacity for token input/output to ensure efficient processing.
+
 ### Knowledge base
 
 CHeck it out!
