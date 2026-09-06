@@ -431,6 +431,26 @@ Now when a user logs in via the identity provider, they are stored into the user
 
 #### Google login
 
+**Cognito steps**
+
+1. Create a user pool, which automatically creates a user pool client
+2. Create an identity provider.
+
+
+![](https://i.imgur.com/DFgdJNe.jpeg)
+
+**Google client steps**
+
+The next steps require you to add your google auth credentials.
+
+1. Add `https://<your user pool domain>` to your project as an authorized JavaScript origin.
+    
+2. Create OAuth 2.0 credentials for a web application.
+    
+3. Add `https://<your user pool domain>/oauth2/idpresponse` to your project as an authorized redirect URI.
+    
+4. Add the OAuth client ID and client secret for your Google project to your user pool IDP configuration.
+
 ## API gateway
 
 ## S3
