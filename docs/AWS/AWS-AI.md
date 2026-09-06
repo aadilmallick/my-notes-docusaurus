@@ -50,7 +50,21 @@ aspectRatio: "102.33196159122085"
 ```
 
 
-Knowledge bases in Bedrock allow you to put file data into an S3 bucket and then create a knowledge base of objects from that S3 bucket to use for RAG:
+Knowledge bases in Bedrock allow you to put file data into an S3 bucket and then create a knowledge base of objects from that S3 bucket to use for RAG with bedrock inference.
+
+- **What you manage**: what data sources to select and feed into the knowledge base
+- **What AWS manages**: creating the vector store from data sources like S3, and similarity search for AI to retrieve content from the knowledge basevia RAG. 
+
+> [!NOTE]
+> Knowledge Bases are useful because they automate the process of indexing and retrieving the data to ease RAG implementations. 
+
+You can then programmatically run inference of a bedrock model against a knowledge base using the CLI or SDK.
+
+
+
+![](https://i.imgur.com/uWvW9lm.jpeg)
+
+#### Creating a knowledge base
 
 1. Navigate to the Amazon Bedrock Console and select Knowledge Bases under the Builder tools section
 2. Click Create Knowledge Base and fill out the following details:
@@ -66,6 +80,26 @@ Knowledge bases in Bedrock allow you to put file data into an S3 bucket and then
 
 ![](https://media.datacamp.com/cms/ad_4nxfbvv-yd2jr2wzwgfhuyb2lxoe5eipt6xowhyyncfwydqxa47n5czhjj7bv8gsr0hqkwrb4_bo_qkndtjhgom8x4kt8rcrhlmp081hsf0ecygxc3cjxmer5tetymjbuvoc9uv13lw.png)
 
+
+### Bedrock agents
+
+Bedrock agents offer lightweight orchestration systems to orchestrate different subagents with one main inference provider.
+
+
+![](https://i.imgur.com/EmIqNyn.jpeg)
+
+Here are the different tools a bedrock agent has access to:
+
+- **code interpreter**: using Python to create and execute code to achieve the goal
+- **knowledge base retrieval**: attach a knowledge base and allow the agent to use RAG to retrieve data from that knowledge base
+
+### Bedrock Guardrails
+
+Bedrock Guardrails is a security feature that helps organizations implement safeguards for their AI inference by defining custom content policies and safety moderation logic.
+
+
+
+![](https://i.imgur.com/W0Jdwaz.jpeg)
 
 ## Bedrock in Python
 
