@@ -678,7 +678,9 @@ Here is the flow:
 2. The lambda code takes in an **API Gateway Authorizer Event** and must return a policy document string.
 
 
-![](https://i.imgur.com/IkCKq1o.jpeg)
+
+![](https://i.imgur.com/fir27Kc.jpeg)
+
 
 ```ts
 // TODO: make this a real token validation
