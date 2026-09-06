@@ -675,15 +675,17 @@ Here is the flow:
 ![](https://i.imgur.com/sfSUlyV.jpeg)
 
 
-2. The lambda code takes in an **API Gateway Authorizer Event** and must return a policy document string.
+2. The lambda code takes in an **API Gateway Authorizer Event** and must return a policy document string. Here are a couple of important about the code:
+	- **authorization token property**: must be named `authorizationToken`,  nothing else will work.
+	- **must return policy document string**
 
 
 
-![](https://i.imgur.com/fir27Kc.jpeg)
+![](https://i.imgur.com/WFdTfiu.jpeg)
+
 
 
 ```ts
-// TODO: make this a real token validation
 function validateToken(token) {
   return true
 }
@@ -718,19 +720,16 @@ function createDenyPolicyDocument(event) {
 
 
 export const handler = async (event) => {
+  const token = event.Authorization
 
-  // 1. accept token source: request.headers.Authorization
-  if (event.headers.Authorization) {
-    // 2. if valid token, authorize with API gateway permission execution
-    if (validateToken(event.headers.Authorization)) {
+  if (token) {
+    if (validateToken(token)) {
       return createAllowPolicyDocument(event)
     }
   }
   
-  // 3. if invalid token, deny with policy
   return createDenyPolicyDocument(event)
 };
-
 ```
 
 3. Create a lambda type authorizer:
