@@ -333,7 +333,12 @@ Cognito offers two types of identity providers.
 
 A single user pool has **multitenancy** enabled, meaning that it can be leveraged by several app clients so users have different ways of authenticating into the user pool via an app client.
 
-A user pool client (also called app client) in Amazon Cognito allows users to authenticate through an identity provider you configure, and you can have multiple user pool clients, like Cognito, Google, Apple, etc.
+A user pool client (also called app client) in Amazon Cognito allows users to authenticate through one or more identity providers you configure, and you can have multiple user pool clients.
+
+In summary:
+
+1. User pool has many user pool clients
+2. User pool client has many identity providers
 
 
 > [!NOTE]
@@ -455,15 +460,171 @@ The next steps require you to add your google auth credentials.
 ![](https://i.imgur.com/FAW5Qmo.jpeg)
 
     
-4. Add the OAuth client ID and client secret for your Google project to your user pool IDP configuration. By creating an identity provider.
+4. On the OAuth consent screen, add the cognito domain to the list of authorized domains
+
+
+![](https://i.imgur.com/UIP4aVB.jpeg)
+
+
+5. Add the OAuth client ID and client secret for your Google project to your user pool IDP configuration, by creating an identity provider. You will have to provide three pieces of info in order to create the identity provider:
+	- **client ID**: the google client ID
+	- **client secret**: the google client secret
+	- **scopes**: the google scopes to request, verbatim you should enter this:
+
+```
+email profile openid
+```
 
 
 ![](https://i.imgur.com/DFgdJNe.jpeg)
 
 
 
+**Enabling google auth on the hosted UI**
+
+This final step brings everything together by connecting the google identity provider and enabling it on the user pool client.
+
+1. Go to the app client, edit the login page, and add the redirect URIs for you app, basically the URL(s) in your app that you want the users to get redirected to after they authenticate.
+
+![](https://i.imgur.com/1eXCRdg.jpeg)
+
+2. Go to the app client, edit it and add the google identity provider.
+
+
+![](https://i.imgur.com/lQT2ax8.jpeg)
+
+2. Now on the login page, you should see the hosted UI work correctly
+
+
+![](https://i.imgur.com/JmqiURy.jpeg)
 
 ## API gateway
+
+
+### API gateway with Cognito authorizers
+
+On cognito, you can enable an option to return a JWT after a user authenticates and then you can use that token on subsequent requests to API Gateway to pass any authorization protection set on routes. 
+
+
+
+#### How authorizers work
+
+In an _Amazon Cognito_ authorizer for _API Gateway_, the **token source** is a configuration setting that tells _API Gateway_ which header to inspect for an authentication token.
+
+- When a client makes an API request, it must include that header with a valid _JSON Web Token_ (JWT).
+- _API Gateway_ then automatically intercepts this header, validates the token against your _Cognito User Pool_, and only if it is legitimate, forwards the request to your backend resource (like a _Lambda_ function)
+
+Here is how the end-to-end flow works for a user interacting with a Single Page Application (SPA):
+
+1. **Initiation:** The user clicks a 'Login' button on your website, which redirects them to the _Cognito_ hosted UI 
+2. **Authentication:** The user provides their credentials. When constructing this link, you must set the `response_type` to `token` to ensure _Cognito_ returns the JWT directly in the URL 
+3. **Callback:** Upon successful login, _Cognito_ redirects the user back to your specified callback URL (e.g., `example.com/callback`) with the tokens (ID token and Access token) appended to the fragment 
+4. **Extraction:** Your SPA code extracts the **ID token** (or Access token) from the URL fragment and stores it in memory or local storage 
+5. **API Call:** When the SPA needs to access a protected resource, it sends a request to the _API Gateway_ endpoint, including the stored token in the `Authorization` header 
+6. **Verification:** _API Gateway_ verifies the token with _Cognito_. If valid, the request proceeds to your _Lambda_ function, which processes the request and returns the data 
+
+
+#### Cognito prerequisites
+
+Here are the prerequisites:
+
+1. User pool with user pool client, configured with callback URLs and one or more identity providers (Cognito, Google, etc.), but most importantly, has both **authorization code grant** and **implicit grant** (has the JWT flow) set as grant types.
+
+
+![](https://i.imgur.com/LsOcHrM.jpeg)
+
+2. Make sure that when copying the hosted UI url, the `response_type` is set to `token` so users can extract the JWT from the callback URL query params
+
+#### Creating the API gateway
+
+1. Choose to create a REST API
+
+
+![](https://i.imgur.com/MyTW7dE.jpeg)
+2. Create a resource on the API gateway
+
+
+![](https://i.imgur.com/r2xxz9i.jpeg)
+
+3. Create a lambda function that will be the target for `GET /transactions`
+
+
+![](https://i.imgur.com/pkxyoZ4.jpeg)
+
+
+4. Create a GET method for the `transactions` resource, wire it to the lambda function you created.
+
+
+![](https://i.imgur.com/K7ppX4Q.jpeg)
+
+
+![](https://i.imgur.com/wU2ka2r.jpeg)
+
+5. Deploy the API, which will now make the api publicly available on the internet in this syntax:
+
+```
+https://<api-domain>/<api-stage>/<resource>
+```
+
+
+![](https://i.imgur.com/UqwifiW.jpeg)
+![](https://i.imgur.com/tpn3U9d.jpeg)
+
+#### Create the authorizer
+
+1. Create an authorizer on the API gateway, choose the authorizer type as **cognito**.
+
+
+![](https://i.imgur.com/TiVT4VR.jpeg)
+
+
+2. Set the token source as `Authorization`, so it uses the standard `Authorization` header to store the JWT on, and then you will send the `Authorization: bearer <token>` syntax as a header to every request to the API gateway to authenticate with Cognito.
+
+
+
+![](https://i.imgur.com/v35uvE4.jpeg)
+
+#### Connecting the authorizer to cognito
+
+1. Sign in through the cognito hosted UI with the `response_type=token` query param
+
+
+![](https://i.imgur.com/W4CBFyp.jpeg)
+
+
+2. After logging in, extract the JWT from the `id_token` query param on the callback URL
+
+
+![](https://i.imgur.com/hRcSKs6.jpeg)
+
+
+3. When testing the authorizer, paste in that JWT and provide that token as the value for the `Authorization` header:
+
+![](https://i.imgur.com/h5YYUoX.jpeg)
+
+
+4. Attach the authorizer to resources on the API gateway to protect certain resources via cognito. You can do this by going to the `transactions` resource and then editing the `GET` method for it to add an authorizer:
+
+
+![](https://i.imgur.com/0NPL0hM.jpeg)
+
+5. Configure the settings for the authorizer:
+	- **authorizer to use**: select a specific user pool authorizer from Cognito
+	- **scopes**: select email as a scope
+	- **request validator**: depends on what URL query string params, HTTP request headers, and request body structure you want to come in on the request.
+
+
+![](https://i.imgur.com/0T3yWoZ.jpeg)
+
+6. Redeploy the API
+
+
+![](https://i.imgur.com/LufsWkW.jpeg)
+
+7. Now you can request the API gateway resource protected by authorizers by specifying the JWT value under the `Authorization` header:
+
+
+![](https://i.imgur.com/7OMadNI.jpeg)
 
 ## S3
 
