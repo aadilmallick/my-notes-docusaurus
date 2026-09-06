@@ -1699,3 +1699,20 @@ if (import.meta.main) {
   await main();
 }
 ```
+
+#### Bedrock with AWS services
+
+Here is a policy document that allows access to using bedrock:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [        {
+            "Sid": "BedrockFullAccess",
+            "Effect": "Allow",
+            "Action": ["bedrock:*"],
+            "Resource": "*"
+        }
+    ]
+}
+```
