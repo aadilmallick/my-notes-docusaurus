@@ -212,6 +212,104 @@ inference_parameters = {
 }
 ```
 
+#### Converse API
+
+The converse API uses messages format:
+
+```py
+import boto3
+import json
+bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
+model_id = "us.amazon.nova-lite-v1:0"
+
+def invoke(system_prompt: str, prompt: str):
+	response = bedrock_runtime.converse(
+		modelId=model_id,
+		system=system_prompt,
+		messages=[
+			{
+				"role": "user",
+				"content": [{"text": prompt}]
+			}
+		],
+		inferenceConfig={
+			"temperature": 0.7,
+			"maxTokens": 2000
+		}
+	)
+	output_text = response['output']['message']['content'][0]['text']
+	return output_text
+```
+
+Here's a complete example
+
+
+```py
+import boto3
+import json
+
+def use_converse_api():
+    bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
+    model_id = "us.amazon.nova-lite-v1:0"
+
+    # Define a system prompt to set model behavior
+    system_prompt = [
+        {
+            "text": "You are a helpful technical assistant who explains concepts clearly and concisely."
+        }
+    ]
+
+    # User message
+    user_message = "What is serverless computing?"
+
+    print("Using Bedrock Converse API")
+    print("=" * 60)
+    print(f"System Prompt: {system_prompt[0]['text']}")
+    print(f"User Message: {user_message}\n")
+
+    try:
+        # Use the Converse API
+        response = bedrock_runtime.converse(
+            modelId=model_id,
+            system=system_prompt,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [{"text": user_message}]
+                }
+            ],
+            inferenceConfig={
+                "temperature": 0.7,
+                "maxTokens": 2000
+            }
+        )
+
+        # Extract the response
+        output_text = response['output']['message']['content'][0]['text']
+
+        print("Assistant Response:")
+        print(output_text)
+
+        # Display token usage
+        usage = response.get('usage', {})
+        print(f"\nToken Usage:")
+        print(f"  Input tokens: {usage.get('inputTokens', 'N/A')}")
+        print(f"  Output tokens: {usage.get('outputTokens', 'N/A')}")
+        print(f"  Total tokens: {usage.get('totalTokens', 'N/A')}")
+
+        print(f"\nStop Reason: {response['stopReason']}")
+
+        return response
+
+    except Exception as e:
+        print(f"Error using Converse API: {e}")
+        raise
+
+if __name__ == "__main__":
+    use_converse_api()
+```
+
+
 ## Bedrock in JavaScript
 
 ## Strands Python
@@ -372,7 +470,8 @@ agent = Agent(
     tools=[current_time, http_request, use_aws]
 )
 
-app = BedrockAgentCoreApp(agent=agent)
+app = BedrockAgentCoreApp()
+
 
 @app.entrypoint
 def invoke(payload: dict):
@@ -385,19 +484,62 @@ def invoke(payload: dict):
 
 
 if __name__ == "__main__":
-    app.run()
+    print("Starting the Bedrock AgentCore App... on http://localhost:8080")
+    app.run(
+        port=8080,
+        host="localhost",
+    )
+
 ```
 
-Now you can test locally
+Now you can test locally with the AI API running on `localhost:8080`, and exposes these routes:
+
+- `/invocations`: make a POST request to this route and pass data to run the **entrypoint function** you defined for the server.
+
+```http
+
+@baseUrl = http://localhost:8080
+
+POST {{baseUrl}}/invocations
+Content-Type: application/json
+
+{
+    "prompt": "Hello?"
+}
+```
 #### **Deploying**
 
 
 ![](https://i.imgur.com/EFQJe3J.jpeg)
 
 
-- `agentcore configure -e <file>`: configures an agentcore deployment based on a python Strands agent file.
+1. Create a `requirements.txt` with all required dependencies
+2. Create a Dockerfile for deployment with the `agentcore configure` command:
 
+```bash
+agentcore configure --entrypoint main.py
+```
+
+3. Launch the agent to AWS
+
+```bash
+agentcore launch
+```
+
+4. Invoke the agent by passing data as you would to a POST `/invocations` route.
+
+```bash
+agentcore invoke '{"prompt" : "hello world"}'
+```
 #### Agentcore CLI reference
+
+- `agentcore configure`: configures an agentcore deployment based on a python Strands agent file, creating a Dockerfile and pushing it to ECR
+	- `--entrypoint <file>`: specifies an entrypoint file which contains the `@app.entrypoint` decorator to define the agent inference method to run for the API.
+- `agentcore launch`: Builds ECR image via CodeBuild and deploys the API to AW
+
+### Multi-agent
+
+
 ### Guards
 
 #### Hooks
