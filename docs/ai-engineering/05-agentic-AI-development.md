@@ -1,7 +1,63 @@
 
 ## AI agent basics
 
-### Building AI agents
+### What is an agent and harness?
+
+AI agents operate through a cyclical process known as the **agent loop**
+
+Because AI models are stateless—meaning they forget everything between requests—the **agent harness** acts as the manager that maintains this loop
+
+**Agentic frameworks** like Strands Agents abstract away the orchestration, reasoning, and agentic loop layer, and your job is to create the harness (tools, memory system)
+
+#### **agentic loop**
+
+Here is how the agentic loop works:
+
+
+1. **Context Assembly:** The model is provided with a system prompt, user instructions, relevant memories, and a list of available tools 
+2. **Reasoning:** The model analyzes this context and decides whether it needs to use a tool to solve the task 
+3. **Tool Execution:** If a tool is required, the harness executes it, and the results are fed back into the context 
+4. **Iteration:** This cycle repeats, with the model reasoning over the new information until the task is complete and there are no more tools the AI wants to call, so you return the final text response to the user
+
+#### **harness**
+
+An **agent harness** is the essential system built _around_ an AI model to make it operational and effective in production.
+
+While the model acts as the brain, the harness provides the hands, the infrastructure and memory that allow an agent to do real work.
+
+
+![](https://i.imgur.com/ZKmVV33.jpeg)
+
+> [!NOTE]
+> The main problem nowadays is trying to build an effective agent harness that is provider-agnostic and stands the test of time as new models come out. 
+
+
+
+While the agent refers strictly to the model's decision-making capabilities, the harness acts as the **runtime environment** that manages the agent's behavior in these 4 core components:
+
+- **Loop Management:** Models are inherently stateless, meaning they process one request at a time and then forget everything. The harness manages the "agent loop," repeatedly invoking the model, updating context, and executing tools
+- **Environment Connectivity:** It exposes tools (like file operations, shell access, or web searches) and connectors that allow the model to interact with the real world 
+- **Context Engineering:** It decides what information is fed into the model’s context window—such as system prompts, memories from previous turns, and tool results—to guide the model’s reasoning
+- **Operational Guardrails:** The harness enforces boundaries, adds validation layers to verify outcomes, and allows for features like "human-in-the-loop" interventions when high-stakes actions are required 
+
+> [!NOTE]
+> Basically, a harness manages the autonomous agentic loop, deciding when to execute tools or orchestrate to subagents, updating context, factoring in guardrails, and deciding when the loop continues.
+
+> [!NOTE]
+> A good agent harness helps verify whether the actions an agent took actually worked.
+
+**Harness engineering** is the process of creating and tuning the **runtime system** that orchestrates the model. This includes managing context, connecting tools, enforcing rules (guardrails), and providing necessary compute, memory, and observability.
+
+The goal of harness engineering is to allow the agent to drive most of the work on its own while the developer takes care of the boundaries and plugins. 
+
+In harness engineering, here is what the developer manages:
+
+- **tools and custom tools**: providers deterministic behavior
+- **validation layers**: add validation layers to verify outcomes
+- **guardrails**: add guardrails to prevent unsafe content and add human-in-the-loop
+
+
+### Prompt engineering for AI agents
 
 #### Developing the system prompt
 
