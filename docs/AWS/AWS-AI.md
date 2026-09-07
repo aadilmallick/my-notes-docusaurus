@@ -317,6 +317,15 @@ Here are the components agentcore provisions for you
 > [!NOTE]
 > The current state of Agent Core in AWS is that right now we have to use the Agent Core CLI to add components; but in the future the Harness will revolutionize the way we create agents by just creating them based off a YAML config. 
 
+#### Installation
+
+1. Install these packages
+
+```title="requirements.txt"
+strands-agents==1.54.0
+strands-agents-tools==0.8.8
+bedrock-agentcore==1.22.0
+```
 #### Creating an Agentcore app
 
 1. Instantiate the bedrock agentcore app, which is a server.
@@ -329,7 +338,6 @@ Here are the components agentcore provisions for you
 import logging
 from strands import Agent, models
 from strands_tools import current_time, http_request, use_aws
-import asyncio
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 # System prompt guiding the agent's behavior
@@ -367,22 +375,29 @@ agent = Agent(
 app = BedrockAgentCoreApp(agent=agent)
 
 @app.entrypoint
-async def invoke():
-    response = await agent.invoke_async(query)
-    return response
+def invoke(payload: dict):
+    prompt = payload.get("prompt")
+    if not prompt:
+        logging.error("No prompt provided in the payload.")
+        return {"error": "No prompt provided."}
+    response = agent(prompt)
+    return response.message
 
 
 if __name__ == "__main__":
     app.run()
 ```
 
-**Deploying and invoking with the CLI**
+Now you can test locally
+#### **Deploying**
 
 
 ![](https://i.imgur.com/EFQJe3J.jpeg)
 
 
 - `agentcore configure -e <file>`: configures an agentcore deployment based on a python Strands agent file.
+
+#### Agentcore CLI reference
 ### Guards
 
 #### Hooks
