@@ -277,4 +277,121 @@ Here are the components agentcore provisions for you
 
 ![](https://i.imgur.com/EFQJe3J.jpeg)
 
+### Guards
+
+#### Hooks
+
+#### Policies
 ## Strands TypeScript
+
+### Basics
+
+#### Installation and setup
+
+1. Install
+
+```bash
+npm install @strands-agents/sdk
+```
+
+#### First agent
+
+```ts
+import {
+  Agent, tool, BeforeToolCallEvent
+} from '@strands-agents/sdk'
+import z from 'zod'
+import { writeFileSync } from 'fs'
+
+const saveReport = tool({
+  name: 'save_report',
+  description: 'Save a research report.',
+  inputSchema: z.object({
+    title: z.string(),
+    content: z.string(),
+  }),
+  callback: ({ title, content }) => {
+    writeFileSync(`reports/${title}.md`, content)
+    return `Saved ${title}.md`
+  },
+})
+
+const agent = new Agent({ tools: [saveReport] })
+
+agent.addHook(BeforeToolCallEvent, (event) => {
+  const inp = String(event.toolUse.input)
+  if (event.toolUse.name === 'save_report') {
+    if (!inp.includes('[source]')) {
+      event.cancel = 'Add source citations.'
+    }
+  }
+})
+
+await agent.invoke('Research AI agent frameworks')
+```
+
+```ts
+import { Agent, tool } from '@strands-agents/sdk'
+import z from 'zod'
+
+const searchLogs = tool({
+  name: 'search_logs',
+  description: 'Search logs by keyword.',
+  inputSchema: z.object({
+    query: z.string(),
+    hours: z.number().default(24),
+  }),
+  callback: ({ query, hours }) =>
+    logApi.search(query, hours),
+})
+
+const agent = new Agent({ tools: [searchLogs] })
+
+await agent.invoke(
+  'Find all timeout errors from the last 6 hours'
+)
+```
+
+### Tools
+
+#### Creating custom tools
+
+#### Conversation Management
+
+```ts
+import {
+  SummarizingConversationManager,
+} from '@strands-agents/sdk'
+
+// Same agent, now with summarization.
+const agent = new Agent({
+  tools: [searchLogs],
+  conversationManager:
+    new SummarizingConversationManager(),
+})
+```
+
+### Hooks
+
+The agent loop traces every decision by default. Hooks let you intercept any step to log it, validate it, or redirect it.
+
+#### `AfterToolCallEvent`
+
+```ts
+import {
+  Agent, AfterToolCallEvent,
+} from '@strands-agents/sdk'
+
+const agent = new Agent({
+  tools: [searchLogs, queryDatabase],
+  traceAttributes: {
+    service: 'ops-agent',
+    env: 'production',
+  },
+})
+
+agent.addHook(AfterToolCallEvent, (event) => {
+  console.log(`Tool: ${event.toolUse.name}`)
+  console.log(`Status: ${event.result.status}`)
+})
+```
