@@ -540,7 +540,7 @@ Here are all the steps in detail:
 
 - First, make each package an ECMAScript module by adding "type": "module" in their package.json files.
 - In the source package, export the function you want to share.
-- In the target package, import the function using the package name (e.g., import { functionName } from "@your-scope/source-package").
+- In the target package, import the function using the package name (e.g., `import { functionName } from "@your-scope/source-package"`).
 - Add the source package as a dependency in the target package's package.json using "workspace:*" to reference the local package.
 - Run `pnpm install` in the target package folder to install the local dependency.
 - Finally, run your project from the root with `pnpm start` or the appropriate script.
