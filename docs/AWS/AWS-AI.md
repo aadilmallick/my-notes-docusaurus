@@ -779,7 +779,9 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### Connection with Bedrock
+### Agent basics
+
+#### Connection with bedrock
 
 Strands abstracts over common Bedrock use cases such as:
 
@@ -955,12 +957,177 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+#### Viewing agent messages
+
+All the messages stored in an agent conversation are in the `agent.messages` property.
+
+#### Model providers
+
+The default model provider is bedrock, specifically a `BedrockModel` instance using claude-sonnet 4.6 in the us-east-2 region.
+
+Here are a list of the supported providers:
+
+| Provider              | Setup Required                           |
+| --------------------- | ---------------------------------------- |
+| **Bedrock** (default) | AWS credentials configured               |
+| **Anthropic**         | `ANTHROPIC_API_KEY` environment variable |
+| **OpenAI**            | `OPENAI_API_KEY` environment variable    |
+| **Ollama**            | Ollama running locally (`ollama serve`)  |
+
+##### BedrockModel
+
+
+To find out all possible model IDs on Bedrock, just run this command:
+
+```bash
+aws bedrock list-foundation-models | jq
+```
+
+This is a standard use case of the bedrock model.
+
+```py
+agent = Agent(
+    model=models.bedrock.BedrockModel(
+        model_id="amazon.nova-micro-v1:0",
+    )
+)
+```
+
+To use with localstack, follow these steps:
+
+1. Start the localstack emulator with `lstk start`
+
+```bash
+lstk start
+```
+
+2. Export these environment variables into the current shell session or set them dynamically in Python
+
+```py
+export AWS_ACCESS_KEY_ID="test"
+export AWS_SECRET_ACCESS_KEY="test"
+export AWS_DEFAULT_REGION="us-east-1"
+export AWS_REGION="us-east-1"
+export AWS_ENDPOINT_URL="http://localhost:4566"
+```
+
+3. Override the `endpoint_url` and `boto3_config` kwargs in the `BedrockModel` instatiation:
+
+```py
+
+```
+##### OpenAIModel
+
+```py
+openai_model = OpenAIModel(
+    client_args={"api_key": os.environ["OPENAI_API_KEY"]},
+    model_id="gpt-4o",
+    params={"max_tokens": 1000, "temperature": 0.7},
+)
+```
+
+##### OllamaModel
+
+```py
+# Local with Ollama (no cloud APIs needed)
+ollama_model = OllamaModel(
+    host="http://localhost:11434",
+    model_id="gemma4:latest",
+)
+
+# Use any provider — agent code stays identical
+agent = Agent(model=ollama_model)
+```
+
 ### Tools
 
 #### Custom tools
 
 
 ![](https://i.imgur.com/CwdmcH9.jpeg)
+
+
+You can create a custom tool from a simple python function decorated with the `@tool` decorator. There are two things you should keep in mind when creating a custom tool:
+
+- **tool description**: the tool description is extracted from the docstring of the function. 
+- **tool input and return types**: The tool input schema is parsed from the parameter type-hinting and the return schema is parsed from the return type-hinting/
+
+```py
+@tool
+def query_product_database(query: str) -> str:
+    """Query the internal product database for inventory and pricing information.
+
+    Args:
+        query: Search query for products (e.g., "wireless headphones", "USB-C hub")
+    """
+    products = {
+        "wireless headphones": "SKU-WH100: Wireless Headphones Pro — $79.99, 142 in stock, 4.5★ rating, launched 2025-03",
+        "usb-c hub": "SKU-UC200: USB-C Hub 7-in-1 — $45.00, 89 in stock, 4.2★ rating, launched 2024-11",
+        "mechanical keyboard": "SKU-MK300: Mechanical Keyboard RGB — $149.99, 23 in stock, 4.8★ rating, launched 2025-01",
+        "noise cancelling": "SKU-NC400: Noise Cancelling Earbuds — $129.99, 67 in stock, 4.6★ rating, launched 2025-05",
+    }
+    key = query.lower()
+    matches = [info for product_key, info in products.items() if product_key in key]
+    if matches:
+        return "\n".join(matches)
+    return f"No products found matching '{query}'. Available: wireless headphones, usb-c hub, mechanical keyboard, noise cancelling"
+
+SYSTEM_PROMPT = """You are a product research analyst. You help the team understand
+market positioning by comparing competitor pricing with our internal catalog.
+
+When given a research task:
+1. Use http_request to gather public market data
+2. Use query_product_database to check our internal pricing and inventory
+3. Write a brief competitive analysis and save it using file_write"""
+   
+agent = Agent(
+    tools=[http_request, file_write, query_product_database],
+    system_prompt=SYSTEM_PROMPT,
+)
+
+result = agent("""Research what wireless headphones are trending on the market and compare it against our offerings.Write a short competitive positioning summary and save it to report.md""")
+```
+
+### Harness capabilities
+
+Strands also ships preconfigured defaults that give you a capable agent out of the box:
+
+- **Built-in tools** — file operations, shell, search, web access
+- **Automatic context management** — proactive compression when the window fills
+- **Sub-agent delegation** — spawn child agents for subtasks
+
+```py
+from strands import Agent
+from strands.models import BedrockModel
+from strands.agent.conversation_manager import SummarizingConversationManager
+from strands.vended_plugins.context_offloader import ContextOffloader, FileStorage
+from strands_tools import file_read, file_write, editor, shell, http_request, use_agent
+
+agent = Agent(
+    model=BedrockModel(
+        model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    ),
+    # Built-in tools for file ops, shell, web, and subagent delegation
+    tools=[file_read, file_write, editor, shell, http_request, use_agent],
+    # Proactive compression — summarizes context before hitting the limit
+    conversation_manager=SummarizingConversationManager(
+        proactive_compression={"compression_threshold": 0.9},
+    ),
+    # Offloads large tool results externally, keeps a preview in context
+    plugins=[
+        ContextOffloader(
+            storage=FileStorage("./offloaded"),
+            max_result_tokens=8_000,
+            preview_tokens=2_000,
+        ),
+    ],
+)
+
+# Give it a research task
+agent("Research the current state of AI agent deployment patterns in production, including common architectures, challenges teams face, and best practices. Write a summary to report.md")
+
+```
 
 ### Strands with agentcore
 
