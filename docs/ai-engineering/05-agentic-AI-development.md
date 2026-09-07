@@ -63,10 +63,10 @@ While the agent refers strictly to the model's decision-making capabilities, the
 
 #### WTF is harness engineering
 
+Some terminology:
+
 - **Prompt Engineering:** Instructions and constraints sent to the model
-
 - **Context Engineering:** What information enters the context window, when, and how
-
 - **Harness Engineering:** The runtime system orchestrating everything
 
 **Harness engineering** is the process of creating and tuning the **runtime system** that orchestrates the model. This includes managing context, connecting tools, enforcing rules (guardrails), and providing necessary compute, memory, and observability.
@@ -79,6 +79,17 @@ In harness engineering, here is what the developer manages:
 - **validation layers**: add validation layers to verify outcomes
 - **guardrails**: add guardrails to prevent unsafe content and add human-in-the-loop
 
+What is the difference between harness engineering and normal agentic engineering?
+
+Normal agentic engineering in the past was just giving agents the tools while you wrote the orchestration and tool delegation layer yourself. Harness engineering aims to use agent frameworks to abstract all of that, including:
+
+- context management with automatically compacting context
+- guardrails for policy and content safety and controlling the max iterations
+- maintaining a tool registry
+- verification to make sure the agent does correct actions and steer it in the right direction
+
+> [!IMPORTANT]
+> The harness is the infra around the agent loop. It is not the agent loop itself.
 
 ### Prompt engineering for AI agents
 
