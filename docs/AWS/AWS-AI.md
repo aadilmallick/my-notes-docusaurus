@@ -281,18 +281,80 @@ Here are the components agentcore provisions for you
 
 #### Hooks
 
-#### Policies
+```py
+from strands import Agent
+from strands.hooks import BeforeToolCallEvent
+
+WRITE_OPS = ["INSERT", "UPDATE", "DELETE", "DROP"]
+
+def read_only_guard(event: BeforeToolCallEvent):
+    """Block writes. This agent is read-only."""
+    if event.tool_use["name"] == "query_database":
+        sql = event.tool_use["input"].get("query", "")
+        if any(kw in sql.upper() for kw in WRITE_OPS):
+            event.cancel_tool = "Read-only access."
+
+agent = Agent(
+    tools=[query_database],
+    hooks=[read_only_guard],
+)
+```
+
+#### Policies and self-steering
+
+Then the harness gives specific feedback: "add a WHERE clause," "check permissions first." The agent corrects itself. You get reliable outcomes without micromanaging every step.
+
+
+```py
+from strands.vended_plugins.steering import (
+    SteeringHandler, Guide, Proceed,
+)
+
+class QueryQualityPolicy(SteeringHandler):
+    async def steer_before_tool(
+        self, *, agent, tool_use, **kwargs
+    ):
+        sql = tool_use["input"].get("query", "").upper()
+        if "SELECT" in sql and "WHERE" not in sql:
+            return Guide(
+                reason="Add a WHERE clause and LIMIT."
+            )
+        if sql.upper().count("JOIN") > 3:
+            return Guide(
+                reason="4+ joins. Break into smaller queries."
+            )
+        return Proceed(reason="Query looks good.")
+
+agent = Agent(
+    tools=[query_database],
+    plugins=[QueryQualityPolicy()],
+)
+```
 ## Strands TypeScript
 
 ### Basics
 
-#### Installation and setup
+#### Installation and local setup
 
 1. Install
 
 ```bash
 npm install @strands-agents/sdk
 ```
+
+The default provider used is AWS bedrock, but if you want to use localstack with AWS bedrock for free models, then you need to set up your environment variables.
+
+
+You can set up your credentials in several ways:
+
+1. **Environment variables**: Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optionally `AWS_SESSION_TOKEN`
+2. **AWS credentials file**: Configure credentials using `aws configure` CLI command
+3. **IAM roles**: If running on AWS services like EC2, ECS, or Lambda, use IAM roles
+4. **Bedrock API keys**: Set the `AWS_BEARER_TOKEN_BEDROCK` environment variable
+
+As for localstack, you have two different methods to use strands with local localstack bedrock agents.
+
+
 
 #### First agent
 
@@ -371,6 +433,11 @@ const agent = new Agent({
 })
 ```
 
+#### bash tool
+
+```ts
+import { bash } from '@strands-agents/sdk/vended-tools/bash'
+```
 ### Hooks
 
 The agent loop traces every decision by default. Hooks let you intercept any step to log it, validate it, or redirect it.
