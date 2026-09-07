@@ -43,9 +43,28 @@ Strands offer these features:
 
 The AWS Agent Toolkit is a set of MCP servers, skills, and Claude Code plugins that give your AI agents access to the AWS docs for better AWS development. 
 
+#### Plugins
+
 
 ![](https://i.imgur.com/zgjt2EK.jpeg)
 
+#### MCP server
+
+```json
+{
+  "mcpServers": {
+    "aws-mcp": {
+      "command": "uvx",
+      "args": [
+        "mcp-proxy-for-aws@latest",
+        "https://api.aws",
+        "--metadata", "AWS_REGION=us-east-1"
+      ]
+    }
+  }
+}
+
+```
 ## Bedrock fundamentals
 
 Amazon Bedrock offers a range of powerful capabilities for building AI applications, including:  
