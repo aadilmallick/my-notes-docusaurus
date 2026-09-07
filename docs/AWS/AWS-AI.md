@@ -24,6 +24,17 @@ Strands is a Python and TypeScript agent framework that is AWS-native and provid
 
 ![](https://i.imgur.com/fUcUo3F.jpeg)
 
+
+![](https://i.imgur.com/hmkgMsO.jpeg)
+
+Strands offer these features:
+
+- **orchestration**: handles the agentic loop and orchestration layer
+- **Tool + MCP integration**: easily add custom tools or MCPs for use, with many built-in tools
+- **session/memory integration**
+- **multi-agent collaboration**
+- **observability**
+- **evals**
 ## Bedrock fundamentals
 
 Amazon Bedrock offers a range of powerful capabilities for building AI applications, including:  
@@ -201,5 +212,69 @@ inference_parameters = {
 ## Bedrock in JavaScript
 
 ## Strands Python
+
+### Installation and setup (first agent)
+
+
+![](https://i.imgur.com/JqqwhHL.jpeg)
+
+
+1. Install libraries
+
+```
+pip install strands-agents strands-agents-tools
+```
+
+2. Instantiate an agent with a tool
+
+3. Run inference on the agent
+
+### Tools
+
+#### Custom tools
+
+
+![](https://i.imgur.com/CwdmcH9.jpeg)
+
+### Strands with agentcore
+
+> [!NOTE]
+> Agentcore is a completely managed serverless AWS platform to deploy and run your agent. The main feature is that it abstracts away details to let you build agentic applications faster. 
+
+It is provider-agnostic, so it is basically a provisioning service for connecting your AI inference to be implemented with Lambda, API gateway, authorizers, etc., without you manually having to build that workflow yourself.
+
+Here's what agentcore does for you:
+
+1. Read your source code and containerizes it into an image
+2. Uploads the source code to S3 and the image to ECR
+3. Uses AWS CodeBuild to build the ECR image of your source code and host it on an agentcore API.
+
+Here are the components agentcore provisions for you
+
+- **runtime**: a compute layer like AWS apprunner
+- **identity**: JWT auth or cognito auth
+- **memory**: knowledge base via S3 and bedrock knowledge bases
+- **gateway**: MCP and API integration
+- **observability**: cloudwatch logs and metrics and alarms
+- **evaluations**: allow you to evaluate stuff
+- **harness**: stitch the netire workflow together with a single YAML config.
+
+> [!NOTE]
+> The current state of Agent Core in AWS is that right now we have to use the Agent Core CLI to add components; but in the future the Harness will revolutionize the way we create agents by just creating them based off a YAML config. 
+
+#### Creating an Agentcore app
+
+1. Instantiate the bedrock agentcore app, which is a server.
+2. Specify the **entrypoint method**
+
+
+![](https://i.imgur.com/66RakFb.jpeg)
+
+
+
+**Deploying and invoking with the CLI**
+
+
+![](https://i.imgur.com/EFQJe3J.jpeg)
 
 ## Strands TypeScript
