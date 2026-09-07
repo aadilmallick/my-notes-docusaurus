@@ -71,10 +71,10 @@ pip install uv
 ### Managing Python versions
 
 - `uv python install <version>` : installs a specific version of python
-
 - `uv python uninstall <version>` : uninstalls a specific version of python
-
 - `uv python find <version>` : shows the path to a specific version of python
+- `uv python pin <version>`: Pin the current project to use a specific Python version.
+- `uv python list`: View available Python versions.
 
 ```bash
 # Install a specific Python version
@@ -119,6 +119,14 @@ uv pip sync requirements.txt
 
 > [!NOTE]
 > These commands produce identical results to their pip equivalents but run 10-100x faster. Swap `pip` for `uv pip` in your CI scripts for an immediate speed boost without changing your project structure.
+
+- `uv pip install`: Install packages into the current environment.
+- `uv pip show`: Show details about an installed package.
+- `uv pip freeze`: List installed packages and their versions.
+- `uv pip check`: Check that the current environment has compatible packages.
+- `uv pip list`: List installed packages.
+- `uv pip uninstall`: Uninstall packages.
+- `uv pip tree`: View the dependency tree for the environment.
 
 ### Projects
 
@@ -180,6 +188,17 @@ uv sync
 > [!NOTE]
 > `uv.lock` pins every direct and transitive dependency to an exact version, ensuring reproducible installs across machines. Unlike `pip freeze` output, uv’s lockfile is cross-platform by default.
 
+#### Quickstart
+
+- `uv init`: Create a new Python project.
+- `uv add`: Add a dependency to the project.
+- `uv remove`: Remove a dependency from the project.
+- `uv sync`: Sync the project's dependencies with the environment.
+- `uv lock`: Create a lockfile for the project's dependencies.
+- `uv run`: Run a command in the project environment.
+- `uv tree`: View the dependency tree for the project.
+- `uv build`: Build the project into distribution archives.
+- `uv publish`: Publish the project to a package index.
 #### `pyproject.toml`
 
 This is what a `pyproject.toml` looks like:
@@ -356,6 +375,12 @@ uv tool upgrade ruff
 uv tool upgrade --all
 ```
 
+Here is a list of all `uv tool` commands:
+
+- `uv tool install <package>`: Install a tool user-wide.
+- `uv tool uninstall <package>`: Uninstall a tool.
+- `uv tool list`: List installed tools.
+- `uv tool upgrade <package>`: Upgrade a specific package
 ### `uv format`
 
 uv includes a `uv format` command that formats Python code using [Ruff](https://pydevtools.com/handbook/reference/ruff/)’s formatter.

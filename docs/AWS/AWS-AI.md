@@ -17,6 +17,9 @@ Agentcore providers users a front-facing abstraction over API gateway for runnin
 - **MCP**: convert any Lambda or APIs into MCP
 - **authorization add-ons**: integrates with Cognito to have protected authenticated access.
 
+
+
+
 #### Strands
 
 Strands is a Python and TypeScript agent framework that is AWS-native and provider-agnostic.
@@ -293,6 +296,8 @@ if __name__ == "__main__":
 
 It is provider-agnostic, so it is basically a provisioning service for connecting your AI inference to be implemented with Lambda, API gateway, authorizers, etc., without you manually having to build that workflow yourself.
 
+![](https://i.imgur.com/FrGXjJw.jpeg)
+
 Here's what agentcore does for you:
 
 1. Read your source code and containerizes it into an image
@@ -301,7 +306,7 @@ Here's what agentcore does for you:
 
 Here are the components agentcore provisions for you
 
-- **runtime**: a compute layer like AWS apprunner
+- **runtime**: a compute layer like AWS apprunner to handle load balancing and scaling and requests to the API for running agent inference.
 - **identity**: JWT auth or cognito auth
 - **memory**: knowledge base via S3 and bedrock knowledge bases
 - **gateway**: MCP and API integration
