@@ -32,6 +32,12 @@ Strands is a Python and TypeScript agent framework that is AWS-native and provid
 
 Strands was developed by AWS as an agentic harness that works well with good models, treating models as the main driver and trying to avoid overengineering as models become more capable.
 
+> [!NOTE]
+> Strands follows one simple idea: let the model drive, while the developer handles declaratively defining boundaries, human-in-the-loop, and guardrails.
+
+
+
+
 Strands offer these features:
 
 - **orchestration**: handles the agentic loop and orchestration layer
