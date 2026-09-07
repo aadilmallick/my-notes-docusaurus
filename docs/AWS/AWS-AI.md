@@ -227,7 +227,57 @@ pip install strands-agents strands-agents-tools
 
 2. Instantiate an agent with a tool
 
+```py
+import logging
+from strands import Agent, models
+from strands_tools import current_time, http_request, use_aws
+import asyncio
+
+# System prompt guiding the agent's behavior
+WEATHER_HOTEL_SYSTEM_PROMPT = """You are a weather assistant with HTTP capabilities. You can:
+1. Make HTTP requests to the National Weather Service API
+2. Process and display weather forecast data
+3. Provide weather information for locations in the United States
+
+When displaying responses:
+- Format weather data in a human-readable way
+- Highlight important information like temperature, precipitation, and alerts
+- Handle errors appropriately
+- Convert technical terms to user-friendly language
+
+Always explain the weather conditions clearly and provide context for the forecast.
+"""
+
+query = """
+Answer these questions in order:
+
+1. What is the current time in Great Falls, VA?
+2. What is the current weather in Great Falls, VA?
+3. Break down my AWS cost this month and provide a summary of the top 5 services contributing to the cost.
+"""
+
+agent = Agent(
+    system_prompt=WEATHER_HOTEL_SYSTEM_PROMPT,
+    model=models.bedrock.BedrockModel(
+        model_id="amazon.nova-micro-v1:0",
+
+    ),
+    tools=[current_time, http_request, use_aws]
+)
+```
+
 3. Run inference on the agent
+
+```py
+async def main():
+    print("Hello from strands-bedrock-agentcore-learning!")
+    response = await agent.invoke_async(query)
+    print(response.message)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
 ### Tools
 
@@ -270,13 +320,64 @@ Here are the components agentcore provisions for you
 
 ![](https://i.imgur.com/66RakFb.jpeg)
 
+```python
+import logging
+from strands import Agent, models
+from strands_tools import current_time, http_request, use_aws
+import asyncio
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
+# System prompt guiding the agent's behavior
+WEATHER_HOTEL_SYSTEM_PROMPT = """You are a weather assistant with HTTP capabilities. You can:
+1. Make HTTP requests to the National Weather Service API
+2. Process and display weather forecast data
+3. Provide weather information for locations in the United States
+
+When displaying responses:
+- Format weather data in a human-readable way
+- Highlight important information like temperature, precipitation, and alerts
+- Handle errors appropriately
+- Convert technical terms to user-friendly language
+
+Always explain the weather conditions clearly and provide context for the forecast.
+"""
+
+query = """
+Answer these questions in order:
+
+1. What is the current time in Great Falls, VA?
+2. What is the current weather in Great Falls, VA?
+3. Break down my AWS cost this month and provide a summary of the top 5 services contributing to the cost.
+"""
+
+agent = Agent(
+    system_prompt=WEATHER_HOTEL_SYSTEM_PROMPT,
+    model=models.bedrock.BedrockModel(
+        model_id="amazon.nova-micro-v1:0",
+
+    ),
+    tools=[current_time, http_request, use_aws]
+)
+
+app = BedrockAgentCoreApp(agent=agent)
+
+@app.entrypoint
+async def invoke():
+    response = await agent.invoke_async(query)
+    return response
+
+
+if __name__ == "__main__":
+    app.run()
+```
 
 **Deploying and invoking with the CLI**
 
 
 ![](https://i.imgur.com/EFQJe3J.jpeg)
 
+
+- `agentcore configure -e <file>`: configures an agentcore deployment based on a python Strands agent file.
 ### Guards
 
 #### Hooks
