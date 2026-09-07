@@ -19,11 +19,24 @@ Here is how the agentic loop works:
 3. **Tool Execution:** If a tool is required, the harness executes it, and the results are fed back into the context 
 4. **Iteration:** This cycle repeats, with the model reasoning over the new information until the task is complete and there are no more tools the AI wants to call, so you return the final text response to the user
 
+![](https://github.com/aws-samples/sample-building-with-strands-course/raw/main/samples/01-agent-loop/agent-loop-flow.png)
+
+So basically:
+
+1. Model receives **context** (system prompt + user input + tool list + history)
+2. Model **reasons** and decides whether to call a tool
+3. Tool **executes**, result feeds back into context
+4. Loop **repeats** until the task is complete
 #### **harness**
 
 An **agent harness** is the essential system built _around_ an AI model to make it operational and effective in production.
 
 While the model acts as the brain, the harness provides the hands, the infrastructure and memory that allow an agent to do real work.
+
+The **harness** is the system that surrounds the model and turns it into an agent. It handles the agent loop, tool execution, context management, memory, lifecycle control, observability, and verification.
+
+> [!NOTE]
+> Together, **model + harness = agent.**
 
 
 ![](https://i.imgur.com/ZKmVV33.jpeg)
@@ -40,11 +53,21 @@ While the agent refers strictly to the model's decision-making capabilities, the
 - **Context Engineering:** It decides what information is fed into the model’s context window—such as system prompts, memories from previous turns, and tool results—to guide the model’s reasoning
 - **Operational Guardrails:** The harness enforces boundaries, adds validation layers to verify outcomes, and allows for features like "human-in-the-loop" interventions when high-stakes actions are required 
 
+![](https://github.com/aws-samples/sample-building-with-strands-course/raw/main/samples/01-agent-loop/agent-harness.png)
+
 > [!NOTE]
 > Basically, a harness manages the autonomous agentic loop, deciding when to execute tools or orchestrate to subagents, updating context, factoring in guardrails, and deciding when the loop continues.
 
 > [!NOTE]
 > A good agent harness helps verify whether the actions an agent took actually worked.
+
+#### WTF is harness engineering
+
+- **Prompt Engineering:** Instructions and constraints sent to the model
+
+- **Context Engineering:** What information enters the context window, when, and how
+
+- **Harness Engineering:** The runtime system orchestrating everything
 
 **Harness engineering** is the process of creating and tuning the **runtime system** that orchestrates the model. This includes managing context, connecting tools, enforcing rules (guardrails), and providing necessary compute, memory, and observability.
 
