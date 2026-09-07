@@ -1250,6 +1250,52 @@ await agent.invoke(
 
 #### Creating custom tools
 
+
+```ts
+const classifyEntry = strands.tool({
+  name: 'classify_entry',
+  description:
+    'Classify an OpenAI changelog entry into one of four categories: ' +
+    '"ignore" (not relevant to SDK), "docs-only" (just needs a docs update), ' +
+    '"probably-supported" (SDK likely handles this already), or ' +
+    '"repo-change-needed" (requires new SDK code or a GitHub issue). ' +
+    'A new model slug alone is NOT repo-change-needed. Only classify as ' +
+    'repo-change-needed when the model is unavailable via Chat Completions, ' +
+    'needs new adapter behavior, or should change the documented default.',
+  inputSchema: z.object({
+    title: z.string().describe('Title or summary of the changelog entry'),
+    details: z.string().describe('Full description of the change'),
+  }),
+  callback: async ({ title, details }) => {
+    // The model's reasoning handles classification. This tool
+    // structures the decision so it can be referenced later.
+    return JSON.stringify({ title, details, classified: true })
+  },
+})
+
+```
+
+
+```ts
+const githubSearchIssues = strands.tool({
+  name: 'github_search_issues',
+  description:
+    'Search open GitHub issues in strands-agents/sdk-typescript for duplicates.' +
+    '\n' +
+    'Use this BEFORE creating a new issue to check if one already exists.',
+  inputSchema: z.object({
+    query: z.string().describe('Search terms, e.g. "Responses API" or "Chat Completions API"'),
+  }),
+  callback: async ({ query }) => {
+    const q = encodeURIComponent(`${query} repo:strands-agents/sdk-typescript is:issue is:open`)
+    const res = await fetch(`https://github.com{q}&per_page=10`)
+    const { items = [] } = await res.json()
+    return JSON.stringify(items.map((i: any) => ({ number: i.number, title: i.title, url: i.html_url })))
+  },
+})
+
+```
+
 #### Conversation Management
 
 ```ts
@@ -1273,6 +1319,43 @@ import { bash } from '@strands-agents/sdk/vended-tools/bash'
 ### Hooks
 
 The agent loop traces every decision by default. Hooks let you intercept any step to log it, validate it, or redirect it.
+
+```ts
+import { BeforeToolCallEvent, AfterToolCallEvent } from '@strands-agents/sdk'
+
+function beforeTool(event: BeforeToolCallEvent): void {
+  console.log(`\n[TOOL] Model chose: ${event.toolUse.name}`)
+  console.log(`  With inputs: ${JSON.stringify(event.toolUse.input)}`)
+}
+
+function afterTool(event: AfterToolCallEvent): void {
+  console.log(`  [OK] Result received\n`)
+}
+
+const agent = new strands.Agent({
+  tools: [fetchChangelog, classifyEntry, githubSearchIssues],
+  callbacks: { beforeToolCall: beforeTool, afterToolCall: afterTool },
+})
+```
+
+1. You specify a list of hooks to use in the `callbacks` property param when instantiating an agent.
+2. Type-hint hook event callbacks with hook event instances like `AfterToolCallEvent`
+
+```ts
+import { BeforeToolCallEvent, AfterToolCallEvent } from '@strands-agents/sdk'
+
+type HookEvent = BeforeToolCallEvent | AfterToolCallEvent
+
+function hook<T extends HookEvent>(event: T) {
+	const toolName = event.toolUse.name
+	const input = event.toolUse.input
+}
+```
+
+Here are a list of hook events available:
+
+- `AfterToolCallEvent`: type for a post-tool use hook
+- `BeforeToolCallEvent`: type for a pre-tool use hook
 
 #### `AfterToolCallEvent`
 
