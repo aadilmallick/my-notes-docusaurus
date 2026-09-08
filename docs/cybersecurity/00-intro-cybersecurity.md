@@ -27,6 +27,12 @@ Cybersecurity aims to have these three aspects in the practice, abbreviated CIA:
 
 #### Defense in depth
 
+Defense in depth is the concept that we should have multiple layers of security/defense to prevent a single point of failure and promote stronger defense.
+
+#### Principle of least privilege
+
+The concept that you should only give a user or system the least permissions possible 
+
 ### Cloud services
 
 There are three main types of cloud services:
