@@ -1627,8 +1627,65 @@ These events include:
 - **Life cycle signals** 
 - **The final result** 
 
+> [!NOTE]
+> Every agent we've built so far streams text to the terminal as the model generates it. That's the default callback handler — a function that gets called for every event the agent produces. You can replace it with your own.
+
 
 ![](https://i.imgur.com/csCmVL1.jpeg)
+
+> [!NOTE]
+> Callback handlers by default are synchronous, so if you want to make them async, use the async iterator pattern instead.
+
+- **Callback handlers**: Intercept streaming events (text chunks, tool starts/ends, errors) and decide what to do with them. Great for CLI tools.
+- **Async iterators**: Consume agent events as a structured stream - better for integrating into larger applications where you need programmatic control.
+- **SSE streaming**: Server-Sent Events let web clients consume agent output incrementally over HTTP, giving users real-time feedback.
+- **Suppressing output**: Use `callback_handler=None` on agents that should run silently (like sub-agents) so only the orchestrator streams to the user.
+
+
+#### Basic callback handler
+
+```py
+def buffered_handler(**kwargs):
+    # "data" events are individual text chunks as they stream in.
+    # We ignore them here (no printing) so nothing appears mid-generation.
+
+    # "message" fires when a complete message is ready.
+    if "message" in kwargs and kwargs["message"].get("role") == "assistant":
+        # Extract just the text content from the complete message
+        content = kwargs["message"].get("content", [])
+        for block in content:
+            if "text" in block:
+                print(block["text"])
+
+
+agent = Agent(
+    tools=[calculator],
+    callback_handler=buffered_handler,
+)
+
+agent("What is 2 to the power of 16, minus 1?")
+```
+
+#### Silent callback handler
+
+
+Set `callback_handler=None` when instantiating the agent to make sure that nothing is streamed to stdout.
+
+```py
+print("\n\n" + "=" * 60)
+print("SILENT MODE")
+print("=" * 60)
+
+agent = Agent(
+    tools=[calculator],
+    callback_handler=None,
+)
+
+result = agent("What is 42 * 42?")
+print(f"Captured result: {result}")
+```
+
+#### Async callback handlers
 
 
 ### Guards
