@@ -1767,9 +1767,9 @@ async def stream_response(request: PromptRequest):
     return StreamingResponse(generate(), media_type="text/plain")
 ```
 
-### Guards
 
-#### Hooks
+
+### Hooks
 
 Hooks are like the middleware for the agent lifecycle, which lets you deterministically inject logic into the lifecycle at specific points to either block or allow certain actions to happen. 
 
@@ -1796,7 +1796,11 @@ agent = Agent(
 )
 ```
 
-#### Policies and self-steering
+#### Custom hooks
+
+If you want to create custom hooks, then you can create custom classes that inherit from the `HookProvider` class.
+
+### Policies and self-steering
 
 Then the harness gives specific feedback: "add a WHERE clause," "check permissions first." The agent corrects itself. You get reliable outcomes without micromanaging every step.
 

@@ -198,7 +198,12 @@ Hooks add deterministic control to a probabilistic loop. They inject code at lif
 
 A runaway loop could call the same tool dozens of times. A model might attempt a destructive operation without asking. Hooks solve this by enforcing rules that don't depend on the model "deciding" to behave.
 
-Human-in-the-loop is one of the most common use cases for hooks 
+> [!NOTE]
+> Human-in-the-loop is one of the most common use cases for hooks, where a `PreToolUse` hook gets triggered and blocks awaiting user input before deciding whether to block or allow the action.
+
+
+![](https://i.imgur.com/7VkJCtB.jpeg)
+
 
 
 ## Google ADK
