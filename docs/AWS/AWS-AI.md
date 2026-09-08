@@ -1063,6 +1063,86 @@ agent = Agent(model=ollama_model)
 ```
 
 ##### All together
+
+```py
+from dataclasses import dataclass, field
+from typing import List
+from strands.models.ollama import OllamaModel
+from strands.models.openai import OpenAIModel, Client
+
+@dataclass
+class ModelInput:
+   model_id: str
+   name: str
+   system_prompt: str = "You are a helpful assistant."
+   tools: List[any] = field(default_factory=list)
+
+@dataclass
+class ModelReturn:
+    agent: Agent
+    env: Env | None = None
+
+
+def create_bedrock_model(input: ModelInput) -> ModelReturn:
+    """
+    Create a Bedrock model instance.
+    """
+    
+    agent = Agent(
+        system_prompt=input.system_prompt,
+        model=models.bedrock.BedrockModel(
+            model_id=input.model_id,
+        ),
+        tools=input.tools,
+        name=input.name,
+    )
+    return ModelReturn(agent=agent)
+
+def create_local_bedrock_model(input: ModelInput) -> ModelReturn:
+    """
+    Create a Bedrock model instance using localstack
+    """
+    AWS_ENDPOINT_URL = "http://localhost:4566"  # LocalStack endpoint
+    AWS_ACCESS_KEY_ID = "test"
+    AWS_SECRET_ACCESS_KEY = "test"
+    AWS_DEFAULT_REGION = "us-east-1"
+    AWS_PROFILE = "localstack"
+    env = Env({
+        "AWS_ACCESS_KEY_ID": AWS_ACCESS_KEY_ID,
+        "AWS_SECRET_ACCESS_KEY": AWS_SECRET_ACCESS_KEY,
+        "AWS_DEFAULT_REGION": AWS_DEFAULT_REGION,
+        "AWS_ENDPOINT_URL": AWS_ENDPOINT_URL,
+        "AWS_PROFILE": AWS_PROFILE,
+    })
+    agent = Agent(
+        system_prompt=input.system_prompt,
+        model=models.bedrock.BedrockModel(
+            model_id=input.model_id,
+            endpoint_url=AWS_ENDPOINT_URL,
+            region_name=AWS_DEFAULT_REGION,
+            streaming=False,
+        ),
+        tools=input.tools,
+        name=input.name,
+        
+    )
+    return ModelReturn(agent=agent, env=env)
+
+def create_ollama_model(input: ModelInput) -> ModelReturn:
+    """
+    Create an Ollama model instance.
+    """
+    agent = Agent(
+        system_prompt=input.system_prompt,
+        model=OllamaModel(
+            model_id=input.model_id,
+            host="http://localhost:11434"
+        ),
+        tools=input.tools,
+        name=input.name,
+    )
+    return ModelReturn(agent=agent)
+```
 ### Tools
 
 #### Custom tools
