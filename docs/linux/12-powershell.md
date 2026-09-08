@@ -258,7 +258,42 @@ To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy`
 Set-ExecutionPolicy restricted
 ```
 
+
+## Powershell 7 features
+
+PowerShell 7 is designed to coexist with PowerShell 5.1 on the same system without interfering with each other. This is possible because PowerShell 7 installs into a new directory (`%programfiles%\PowerShell\7`), separate from where PowerShell 5.1 is installed. 
+
+This setup lets you run either version independently depending on your needs. So, you can have both versions available and choose which one to use for different tasks or scripts, which is helpful when transitioning or working with different environments.  
+
+
+### Pipeline parallelization
+
+Pipeline parallelization in PowerShell 7 allows you to process multiple objects at the same time instead of one after another, which can speed up tasks that handle many items. This is done using the ForEach-Object cmdlet with the -Parallel parameter.  
+  
+Here's a simple example:  
+  
+```ps1
+1..5 | ForEach-Object -Parallel { Start-Sleep -Seconds $_ "Processed item $_" }
+```
+
+In this example, numbers 1 to 5 are processed in parallel. Each item causes a sleep for that number of seconds, but because they run simultaneously, the total time is roughly the longest sleep, not the sum of all sleeps.  
+  
+This feature is useful when you have tasks that can run independently and you want to save time by running them concurrently.
+
+### `Get-Error` and `ConsiseView`
+
+- `Get-Error`: Print detailed information about the last error that occurred.
+- `ConciseView`: provides a streamlined way to view errors. When enabled (it's the default view), it shows a simple single error message if the error isn't from a script. 
+	- But if the error comes from a script and involves multiple issues, it displays a detailed multiline error message with a pointer to the exact line where the error happened, similar to a stack trace. 
 ## Powershell administration
+
+### Check powershell version
+
+View the value of the `$PSVersionTable` variable to see what the current powershell version is.
+
+
+![](https://i.imgur.com/lmZ0wXz.jpeg)
+
 
 ### Powershell access levels
 
