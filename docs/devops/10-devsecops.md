@@ -173,9 +173,25 @@ Here are the dynamic security testing techniques:
 ![](https://i.imgur.com/eAwLpai.jpeg)
 
 ### Static testing
-#### Static code analysis
 
-Static code analysis works by first defining checks or policies based on what your organization wants and then, based on those policies, scanning for common security vulnerabilities, deployment best practices, and coding best practices.
+### SAST
+
+SAST is static application security testing, where it reviews the source code of software to identify potential vulnerabilities.
+
+**pros**
+
+- **CI/CD friendly**: runs very quickly and can catch many common vulnerabilities
+
+**cons**
+
+- **many false positives**
+- **doesn't catch runtime errors**: can't catch runtime security vulnerabilities like authorization misconfiguration
+
+
+#### Static code analysis (SCA)
+
+Static code analysis is a white-box testing procedure that works by first defining checks or policies based on what your organization wants and then, based on those policies, scanning for common security vulnerabilities, deployment best practices, and coding best practices.
+
 
 #### Continuous secret scanning
 
@@ -228,7 +244,12 @@ Security scanning tools like Akido Security and open-source Checkov can analyze 
 
 ### Dynamic testing
 
-#### Dynamic code analysis
+#### DAST
+
+DAST stands for Dynamic Application Security Testing, it is a form of black-box testing, and it tests a running application via its UI or API for common vulnerabilities such as SQL injection and buffer overflows. 
+
+It can be run in CI/CD, but it's more accurate when using in manual testing.
+#### Dynamic code analysis 
 
 For DevSecOps, dynamic scans should run asynchronously in CI/CD pipelines to avoid blocking builds, and tools should be fast, accurate, support automation (API/CLI), and integrate with bug trackers
 
@@ -255,7 +276,13 @@ AWS GuardDuty is an example of a runtime monitoring solution that collects logs 
 
 ![](https://i.imgur.com/CwZYfKI.jpeg)
 
-## Checkov
+## SAST tools
+
+### SNYK
+
+`snyk` is a static vulnerability analysis tool that also offers a CLI that lets you find out any vulnerabilities of code files.
+
+### Checkov
 
 Checkov is a popular static code analysis tool used to scan cloud infrastructure configurations across major cloud providers, used for scanning vulnerabilities in IaC cocdebases.
 
@@ -263,6 +290,8 @@ Checkov is a popular static code analysis tool used to scan cloud infrastructure
 2. In the pipeline you're watching, Checkov is installed and run to scan the entire code directory, generating a report of any security vulnerabilities found. 
 
 This helps catch issues early in the build process, ensuring your infrastructure code follows industry standards and improving overall security and compliance in your deployments.
+
+#### Basics
 
 Here's how to use it generally:
 
@@ -291,7 +320,7 @@ Here are the flags on the `checkov` command you can set:
 > Checkov always returns a zero exit code by default.
 
 
-### Skipping checkov checks
+#### Skipping checkov checks
 
 You can use comments with Checkov in order to skip checking certain problematic lines of code that you know are not vulnerabilities but Checkov flags them as false positives. 
 
