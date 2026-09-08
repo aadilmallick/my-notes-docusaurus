@@ -1223,6 +1223,33 @@ agent = Agent(
 result = agent("""Research what wireless headphones are trending on the market and compare it against our offerings.Write a short competitive positioning summary and save it to report.md""")
 ```
 
+#### Changing tool execution behavior
+
+You can specify that an agent should execute tools sequentially by passing in a `SequentialToolExecutor` instance for the `tool_executor=` kwarg when creating an agent:
+
+```py
+from strands import Agent, tool
+from strands.tools.executors import SequentialToolExecutor
+
+
+@tool
+def step_one() -> str:
+    """Perform the first step of the workflow."""
+    return "Step one complete — file created."
+
+
+@tool
+def step_two() -> str:
+    """Perform the second step that depends on step one."""
+    return "Step two complete — file processed."
+
+
+agent = Agent(
+    tools=[step_one, step_two],
+    tool_executor=SequentialToolExecutor(),
+)
+agent("Run step one and then step two.")
+```
 #### Adding MCP
 
 1. Create an MCP client
@@ -1248,7 +1275,41 @@ agent = Agent(
 )
 ```
 
-3. Filter the tool list of the MCP down.
+Here's the simplest example:
+
+```py
+"""
+Coding assistant enhanced with the AWS MCP server.
+Connects to the managed AWS MCP server via streamable HTTP
+to give the agent access to AWS capabilities.
+"""
+
+from mcp.client.streamable_http import streamablehttp_client
+from strands import Agent
+from strands.tools.mcp import MCPClient
+from strands_tools import file_read, editor, shell
+
+# Connect to the AWS MCP server (streamable HTTP)
+aws_mcp = MCPClient(
+    lambda: streamablehttp_client("https://aws-mcp.us-east-1.api.aws/mcp")
+)
+
+SYSTEM_PROMPT = """You are a coding assistant with AWS expertise.
+Use the AWS MCP tools to look up documentation, architecture patterns,
+and service details when answering questions about building on AWS.
+Be concise and actionable in your recommendations."""
+
+agent = Agent(
+    tools=[aws_mcp, file_read, editor, shell],
+    system_prompt=SYSTEM_PROMPT,
+)
+
+agent("I need to build a serverless FastAPI backend with authentication "
+      "and file uploads. What AWS services should I use and how should "
+      "I architect this?")
+```
+
+##### STDIO and HTTP servers
 
 Here's a complete example of how we connect to one remote MCP server and one local MCP server:
 
@@ -1300,6 +1361,58 @@ while True:
     agent(user_input)
 ```
 
+##### Adding tool filters
+
+```py
+"""
+Demonstrates tool filtering — listing all tools from an MCP server
+and then filtering down to only the ones you need.
+"""
+
+import logging
+logging.getLogger("mcp").setLevel(logging.CRITICAL)
+
+from mcp.client.streamable_http import streamablehttp_client
+from strands import Agent
+from strands.tools.mcp import MCPClient
+
+# Connect to the AWS MCP server
+aws_mcp = MCPClient(
+    lambda: streamablehttp_client("https://aws-mcp.us-east-1.api.aws/mcp")
+)
+
+with aws_mcp:
+    # List all available tools from the server
+    print("=" * 60)
+    print("ALL TOOLS FROM AWS MCP SERVER:")
+    print("=" * 60)
+    for tool in aws_mcp.list_tools_sync():
+        desc = (tool.mcp_tool.description or '')[:80]
+        print(f"  - {tool.tool_name}: {desc}")
+
+    print(f"\nTotal tools: {len(aws_mcp.list_tools_sync())}")
+
+    # Now filter to only the tools we need
+    print("\n" + "=" * 60)
+    print("FILTERED TOOLS (allowed list):")
+    print("=" * 60)
+
+# Create a new client with filtering (outside the with block)
+filtered_mcp = MCPClient(
+    lambda: streamablehttp_client("https://aws-mcp.us-east-1.api.aws/mcp"),
+    tool_filters={
+        "allowed": ["aws___search_documentation", "aws___read_documentation"]
+    },
+)
+
+agent = Agent(
+    tools=[filtered_mcp],
+    system_prompt="You are an AWS documentation assistant. Only use documentation tools.",
+)
+
+print("Agent created with filtered tool set.")
+print(f"Available tools: {agent.tool_names}")
+```
 
 #### Strands shell
 
@@ -1503,6 +1616,19 @@ agentcore invoke '{"prompt" : "hello world"}'
 - `agentcore launch`: Builds ECR image via CodeBuild and deploys the API to AW
 
 ### Multi-agent
+### Callbacks
+
+You can use callbacks to hook into lifecycle events of the agent and run logic based on that. Similar to hooks but the main purpose of a callback is to control how an agent's output surfaces into a user interface. 
+
+These events include:
+
+- **Text chunks** as they are generated 
+- **Tool calls** 
+- **Life cycle signals** 
+- **The final result** 
+
+
+![](https://i.imgur.com/csCmVL1.jpeg)
 
 
 ### Guards
