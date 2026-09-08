@@ -1012,10 +1012,32 @@ export AWS_REGION="us-east-1"
 export AWS_ENDPOINT_URL="http://localhost:4566"
 ```
 
-3. Override the `endpoint_url` and `boto3_config` kwargs in the `BedrockModel` instatiation:
+3. Override the `endpoint_url` and `region_name` and `streaming` kwargs in the `BedrockModel` instatiation:
 
 ```py
-
+AWS_ENDPOINT_URL = "http://localhost:4566"  # LocalStack endpoint
+AWS_ACCESS_KEY_ID = "test"
+AWS_SECRET_ACCESS_KEY = "test"
+AWS_DEFAULT_REGION = "us-east-1"
+AWS_PROFILE = "localstack"
+os.environ = {
+	"AWS_ACCESS_KEY_ID": AWS_ACCESS_KEY_ID,
+	"AWS_SECRET_ACCESS_KEY": AWS_SECRET_ACCESS_KEY,
+	"AWS_DEFAULT_REGION": AWS_DEFAULT_REGION,
+	"AWS_ENDPOINT_URL": AWS_ENDPOINT_URL,
+	"AWS_PROFILE": AWS_PROFILE,
+}
+agent = Agent(
+	system_prompt=input.system_prompt,
+	model=models.bedrock.BedrockModel(
+		model_id=input.model_id,
+		endpoint_url=AWS_ENDPOINT_URL,
+		region_name=AWS_DEFAULT_REGION,
+		streaming=False, #  required for localstack
+	),
+	tools=input.tools,
+	name=input.name,
+)
 ```
 ##### OpenAIModel
 
@@ -1040,6 +1062,7 @@ ollama_model = OllamaModel(
 agent = Agent(model=ollama_model)
 ```
 
+##### All together
 ### Tools
 
 #### Custom tools
