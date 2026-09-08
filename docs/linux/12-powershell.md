@@ -180,6 +180,7 @@ Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGIN
 - `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
 - `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
 
+
 ## Modules
 
 A module is a collection of cmdlets for a particular function or application.
@@ -256,6 +257,17 @@ To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy`
 ```powershell
 Set-ExecutionPolicy restricted
 ```
+
+## Powershell administration
+
+### Powershell access levels
+
+You can run PowerShell either as an administrator or just a normal user. 
+
+If you're not an admin, you can't run the `Enable-PSRemoting` cmdlet to enable SSHing into other windows servers, but if you do have admin permissions, you're able to run sensitive cmdlets like that.
+
+
+
 ## Powershell ISE
 
 The `ise` command in pwoershell gives you an IDE to write powershell scripts with intellisense on steroids.
