@@ -253,51 +253,320 @@ UICLSID={7BD29E00-76C1-11CF-9DD0-00A0C9034933}
 - **Vishing:** The exploitation of electronic voice communication to obtain sensitive information or to impersonate a known source.
 - **Smishing:** The use of text messages to trick users, in order to obtain sensitive information or to impersonate a known source.
 
+### Cybercrime and the law
+
+Cybercrime is a crime involving computers. The computer is either the tool, target, or place of the crime.
+
+Cybercrime is a low risk, high reward crime because you can get a lot of money, and if you work internationally instead of domestically, you are unlikely to be caught, because it’s difficult to trace network communications
+
+Here is the legal definition of cybercrime:
+
+- **Traditional Crime:** Engaging in conduct outlawed by a human social grouping.
+    
+- **Cybercrime:** The commission of a crime that involves the use of computer technology.
+    
+- **The Three Legal Categories of Cybercrime:**
+    
+    1. **Computer as the Target (or Victim):** Attacking a system directly via unauthorized access or code injection.
+        
+        - _Access target crimes:_ Exceeding authorized access or breaking in without authorization to read, store, or manipulate data.
+            
+        - _Code target crimes:_ Malware, viruses, worms, and Denial-of-Service (DoS) attacks that impair availability or data integrity.
+            
+    2. **Computer as a Tool:** Using a machine to execute traditional crimes (e.g., wire fraud, identity theft, financial embezzlement). The tool facilitates execution, but the underlying statutory violation remains the same.
+        
+    3. **Computer as Incidental:** The device serves merely as physical or digital evidence (e.g., a drug distributor keeping an inventory spreadsheet, or an extortionist sending an email).
+
+Here's some terminology
+
+- **trespass:** If you’re not privileged to enter a system but you try entering it anyway, you commit a trespass crime.
+- **burglary:** If you steal data after trespassing it, then you commit burglary
+- **simple hacking:** Gaining access to a computer without being authorized to do so.
+
+
+There's a  direct comparison between **1930s criminals adopting the automobile** and modern cybercriminals adopting the internet:
+
+- **cars**: In the 1930s, cars allowed criminals to plan an offense in one state, execute it in a second, and escape to a third before local police could coordinate across jurisdictional boundaries.
+- **internet**: The internet amplifies this advantage dramatically:
+    
+    - **Remote execution:** Perpetrators operate globally without physical presence.
+        
+    - **Anonymity:** Obfuscation layers make tracing IP addresses and digital footprints complex.
+        
+    - **No physical getaway:** There is no traditional crime scene to flee or cordon off.
+        
+    - **High Reward, Low Risk:** Global syndicates extract millions, while international borders and non-extradit
+
+To be charged with a crime, you have to benefit from the crime.
+
+- **theft:** stealing property and money for your benefit
+- **fraud:** stealing property and money willingly based on false pretenses. To be charged with fraud, you need to benefit from the fraud.
+
+#### **US patriot act**
+
+If a person from another country attacks the US through cybercrime, then they can be charged with a USA crime.
+
+However, this will only work if the other country allows the USA to prosecute those criminals.
+
+#### **Gramm-Leach-Bliley Act (GLBA)**
+
+The GLBA act was made to protect consumer information, meaning that companies have to disclose their privacy practices to their customers
+
+#### **CFAA act 1984**
+
+The Computer Fraud and Abuse Act (CFAA) of 1984 is a United States federal law that was enacted to address the growing concerns over computer-related crimes and unauthorized access to computer systems. Nixon pushed this law after watching _War Games_.
+
+The CFAA act made it illegal to do unauthorized damage to computer systems.
+
+#### **Economic Espionage act 1996**
+
+The main purpose of the EEA is to protect trade secrets and intellectual property from theft, especially from foreign governments.
+
+#### Mitigations
+
+- Having a two-man system: Collusion with two people is harder to achieve than one malicious bad actor.
+
+
+### Case studies
+
+#### Bullitt County, KY (2009)
+
+- **The Incident:** Ukrainian actors deployed the **Zeus Trojan** keylogger to a county treasurer's workstation, capturing credentials and opening a remote shell.
+    
+- **Bypassing Controls:** The bank required dual authorization (treasurer and county judge). Hackers logged in from the treasurer's machine (bypassing IP/hardware fingerprinting), changed the judge's email/password settings, authorized wire transfers, and routed $415,989 across 25 domestic money mules recruited via fake transcription job postings.
+    
+- **Takeaway:** Highlights the vulnerability of dual-control workflows to compromised internal endpoints and demonstrates the low-risk/high-reward profile of cross-border syndicates.
+    
+
+#### The "Robin Hoode" Dilemma (2001)
+
+- **The Scenario:** A hacker altered casino game code so slot machines and craps games constantly hit payouts, transferring $1.9M across 140 random players without the hacker taking any money directly.
+    
+- **Legal Dilemma:**
+    
+    - _Theft?_ Traditional theft requires "taking and carrying away personal property with intent to steal." Hoode never took or kept the funds.
+        
+    - _Fraud?_ Fraud typically requires false representations made to another human, inducing them to give up property. Here, an automated machine carried out the skewed logic, and the benefactor was not the perpetrator.
+        
+
+#### Port of Houston & Aaron Caffrey (2001) — Cyber Forensics Defense
+
+- **The Case:** A DoS attack took down Port of Houston systems; logs led directly to the UK residence of 18-year-old Aaron Caffrey. Attack software was recovered directly on his machine.
+    
+- **The Defense:** Caffrey claimed a Trojan had infected his computer, executed the attack on behalf of third parties, and deleted itself while forging local logfiles to frame him.
+    
+- **The Verdict:** The jury acquitted Caffrey, exposing a major hurdle in cyber litigation: the inherent difficulty in proving physical keyboard presence vs. an automated remote compromise beyond a reasonable doubt.
+    
+
+#### Mirai Botnet & Corporate Vendor Liability (2016–2019)
+
+- **The Shift to IoT:** The 2016 Mirai botnet harnessed millions of default-credential IoT devices to launch massive DDoS attacks against KrebsOnSecurity (600+ Gbps) and DynDNS (knocking out major platforms like Netflix, Twitter, and Amazon).
+    
+- **Legal Repercussions:** In January 2017, the FTC sued router/camera manufacturer **D-Link**, alleging failures to patch software, hardcoded credentials, and compromised private code-signing keys. The 2019 settlement set a legal precedent: hardware/software vendors face regulatory liability and required security oversight for failing to follow reasonable security-by-design standards.
+
 
 ### Protection against hackers
 ![](https://i.imgur.com/9kAxHKk.jpeg)
 
 
-## Code vulnerabilities
+## Code attacks
 
-### Buffer and heap overflow
+### 4 main attacks
 
-**buffer overflow attack**
+Here is an in-depth breakdown of each attack, how it operates under the hood, and how to defend against it based on the slides.
 
-Exploiting vulnerable code that allows an input larger than an allocated buffer to be copied into that buffer, causing an overflow.
+  
 
+---
 
-In buffer overflow, you intentionally overwrite stack memory so that you push your own return address onto the stack that points to your own executable shellcode. You can do this by overwriting local variables on the stack
+#### 1. Stack Buffer Overflow
 
-1. Attackers overflow the buffer with large user input, and then carefully crafted code can overwrite key pieces of code to be malicious, called _shellcode_
-2. Then it injects shellcode into memory after the buffer overflow to get executed
+A buffer overflow occurs when a program writes more data into an allocated memory buffer than it was sized to hold, causing the excess data to spill over into adjacent memory spaces.
 
-**heap overflow attack**
+  
 
-> [!NOTE]
-> Nearly half of all security leaks are due to heap overflows. Attackers can use this kind of error to inject and execute any code they want. Even harmless image files can turn into dangerous Trojan horses.
+- **Memory Context:** When a function executes, a call stack frame is pushed into memory. It stores function parameters, local variables, frame pointers, and crucially, the **return address** (which tells the CPU where to resume execution once the function finishes).
+    
+      
+    
+- **The Mechanism:**
+    
+      
+    1. A function allocates a fixed-size local buffer on the stack (e.g., `char buf[64];`).
+        
+          
+        
+    2. The program reads user-controlled input into that buffer without bounds checking (e.g., using `gets()` or unbounded `strcpy()`).
+        
+          
+        
+    3. The input exceeds the buffer size, writing past the buffer boundary, overwriting local variables, the frame pointer, and finally the **saved return address**.
+        
+          
+        
+    4. The attacker crafts the input to replace the return address with the memory address of injected **shellcode** (often preceded by a **NOP sled** to improve landing reliability) or uses techniques like _jump-to-register_.
+        
+          
+        
+    5. When the function returns, execution diverts straight into the attacker's payload.
+        
+          
+        
+- **Why Bytecode/Interpreted Languages Are Still At Risk:** While managed runtimes (like Java, Python, or C#) have built-in array bounds checking, they become vulnerable whenever they load or interface with unmanaged native binaries (e.g., via JNI or C extensions).
+    
+      
+    
+- **Defenses:**
+    
+      
+    - Use safe, bounded memory APIs (e.g., `fgets()` or `strncpy()` instead of `gets()` or `strcpy()`).
+        
+          
+        
+    - Enforce OS-level protections: **DEP / Executable Space Protection** (marking memory regions like stack/heap as non-executable via the NX/XD bit) and **ASLR** (randomizing memory layouts).
+        
+          
+        
 
+---
 
-A heap overflow error occurs because of three programming mistakes:
+#### 2. Heap Overflow
 
-1. Program allows too much data to be written to a statically defined memory buffer
-2. Program memory allocation calculation is deceived by information given from the attacker 
-3. Operating system does not sufficiently protect against deallocated memory use
+Heap overflows occur in dynamic memory—the pool allocated at runtime (via `malloc()`, `new`, etc.) rather than on the call stack.
 
-Attackers manipulate the heap headers to overwrite data on the heap.
+  
 
-1. They overflow a certain allocated memory space with more data then it can handle
-2. They inject shellcode to overwrite certain parts of memory within the heap, that when executed, does malicious things.
+- **The Mechanism:**
+    
+      
+    - Dynamic memory is managed in chunks, with each chunk containing **heap metadata/headers** (such as chunk size, allocation status, and pointers to adjacent chunks).
+        
+          
+        
+    - When an attacker writes past the boundary of a dynamically allocated heap buffer, they corrupt these internal heap control structures or adjacent dynamic objects.
+        
+          
+        
+    - Common triggers include integer overflows during memory calculation (under-allocating memory), unchecked copying to dynamic buffers, or triggering **use-after-free** vulnerabilities where dangling pointers access freed heap blocks.
+        
+          
+        
+    - When the memory allocator subsequently manipulates the corrupted heap (such as coalescing or freeing chunks), the overwritten pointers allow the attacker to redirect arbitrary memory pointers or execute shellcode.
+        
+          
+        
+- **Stack vs. Heap Overflow:**
+    
+      
+    - _Stack:_ Directly targets the execution flow by overwriting the function return address in the active call frame.
+        
+          
+        
+    - _Heap:_ Indirectly hijacks control by corrupting dynamic data structures, function pointers, or heap management metadata.
+        
+          
+        
 
+---
 
-**mitigations**
+#### 3. Cross-Site Scripting (XSS)
 
-C and C++ are low-level, so they are vulnerable to overflow attacks. High-level languages like Python and Java take care of the buffer overflow vulnerabilities for you.
+XSS occurs when an application includes untrusted user input directly in a web page without adequate validation or escaping, causing the victim's browser to execute it as malicious JavaScript within the application's security context.
 
-> [!NOTE]
-> Yes, High-level languages are secure against buffer-overflow and heap-overflow attacks, but if they call native code, then you still run into the same issue.
+  
 
-There is also something called _execution-space protection_, which says that if you write to a piece of memory, you can’t execute it, preventing execution of injected shellcode.
+- **Primary Variants:**
+    
+      
+    - **Reflected XSS:** The malicious payload is part of the request itself (e.g., a URL parameter like `?search=<script>...`). The server reflects this exact input into the immediate response. Execution happens only for the user clicking that specific link.
+        
+          
+        
+    - **Persistent (Stored) XSS:** The payload is stored permanently in the database (e.g., forum comment, user profile name, email subject). Every time other users view that data, the script executes automatically in their browsers.
+        
+          
+        
+    - **DOM-based XSS:** The vulnerability exists entirely on the client side. JavaScript reads untrusted data from a sink (e.g., `location.search`, `document.referrer`) and injects it unsafely into the DOM (e.g., `element.innerHTML = ...`) without the payload ever needing to touch the server.
+        
+          
+        
+    - **Cross Channel Scripting (XCS):** Payloads arrive via non-HTTP protocols (such as syslog entries, RADIUS fields, or SSL certificate strings) and are later rendered unescaped on a web management console.
+        
+          
+        
+- **The Threat:** Attackers can hijack active sessions, deface pages, exfiltrate cookies/tokens, or scan internal networks behind corporate firewalls.
+    
+      
+    
+- **Defenses:**
+    
+      
+    - Context-aware output encoding/sanitization before inserting data into HTML, attributes, or script blocks.
+        
+          
+        
+    - Implementing a strict **Content Security Policy (CSP)** header to restrict unauthorized script sources and disable inline script execution.
+        
+          
+        
+    - Setting `HttpOnly` flags on session cookies so JavaScript cannot access them.
+        
+          
+        
+
+---
+
+#### 4. Cross-Site Request Forgery (CSRF)
+
+CSRF is an attack that tricks an authenticated user into executing unwanted actions on a trusted web application without their knowledge.
+
+  
+
+- **Core Distinction from XSS:**
+    
+      
+    - **XSS** exploits the client's trust in the server (the browser believes whatever script the server sends is legitimate).
+        
+          
+        
+    - **CSRF** exploits the server's trust in the client (the server trusts requests coming from an authenticated browser session).
+        
+          
+        
+- **The Mechanism:**
+    
+      
+    1. A victim logs into a sensitive site (e.g., their banking portal) and receives a session cookie.
+        
+          
+        
+    2. Without logging out, the victim visits a malicious site or views an email containing an embedded tag (e.g., `<img src="[https://bank.com/transfer?amount=1000&to=attacker](https://bank.com/transfer?amount=1000&to=attacker)">`).
+        
+          
+        
+    3. The victim's browser automatically appends the valid session cookies along with the cross-origin request.
+        
+          
+        
+    4. The banking server validates the cookie, believes the user intentionally initiated the action, and executes the transfer.
+        
+          
+        
+- **Defenses:**
+    
+      
+    - **Anti-CSRF Tokens:** The server generates a unpredictable, cryptographically random token tied to the user's session and embeds it in forms. The server strictly validates this token on state-changing requests (`POST`, `PUT`, `DELETE`).
+        
+          
+        
+    - **SameSite Cookie Attribute:** Setting `SameSite=Strict` or `SameSite=Lax` on session cookies to prevent the browser from automatically sending them with cross-site requests.
+        
+          
+        
+
+---
+
+Would you like to walk through a concrete vulnerable code snippet from the slides (like the C buffer overflow exercises) and fix it step by step?
 
 ### SQL injection
 
@@ -307,7 +576,7 @@ There is also something called _execution-space protection_, which says that if 
 - **role-based access control:** authorization for user accounts
 - **server-side validation:** do not depend on client-side validation. use server-side validation
 
-### Reflected XSS
+### XSS
 
 Reflected XSS is what happens when an attacker gives user input, and attack is reflected into the browser.
 
@@ -645,6 +914,100 @@ These situations can negatively affect the confidentiality, availability, and in
 - Catch exceptions locally to ensure that any interrupted transaction is completely rolled back rather than left in an unpredictable, half-finished state
 - Use a centralized global exception handler to provide a consistent, predictable response to errors
 - Add rate limiting, resource quotas, throttling, and other limits wherever possible, to prevent exceptional conditions in the first place
+
+## Vulnerabilities
+
+### CVSS
+
+CVSS stands for common vulnerability scoring system, and is a universal way of assessing how bad a vulnerability in software is.
+
+There are three metrics that go into determining the score of a certain vulnerability.
+
+- **base metrics:** Intrinsic factors of a vulnerability, like attack vector and complexity
+- **temporal metrics:** Factors of a vulnerability that may change over time
+- **environmental metrics:** These represent the characteristics of a vulnerability in a specific environment
+
+Here are some things that determine the severity of a vulnerability.
+
+- **Attack vector:** Could be done from online, on a local network, or has to be done by using the target’s physical machine. It’s worse if you could exploit the vulnerability remotely.
+    - There are 4 different types of attack vectors possible:
+        - **network:** on the internet
+        - **adjacent:** From a local network
+        - **local:** Phishing a user or using a terminal locally
+        - **physical:** Touching the computer directly to hack it
+- **Attack complexity:** Low complexity means it’s simple to exploit, high complexity means only someone skilled could do the exploit.
+- **Privileges required:** Vulnerability is worse if you don’t need any privilege to do the exploit, as opposed to high privilege required.
+- **User interaction:** Worse if no user interaction is required for the exploit is triggered
+
+### Authentication vulnerabilities
+
+A _back door_ is when you’re developing an authentication system, and you make a shortcut during development to authenticate easier. Such back doors can be exploited.
+
+Here are some ways to mitigate back doors.
+
+- Do not hardcode secrets
+- Document what you’re doing, so team members know about the existence of the back door
+
+### Authorization vulnerabilities
+
+A common problem with authorization is that protection is done client side, meaning we hide elements that need a certain level of authorization to use.
+
+The problem is that the DOM is easily manipulable and thus a malicious user could just make it visible again.
+
+Here are four authorization flaws:
+
+- missing authorization
+- incorrect authorization
+- Least Privilege violations
+- Backdoors
+
+### Information leakage
+
+Information leakage is when you leak sensitive user data that isn’t supposed to be leaked, like passwords and credit card numbers.
+
+Here are some ways to defend against information leakage:
+
+- Always encrypt data
+- Never store sensitive data in logs. If you don’t need it, delete it.
+
+### Threat Modeling
+
+Threat modeling is a tool used to brainstorm possible threats and corresponding mitigations, where you set up a table with the threat description in one column, and the mitigation for that threat in the next column.
+
+
+
+![](https://i.imgur.com/0GFZIma.jpeg)
+
+
+#### **STRIDE**
+
+- **spoofing:** Impersonating something or someone else. To mitigate against this, use strong passwords.
+- **tampering:** Modifying data, code, or packets. To mitigate against this, encrypt data
+- **repudiation:** Claiming to have not performed an action, like deleting tax evasion info. To mitigate against this, have adequate logging
+- **information disclosure:** Exposing information to unauthorized agents
+- **Denial of service:** Using DDOS attacks to crash a website
+- **Elevation of privilege:** Gaining privileges without proper authorization
+
+## Configuration Hardening
+
+### Bell-LaPadula model
+
+The Bell-LaPadula model is designed to enforce confidentiality in a system.
+
+Each user is assigned a specific clearance level, and each object is assigned a specific security level. You have two main rules:
+
+- **no read up:** No user can read an object that has a higher security level than the user’s clearance level
+- **no write down:** No user can write to an object with a lower security level than the user’s clearance level (prevents leaking info to lower security levels)
+
+
+### **Biba model**
+
+The biba model is designed to enforce integrity in a system.
+
+Each object is assigned a specific integrity level (low, medium, high), and gives us these two rules:
+
+- **no read down:** Objects cannot write to another object with a higher integrity level.
+- **no write up:** Objects with a higher integrity level cannot read data from objects with a lower integrity level.
 
 ## Sockets
 
