@@ -320,6 +320,21 @@ If you want to filter object properties beforehand before piping the data stream
 Get-Service | Select-Object DisplayName, Status, ServiceType | Out-GridView
 ```
 
+## Office 365 Powershell
+
+### Installation and setup
+
+1. Install this via powershell administrator access:
+
+```powershell
+Install-Module -Name AzureAD
+```
+
+2. See if it worked by listing all commands that are exposed on the installed module.
+
+```
+Get-Command -module AzureAD
+```
 ## Azure Powershell
 
 Azure integrates with powershell very well and has three types of ways to use azure in the command-line:
