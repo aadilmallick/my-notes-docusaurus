@@ -65,7 +65,25 @@ DevSecOps is all about shifting security to the left, meaning having security ch
 ![](https://i.imgur.com/wOnq7T7.jpeg)
 We accomplish this by moving automated security checks like SAST and DAST into the development lifecycle.
 
-### Continuous Improvement and feedback
+
+### CI/CD in DevSecOps
+
+#### Continuous integration
+
+Continuous integration is when a bunch of devs commit to source control, and then a **build server** like TeamCity builds an artifact from source control, then runs tests and code quality checks on it before deploying it.
+
+Here's the basic flow:
+
+1. Developers push their code to centralized source control
+2. Build server like TeamCity detects changes, builds an artifact, runs tests, and deploys to different environments
+
+#### Continuous delivery
+
+Software is built in short cycles via agile, and then continuously deployed sequentially to testing, preprod, and prod environments, where source code only passes from one stage to the nest if it passes all tests for that stage.
+
+Continuous delivery ensures that only tested and approved software is delivered to users.
+
+#### Continuous Improvement and feedback
 
 DevOps is meant to be a continuous loop that builds upon feedback to improve.
 
@@ -279,3 +297,46 @@ You can use comments with Checkov in order to skip checking certain problematic 
 
 
 ![](https://i.imgur.com/wzXyNpT.jpeg)
+
+## Teamcity + Octopus
+
+Teamcity is a flexible CI tool that can build artifacts from source code and run pipelines to test them.
+
+Octopus deploy is an extremely flexible continuous deployment tool which deploys code artifacts to a wide variety of environments 
+
+![](https://i.imgur.com/U7Uysbz.jpeg)
+
+### How TeamCity works
+
+TeamCity contains two main components:
+
+- **TeamCity server**: the server that you can self-host on-prem that contains all the CI and config info that you use for your team.
+	- It is responsible for project configurations, managing user permissions, scheduling builds, and maintaining build data.
+- **TeamCity build agent**: the agent that actually does the building and execution of pipelines.
+	- These are dedicated services that execute the actual build tasks. They compile code, run tests, and produce artifacts as part of the CI/CD process.
+
+#### Teamcity server
+
+The TeamCity server is usually installed on a single dedicated machine that manages the entire CI/CD process.
+
+It does not perform any build or test actions directly; it orchestrates the process of using Build Agents to run these tasks.
+
+> [!NOTE]
+> You can scale up TeamCity servers via a load balancer, to also assign more build agents in total by adding more servers.
+
+#### Build agents
+
+A **Build Agent** is a service that is installed on separate servers (Windows, Linux, or any Linux-based OS) to carry out various build-related tasks. TeamCity itself does not compile code but relies on Build Agents for this purpose.
+
+The Build Agent service can be installed either on the same server as the TeamCity server or on different servers. 
+
+> [!IMPORTANT]
+> However, installing on a separate server is recommended to avoid limitations that can arise if the TeamCity server needs to be reset or if issues occur with the Build Agent.
+
+1. **Configuration**: After installation, the Build Agent must be configured. This includes setting up the necessary tools and SDKs required for building your specific code, such as .NET SDK, JDK, PHP, etc. Essentially, the Build Agent acts as a local environment where all the build and compile processes occur.
+    
+2. **Execution**: Once agents are set up, TeamCity can assign builds to them. The Build Agents check out the source code, compile it, and produce packages, thereby facilitating continuous integration and continuous delivery (CI/CD) workflows.
+
+
+> [!NOTE]
+> On the free tier, you're only allowed to associate max 3 build agents per TeamCity server.
