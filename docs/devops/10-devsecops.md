@@ -192,6 +192,20 @@ SAST is static application security testing, where it reviews the source code of
 
 Static code analysis is a white-box testing procedure that works by first defining checks or policies based on what your organization wants and then, based on those policies, scanning for common security vulnerabilities, deployment best practices, and coding best practices.
 
+Here is an example of using SNYK as an SCA tool:
+
+```bash
+docker run --rm -it --env SNYK_TOKEN -v $(pwd):/app snyk/snyk:node
+```
+
+#### Software Composition Analysis (SCA)
+
+SCA analyzes the third-party package dependency tree for any vulnerabilities.
+
+![](https://i.imgur.com/xBmmJxa.jpeg)
+
+
+
 
 #### Continuous secret scanning
 
