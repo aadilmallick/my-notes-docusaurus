@@ -248,7 +248,20 @@ Security scanning tools like Akido Security and open-source Checkov can analyze 
 
 DAST stands for Dynamic Application Security Testing, it is a form of black-box testing, and it tests a running application via its UI or API for common vulnerabilities such as SQL injection and buffer overflows. 
 
-It can be run in CI/CD, but it's more accurate when using in manual testing.
+Here are the three core components DAST handles:
+
+- **Crawling and Spidering:** The scanner navigates the live application to discover all entry points, URLs, forms, inputs, and API endpoints.
+- **Active Attack Simulation:** It sends automated malicious inputs—such as SQL injections, Cross-Site Scripting (XSS) payloads, and path traversals—into those entry points.
+- **Response Analysis:** The tool monitors the application’s responses, looking for error messages, unexpected behaviors, or exposed data that indicate a vulnerability.
+
+> [!NOTE]
+> It can be run in CI/CD, but it's more accurate when using in manual testing.
+
+This is an example of using OWASP ZAP DAST tool, which tests a URL for networking and OWASP vulnerabilities:
+
+```bash
+docker run -t owasp/zap2docker-stable zap-baseline.py -t http://10.0.2.15:3000
+```
 #### Dynamic code analysis 
 
 For DevSecOps, dynamic scans should run asynchronously in CI/CD pipelines to avoid blocking builds, and tools should be fast, accurate, support automation (API/CLI), and integrate with bug trackers
@@ -327,3 +340,41 @@ You can use comments with Checkov in order to skip checking certain problematic 
 
 ![](https://i.imgur.com/wzXyNpT.jpeg)
 
+
+## DAST tools
+
+### OWASP Zap
+
+OWASP ZAP (Zed Attack Proxy) is one of the most widely used open-source DAST tools. It can be operated via a Desktop GUI, a command-line interface, or an automated Docker container.
+
+#### Docker networking issue
+
+When running a DAST tool like OWASP ZAP inside a Docker container, it is isolated in its own virtual network. If you tell ZAP to scan `http://localhost:3000`, it will try to attack port 3000 _inside itself_ and fail.
+
+To bypass this and let the container reach services running on your host machine, you must use special host addresses:
+
+- **Linux/Windows/macOS:** Use `http://docker.internal` to route traffic out of the container network back to your host machine's ports.
+
+#### Basic use cases
+
+- **Baseline Scan:** Runs the spider for a few minutes to map the site and reports passive vulnerabilities without attacking.
+
+```bash
+docker run -t owasp/zap2docker-stable zap-baseline.py -t http://10.0.2.15:3000
+
+```
+
+- **Full Scan:** Performs a deep spidering process followed by an aggressive active scan against every uncovered parameter.
+
+```bash
+docker run -t owasp/zap2docker-stable zap-full-scan.py -t http://10.0.2.15:3000
+
+```
+
+- **API Scan:** Tailored for REST, GraphQL, or OpenAPI/Swagger structures.
+
+```bash
+docker run -t owasp/zap2docker-stable zap-api-scan.py -t http://10.0.2.15:3000 -f openapi
+```
+
+## DevSecOps pipeline creation

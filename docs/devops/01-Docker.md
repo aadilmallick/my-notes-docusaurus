@@ -710,7 +710,6 @@ Networks are a useful way of connecting containers to each other via a shared ne
 > The main benefit is that they enable containers to talk to each other without exposing their ports directly to the host or the outside world.
 
 
-
 Here are 4 benefits of working with docker networks in multi-container applications:
 
 - **Container Communication**: Enable containers to talk to each other without exposing their ports directly to the host or the outside world.
@@ -718,6 +717,25 @@ Here are 4 benefits of working with docker networks in multi-container applicati
 - **Service Discovery**: Allows containers to find and connect to other containers by their name or alias within the same network.
 - **Portability**: Networking configurations are defined as part of the container or service definition, making them more portable.
 
+#### How networking works in Docker
+
+Docker changes how applications communicate by virtualizing network environments. When you run containers, Docker isolates them using unique drivers depending on how you want them to talk to each other, the host engine, or the internet.
+
+```
+       [ Host Machine / Local Network ]
+                      |
+           [ Docker Bridge (docker0) ]
+            /                       \
+  [ Container A ]             [ Container B ]
+```
+
+There are 4 types of network drivers that Docker provides that allow you to change the behavior of docker networking, depending on which type of driver you currently use:
+
+- **Bridge (Default):** Docker establishes a virtual private network inside your host machine. Every container launched gets its own private IP address within this subnet. They can easily talk to one another using container names as domain names, but they are isolated from the outside world unless you explicitly map a port (e.g., `-p 8080:80`).
+- **Host:** This removes the network isolation between the container and the host engine. If your container runs an application on port 80, it directly claims port 80 on your physical host machine's IP address. It offers high performance but lacks isolation.
+- **None:** Disables all networking. The container receives no external network interfaces except a loopback device, completely locking it down from inbound and outbound traffic.
+- **Overlay:** Spans networks across multiple distinct physical Docker daemon hosts. This allows containers managed by Docker Swarm or Kubernetes clusters to communicate securely across servers without complex host-level routing.
+- **Macvlan**: Allows you to assign a MAC address to a container, making it appear as a physical device on the network.
 #### **creating networks**
 
 ---
