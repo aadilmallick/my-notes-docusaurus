@@ -1064,6 +1064,37 @@ agent = Agent(model=ollama_model)
 
 ##### All together
 
+
+```py
+import os
+
+# represents a small subset of environment variables you want to control the lifecycle of.
+class Env:
+    @staticmethod
+    def get_var(key: str, default: str = None) -> str:
+        return os.environ.get(key, default)
+
+    @staticmethod
+    def set_var(key: str, value: str):
+        os.environ[key] = value
+
+    def __init__(self, env_vars: dict = None):
+        if env_vars is not None:
+            self.env_vars = env_vars
+        else:
+            self.env_vars = dict(os.environ)
+        os.environ.update(self.env_vars)
+
+    def unset(self, key: str):
+        if key in self.env_vars:
+            del self.env_vars[key]
+            os.environ.pop(key, None)
+
+    def unset_all(self):
+        for key in list(self.env_vars.keys()):
+            self.unset(key)
+```
+
 ```py
 from dataclasses import dataclass, field
 from typing import List
@@ -1191,6 +1222,17 @@ agent = Agent(
 
 result = agent("""Research what wireless headphones are trending on the market and compare it against our offerings.Write a short competitive positioning summary and save it to report.md""")
 ```
+
+#### Adding MCP
+
+1. Create an MCP client
+2. Add the MCP client as a tool of the agent.
+3. Filter the tool list of the MCP down.
+
+#### Strands shell
+
+If you want to give bash, third-party MCPs, or filesystem tool access to Strands Agents, then it's imperative you sandbox your agent.
+
 
 ### Harness capabilities
 

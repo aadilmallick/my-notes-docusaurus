@@ -184,6 +184,15 @@ Here's an example of the loop in action:
 
 ![](https://i.imgur.com/WndAbQF.jpeg)
 
+### Agents with MCP
+
+#### MCP problem
+
+The main problem with MCP comes with tool bloat. When you have too many tools, all the descriptions of how to use the tools take up too many tokens.
+
+To fix this issue, use **tool filtering** to select only the relevant tools from an MCP server to pass to your agent.
+
+
 ## Google ADK
 
 ### Installation and CLI
