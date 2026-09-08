@@ -192,6 +192,14 @@ The main problem with MCP comes with tool bloat. When you have too many tools, a
 
 To fix this issue, use **tool filtering** to select only the relevant tools from an MCP server to pass to your agent.
 
+### Hooks
+
+Hooks add deterministic control to a probabilistic loop. They inject code at lifecycle events - before/after tool calls and before/after the agent loop - without changing the agent's logic. Unlike tools (which the model decides to use), hooks fire automatically every time, regardless of what the model reasons.
+
+A runaway loop could call the same tool dozens of times. A model might attempt a destructive operation without asking. Hooks solve this by enforcing rules that don't depend on the model "deciding" to behave.
+
+Human-in-the-loop is one of the most common use cases for hooks 
+
 
 ## Google ADK
 

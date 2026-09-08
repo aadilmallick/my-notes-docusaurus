@@ -1644,6 +1644,8 @@ These events include:
 
 #### Basic callback handler
 
+A callback handler is a function that accepts `**kwargs`. It fires for every agent event (text chunks, tool calls, complete messages):
+
 ```py
 def buffered_handler(**kwargs):
     # "data" events are individual text chunks as they stream in.
@@ -1671,26 +1673,109 @@ agent("What is 2 to the power of 16, minus 1?")
 
 Set `callback_handler=None` when instantiating the agent to make sure that nothing is streamed to stdout.
 
-```py
-print("\n\n" + "=" * 60)
-print("SILENT MODE")
-print("=" * 60)
+The agent runs and returns a result you can use programmatically:
 
-agent = Agent(
-    tools=[calculator],
-    callback_handler=None,
-)
-
+```python
+agent = Agent(tools=[calculator], callback_handler=None)
 result = agent("What is 42 * 42?")
 print(f"Captured result: {result}")
 ```
 
 #### Async callback handlers
 
+Async callback handlers force you to opt out of supplying a callback handler lambda and instead hook into the agent loop itself and print logs based on each event in the agent loop, of which there are 4 events.
+
+For async servers, use `agent.stream_async()` — an async generator that yields events:
+
+- `"data"`: text chunk is produced
+- `"current_tool_use"`: agent is trying to use a tool
+- `"result"`: agent finished response.
+
+```py
+"""
+Async Streaming with stream_async
+
+Same events as the callback handler, but as an async generator.
+This is what you'd use in FastAPI, aiohttp, or any async server
+where you need to stream responses to clients.
+"""
+
+import asyncio
+from strands import Agent
+from strands_tools import calculator
+
+# callback_handler=None so the default handler doesn't also print
+agent = Agent(
+    tools=[calculator],
+    callback_handler=None,
+)
+
+
+async def main():
+    last_tool_printed = None
+    async for event in agent.stream_async("What is 256 + 256?"):
+        if "data" in event:
+            print(event["data"], end="", flush=True)
+        elif "current_tool_use" in event and event["current_tool_use"].get("name"):
+            tool_name = event["current_tool_use"]["name"]
+            if tool_name != last_tool_printed:
+                last_tool_printed = tool_name
+                print(f"\n🔧 [{tool_name}]", end=" ", flush=True)
+        elif "result" in event:
+            print("\n✅ Stream complete")
+
+
+asyncio.run(main())
+```
+
+Here's a FastAPI example:
+
+```py
+"""
+FastAPI Streaming Endpoint
+
+A real streaming AI endpoint in ~20 lines. Run with:
+    uvicorn fastapi_streaming:app --reload
+
+Test with:
+    curl -X POST http://localhost:8000/stream \
+        -H "Content-Type: application/json" \
+        -d '{"prompt": "What is 1024 * 768?"}'
+"""
+
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from strands import Agent
+from strands_tools import calculator
+
+app = FastAPI()
+
+
+class PromptRequest(BaseModel):
+    prompt: str
+
+
+@app.post("/stream")
+async def stream_response(request: PromptRequest):
+    async def generate():
+        agent = Agent(tools=[calculator], callback_handler=None)
+        async for event in agent.stream_async(request.prompt):
+            if "data" in event:
+                yield event["data"]
+
+    return StreamingResponse(generate(), media_type="text/plain")
+```
 
 ### Guards
 
 #### Hooks
+
+Hooks are like the middleware for the agent lifecycle, which lets you deterministically inject logic into the lifecycle at specific points to either block or allow certain actions to happen. 
+
+
+![](https://i.imgur.com/cJ3qqML.jpeg)
+
 
 ```py
 from strands import Agent
