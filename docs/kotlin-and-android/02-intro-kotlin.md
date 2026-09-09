@@ -389,10 +389,47 @@ fun aFunctionReturning(x: Int): String {
 }
 ```
 
+> [!NOTE]
+> The return type can be inferred from the type of what is being returned.
+
+
 When passing in arguments, you can do these pythonic things:
 
 - set default values for parameters
-- use keyword arguments
+
+```kt
+fun greet(name: String = "Aadil") {
+	println("Hello $name")
+}
+
+greet()
+```
+
+- use **named keyword arguments**, which allow you to specify argument in whatever order you want, as long as they are all named.
+
+```kt
+fun greet(name: String) {
+	println("Hello $name")
+}
+
+greet(
+	name="Aadil"
+)
+```
+
+#### Void functions
+
+Here is an example of a void function, where if you don't return anything, it returns the inferred `Unit` type:
+
+```kt
+fun voidfnInferred() {
+    println("Hello World!")
+}
+
+fun voidfnExplicit(): Unit {
+    println("Hello World!")
+}
+```
 
 #### Basic functions
 
@@ -412,7 +449,18 @@ If your function is a one-liner, you can skip the `{}` and the `return` statemen
 fun sum(x: Int, y: Int) : String = x + y
 ```
 
+**Level 3**: immediate return, inferred returned type
+
+
+You can return a value straight up, inferring the return type from the return value
+
+```kt
+fun greeting() = "hello"
+fun salute(name: String) = "hello $name"
+```
 #### Lambda functions
+
+
 
 **Level 3: lambda function without parameters**
 
@@ -484,6 +532,35 @@ fun add(vararg numbers: Int) : Int {
     return sum
 }
 ```
+
+### Loops and iteration
+
+#### Range
+
+In kotlin, a range is like `1..5`, which creates an iterable of numbers, but you can also loop through a range of chars:
+
+```kt
+// LEVEL 1: loop through number sequence
+
+for (nums in 5..15) {
+  println(nums)
+}
+
+// LEVEL 2: loop through char sequence
+for (chars in 'a'..'x') {
+  println(chars)
+}
+```
+
+
+**casting range to a list**
+
+We wrap a range in parenthesis and then call the `toList()` or `toMutableList()` methods to cast the range into a list
+
+```kotlin
+var myList = (1..20).toList()
+```
+
 
 ## Collections
 
@@ -580,6 +657,63 @@ cars.forEach {
   println(it)
 }
 ```
+
+##### `forEach`
+
+Here is level 1, where we pass in a function
+
+```kotlin
+val names = mutableListOf<String>("John", "Paul", "George", "Ringo")
+
+names.forEach(fun (name: String) {
+	println(name)
+	// code here
+})
+```
+
+Here is level 2, where we use a lambda function but name our argument:
+
+```kotlin
+val names = mutableListOf<String>("John", "Paul", "George", "Ringo")
+
+names.forEach {name ->
+	println(name)
+  // code here
+}
+```
+
+Here is level 3, where we use a lambda function, and just the implicit parameter `it` .
+
+```kotlin
+val names = mutableListOf<String>("John", "Paul", "George", "Ringo")
+
+names.forEach {
+	println(it)
+  // code here
+}
+```
+
+##### `forEachIndexed`
+
+Basically the same as `forEach()` , but in the lambda, you are now passed two arguments:
+
+1. index
+2. element
+
+```kotlin
+val names = mutableListOf<String>("John", "Paul", "George", "Ringo")
+names.forEachIndexed {index, element ->
+	// code here
+}
+```
+
+##### `filter`
+
+```kotlin
+var myList = (1..10).toList()
+val filteredList = myList.filter { element -> element % 2 == 0 }
+```
+
 ### **set**
 
 Use the `hashSetOf()` constructor to get back a traditional set.
@@ -588,7 +722,12 @@ Use the `hashSetOf()` constructor to get back a traditional set.
 val strings = hashSetOf("a", "b", "c", "c")
 ```
 
-### **hashmap**
+### map and hashmap
+
+
+#### map
+
+#### Hashmap
 
 Use the `hashMapOf()` method to get back a hash map. You need to provide generics.
 
@@ -601,9 +740,36 @@ Here are a list of useful map methods:
 
 - `map.put(key, value)` : add the key-value pair to the map
 
+
+#### map iteration
+
+The `map.forEach()` method is a lambda method that takes in two args for the callback: `key` and `value` .
+
+You get to iterate over all the keys and values in the map.
+
+```kotlin
+val map = mapOf(1 to "a", 2 to "b")
+
+map.forEach { (key, value) ->
+	// have access to key and value
+}
+```
 ## Classes
 
 ### Basics
+
+Classes in kotlin have `public`, `private`, and `protected` identifiers, as well as the `this` keyword.
+
+```kotlin
+class Person {
+    // property
+    public var id : Int = 0
+    // function - method
+    fun print() {
+        println("Person id: ${this.id}")
+    }
+}
+```
 
 **Class properties**
 
@@ -646,6 +812,17 @@ var myObjInstance = MyClass()
 ```
 
 #### Constructors + properties
+
+The basic form of a class constructor is like this.
+
+Whatever arguments you pass in, if you declare them with `var` or `val`, they will automatically become class properties.
+
+```kotlin
+class MyClass(arguments) {
+	// code here
+}
+```
+
 
 In Kotlin, the constructor is in the class header, and you have two ways of setting properties on a class:
 
@@ -713,11 +890,43 @@ User("Bob")           // secondary
 User()                // secondary
 ```
 
-Each secondary constructor delegates to the primary via `this(...)`, ensuring initialization logic runs consistently. 
+> [!NOTE]
+> Each secondary constructor delegates to the primary via `this(...)`, ensuring initialization logic runs consistently. 
+
+
+We can provide constructor overloading by providing default values for the arguments in constructor overloads
+
+```kotlin
+class User(val id: Int) {
+    private var name= "Unnamed $id user"
+		
+		// overloads with id = 0
+    constructor(name: String): this(0) {
+        this.name = name
+    }
+		
+		// no overloads, accepts one more argument
+    constructor(id: Int, name: String): this(id) {
+        this.name = name
+    }
+}
+```
 
 #### `init` blocks and constructor execution lifecycle
 
 An `init` block is code that runs after an object is created, regardless of which constructor was used (primary or secondary)
+
+The `init` block is used to run code after the constructor runs.
+
+```kotlin
+class Request(val url: String) {
+    private var timeout = 10;
+    init {
+				// runs after Request() is executed
+        print("fetching url $url")
+    }
+}
+```
 
 It's declared with the `init` keyword and no parentheses:
 
@@ -756,6 +965,27 @@ class Person(private var firstname: String, private var lastname: String) : Acti
 
     override fun isOlder(age: Int) : Boolean {
        return this.age > age
+    }
+}
+```
+
+#### Overriding methods
+
+We specify we want to override a method on the class inheriting from the interface with the `override fun` keyword
+
+```kotlin
+interface Listener {
+    fun listen()
+    fun introduce(age: Int, name: String) : String
+}
+
+class Human: Listener {
+    override fun listen() {
+        print("I'm listening!")
+    }
+
+    override fun introduce(age: Int, name: String): String {
+        return "My name is $name and I'm $age years old"
     }
 }
 ```
@@ -830,6 +1060,18 @@ class Person: Actions {
 ```
 ### Inheritance
 
+By default, you cannot inherit from other classes. To make a class inheritable, you have to put the `open class` keyword modifier on it.
+
+You can then inherit from that class by doing a type annotation
+
+```kotlin
+open class ParentClass {}
+
+class ChildClass: ParentClass() {}
+```
+
+**Basic example: level 1**
+
 To establish a class as a parent class children class should inherit from, use the `open` keyword.
 
 ```kotlin
@@ -849,19 +1091,47 @@ class MyChildClass: MyParentClass() {
 
 ```
 
-### Sealed classes
+#### Overriding methods
 
-**Sealed classes** are classes you can't instantiate. They're typically used as containers for global utilities or constants, especially useful in Android where you can't have truly global functions.
+To override methods, you must follow these steps:
 
-### Enum classes
+1. In the parent class, declare the method as `open`
+2. In the child class, declare that you want to override the parent class method with the `override func` keyword
 
-**Enum classes** define a fixed set of named values. Each value can have associated data—for example, `Color(value: Int)` lets each color constant hold an integer.
+```kotlin
+open class ParentClass {
+    open fun greet() {
+        print("Hello")
+    }
+}
 
+class ChildClass: ParentClass() {
+    override fun greet() {
+        print("Hi")
+    }
+}
+```
 
-### Data classes
+### Object
 
-**Data classes** automatically generate useful methods for classes that hold data: `toString()` shows all properties and their values, `equals()` compares instances by their property values (not identity), and `copy()` lets you clone with selective property changes.
-### Companion objects
+#### Objects in Kotlin
+
+Objects in kotlin are similar to objects in javascript, where they are just containers for properties and methods.
+
+By convention, we titlecase the object identifier.
+
+```kotlin
+object Rocky {
+    val paws = 4
+    fun meow() {
+        println("Meow!")
+    }
+}
+```
+
+Objects can be used globally in kotlin, where they can be used to access global constants and methods easily.
+
+#### Companion objects
 
 Kotlin doesn't have static members like Java does. Instead, each class has a **companion object**—a single object instance attached to the class itself—where you put functions, constants, and variables that belong to the class rather than to individual instances.
 
@@ -878,9 +1148,103 @@ class Person(private var firstname: String, private var lastname: String)  {
 }
 
 // then call like this:
-Person.createPerson()
+Person.createPerson("John", "Doe")
 ```
 
+
+A companion object is Kotlin’s version of `static`. Any properties or methods put inside a `companion object` will belong to the class itself rather than the object instance.
+
+```kotlin
+class Request(val url: String) {
+    private var timeout = 10;
+    init {
+        print("fetching url $url")
+    }
+    companion object {
+        fun create(url: String): Request {
+            return Request(url)
+        }
+        val methods = listOf("GET", "POST", "PUT", "DELETE")
+    }
+}
+```
+### Data classes
+
+**Data classes** automatically generate useful methods for classes that hold data: `toString()` shows all properties and their values, `equals()` compares instances by their property values (not identity), and `copy()` lets you clone with selective property changes.
+
+```kt
+data class Product(val id: Int, val name: String, val price: Double)
+
+val p1 = Product(1, "Laptop", 999.99)
+val p2 = Product(1, "Laptop", 999.99)
+
+println(p1)                    // Product(id=1, name=Laptop, price=999.99)
+println(p1 == p2)             // true (compares by property values, not identity)
+println(p1 === p2)            // false (different objects in memory)
+```
+
+**Three key generated methods:**
+
+1. **`toString()`** — shows all properties and values instead of the useless default class name + hash code.
+    
+2. **`equals()`** — compares two instances by their property values. Two `Product` objects with the same `id`, `name`, and `price` are equal, even if they're separate instances.
+    
+3. **`copy()`** — clones the object with selective property changes:
+
+```kt
+val p1 = Product(1, "Laptop", 999.99)
+val p2 = p1.copy(price = 799.99)  // Same id and name, new price
+println(p2)                        // Product(id=1, name=Laptop, price=799.99)
+```
+
+### Sealed classes
+
+**Sealed classes** are classes you can't instantiate. They're typically used as containers for global utilities or constants, especially useful in Android where you can't have truly global functions.
+
+> [!NOTE]
+> Typically a sealed class is used with companion objects because you can't instantiate them. They're simply data containers. 
+
+```kt
+sealed class Result {
+    companion object {
+        fun success(data: String): Success = Success(data)
+        fun error(message: String): Error = Error(message)
+    }
+    
+    data class Success(val data: String) : Result()
+    data class Error(val message: String) : Result()
+}
+```
+
+
+The sealed class itself can't be instantiated, but its subclasses can—and the companion object provides a convenient way to construct them.
+### Enum classes
+
+**Enum classes** define a fixed set of named values. Each value can have associated data—for example, `Color(value: Int)` lets each color constant hold an integer.
+
+```kt
+enum class Color(val rgb: Int) {
+	RED(0xFF0000)
+}
+```
+
+You can also add companion objects to enum classes, since they're just a class:
+
+```kt
+enum class Color(val value: Int) {
+    RED(0xFF0000),
+    GREEN(0x00FF00),
+    BLUE(0x0000FF);
+    
+    companion object {
+        fun fromHex(hex: Int): Color? {
+            return values().find { it.value == hex }
+        }
+    }
+}
+```
+
+- `Color.RED` has the value `0xFF0000`
 ### instance of type-checking with `is`
 
 Use the `is` conditional keyword to see if an object is an instance of some class.
