@@ -328,7 +328,7 @@ if (condition1) {
 
 ##### **While loop**
 
-  
+You can do a normal `while` loop like so:
 
 ```kotlin
 
@@ -340,6 +340,17 @@ while (condition) {
 
 ```
 
+Or use a `do/while` loop, where the code in the `do` block runs before the `while` condition is evaluated, so the code block always runs at least once, even if `while` condition is not true
+
+```kt
+var counter = 0
+
+// while always run at least once, even if `while` condition is not true
+do {
+	println("Counter is $counter")
+	counter++
+} while (counter < 0)
+```
 ##### **When statements**
 
 `when` statements are basically if ternary operators and switch statements fucked and had a baby.
@@ -976,7 +987,7 @@ We wrap a range in parenthesis and then call the `toList()` or `toMutableList()`
 var myList = (1..20).toList()
 ```
 
-## Generics
+## Generics and types
 
 In Kotlin, ==**generics** allow you to write reusable code by parameterizing types== (e.g., creating a `List<T>` instead of separate list classes for every data type).
 
