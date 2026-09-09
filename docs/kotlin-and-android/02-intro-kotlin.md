@@ -486,7 +486,8 @@ println(message)
 
 ### Type casting
 
-- `as`: type cast a variable to another type or class type
+- `as`: type cast a variable to another type or class type, throws `ClassCastException` if it can't complete the cast.
+- `as?`: type cast a variable to another type or class type safely, instead of throwing a `ClassCastException` if it can't complete the cast, it returns `null`
 - `is`: boolean check to see if a variable is of a certain type or is an object instance of a class.
 
 #### Type casting with `as`
@@ -518,6 +519,10 @@ fun main(args: Array<String>) {
 
 #### Type checking with `is`
 
+The `is` keyword allows you to check if a variable *is* a certain data type or object instance.
+
+You can also negate an `is` statement with `!is` to check if a variable *is* NOT a certain data type of object instance.
+
 ```kt
 fun checkType(input: Any) {
     if (input is String) {
@@ -536,6 +541,170 @@ fun main() {
 }
 
 ```
+
+#### Smart casting
+
+**Smart casting** is a compiler feature in Kotlin that automatically tracks your type checks (`is` and `!is`) and converts a generic reference to a specific type. This eliminates the need for redundant, explicit casting operators (like Java's old casting syntax or Kotlin's explicit `as` operator).
+
+The Kotlin compiler uses **flow-sensitive analysis** (also known as data-flow analysis) to monitor the execution path of your code.
+
+Here's an example of how smart casting helps you scope down any generic type to a specific type like a string:
+
+1. **The Condition Check:** When the compiler hits an `if (input is String)` block, it verifies that the execution path inside the `if` brackets is _only_ accessible if `input` is truly a `String`.
+2. **The Scope Update:** Inside that specific branch, the compiler changes its internal metadata for `input`, treating it as a `String` rather than `Any`.
+3. **Automatic Access:** You can immediately call `String` functions (like `.length` or `.lowercase()`) without writing a manual cast.
+
+```kt
+fun process(input: Any) {
+    if (input is String?) {
+	    if (input == null || input?.length == 0) {
+		    return
+	    }
+        // The compiler smart-casts 'input' to non-null String here
+        println(input.length) 
+    }
+    // Outside the block, 'input' is back to being 'Any'
+    // println(input.length) // Error!
+}
+```
+
+The compiler's flow tracking extends beyond simple `if` blocks to logical expressions and control flows.
+
+##### 1. Inside Conditional Expressions (`&&`)
+
+Because the logical AND operator (`&&`) evaluates from left to right and short-circuits, the compiler knows the right side of the expression will _only_ execute if the left side evaluates to `true`.
+
+
+```kt
+// Smart cast happens right inside the condition!
+if (input is String && input.length > 5) {
+    println("Long string")
+}
+```
+
+##### 2. Early Returns (`!is`)
+
+If you invert the check using `!is` and exit the function early via a `return`, `throw`, or `break`, the compiler recognizes that any code executing _after_ that check must have a valid type.
+
+```kt
+fun printLength(input: Any) {
+    if (input !is String) return // Guard clause exits if not a String
+    
+    // The compiler knows execution can only reach here if it IS a String
+    println(input.length) // Perfectly valid smart cast
+}
+```
+
+##### 3. Inside `when` Expressions
+
+When you use type checks as branches inside a `when` statement, the compiler handles each scope independently.
+
+```kt
+fun evaluate(input: Any) = when (input) {
+    is Int -> input + 10           // Smart cast to Int
+    is String -> input.uppercase()  // Smart cast to String
+    else -> "Unknown type"
+}
+```
+
+##### When smart casting fails
+
+Smart casting relies completely on the compiler's guarantee that the variable's value **cannot change** between the type check and its subsequent usage. If the compiler cannot prove a variable is immutable, it disables smart casting for safety.
+
+Smart casting is **forbidden** in the following scenarios:
+
+- **Mutable Local Variables (`var`):** If a local `var` is modified inside a concurrent lambda or modified between the type check and the usage, the compiler throws an error.
+- **Open/Mutable Properties (`val` or `var` fields):** If a property belongs to a class and is accessible by other threads or classes, its state cannot be guaranteed. A custom getter (`val x: Any get() = ...`) can return a different type every time it is called, making smart casting unsafe.
+
+```kt
+class Demo {
+    var mutableProperty: Any = "Hello"
+
+    fun unstableCheck() {
+        if (mutableProperty is String) {
+            // ERROR: Smart cast is impossible because 'mutableProperty' 
+            // could be modified by another thread right now!
+            // println(mutableProperty.length) 
+        }
+    }
+}
+
+```
+
+
+#### Safe casts (combining `as?` with `?:`)
+
+In Kotlin, combining the **safe cast operator (`as?`)** with the **Elvis operator (`?:`)** is the standard, idiomatic way to handle type casting while safely providing a default fallback behavior or exiting a execution flow when a type mismatch occurs.
+
+- `as`: type cast a variable to another type or class type, throws `ClassCastException` if it can't complete the cast.
+- `as?`: type cast a variable to another type or class type safely, instead of throwing a `ClassCastException` if it can't complete the cast, it returns `null`
+
+```kt
+val obj: Any = 123
+val str: String? = obj as? String // Fails, evaluates to null (no crash)
+
+```
+
+The Elvis operator (`?:`) checks the value on its left side. If that value is **not null**, it returns it. If the value on its left side **is null**, it executes and returns the expression on its right side.
+
+```kt
+val name: String? = null
+val displayName = name ?: "Guest" // Evaluates to "Guest"
+```
+
+When you chain them together (`obj as? Type ?: fallback`) here is what happens:
+
+1. the safe cast attempts to run first. 
+2. If it returns `null` due to a type mismatch, the Elvis operator intercepts that `null` and runs its fallback code.
+
+You can use this combination to safely parse generic data structures (like a JSON map or configuration bundle) and guarantee a fallback value if the data type isn't what you expected.
+
+```kt
+fun getMultiplier(configValue: Any): Int {
+    // Attempt to cast to Int; if it fails (returns null), default to 1
+    return configValue as? Int ?: 1
+}
+
+fun main() {
+    println(getMultiplier(5))       // Output: 5 (Cast succeeds)
+    println(getMultiplier("hello")) // Output: 1 (Cast fails, Elvis falls back)
+}
+
+```
+
+##### Pattern B: Guard Clauses and Early Returns
+
+In application development, this pattern is frequently used to validate inputs at the top of a function. If the passed argument is not the expected type, you can use `return` or `throw` on the right side of the Elvis operator to stop execution.
+
+```kt
+fun processPayload(payload: Any) {
+    // Guard clause: Safe cast to String or exit the function immediately
+    val text = payload as? String ?: return 
+    
+    // The compiler now knows 'text' is a non-nullable String
+    println("Processing text of length: ${text.length}")
+}
+
+fun criticalOperation(data: Any) {
+    // Guard clause: Safe cast to User or crash with a specific error
+    val user = data as? User ?: throw IllegalArgumentException("Invalid user profile data provided")
+    
+    // Safely proceed with the 'user' object
+    println("Logged in as ${user.username}")
+}
+
+```
+
+##### Summary Comparison of Casting Strategies
+
+|Code Pattern|If Cast Succeeds|If Cast Fails|Safety Rating|
+|---|---|---|---|
+|`obj as String`|Returns `String`|Throws `ClassCastException` 💥|**Dangerous**|
+|`obj as? String`|Returns `String?`|Returns `null`|**Safe, but leaves type nullable**|
+|`obj as? String ?: ""`|Returns `String`|Returns default value `""`|**Excellent (Idiomatic)**|
+|`obj as? String ?: return`|Returns `String`|Exits function early|**Excellent (Idiomatic)**|
+
+
 ### Functions
 
 When returning something in a function, you need to provide type annotations for both the parameters and the return type.
@@ -807,8 +976,32 @@ We wrap a range in parenthesis and then call the `toList()` or `toMutableList()`
 var myList = (1..20).toList()
 ```
 
+## Generics
+
+In Kotlin, ==**generics** allow you to write reusable code by parameterizing types== (e.g., creating a `List<T>` instead of separate list classes for every data type).
+
+However, Kotlin targets the Java Virtual Machine (JVM), which enforces **Type Erasure**. Understanding how Kotlin ensures type safety while navigating this JVM limitation requires looking at compile-time checks, runtime constraints, and Kotlin-specific keywords like `inline` and `reified`.
 
 ## Collections
+
+### Intro
+
+There are two types of collections:
+
+**immutable collections**
+
+- `listOf()`
+- `setOf()`
+- `mapOf()`
+- `arrayOf()`
+
+**mutable collections**
+
+- `mutableListOf()`
+- `mutableSetOf()` : ordered set
+- `hashMapOf()` : unordered map
+- `mutableMapOf()` : ordered map
+- `hashSetOf()` : unordered set
 
 ### Collection interface
 
@@ -824,9 +1017,9 @@ val list = arrayOf(1, 2, 3)
 add(*list) // also valid
 ```
 
-### Lists
 
-#### Arrays
+
+### Arrays
 
 You can create arrays using the `arrayOf()` method, and pass in a comma separated list of values as arguments.
 
@@ -870,6 +1063,11 @@ for (x in cars) {
   println(x)
 }
 ```
+
+### List
+
+#### List methods
+
 #### **immutable list**
 
 We use the `listOf()` constructor and pass in all the values we want to put into the immutable list.
@@ -960,7 +1158,13 @@ var myList = (1..10).toList()
 val filteredList = myList.filter { element -> element % 2 == 0 }
 ```
 
-### **set**
+### **sets**
+
+There are three types of set in Kotlin:
+
+- **set**: an immutable, ordered set, instantiated with the `setOf()` function.
+- **hash set**: a mutable, unordered set, instantiated with the `hashsetOf()` function.
+- **mutable set**: a mutable, ordered set, instantiated with the `mutablesetOf()` function
 
 Use the `hashSetOf()` constructor to get back a traditional set.
 
@@ -968,10 +1172,29 @@ Use the `hashSetOf()` constructor to get back a traditional set.
 val strings = hashSetOf("a", "b", "c", "c")
 ```
 
-### map and hashmap
+#### Set methods
 
+- `set.elementAt(index)` : returns the element at the specified index
+- `set.indexOf(element)` : returns the index of where the element was found
+- `set.lastIndexOf(element)` : returns the last index of where the element was found
+- `set.first()` : returns the first element in the set
+- `set.last()` : returns the last element in the set
+- `set.contains(element)` : returns a boolean, whether or not the set contains the specified element.
+- `set.isEmpty()` : returns a boolean, true if the set is empty
 
-#### map
+For mutable sets like a mutable set or a hash set, you can use these methods:
+
+- `set.add(element)` : adds the specified element
+- `set.remove(element)` : removes the specified element from the set
+### maps
+
+There are two types of maps in Kotlin:
+
+- **map**: an immutable, ordered map, instantiated with the `mapOf()` function.
+- **hash map**: a mutable, unordered map, instantiated with the `hashMapOf()` function.
+- **mutable map**: a mutable, ordered map, instantiated with the `mutableMapOf()` function.
+
+#### map methods
 
 #### Hashmap
 
