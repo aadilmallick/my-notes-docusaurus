@@ -601,3 +601,287 @@ Here are a list of useful map methods:
 
 - `map.put(key, value)` : add the key-value pair to the map
 
+## Classes
+
+### Basics
+
+**Class properties**
+
+To create properties in a class, just declare variables within the class header.
+
+```kotlin
+class MyClass {
+  var var1 = ""
+  var var2 = ""
+}
+```
+
+You can then access those properties on an instance via dot-property syntax.
+
+
+**Adding methods**
+
+```kt
+// constructor that accepts argumetns and makes them class properties
+class Car(var brand: String, var model: String, var year: Int) {
+
+  // method
+  fun drive() {
+    println("Wrooom!")
+  }
+
+  // method with parameters
+  fun speed(maxSpeed: Int) {
+    println("Max speed is: " + maxSpeed)
+  }
+}
+```
+
+**instantiating the class**
+
+Much like Python, you do not use the `new` keyword. Instead you just call the class like a function.
+
+```kotlin
+var myObjInstance = MyClass()
+```
+
+#### Constructors + properties
+
+In Kotlin, the constructor is in the class header, and you have two ways of setting properties on a class:
+
+- **Method 1 (classic - constructor populating property values)**: You can accept arguments, and then create class properties and set them equal to the arguments passed in.
+
+```kotlin
+class MyClass(var1: Type1, var2: Type2, ...) {
+  // class properties here
+  var _var1 = var1
+  var _var2 = var2
+  // ... and so on
+}
+```
+
+- **Method 2 (syntactic sugar - set class properties in constructor signature)**: If you want to skip the assignment step, you can simply declare the arguments in the constructor with the `var` or `val` keywords to get them automatically assigned as class properties, and then add access modifier keywords like `private` or `public`.
+
+```kotlin
+class MyClass(private var var1: Type1, private var var2: Type2, ...) {
+  // nothing else to do
+}
+```
+
+
+
+**Level 1: basic constructor**
+
+```kt
+// LEVEL 1: accepting arguments, setting them in class properties
+
+class Person(firstname: String, lastname: String) {
+    // accept constructor arguments, use them to set class properties.
+    private var firstname: String = firstname
+    private var lastname: String = lastname
+    private var age: Int = 0
+}
+```
+
+**level 2: set access modifiers and class properties in constructor**
+
+This is pretty much the same way you set it in TypeScript
+
+```kt
+// LEVEL 2: set class properties implicitly in constructor
+
+class Person(private var firstname: String, private var lastname: String) {
+    private var age: Int = 0
+}
+```
+
+#### Secondary constructors
+
+**secondary constructors** are constructor overloads you can provide to a class.
+
+Secondary constructors let you provide alternative ways to construct an object. They use the `constructor` keyword and must call the primary constructor (or another secondary constructor):
+
+```kt
+class User(val id: Int, val name: String) {
+    constructor(name: String) : this(0, name)  // calls primary with id=0
+    constructor() : this(0, "Unknown")         // calls primary with defaults
+}
+
+// Now you can construct three ways:
+User(1, "Alice")      // primary
+User("Bob")           // secondary
+User()                // secondary
+```
+
+Each secondary constructor delegates to the primary via `this(...)`, ensuring initialization logic runs consistently. 
+
+#### `init` blocks and constructor execution lifecycle
+
+An `init` block is code that runs after an object is created, regardless of which constructor was used (primary or secondary)
+
+It's declared with the `init` keyword and no parentheses:
+
+```kt
+class User(val id: Int, val name: String) {
+    init {
+        println("User created: $name")
+    }
+}
+```
+
+- When you create `User(1, "Alice")`, the `init` block executes automatically after the object is instantiated.
+
+> [!NOTE]
+> You can also use init blocks alongside secondary constructors—the init block always runs after any constructor completes.
+
+### Interfaces
+
+
+Interfaces are a way to enforce classes to implement certain methods and adhere to their methods signatures.
+
+To implement an interface, simply type annotate the class as the interface.
+
+```kt
+interface Actions {
+    fun buttfuck()
+    fun isOlder(age: Int) : Boolean
+}
+
+// type annotate as Actions interface
+class Person(private var firstname: String, private var lastname: String) : Actions {
+    private var age: Int = 0
+    override fun epsteinfilesreveal() {
+        TODO("Not yet implemented")
+    }
+
+    override fun isOlder(age: Int) : Boolean {
+       return this.age > age
+    }
+}
+```
+
+#### **Inherit from multiple interfaces**
+
+Just do the type annotation, and use a commma to separate out the list of interfaces.
+
+```kotlin
+class MyClass : Interface1, Interface2 {
+  // code here
+}
+```
+
+#### **DEFAULT METHODS**
+
+One thing you can do in kotlin is that interfaces are more like abstract classes now. You can have default method implementations that classes don't need to override.
+
+However, if you want to override, just use the `override fun` syntax and call the super implementation of the function first.
+
+```kotlin
+interface MyInterface {
+  fun defaultFunc() {
+    // some default implementation
+  }
+}
+
+class MyClass : MyInterface {
+  override fun defaultFunc() {
+    super.defaultFunc()
+    // code here
+  }
+}
+```
+
+Here's an example of using an interface sort of like an abstract class
+
+- **using default method implementation**
+
+```kt
+// LEVEL 2: interface with default method implementation
+
+interface Actions {
+    fun fuck() {
+        println("This guy is getting fucked")
+    }
+}
+
+class Person: Actions {
+  // no need to override function
+}
+```
+
+- **overriding default method implementation**
+
+```kt
+// LEVEL 3: interface with default method implementation, override it
+
+interface Actions {
+    fun fuck() {
+        println("This guy is getting fucked")
+    }
+}
+
+class Person: Actions {
+    override fun fuck() {
+        // 1. must call this first
+        super.fuck()
+        println("he now has a disease")
+    }
+}
+```
+### Inheritance
+
+To establish a class as a parent class children class should inherit from, use the `open` keyword.
+
+```kotlin
+open class MyParentClass {
+  val x = 5
+}
+```
+
+Then to inherit from a parent class, just type annotate the child class with the parent class's type.
+
+```kotlin
+class MyChildClass: MyParentClass() {
+  fun myFunction() {
+    println(x) // x is now inherited from the superclass
+  }
+}
+
+```
+
+### Sealed classes
+
+**Sealed classes** are classes you can't instantiate. They're typically used as containers for global utilities or constants, especially useful in Android where you can't have truly global functions.
+
+### Enum classes
+
+**Enum classes** define a fixed set of named values. Each value can have associated data—for example, `Color(value: Int)` lets each color constant hold an integer.
+
+
+### Data classes
+
+**Data classes** automatically generate useful methods for classes that hold data: `toString()` shows all properties and their values, `equals()` compares instances by their property values (not identity), and `copy()` lets you clone with selective property changes.
+### Companion objects
+
+Kotlin doesn't have static members like Java does. Instead, each class has a **companion object**—a single object instance attached to the class itself—where you put functions, constants, and variables that belong to the class rather than to individual instances.
+
+Everything in the companion object is accessible via the class name (e.g., `User.collection`) and is shared across all instances of that class. The companion object is created automatically when the class loads, even if you never create an instance.
+
+```kt
+class Person(private var firstname: String, private var lastname: String)  {
+    companion object {
+	    val people = mutableListOf(Person("Josh", "Allen"))
+        fun createPerson(fname: String, lname: String) : Person {
+            return Person(fname, lname)
+        }
+    }
+}
+
+// then call like this:
+Person.createPerson()
+```
+
+### instance of type-checking with `is`
+
+Use the `is` conditional keyword to see if an object is an instance of some class.
+## Async and Coroutines
