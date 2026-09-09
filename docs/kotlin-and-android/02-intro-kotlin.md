@@ -961,7 +961,7 @@ fun add(vararg numbers: Int) : Int {
 
 ### Loops and iteration
 
-#### Range
+#### Ranges and infix functions
 
 In kotlin, a range is like `1..5`, which creates an iterable of numbers, but you can also loop through a range of chars:
 
@@ -978,6 +978,38 @@ for (chars in 'a'..'x') {
 }
 ```
 
+In kotlin, you can use infix functions to generate iterables on the fly:
+
+```kt
+for (i in 1..10) {
+	println("Counter: $i")
+}
+
+// inclusive with step
+for (i in 1..10 step 3) {
+	println("Counter: $i")
+}
+
+// exclusive
+for (i in 1 until 10) {
+	println("Counter: $i")
+}
+
+// exclusive with step
+for (i in 1 until 10 step 3) {
+	println("Counter: $i")
+}
+
+// inclusive decrement
+for (i in 10 downTo 1) {
+	println("Counter: $i")
+}
+
+// inclusive decrement with step
+for (i in 10 downTo 1 step 3) {
+	println("Counter: $i")
+}
+```
 
 **casting range to a list**
 
