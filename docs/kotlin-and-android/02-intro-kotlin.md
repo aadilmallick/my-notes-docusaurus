@@ -1052,78 +1052,12 @@ There are two types of collections:
 - `mutableMapOf()` : ordered map
 - `hashSetOf()` : unordered set
 
-### Collection interface
-
-#### Spreading a collection
-
-
-If you want to spread out a collection as arguments into a function that takes in a variable amount of arguments, then use the spread operator, `*` , in front of the collection name
-
-```kotlin
-add(1, 2, 3) // valid
-
-val list = arrayOf(1, 2, 3)
-add(*list) // also valid
-```
 
 
 
-### Arrays
+### Array and list basics
 
-```kt
-// method 1: use `arrayOf()`
-// smart enough to type as ints: Array<Int?>
-var ints = arrayOf(1, 2, 3, 4, 5, null)
-
-// method 2: instantiate array, specify size beforehand, make every element null
-ints = arrayOfNulls<Int>(5)
-
-// method 3: instantiate array size, lambda populates elements
-ints = Array(5, { i -> (i + 1) * i })
-
-for (int in ints) {
-	println(int)
-}
-
-for (i in 0 until ints.size) {
-	print(ints[i])
-}
-
-ints.forEach {int -> print(int) }
-```
-
-#### normal arrays
-
-You can create arrays using the `arrayOf()` method, and pass in a comma separated list of values as arguments.
-
-```kotlin
-var myArr = arrayOf(val1, val2, val3, ...)
-```
-
-In general, there are three ways to create normal arrays:
-
-1. **use `arrayOf<T>(varargs: T)`**: instantiates fixed array with elements.
-2. **use `arrayOfNulls<T>(size: Int)`**: Allocates array size, inits all elements to null
-3. **instantiate `Array<T>(size: Int, init: (index: Int) -> T)`**: Allocates array size, for each element in array, execute lambda to get the initial value of that element.
-
-```kt
-// method 1: use `arrayOf()`
-// smart enough to type as ints: Array<Int?>
-var ints = arrayOf(1, 2, 3, 4, 5, null)
-
-// method 2: instantiate array, specify size beforehand, make every element null
-ints = arrayOfNulls<Int>(5)
-
-// method 3: instantiate array size, lambda populates elements
-ints = Array(5, { i -> (i + 1) * i })
-```
-
-#### `intArray`
-
-You can create specialized, performant, compact integer arrays with `intArrayOf()` method.
-#### Array basics
-
-**array access**
+#### **element access**
 
 Same as always. `arr[n]` access the nth element of the array
 
@@ -1134,7 +1068,7 @@ var cars = arrayOf("Volvo", "BMW", "Ford", "Mazda")
 println(cars[0]) // Volvo
 ```
 
-**check if element exists**
+#### **check if element exists**
 
 Use the `in` operator to check if an element is in the array
 
@@ -1144,7 +1078,7 @@ if (value in arr) {
 }
 ```
 
-**loop through array**
+#### array iteration
 
 Use the **for-in** loop to loop through the elements of an array.
 
@@ -1160,28 +1094,18 @@ for (x in cars) {
 }
 ```
 
-### List
+Or you can use the list iteration methods to loop over an array.
 
-#### List methods
+#### Spreading a collection
 
-#### **immutable list**
 
-We use the `listOf()` constructor and pass in all the values we want to put into the immutable list.
-
-```kotlin
-// Lists, we use List<Type> and the type of the collection inside the generic
-// The literal uses the listOf constructor
-// countries is IMMUTABLE!
-val countries: List<String> = listOf("Argentina", "Brazil", "Canada", "Denmark")
-```
-
-#### **mutable list**
-
-We use the `mutableListOf()` constructor to get back a `MutableList` instance, which has methods to add and remove elements
+If you want to spread out a collection as arguments into a function that takes in a variable amount of arguments, then use the spread operator, `*` , in front of the collection name
 
 ```kotlin
-val cities: MutableList<String> = mutableListOf("Alameda", "Buenos Aires", "Cali")
-cities.add("Dali")
+add(1, 2, 3) // valid
+
+val list = arrayOf(1, 2, 3)
+add(*list) // also valid
 ```
 
 #### List iteration
@@ -1252,6 +1176,132 @@ names.forEachIndexed {index, element ->
 ```kotlin
 var myList = (1..10).toList()
 val filteredList = myList.filter { element -> element % 2 == 0 }
+```
+
+
+### Arrays
+
+Arrays are like lists except that they have no immutable variants and their size is decided at runtime.
+
+Other that that, you can perform the same list iteration methods on arrays and instantiate them in roughly the same way:
+
+```kt
+// method 1: use `arrayOf()`
+// smart enough to type as ints: Array<Int?>
+var ints = arrayOf(1, 2, 3, 4, 5, null)
+
+// method 2: instantiate array, specify size beforehand, make every element null
+ints = arrayOfNulls<Int>(5)
+
+// method 3: instantiate array size, lambda populates elements
+ints = Array(5, { i -> (i + 1) * i })
+
+for (int in ints) {
+	println(int)
+}
+
+for (i in 0 until ints.size) {
+	print(ints[i])
+}
+
+ints.forEach {int -> print(int) }
+```
+
+#### normal arrays
+
+You can create arrays using the `arrayOf()` method, and pass in a comma separated list of values as arguments.
+
+```kotlin
+var myArr = arrayOf(val1, val2, val3, ...)
+```
+
+In general, there are three ways to create normal arrays:
+
+1. **use `arrayOf<T>(varargs: T)`**: instantiates fixed array with elements.
+2. **use `arrayOfNulls<T>(size: Int)`**: Allocates array size, inits all elements to null
+3. **instantiate `Array<T>(size: Int, init: (index: Int) -> T)`**: Allocates array size, for each element in array, execute lambda to get the initial value of that element.
+
+```kt
+// method 1: use `arrayOf()`
+// smart enough to type as ints: Array<Int?>
+var ints = arrayOf(1, 2, 3, 4, 5, null)
+
+// method 2: instantiate array, specify size beforehand, make every element null
+ints = arrayOfNulls<Int>(5)
+
+// method 3: instantiate array size, lambda populates elements
+ints = Array(5, { i -> (i + 1) * i })
+```
+
+#### `intArray`
+
+You can create specialized, performant, compact integer arrays with `intArrayOf()` method.
+
+### List
+
+Lists in Kotlin are instances of the `List<T>` collection subclass, and have mutable and immutable variants, where lists are by default immutable:
+
+- `List<T>`: immutable lists, created with `listOf()` most commonly
+- `MutableList<T>`: mutable lists, created with `mutableListOf()` most commonly
+
+```kt
+// method 1: use `listOf()` to create list with elements
+var list: List<Int> = listOf(1, 2, 3, 4, 5)
+
+// method 2: instantiate List<T> class with lambda to populate elements from index
+list = List<Int>(5, { index -> index + 1 })
+
+// method 3: create an empty list
+val emptyStringList = emptyList<String>()
+
+// by default, list is immutable in kotlin, you have to use mutable variants
+val mutableList = mutableListOf<String>()
+mutableList.add("a")
+mutableList.add("b")
+mutableList.add("c")
+mutableList[0] = "z"
+mutableList.removeAt(0)
+mutableList.remove("c")
+```
+
+#### Common list methods
+
+These are the methods that are common to all `List<T>` subclasses, covering both mutable and immutable lists.
+
+#### **immutable list**
+
+We use the `listOf()` constructor and pass in all the values we want to put into the immutable list.
+
+```kotlin
+// Lists, we use List<Type> and the type of the collection inside the generic
+// The literal uses the listOf constructor
+// countries is IMMUTABLE!
+val countries: List<String> = listOf("Argentina", "Brazil", "Canada", "Denmark")
+```
+
+You have three ways to create an immutable list in Kotlin:
+
+1. `listOf()`: create a list with elements already defined
+2. **instantiate a `List<T>` class**: specify the list size and then supply a lambda that populates each element with a value.
+3. **use `emptyList<T>` to create an empty list**
+
+```kt
+// method 1: use `listOf()` to create list with elements
+var list: List<Int> = listOf(1, 2, 3, 4, 5)
+
+// method 2: instantiate List<T> class with lambda to populate elements from index
+list = List<Int>(5, { index -> index + 1 })
+
+// method 3: create an empty list
+val emptyStringList = emptyList<String>()
+```
+#### **mutable list**
+
+We use the `mutableListOf()` constructor to get back a `MutableList` instance, which has methods to add and remove elements
+
+```kotlin
+val cities: MutableList<String> = mutableListOf("Alameda", "Buenos Aires", "Cali")
+cities.add("Dali")
 ```
 
 ### **sets**
