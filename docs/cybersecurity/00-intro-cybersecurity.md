@@ -25,6 +25,11 @@ Cybersecurity aims to have these three aspects in the practice, abbreviated CIA:
     
 - **Availability:** Ensuring timely, reliable access to systems and services without disruption.
 
+
+
+![](https://i.imgur.com/dgzLnaS.jpeg)
+
+
 #### Defense in depth
 
 Defense in depth is the concept that we should have multiple layers of security/defense to prevent a single point of failure and promote stronger defense.
@@ -604,6 +609,8 @@ Stealing session id cookie from other users to masquerade as being authenticated
 Use CSRF tokens to uniquely identify each page for each user. This way the server can manage the session information well.
 ## OWASP top 10
 
+OWASP is a non-profit foundation that handles securing software and creating open source tools for cybersecurity.
+
 | **#**   | **Vulnerability**                            | **Primary Mitigation**                                                   |
 | ------- | -------------------------------------------- | ------------------------------------------------------------------------ |
 | **A01** | **Broken Access Control**                    | Rigorous role enforcement, strict authorization checks, thorough testing |
@@ -616,6 +623,15 @@ Use CSRF tokens to uniquely identify each page for each user. This way the serve
 | **A08** | **Software & Data Integrity Failures**       | Code signing, pipeline integrity checks, verified artifact sources       |
 | **A09** | **Security Logging & Monitoring Failures**   | Centralized tamper-proof logging, SIEM alerts, active monitoring         |
 | **A10** | **Server-Side Request Forgery (SSRF)**       | Network segmentation, URL validation, and input sanitization             |
+
+
+![](https://i.imgur.com/SEMitpY.jpeg)
+
+![](https://i.imgur.com/AI2wpJy.jpeg)
+
+
+
+
 
 ### Quickstart
 
@@ -923,9 +939,14 @@ These situations can negatively affect the confidentiality, availability, and in
 
 ## Vulnerabilities
 
-### CVSS
+### CVE and CVSS
 
-CVSS stands for common vulnerability scoring system, and is a universal way of assessing how bad a vulnerability in software is.
+CVE (common vulnerabilities and exposures) catalog cyber vulnerabilities.
+
+> [!NOTE]
+> CVE is maintained by MITRE.
+
+CVSS stands for common vulnerability scoring system, and is a universal way of assessing how bad a CVE vulnerability in software is.
 
 There are three metrics that go into determining the score of a certain vulnerability.
 
@@ -944,6 +965,19 @@ Here are some things that determine the severity of a vulnerability.
 - **Attack complexity:** Low complexity means it’s simple to exploit, high complexity means only someone skilled could do the exploit.
 - **Privileges required:** Vulnerability is worse if you don’t need any privilege to do the exploit, as opposed to high privilege required.
 - **User interaction:** Worse if no user interaction is required for the exploit is triggered
+
+### EPSS
+
+EPSS means Exploit prediction scoring system, and is a daily estimate of the probability of exploitation activity being observed over the next 30 days.
+
+
+
+![](https://i.imgur.com/ZYH6Atj.jpeg)
+
+
+
+
+![](https://i.imgur.com/xZJKeey.jpeg)
 
 ### Authentication vulnerabilities
 
@@ -995,6 +1029,87 @@ Threat modeling is a tool used to brainstorm possible threats and corresponding 
 - **Elevation of privilege:** Gaining privileges without proper authorization
 
 ## Configuration Hardening
+
+### Best practices
+
+#### OWASP ASVS
+
+THe OWASP ASVS is a PDF that provides info on how to test web applications and harden them.
+
+#### OWASP cheatsheets
+
+COncise cheat sheets on how to mitigate against vulnerabilities:
+
+```embed
+title: "Index Top 10 - OWASP Cheat Sheet Series"
+image: "https://cheatsheetseries.owasp.org/assets/OWASP_Logo.svg"
+description: "Website with the collection of all the cheat sheets of the project."
+url: "https://cheatsheetseries.owasp.org/IndexTopTen.html"
+favicon: ""
+aspectRatio: "100.38314176245211"
+```
+
+
+#### CIS benchmarks
+
+CIS benchmarks are very specific actions one can take that are essential for improving security hardening in several ways:
+
+1. **Configuration Guidelines**: CIS benchmarks provide standardized configuration guidelines for various systems, including operating systems, applications, and network devices. These benchmarks help organizations ensure they are following best practices for security.
+    
+2. **Checklist for Validation**: They serve as a checklist to validate that security measures have been implemented correctly. For example, if someone builds a vanilla server, using the benchmarks allows you to verify their hardening efforts against established guidelines.
+    
+3. **Levels of Implementation**: CIS benchmarks are categorized into levels (Level 1 and Level 2). Level 1 benchmarks are designed to enhance security without affecting the usability of the system, while Level 2 benchmarks may have usability implications but offer enhanced security. This allows organizations to choose the level of security that is appropriate for their needs.
+
+You can refer to the giant PDF list of benchmarks for what to do
+
+```embed
+title: "CIS Benchmarks"
+image: "https://learn.cisecurity.org/l/799323/2020-03-30/jw9z/799323/22985/CIS_Benchmarks.png_width_250_name_CIS_Benchmarks.png"
+description: "Center for Internet Security Benchmarks Download Form"
+url: "https://learn.cisecurity.org/benchmarks"
+favicon: ""
+aspectRatio: "14.227642276422763"
+```
+
+#### CIS controls
+
+CIS Controls are a set of best practices designed to enhance the security posture of organizations. Here are the 18 CIS Controls explained briefly:
+
+1. **Inventory and Control of Enterprise Assets**: Ensure an inventory of all physical devices and systems within the organization so that you know what assets exist.
+    
+2. **Inventory and Control of Software Assets**: Maintain an inventory of all software programs including licenses and versions to avoid unauthorized or outdated software.
+    
+3. **Data Protection**: Implement processes and technical controls to securely manage data, including classification, storage, and disposal.
+    
+4. **Secure Configuration of Enterprise Assets and Software**: Maintain and enforce secure configurations of the systems and software, such as managing settings via group policies.
+    
+5. **Account Management**: Securely manage user accounts and permissions, implementing principles like least privilege.
+    
+6. **Access Control Management**: Implement policies for granting, controlling, and monitoring access to systems and data.
+    
+7. **Security Awareness and Skills Training**: Provide training to employees to make them aware of security risks and best practices.
+    
+8. **Incident Response Management**: Establish processes and plans for detecting, responding to, and recovering from security incidents.
+    
+9. **Penetration Testing**: Regularly test the security measures in place by simulating attack scenarios to identify and fix vulnerabilities.
+    
+10. **Malware Defenses**: Implement measures to detect and prevent malware.
+    
+11. **Vulnerability Management**: Regularly identify, assess, and remediate vulnerabilities in software and systems.
+    
+12. **Logging and Monitoring**: Implement logging and monitoring mechanisms to maintain visibility over systems and detect potential security incidents.
+    
+13. **Security Configurations**: Maintain secure configurations for software and hardware, ensuring they are not left in insecure state.
+    
+14. **Account Monitoring and Control**: Monitor accounts for unusual activity and enforce account controls.
+    
+15. **Secure Network Management**: Ensure network security including segmentation, firewalls, and controlling network traffic.
+    
+16. **Application Software Security**: Incorporate security in the software development process to address vulnerabilities early on.
+    
+17. **Implementation of Security Policies**: Establish and enforce security policies to guide security practices across the organization.
+    
+18. **Threat Intelligence and Vulnerability Intelligence**: Utilize external threat intelligence to inform and enhance your security posture.
 
 ### Bell-LaPadula model
 

@@ -1009,9 +1009,20 @@ However, you can still access root user powers by using `sudo` to temporarily as
 > [!NOTE]
 > The idea is that when you use `sudo` it’s more likely to be intentional that you’re going to execute a superuser-level action that could potentially be dangerous.
 
-To switch to the superuser role temporarily past a single command, you can use the following commands:
+To switch to the superuser role temporarily past a single command, you can use the `sudo su` command:
 
 - `sudo su -`: switches to superuser
+
+#### Adding users to superusers
+
+Superusers are listed and stored in the `/etc/sudoers` file on Linux. You can add users and groups to the list of superusers in two ways:
+
+- **Method 1 (directly edit sudoers file)**: Run `vi /etc/sudoers` to manually modify the superuser file and add a user there.
+- **Method 2 (add user to sudo group)**: Use the `usermod` command to add users to a group, specifically the superusers group:
+
+```bash
+sudo usermod -aG sudo $USERNAME
+```
 
 ### Changing permissions with `chmod`
 
@@ -1134,101 +1145,6 @@ On Mac:
 
 ```bash
 source ~/.zshrc
-```
-
-### ZSH vs Bash
-
-When you choose between these shells, you affect how efficiently you work daily and how easily your scripts run on different systems. Each shell was built with different goals in mind, so they fit different users and situations better.
-
-Here are the key differences you should think about:
-
-| Feature                     | Zsh                                          | Bash                                           |
-| --------------------------- | -------------------------------------------- | ---------------------------------------------- |
-| Default installation        | macOS (since Catalina), optional on Linux    | Most Linux distributions, macOS (pre-Catalina) |
-| Configuration files         | ~/.zshrc, ~/.zprofile, ~/.zshenv             | ~/.bashrc, ~/.bash_profile, ~/.bash_login      |
-| Tab completion              | Enhanced, context-aware with menu selection  | Basic, improved in newer versions              |
-| Themeable prompt            | Built-in support via prompt themes           | Limited, requires manual configuration         |
-| Plugin frameworks           | Oh My Zsh, Prezto, Zinit                     | Bash-it, some external tools                   |
-| Globbing (pattern matching) | Extended globbing by default                 | Requires enabling extended globbing            |
-| Directory navigation        | Auto cd, directory stacks, named directories | Basic directory navigation                     |
-| Command history             | Shared history, substring search             | Sequential history                             |
-| Scripting compatibility     | Highly compatible with Bash                  | POSIX-compliant, widely supported              |
-| Spelling correction         | Built-in                                     | Not available natively                         |
-| Path expansion              | Smart path expansion and completion          | Basic path expansion                           |
-| Array indexing              | Zero-based                                   | Zero-based                                     |
-| Customization complexity    | Simpler with frameworks, more options        | More manual, fewer options                     |
-| Performance                 | Slightly more resource-intensive             | Lightweight                                    |
-| Community resources         | Growing community, extensive themes/plugins  | Established documentation, widespread examples |
-
-
-
-#### `~/.bashrc` basics
-
-```bash
-# ~/.bashrc - for interactive non-login shells
-# This file contains most of your personal configuration
-
-# Add colorized output for ls command
-alias ls='ls --color=auto'
-
-# Custom command prompt with username, hostname, and current directory
-PS1='\u@\h:\w\$ '
-
-# Set command history size
-HISTSIZE=1000
-HISTFILESIZE=2000
-
-# Add custom directory to PATH
-export PATH=$PATH:$HOME/bin
-
-# ~/.bash_profile - for login shells
-# Often just sources ~/.bashrc plus environment variables
-
-if [ -f ~/.bashrc ]; then
-    . ~/.bashrc
-fi
-
-export EDITOR=vim
-
-```
-
-#### `~/.zshrc` basics
-
-1. Install the **Oh my Zsh** library first creating a `~/.oh-my-zsh/.oh-my-zsh` file which has these contents, installing the library:
-
-```zsh
-# Example of installing Oh My Zsh
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-# Edit ~/.zshrc to choose themes and plugins
-ZSH_THEME="agnoster"
-plugins=(git docker python vscode)
-```
-
-```zsh
-# ~/.zshrc - primary configuration file
-
-# Load Oh My Zsh framework
-export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="robbyrussell"
-plugins=(git docker kubectl macos)
-source $ZSH/oh-my-zsh.sh
-
-# Custom aliases beyond what plugins provide
-alias zshconfig="vim ~/.zshrc"
-alias ohmyzsh="vim ~/.oh-my-zsh"
-
-# Enable case-insensitive auto-completion
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
-
-# Directory shortcuts
-hash -d projects=~/Documents/Projects
-hash -d docs=~/Documents
-
-# Custom functions
-mkcd() {
-  mkdir -p "$1" && cd "$1"
-}
 ```
 
 ### customizing the shell environment
@@ -1571,6 +1487,17 @@ here are the folders that come preinstalled in the linux filesystem
     - `/usr/sbin` - Non-essential system binaries, usually to be run by root
     - `/usr/local/bin` - Binaries for user compiled programs
 - `/var` - Variable files like logs or caches
+
+#### Authentication files
+
+- `/etc/group`: file containing group account info including list of group members
+- `/etc/sudoers`: list of superuser members
+- `/etc/passwd`: contains user account info, basically the users that exist on the system.
+- `/etc/shadow`: contains password info for each user, and stores passwords by hashing and salting them with different algorithms:
+
+
+![](https://i.imgur.com/i7IKv7N.jpeg)
+
 
 ### systemd
 
@@ -1944,35 +1871,6 @@ sudo systemctl status cron
 
 Cron jobs do not have the ability to print to stdout, so if they fail, the fail silently. The best practice is to redirect all stdout from a cron job into a file and also redirect stderr into a file.
 
-## ZSH tips and tricks
-
-```embed
-title: "Zsh vs. Bash | Better Stack Community"
-image: "https://betterstack.com/og-image/zsh-vs-bash.png"
-description: "Learn the key differences between Zsh and Bash—two powerful Unix shells. Discover which is better for scripting, performance, customization, and productivity in your terminal workflow."
-url: "https://betterstack.com/community/guides/linux/zsh-vs-bash/"
-favicon: ""
-aspectRatio: "52.5"
-```
-
-
-#### Filesystem navigation in ZSH
-
-```zsh
-# Enhanced directory navigation in Zsh
-cd /p/t/d<Tab>       # Smart completion to "/path/to/directory"
-cd ...<Tab>          # Expands to "../.." (grandparent directory)
-/u/l/b<Tab>          # Expands to "/usr/local/bin"
-```
-
-```zsh
-# Directory operations
-take new/nested/dir  # Creates and enters directory in one command
-d                    # Show directory stack with numbers for quick access
-cd -<Tab>            # Interactive selection from directory history
-```
-
-
 ## Package managers
 
 A package manager is an online repository of source code that users can download via the internet so that they don't have to download it themselves every single time and build it from the source. 
@@ -2253,3 +2151,130 @@ The command to renew certbot is installed in one of the following locations:
 - `/etc/crontab/`
 - `/etc/cron.*/*`
 - `systemctl list-timers`
+
+## Bash, ZSH, Fish
+
+```embed
+title: "Zsh vs. Bash | Better Stack Community"
+image: "https://betterstack.com/og-image/zsh-vs-bash.png"
+description: "Learn the key differences between Zsh and Bash—two powerful Unix shells. Discover which is better for scripting, performance, customization, and productivity in your terminal workflow."
+url: "https://betterstack.com/community/guides/linux/zsh-vs-bash/"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+### ZSH vs Bash
+
+When you choose between these shells, you affect how efficiently you work daily and how easily your scripts run on different systems. Each shell was built with different goals in mind, so they fit different users and situations better.
+
+Here are the key differences you should think about:
+
+| Feature                     | Zsh                                          | Bash                                           |
+| --------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| Default installation        | macOS (since Catalina), optional on Linux    | Most Linux distributions, macOS (pre-Catalina) |
+| Configuration files         | ~/.zshrc, ~/.zprofile, ~/.zshenv             | ~/.bashrc, ~/.bash_profile, ~/.bash_login      |
+| Tab completion              | Enhanced, context-aware with menu selection  | Basic, improved in newer versions              |
+| Themeable prompt            | Built-in support via prompt themes           | Limited, requires manual configuration         |
+| Plugin frameworks           | Oh My Zsh, Prezto, Zinit                     | Bash-it, some external tools                   |
+| Globbing (pattern matching) | Extended globbing by default                 | Requires enabling extended globbing            |
+| Directory navigation        | Auto cd, directory stacks, named directories | Basic directory navigation                     |
+| Command history             | Shared history, substring search             | Sequential history                             |
+| Scripting compatibility     | Highly compatible with Bash                  | POSIX-compliant, widely supported              |
+| Spelling correction         | Built-in                                     | Not available natively                         |
+| Path expansion              | Smart path expansion and completion          | Basic path expansion                           |
+| Array indexing              | Zero-based                                   | Zero-based                                     |
+| Customization complexity    | Simpler with frameworks, more options        | More manual, fewer options                     |
+| Performance                 | Slightly more resource-intensive             | Lightweight                                    |
+| Community resources         | Growing community, extensive themes/plugins  | Established documentation, widespread examples |
+
+
+
+#### `~/.bashrc` basics
+
+```bash
+# ~/.bashrc - for interactive non-login shells
+# This file contains most of your personal configuration
+
+# Add colorized output for ls command
+alias ls='ls --color=auto'
+
+# Custom command prompt with username, hostname, and current directory
+PS1='\u@\h:\w\$ '
+
+# Set command history size
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# Add custom directory to PATH
+export PATH=$PATH:$HOME/bin
+
+# ~/.bash_profile - for login shells
+# Often just sources ~/.bashrc plus environment variables
+
+if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+fi
+
+export EDITOR=vim
+
+```
+
+#### `~/.zshrc` basics
+
+1. Install the **Oh my Zsh** library first creating a `~/.oh-my-zsh/.oh-my-zsh` file which has these contents, installing the library:
+
+```zsh
+# Example of installing Oh My Zsh
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# Edit ~/.zshrc to choose themes and plugins
+ZSH_THEME="agnoster"
+plugins=(git docker python vscode)
+```
+
+```zsh
+# ~/.zshrc - primary configuration file
+
+# Load Oh My Zsh framework
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git docker kubectl macos)
+source $ZSH/oh-my-zsh.sh
+
+# Custom aliases beyond what plugins provide
+alias zshconfig="vim ~/.zshrc"
+alias ohmyzsh="vim ~/.oh-my-zsh"
+
+# Enable case-insensitive auto-completion
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+
+# Directory shortcuts
+hash -d projects=~/Documents/Projects
+hash -d docs=~/Documents
+
+# Custom functions
+mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
+```
+
+
+### ZSH basics
+
+#### Filesystem navigation in ZSH
+
+```zsh
+# Enhanced directory navigation in Zsh
+cd /p/t/d<Tab>       # Smart completion to "/path/to/directory"
+cd ...<Tab>          # Expands to "../.." (grandparent directory)
+/u/l/b<Tab>          # Expands to "/usr/local/bin"
+```
+
+```zsh
+# Directory operations
+take new/nested/dir  # Creates and enters directory in one command
+d                    # Show directory stack with numbers for quick access
+cd -<Tab>            # Interactive selection from directory history
+```
+
+

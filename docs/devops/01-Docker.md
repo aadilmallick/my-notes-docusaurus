@@ -1228,6 +1228,17 @@ WORKDIR /app
 CMD ["index.js"]
 ```
 
+## Security on Docker
+
+### Best practices
+
+
+![](https://i.imgur.com/DHMS9VA.jpeg)
+
+
+
+![](https://i.imgur.com/UENQkqM.jpeg)
+
 ## Dev containers
 
 Dev containers allow you to launch your VSCode workspace using a dockerfile or other images so you don't have to install things locally on your end. They allow for seamless development in collaboration. 

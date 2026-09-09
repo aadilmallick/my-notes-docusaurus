@@ -359,7 +359,13 @@ You can use comments with Checkov in order to skip checking certain problematic 
 
 ### OWASP Zap
 
-OWASP ZAP (Zed Attack Proxy) is one of the most widely used open-source DAST tools. It can be operated via a Desktop GUI, a command-line interface, or an automated Docker container.
+OWASP ZAP (Zed Attack Proxy) is one of the most widely used open-source DAST tools. Ot os a PEN-testing tool that performs MITM attacks against your app to test it dynamically.
+
+
+![](https://i.imgur.com/v8cVL4L.jpeg)
+
+
+It can be operated via a Desktop GUI, a command-line interface, or an automated Docker container.
 
 #### Docker networking issue
 
