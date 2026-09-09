@@ -1033,9 +1033,25 @@ However, Kotlin targets the Java Virtual Machine (JVM), which enforces **Type Er
 
 ## Collections
 
-### Intro
+### Collections Intro
 
-There are two types of collections:
+In Kotlin, all iterable data structures inherit from the `Collection<T>` abstract class, which means you can perform standard operation across all different concrete collections, even if they seem different.
+
+Each collection has a mutable and immutable variant.
+
+Here are the three main different collections in Kotlin, along with their mutable and immutable variants:
+
+- **lists**: immutable variant is `List<T>`, mutable is `MutableList<T>`
+- **sets**: immutable variant is `Set<T>`, mutable is `MutableSet<T>`
+- **maps**: immutable variant is `Map<T>`, mutable is `MutableMap<T>`
+
+But since all these concrete collection subclasses inherit from the `Collection<T>` class, they also implement all the standard collections functionality:
+
+- **iterating over items**: includes standard `for` loop iteration and iteration methods.
+- **element access**: Includes standard element access via standardized methods and bracket-notation access.
+- **generator functionality**: includes powerful methods like `.take()` and `.filter()`.
+
+Here are all the immutable and mutable collections:
 
 **immutable collections**
 
@@ -1052,7 +1068,194 @@ There are two types of collections:
 - `mutableMapOf()` : ordered map
 - `hashSetOf()` : unordered set
 
+#### Arrays, lists, and sets
 
+Arrays, lists, and sets are the most similar in the collections family, and all have the exact same methods and ways for data access, adding elements, etc.
+
+#### Maps
+
+Maps are fundamentally a list of key-value pairs, which is a list of `Pair<K, V>(key, value)` data class instances under the hood.
+
+Thus for things like iteration, filtering, and looping, the iteration variable is in reality a `Pair<K, V>(key, value)` instance and you should keep that in mind.
+
+If you want to treat maps as normal iterables like arrays, lists, and sets, you can access a `List<K>` of the map's keys from a `map.keys` property.
+
+
+#### Collections basic properties
+
+- `collection.size`: returns the size the collection
+#### Collections data access
+
+Here's how each data access method works and the differences between them for different collection instances:
+
+- `collection.first()`: returns the first element in the collection
+- `collection.last()`: returns the last element in the collection
+
+
+For bracket syntax, you have differences in all of them:
+
+- **array/list**: Has indexed-based access to specific elements via `collection[index]` syntax
+- **set**: cannot access individual elements since hash sets don't allow data access and are not indexed-based.
+- **map**: Can access specific elements via `collection[key]` syntax
+
+#### Collections data modification
+
+On all collections, you can modify elements, but only mutable variants of concrete collections can add or remove elements.
+
+Here is how you can add or remove elements across collections:
+
+- **lists**
+	- `mutableList.add<T>(value)`
+	- `mutableList.remove<T>(value)`
+	- `mutableList.removeAt<T>(index)`: able to remove an element at a specific index
+- **sets**
+	- `mutableSet.add<T>(value)`
+	- `mutableSet.remove<T>(value)`
+- **maps**
+	- `map[key] = value`
+	- `map.put(key, value)`
+	- `map.remove(key)`
+
+### Collections iteration
+
+#### for-loop iteration
+
+You can loop through all collections with a `for/in` loop, but for maps, the iteration variable will be a `Pair<K, V>` instance.
+
+```kt
+val languages: Set<String> = setOf("Java", "Kotlin", "Scala")
+
+for (language in languages) {  
+    println(language)  
+}
+```
+
+Since `Pair<K, V>` instances have a `key` and `value` property, keep that in mind, and you also have destructuring capabilities:
+
+```kt
+var testScores = mapOf(Pair("Junie", 87), Pair("Julie", 87), Pair("Sea", 87))
+
+// loop over list of Pair<K, V> instances
+for (record in testScores) {
+	println("user ${record.key} has score ${record.value}")
+}
+
+// destructured Pair<K, V> instances
+for ((id, score) in testScores) {
+	println("user ${id} has score ${score}")
+}
+```
+
+#### `collection.forEach()`
+
+For lists, sets, and arrays, the `collection.forEach()` works as expected:
+
+```kt
+val readOnlyList = listOf(1, 2, 3)
+val readOnlySet = setOf(1, 2, 3)
+
+readOnlyList.forEach { println(it) }
+readOnlySet.forEach { println(it) }
+
+readOnlyList.forEach { num -> println(num) }
+readOnlySet.forEach { num -> println(num) }
+```
+
+For maps, the iterating element is a `Pair<K, V>` instance, so to access the key and value you will have to use the `pair.key` or `pair.value` syntax.
+
+```kt
+val readOnlyMap = mapOf(1 to "a", 2 to "b", 3 to "c")
+readOnlyMap.forEach { record -> println("${record.key} : ${record.value}") }
+```
+
+Or you can access the `map.keys` or `map.values` to get the keys array or values array respectively and then iterate over that.
+
+
+#### `collection.map()`
+
+The `collection.map()` iteration method returns a new list:
+
+```kt
+val readOnlyList = listOf(1, 2, 3)
+val readOnlySet = setOf(1, 2, 3)
+
+var doubleList = readOnlyList.map { it * 2}
+doubleList = readOnlySet.map { it * 2 }
+```
+
+And for maps, again the iterating element is a `Pair<K, V>` instance, so to access the key and value you will have to use the `pair.key` or `pair.value` syntax:
+
+```kt
+var keys = readOnlyMap.map { it -> it.key }
+```
+
+
+#### `collection.filter()`
+
+The `collection.filter()` iteration method returns a new list of only the elements that pass the predicate
+
+```kt
+val readOnlyList = listOf(1, 2, 3)
+val readOnlySet = setOf(1, 2, 3)
+
+var newlist = readOnlyList.filter { it > 2 }
+newList = readOnlySet.filter { it > 2 }
+```
+
+And for maps, again the iterating element is a `Pair<K, V>` instance, so to access the key and value you will have to use the `pair.key` or `pair.value` syntax:
+
+```kt
+val readOnlyMap = mapOf(1 to "a", 2 to "b", 3 to "c")
+
+readOnlyMap.filter { it.key > 1 }
+        .map { it -> it.key }
+        .sorted()
+        .forEach { key -> println(key) }
+```
+
+#### Other iteration methods:
+
+- `collection.sorted()`: returns the collection as sorted, works only on lists.
+- `collection.take(n)`: returns the first n elements in the collection
+### Sequences
+
+**Sequences** in Kotlin are basically the Kotlin-version of Python generators.
+
+The main difference is how they process data: 
+
+- Kotlin iterables (like List or Set) apply operations eagerly, creating intermediate collections for each step, which can be less efficient for large data sets.
+- Sequences process elements lazily, applying all operations one-by-one per element until a result is reached, which can improve performance by avoiding unnecessary processing, especially with large collections or when only part of the data is needed.
+
+There are two ways to create sequences:
+
+```kt
+val languages = listOf("kotlin", "java")
+
+// method 1: create sequence from `sequenceOf<T>(vararg T)`
+var sequence : Sequence<String> = sequenceOf(*languages.toTypedArray())
+
+// method 2: get sequence from `Collection<T>.asSequence()`
+sequence = languages.asSequence()
+```
+
+
+Why use sequences? This use case illustrates perfectly, where if we want only a small subset of the collection, it's a waste to use so much processing power to run all $O(n)$ operations for each collection iteration method.
+
+```kt
+val languages = listOf("kotlin", "java")
+
+// method 1: create sequence from `sequenceOf<T>(vararg T)`
+var sequence : Sequence<String> = sequenceOf(*languages.toTypedArray())
+
+// method 2: get sequence from `Collection<T>.asSequence()`
+sequence = languages.asSequence()
+
+sequence.filter { it.length > 1 }
+	.map {it.length}
+	.take(1)
+```
+
+When we use sequences, we just do the bare minimum, processing elements one at a time instead of loading entire collections into memory.
 
 
 ### Array and list basics
@@ -1312,6 +1515,27 @@ There are three types of set in Kotlin:
 - **hash set**: a mutable, unordered set, instantiated with the `hashsetOf()` function.
 - **mutable set**: a mutable, ordered set, instantiated with the `mutablesetOf()` function
 
+```kt
+// method 1: use `setOf<T>(varargs: T)` to return Set<T> instance
+val languages: Set<String> = setOf("Java", "Kotlin", "Scala")
+
+for (language in languages) {
+	println(language)
+}
+
+println(languages.contains("Kotlin"))
+
+val mutableLanguages = mutableSetOf("Java", "Scala")
+// won't work, cuz set
+mutableLanguages.add("Java")
+```
+#### normal immutable set
+
+```kt
+val languages: Set<String> = setOf("Java", "Kotlin", "Scala")
+```
+#### hash set
+
 Use the `hashSetOf()` constructor to get back a traditional set.
 
 ```kotlin
@@ -1339,6 +1563,55 @@ There are two types of maps in Kotlin:
 - **map**: an immutable, ordered map, instantiated with the `mapOf()` function.
 - **hash map**: a mutable, unordered map, instantiated with the `hashMapOf()` function.
 - **mutable map**: a mutable, ordered map, instantiated with the `mutableMapOf()` function.
+
+```kt
+// method 1: use Pair() class to define a key-value pair
+var testScores = mapOf(Pair("Junie", 87), Pair("Julie", 87), Pair("Sea", 87))
+
+// method 2: use infix function `to` as synctactic sugar over Pair() instance
+testScores = mapOf("Junie" to 87, "Julie" to 87, Pair("Sea", 87))
+
+testScores.containsKey("Junie")
+testScores.containsValue(87)
+
+for (record in testScores) {
+	println("user ${record.key} has score ${record.value}")
+}
+
+for ((id, score) in testScores) {
+	println("user ${id} has score ${score}")
+}
+
+testScores.keys.forEach { key -> println("user ${key} has score ${testScores[key]}") }
+
+val mutableTestScores = testScores.toMutableMap()
+
+// method 1: set key-value pair via standard bracket notation
+mutableTestScores["Junie"] = 91
+
+// method 2: add value with .put(), which is the old way
+mutableTestScores.put("Julie2", 91)
+mutableTestScores.putAll(testScores)
+```
+
+#### Creating maps
+
+There are two ways to create maps:
+
+1. Creating a list of `Pair()` instances and passing that into a `mapOf()` method.
+
+```kt
+// method 1: use Pair() class to define a key-value pair
+var testScores = mapOf(Pair("Junie", 87), Pair("Julie", 87), Pair("Sea", 87))
+```
+
+2. using a `<key> to <value>` syntactic sugar over creating a list of pair instances and passing that into a `mapOf()` method.
+
+```kt
+
+// method 2: use infix function `to` as synctactic sugar over Pair() instance
+testScores = mapOf("Junie" to 87, "Julie" to 87, Pair("Sea", 87))
+```
 
 #### map properties
 
