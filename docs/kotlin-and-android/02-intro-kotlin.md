@@ -2150,11 +2150,29 @@ enum class Color(val value: Int) {
 
 ### How modules and top-level globals work
 
+### Useful, small modules
+#### Random values
+
+```kts
+import kotlin.random.Random
+
+fun getRandom(max: Int) = Random.nextInt(max)
+```
+
 ### Testing
 
 1. Set up your `build.gradle.kts` to have the JUnit dependency:
 
-```kts
+```kts title="build.gradle.kts"
+plugins {
+    kotlin("jvm") version "2.1.0"
+    application
+}
+
+repositories {
+    mavenCentral()
+}
+
 dependencies {
     testImplementation(kotlin("test"))
 }
@@ -2163,15 +2181,83 @@ tasks.test {
     useJUnit()
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+application {
+    mainClass.set("MainKt")
+}
+```
+
+2. If not created, ensure you have a `settings.gradle.kts` like so:
+
+```kts title="settings.gradle.kts"
+rootProject.name = "mynewporj"
+```
+
+3. Run the `./gradleew.bat test` command:
+
+```bash
+.\gradlew.bat test --console=plain 2>&1 | Out-String
+```
+
+4. Now you can write tests like this:
+
+```kts
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class SampleTest {
+    @Test
+    fun `sorted lines are ordered`() {
+        val lines = listOf("c", "b", "a")
+        assertEquals(listOf("a", "b", "c"), lines.sorted())
+    }
+
+    @Test
+    fun `1 + 1 = 2`() {
+        assert(1 + 1 == 2)
+    }
+
+    @Test(expected = Throwable::class)
+    fun `illegal characters are not allowed`() {
+        val illegal = 8 / 0
+    }
+}
+```
+
+#### Mocking data with mockito
+
+Mockito is a third-party library that allows us to add mocks into our JUnit tests.
+
+1. Install mockito by adding it as a dependency
+
+```kt
+plugins {
+    kotlin("jvm") version "2.1.0"
+    application
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation("org.mockito:mockito-core:4.2.0")
+}
+
+tasks.test {
+    useJUnit()
 }
 
 application {
     mainClass.set("MainKt")
 }
-
 ```
+
+2. Refresh the gradle with `CTRL + SHIFT + O`
+
+
+![](https://i.imgur.com/ku0UPP3.jpeg)
+
 
 ## Async and Coroutines
 
