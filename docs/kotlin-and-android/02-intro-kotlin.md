@@ -959,6 +959,12 @@ fun add(vararg numbers: Int) : Int {
 }
 ```
 
+This is also powerful when combined with arrays, since you can either pass in the array as is to a `varargs` argument or spread it out.
+
+
+
+![](https://i.imgur.com/3gt6DuG.jpeg)
+
 ### Loops and iteration
 
 #### Ranges and infix functions
@@ -1064,11 +1070,58 @@ add(*list) // also valid
 
 ### Arrays
 
+```kt
+// method 1: use `arrayOf()`
+// smart enough to type as ints: Array<Int?>
+var ints = arrayOf(1, 2, 3, 4, 5, null)
+
+// method 2: instantiate array, specify size beforehand, make every element null
+ints = arrayOfNulls<Int>(5)
+
+// method 3: instantiate array size, lambda populates elements
+ints = Array(5, { i -> (i + 1) * i })
+
+for (int in ints) {
+	println(int)
+}
+
+for (i in 0 until ints.size) {
+	print(ints[i])
+}
+
+ints.forEach {int -> print(int) }
+```
+
+#### normal arrays
+
 You can create arrays using the `arrayOf()` method, and pass in a comma separated list of values as arguments.
 
 ```kotlin
 var myArr = arrayOf(val1, val2, val3, ...)
 ```
+
+In general, there are three ways to create normal arrays:
+
+1. **use `arrayOf<T>(varargs: T)`**: instantiates fixed array with elements.
+2. **use `arrayOfNulls<T>(size: Int)`**: Allocates array size, inits all elements to null
+3. **instantiate `Array<T>(size: Int, init: (index: Int) -> T)`**: Allocates array size, for each element in array, execute lambda to get the initial value of that element.
+
+```kt
+// method 1: use `arrayOf()`
+// smart enough to type as ints: Array<Int?>
+var ints = arrayOf(1, 2, 3, 4, 5, null)
+
+// method 2: instantiate array, specify size beforehand, make every element null
+ints = arrayOfNulls<Int>(5)
+
+// method 3: instantiate array size, lambda populates elements
+ints = Array(5, { i -> (i + 1) * i })
+```
+
+#### `intArray`
+
+You can create specialized, performant, compact integer arrays with `intArrayOf()` method.
+#### Array basics
 
 **array access**
 
@@ -1237,7 +1290,18 @@ There are two types of maps in Kotlin:
 - **hash map**: a mutable, unordered map, instantiated with the `hashMapOf()` function.
 - **mutable map**: a mutable, ordered map, instantiated with the `mutableMapOf()` function.
 
-#### map methods
+#### map properties
+
+```kotlin
+val map = mapOf(1 to "One", 2 to "Two" , 3 to "Three", 4 to "Four")
+map.keys // list of keys
+map.values // list of values
+map.size // returns map size
+```
+
+- `map.keys` : returns a list of the keys in the map
+- `map.values` : returns a list of the values in the map
+- `map.size` : returns the length of the map
 
 #### Hashmap
 
@@ -1248,9 +1312,10 @@ val map = hashMapOf<Int, String>(1 to "a", 2 to "b")
 map.put(3, "c")
 ```
 
-Here are a list of useful map methods:
+For mutable maps like a hash map, here are the methods you can use:
 
-- `map.put(key, value)` : add the key-value pair to the map
+- `hashMap.put(key, value)` : add the specified key value pair
+- `hashMap.remove(key)` : removes the specified key from the map, along with its corresponding value.
 
 
 #### map iteration
