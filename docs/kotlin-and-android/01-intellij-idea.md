@@ -65,3 +65,4 @@ In summary:
 
 - **classes**: to search class names only, do `CTRL + N`, then when hovering over a class definition, you can press `CTRL + Q` to view documentation of the class, then press `esc` to close th epopup
 - **symbols**: 
+
