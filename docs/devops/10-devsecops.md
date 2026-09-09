@@ -398,3 +398,11 @@ docker run -t owasp/zap2docker-stable zap-api-scan.py -t http://10.0.2.15:3000 -
 ```
 
 ## DevSecOps pipeline creation
+
+### Gitlab
+
+1. Create a YAML like so
+2. Add an environment variable secrets to the CI/CD pipeline
+
+
+![](https://i.imgur.com/3tL0EnK.jpeg)
