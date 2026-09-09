@@ -242,4 +242,104 @@ var result = when (day) {
 println(result)
 ```
 
-### Data structures
+## Collections
+
+### Lists
+
+#### Arrays
+
+You can create arrays using the `arrayOf()` method, and pass in a comma separated list of values as arguments.
+
+```kotlin
+var myArr = arrayOf(val1, val2, val3, ...)
+```
+
+**array access**
+
+Same as always. `arr[n]` access the nth element of the array
+
+
+```kt
+var cars = arrayOf("Volvo", "BMW", "Ford", "Mazda")
+
+println(cars[0]) // Volvo
+```
+
+**check if element exists**
+
+Use the `in` operator to check if an element is in the array
+
+```kotlin
+if (value in arr) {
+  // ...
+}
+```
+
+**loop through array**
+
+Use the **for-in** loop to loop through the elements of an array.
+
+```kotlin
+for (element in arr) {
+  // ...
+}
+```
+
+```kt
+for (x in cars) {
+  println(x)
+}
+```
+#### **immutable list**
+
+We use the `listOf()` constructor and pass in all the values we want to put into the immutable list.
+
+```kotlin
+// Lists, we use List<Type> and the type of the collection inside the generic
+// The literal uses the listOf constructor
+// countries is IMMUTABLE!
+val countries: List<String> = listOf("Argentina", "Brazil", "Canada", "Denmark")
+```
+
+#### **mutable list**
+
+We use the `mutableListOf()` constructor to get back a `MutableList` instance, which has methods to add and remove elements
+
+```kotlin
+val cities: MutableList<String> = mutableListOf("Alameda", "Buenos Aires", "Cali")
+cities.add("Dali")
+```
+
+#### List iteration
+
+
+You have list iteration methods that accept lambda functions
+
+```kt
+var cars = arrayOf("Volvo", "BMW", "Ford", "Mazda")
+
+// default `it` parameter
+cars.forEach {
+  println(it)
+}
+```
+### **set**
+
+Use the `hashSetOf()` constructor to get back a traditional set.
+
+```kotlin
+val strings = hashSetOf("a", "b", "c", "c")
+```
+
+### **hashmap**
+
+Use the `hashMapOf()` method to get back a hash map. You need to provide generics.
+
+```kotlin
+val map = hashMapOf<Int, String>(1 to "a", 2 to "b")
+map.put(3, "c")
+```
+
+Here are a list of useful map methods:
+
+- `map.put(key, value)` : add the key-value pair to the map
