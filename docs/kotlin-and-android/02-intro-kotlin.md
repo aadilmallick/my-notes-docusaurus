@@ -2146,9 +2146,139 @@ enum class Color(val value: Int) {
 
 - `Color.RED` has the value `0xFF0000`
 
+## Modules and third-party packages
+
+### How modules and top-level globals work
+
+### Testing
+
+1. Set up your `build.gradle.kts` to have the JUnit dependency:
+
+```kts
+dependencies {
+    testImplementation(kotlin("test"))
+}
+
+tasks.test {
+    useJUnit()
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+application {
+    mainClass.set("MainKt")
+}
+
+```
+
 ## Async and Coroutines
 
 ## Building CLI apps
 
 ### Accepting arguments
 
+The `main.kt` file must have the `main(vararg args: String)` analog to Java so it acts as the main entrypoint for running a kotlin project and then passing arguments to it via the command line.
+
+The `args` array is just a string list of the CLI arguments passed when running the project.
+
+```kt title="main.kt"
+/**
+ * args[0] - first CLI arg
+ */
+fun main(vararg args: String) {
+    println("first argument: ${args[0]}")
+}
+```
+
+To enable passing CLI values to the entrypoint in IntelliJ, follow these steps:
+
+1. Edit the run configuration for the project
+
+
+![](https://i.imgur.com/HuSiADr.jpeg)
+
+2. Add the arguments you want to pass
+
+
+![](https://i.imgur.com/cXAfHuh.jpeg)
+
+```kt
+fun main(vararg args: String) {
+    if (args.isEmpty()) {
+        println("Usage: pass something plz")
+    }
+    println("first argument: ${args[0]}")
+}
+
+```
+
+### Accepting user input
+
+Accept user input with the `readln()` function:
+
+```kt
+print("Enter your name: ")
+// ensures non-null input
+val name = readln()
+print("Enter your age: ")
+val age = readln().toInt()
+```
+
+### Files
+
+All files in Kotlin are represented through the `File(filepath: String)` class.
+
+```kt
+val scoresFile = File("scores.txt")
+if (!scoresFile.exists())  {
+	scoresFile.createNewFile()
+}
+scoresFile.writeText("$name $age\n")
+
+scoresFile.forEachLine { line -> println(line) }
+
+scoresFile.readLines().sorted().forEach { println(it) }
+
+val outputFile = File("sorted-scores.txt")
+outputFile.createNewFile()
+outputFile.toPath().writeLines(scoresFile.readLines().sorted())
+```
+
+#### File creation
+
+
+1. Create a `File` instance:
+
+```kt
+val scoresFile = File("scores.txt")
+```
+
+2. If the file instance doesn't exist, checking via `file.exists()`, then create it:
+
+```kt
+if (!scoresFile.exists())  {
+	scoresFile.createNewFile()
+}
+```
+
+In summary:
+
+- `file.exists()`: returns a boolean for whether or not the file exists
+- `file.createNewFile()`: synchronously creates the file.
+
+#### Reading file content
+
+```kt
+val scoresFile = File("scores.txt")
+
+scoresFile.forEachLine { line -> println(line) }
+
+scoresFile.readLines().sorted().forEach { println(it) }
+```
+
+You have two different ways of reading the contents of a file, both of which involve going line by line via a sequence for better memory performance:
+
+- `file.forEachLine(lambda: (line: String) -> Unit)`: for each line in the file, execute the lambda on it.
+- `file.readLines()`: returns a `Sequence<String>` representing the sequence of all the lines in the file, and then you can use it as a normal sequence.
