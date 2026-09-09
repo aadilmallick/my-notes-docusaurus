@@ -300,27 +300,6 @@ println("My name is $firstName $lastName")
 - `||` : logical OR
 - `!` : logical NOT
 
-#### Ternary expressions
-
-With this ternary expression in Kotlin, we can directly use if/else logic to set the value of a variable.
-
-```kotlin
-var myvar = if (condition) {
-  // value if condition is true
-} else {
-  // value if condition is false
-}
-```
-
-You can even shorten this to a more familiar Python-ish ternary expression:
-
-```kotlin
-var myvar = if (condition) value_if_true else value_if_false
-```
-
-```
-var greeting = if (14 < 18) "Good day." else "Good evening."
-```
 #### logical flow
 
 ##### **If/else**
@@ -363,6 +342,93 @@ while (condition) {
 
 ##### **When statements**
 
+`when` statements are basically if ternary operators and switch statements fucked and had a baby.
+
+Here are the rules:
+
+1. The "default" case in a `when` statement is an `else` block.
+2. Instead of single-statement case blocks with `->`, you can expand each case to be a multi-statement case with `-> {}` syntax.
+
+
+Here's a full example:
+
+```kt
+var someVariable = 0
+
+when {
+    someVariable > 3 -> println("The value was greater than 3")
+    someVariable > 2 -> println("The value was greater than 2")
+    else -> {
+        println("Not greater")
+    }
+}
+
+when (someVariable) {
+    0, 1 -> println("The value was 0 or 1")
+    2 -> println("The value is 2")
+    3 -> println("The value is 3")
+    in 4..Int.MAX_VALUE -> println("The value was greater than 3")
+}
+
+```
+
+##### `try/catch`
+
+Here is a basic try-catch:
+
+```kt
+try {
+	println("Hello World!")
+}
+catch (e: Exception) {
+	println(e.message)
+}
+```
+
+But it gets even more interesting when we use ternary expressions as shown in the next section. 
+
+#### Ternary expressions
+
+Ternary expressions offer syntactic sugar over retrieving a value from `if/else` logic or `when` logic and store that in a variable
+
+Here are the two main use cases for ternary expressions:
+
+- **conditionally storing a value for a variable**: immediately store different values in a variable depending on a condition.
+- **returning a conditional value from a function**: immediately different values from a function depending on a condition.
+
+##### `if/else` ternary
+
+With this ternary expression in Kotlin, we can directly use if/else logic to set the value of a variable.
+
+```kotlin
+var myvar = if (condition) {
+  // value if condition is true
+} else {
+  // value if condition is false
+}
+```
+
+You can even shorten this to a more familiar Python-ish ternary expression:
+
+```kotlin
+var myvar = if (condition) value_if_true else value_if_false
+```
+
+```kt
+var greeting = if (14 < 18) "Good day." else "Good evening."
+```
+
+Since ternary expressions just return a value, you can also set it as an immediate return value for a function, making for extremely concise syntax:
+
+```kt
+fun getMessage(input: Int) = if (input > 3) {
+    "Greater than 3"
+} else {
+    "Not greater than 3"
+}
+```
+##### `when` ternary
+
 ```kt
 var day = 4
 
@@ -379,6 +445,97 @@ var result = when (day) {
 println(result)
 ```
 
+Since ternary expressions just return a value, you can also set a `when` ternary as an immediate return value for a function, making for extremely concise syntax:
+
+```kt
+fun getMessageWithWhen(input: Int) = when (input) {
+    3 -> "Value is 3"
+    else -> "Value is not 3"
+}
+```
+
+##### `try/catch` ternary
+
+A `try/catch` ternary allows you to try returning a certain value in a `try` block, and if that throws an error, then it returns the return value from the `catch` block
+
+```kt
+// stores string
+val message = try {
+    "The value is ${10 / 0}"
+} catch (error: Throwable) {
+    "Error was thrown"
+}
+```
+
+
+You can also handle more specific errors with multiple `catch` blocks:
+
+```kt
+val message = try {
+    throw IllegalStateException()
+    "The value is ${10 / 0}"
+} catch (error: ArithmeticException) {
+    "Error was thrown"
+} catch (error: java.lang.IllegalStateException) {
+    "Error was IllegalState"
+}
+
+println(message)
+
+```
+
+### Type casting
+
+- `as`: type cast a variable to another type or class type
+- `is`: boolean check to see if a variable is of a certain type or is an object instance of a class.
+
+#### Type casting with `as`
+
+```kt
+/**
+ * PRINTS:
+ * ----------
+ * can't cast string to int
+ * able to successfully cast string to int false
+ */
+fun main(args: Array<String>) {
+    // able to cast broad class type "Any" to narrow class type "Int", if value is int
+    var generic: Any = 5
+    var int = generic as Int
+
+    val failedToCastStringToNumber = try {
+        // not able to cast string value to int
+        var generic2: Any = "string"
+        var int2: Int = generic2 as Int
+        true
+    } catch (e: ClassCastException) {
+        println("can't cast string to int")
+        false
+    }
+    println("able to successfully cast string to int $failedToCastStringToNumber")
+}
+```
+
+#### Type checking with `is`
+
+```kt
+fun checkType(input: Any) {
+    if (input is String) {
+        println("Input is a String")
+    }
+
+    if (input !is Int) {
+        println("Input is not an Int")
+    }
+}
+
+fun main() {
+    val aGenericVariable: Any = 5
+
+    checkType(aGenericVariable)
+}
+
+```
 ### Functions
 
 When returning something in a function, you need to provide type annotations for both the parameters and the return type.
@@ -458,17 +615,39 @@ You can return a value straight up, inferring the return type from the return va
 fun greeting() = "hello"
 fun salute(name: String) = "hello $name"
 ```
+
+
 #### Lambda functions
 
+Lambda functions are syntactic sugar over creating a function by storing the function directly as a variable. 
+
+Here are some rules to understand about lambdas:
+
+1. **Return value**: The return value of a lambda is whatever the last value referenced in a lambda function is, because there is no `return` statement allowed in a lambda.
 
 
-**Level 3: lambda function without parameters**
 
-The basic syntax of a lambda function is to type annotate it as an arrow function, like `() => ReturnType`, and then set it equal to a pair of `{}` and type your code inside, like this:
+The basic syntax of a lambda function is to type annotate it as an arrow function, like `() => ReturnType`, and then set it equal to a pair of `{}` and type your code inside, like this, via two ways:
+
+- **explicit lambda type annotation**: giving a type annotation for the function, which gives type annotations for both the function arguments and return type.
+- **implicit lambda type annotation**: inferring the return type annotation, which is only possible if you don't have any arguments.
 
 ```kotlin
-val myFunc: () -> String = {
-	return "hello"
+// level 1: explicit lambda type annotation
+val myFunc_level1: () -> String = {
+    "hello"
+}
+
+// level 2: implicit lambda type annotation, 
+// inferred as () -> String type function
+val myFunc_level2 = {
+    "hello"
+}
+
+// level 3: implicit lambda type annotation
+// inferred as (myvar: string) -> String type function
+val myFunc_level3 = { myvar : String ->
+    "hello $myvar"
 }
 ```
 
@@ -480,7 +659,8 @@ val greet: () -> Unit = {
 }
 ```
 
-**Level 4: lambda function with parameters**
+
+**Level 2: lambda function with parameters**
 
 The weird thing here is that in the return type annotation, you don’t specify the arguments, you just specify the type of the arguments, and then you actually define the arguments within the code block itself.
 
@@ -493,7 +673,7 @@ val sum: (Int, Int) -> Int = { x, y ->
 ```
 
 
-**Level 5: implicit `it`**
+**Level 3: implicit `it`**
 
 When you only have one argument in a lambda function, it will be named `it` by default and you don’t have to define it within the code block like you had to do for multiple parameters.
 
@@ -504,6 +684,72 @@ val greet: (String) -> String = {
    "Hello $it"
 }
 ```
+
+
+#### Functions as first-class objects
+
+Here is an example of functions being considered as objects:
+
+- `fn.invoke(varargs Any)`: invoke the function, pass in the required arguments.
+
+```kt
+// create a lambda with void typing
+var voidfn: () -> Unit = {
+    println("Hello world!")
+}
+
+fun main(args: Array<String>) {
+	// these two do the same thing
+    voidfn()
+    voidfn.invoke()
+
+	val greet = {name: String -> 
+		"hello $name"
+	}
+	greet("Aadil")
+	greet.invoke("Aadil")
+}
+```
+
+**Passing in functions as parameters**
+
+When passing in functions as parameters to another function, the type annotation of that function argument will be enough to just pass the function object in as is.
+
+If a function is the last argument in a function header, then you can use **trailing lambda syntax**, where you can add the lambda outside the parentheses of the supplied parameters.
+
+```kt
+fun printCalculatedValue(value1: Int, value2: Int, calculator: (Int, Int) -> Int) {
+    println("The value is: ${calculator(value1, value2)}")
+}
+
+fun main() {
+	// trailing lambda syntax
+    printCalculatedValue(2, 2) { value1, value2 ->
+        value1 + value2
+    }
+
+	// normal
+    printCalculatedValue(2, 2, { value1, value2 ->
+        value1 - value2
+    })
+}
+```
+
+Here's an example:
+
+```kt
+fun printFormattedName(fname: String, lname: String, formatName: (s1: String, s2: String) -> String) {
+    var formattedName = formatName(fname, lname)
+    println(formattedName)
+}
+
+fun main(args: Array<String>) {
+    printFormattedName("Aadil", "Mallick") { fname, lname ->
+        "$fname porky $lname"
+    }
+}
+```
+
 #### Extension functions
 
 Kotlin has a similar idea to adding methods to an object prototype. They are called **extension functions**, where `this` refers to the instance of the class we are extending the method from.
@@ -1245,7 +1491,5 @@ enum class Color(val value: Int) {
 ```
 
 - `Color.RED` has the value `0xFF0000`
-### instance of type-checking with `is`
 
-Use the `is` conditional keyword to see if an object is an instance of some class.
 ## Async and Coroutines
