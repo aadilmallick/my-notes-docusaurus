@@ -2150,4 +2150,5 @@ enum class Color(val value: Int) {
 
 ## Building CLI apps
 
-###
+### Accepting arguments
+
