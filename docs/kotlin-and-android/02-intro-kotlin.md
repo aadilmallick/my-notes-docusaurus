@@ -3070,6 +3070,11 @@ supervisorScope
 
 Coroutine builders can only be invoked inside a scope.
 
+- `launch`: launches coroutines that execute asynchronously, and jump execution to other coroutines when a `suspend` function is invoked somewhere in the launched coroutine body.
+	- **use case**: when you want to perform async work but you don't need to return value
+- `async`: launches coroutine that immediately return `Deferrable` instances so you can access the return value of a coroutine
+	- **use case**: when you want to retrieve a value from an async I/O process.
+
 #### `launch`
 
 The `launch` coroutine builder starts a coroutine and returns a `Job` instance:
@@ -3103,7 +3108,15 @@ suspend fun jobExample(): Unit = runBlocking {
 }
 ```
 
-The main use case for `launch` is to perform some asynchronous work that does not return a value, since the reutrn
+The main use case for `launch` is to perform some asynchronous work that does not return a value, since the return value of `launch` is `Job<Unit>`.
+
+Here's an appropriate mental model:
+
+>`launch`: start a coroutine whose completion matters, but which does not produce a value for me.
+
+#### `async`
+
+`async` is very similar to `launch`, except it is designed to produce a result.
 
 ### Structured concurrency
 
@@ -3266,65 +3279,10 @@ So let's trace it:
 2. child scope on I/O thread has two coroutines to execute:
 	1.  Execute println statement
 	2. Launch child coroutine that runs on same thread as `this@runBlocking`, which refers to the top-most `runBlocking` parent scope.
-#### `launch` vs `async`
-
-- `launch(lambda)`: launches a scope where coroutines are run sequentially, automatically awaited. Nested scopes are initialized sequentially, but the actual execution runs asynchronously, in the context of the child scope.
-- `async(lambda)`: launches scopes that immediately return `Deferrable` instances
-
-##### `launch`
 
 
-##### `async`
 
-Async/await is a way to parallelize suspend functions and coroutines, like if you want to parallelize network requests.
-
-1. Wrap a suspension call in the `async {}` lambda. The return value will be a _Deferrable_
-2. The coroutine `deferrable.await()` runs blocking until you can get the return of the suspension function
-
-```kotlin
-suspend fun networkRequest1() : String {
-    delay(2000)
-    return "{success: true}"
-}
-
-suspend fun networkRequest2() : String {
-    delay(2000)
-    return "{success2: true}"
-}
-
-GlobalScope.launch {
-		// 1. get deferrables of the suspend functions
-        val deferred1 = async {networkRequest1()}
-        val deferred2 = async {networkRequest2()}
-		
-		// 2. await the suspend functions
-        println(deferred1.await())
-        println(deferred2.await())
-        
-        println("await finished")
-}
-```
-
-Or you can await them in parallel
-
-```kt
-GlobalScope.launch {
-	// 1. get deferrables of the suspend functions
-	val deferred1 = async {networkRequest1()}
-	val deferred2 = async {networkRequest2()}
-	
-	// 2. await the suspend functions
-	awaitAll(deferred1, deferred2)
-	
-	println("await finished")
-}
-```
-##### Jobs and deferrables
-
-A job can be used to remember a coroutine and cancel it.
-
-- The `launch {}` lambda returns a **job**
-- The `async {}` lambda returns a **deferrable**
+#####
 
 
 ## Building CLI apps
