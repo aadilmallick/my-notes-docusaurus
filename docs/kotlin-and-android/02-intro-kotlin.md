@@ -2764,6 +2764,14 @@ Here is how scope works in detail:
 > [!NOTE]
 > We can create custom threads and have scopes run in those threads instead, as we'll see in the next section
 
+#### Launching coroutines
+
+`launch {}` and `async {}` are two coroutine lambda blocks you can write in any coroutine scope, like globalscope, etc., to create a **child scope**.
+
+- `launch {}` : returns a _job_, which lets you cancel or wait for the coroutine to finish.
+- `async {}` : whatever you return from here is returned as a _Deferable,_ which you can await the value of using `deferable.await()`
+
+They both launch a coroutine within a scope, and then you can nest those lambda blocks to create child coroutines and scopes.
 
 
 #### Basic coroutine with `runBlocking`
