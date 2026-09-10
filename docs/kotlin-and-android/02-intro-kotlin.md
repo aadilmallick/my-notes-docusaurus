@@ -2150,6 +2150,37 @@ enum class Color(val value: Int) {
 
 ### How modules and top-level globals work
 
+Kotlin follows Python, where a file is treated as a module, and each variable, function, and object in a file is automatically exported and available for other files to use.
+
+Basically, a file is treated as syntactic sugar for a class, and top-level variables, constants, functions, and classes, are all considered "public" for use.
+
+```kts
+const val globalVal = "I am global"
+
+public var globalMutableVar = "I am globally mutable"
+
+private var localMutableVar = "I am private, only allowed to use in this file"
+
+fun main(vararg args: String) {
+    println("I am also public and global")
+}
+```
+
+There are three access modifiers you can set
+
+- `public`: makes the object able to be publicly used across the codebase. 
+	- By default, any top-level object, variable, or function has the `public` modifier implicitly applied, and thus becomes a global.
+- `private`: the object is only available within the file, cannot be used publicly in other files.
+- `internal`: makes the variable accessible within the given module but not the entire project. 
+
+> [!IMPORTANT]
+> Global variables are problematic because they are easy to use, even if convenient, because of these core reasons:
+> 
+> 1. Makes it harder to know what to import
+> 2. Destroys encapsulation if a variable was meant to only be used within a certain file.
+
+Avoid using global variables, and instead either group them together within objects or declare them `private` or `internal`.
+
 ### Useful, small modules
 #### Random values
 
@@ -2241,7 +2272,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-    testImplementation("org.mockito:mockito-core:4.2.0")
+    testImplementation("org.mockito:mockito-core:5.11.0")
 }
 
 tasks.test {
@@ -2258,6 +2289,36 @@ application {
 
 ![](https://i.imgur.com/ku0UPP3.jpeg)
 
+3. Now you can add tests like so:
+
+```kts
+import org.mockito.Mockito
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class DummyClass {
+    fun hello() {
+        println("function implementation")
+    }
+}
+
+private fun runHello(dummyClass: DummyClass) {
+    println("starting Hello")
+    dummyClass.hello()
+    println("ending Hello")
+}
+
+class SampleTest {
+    @Test
+    fun `mock out DummyClass`() {
+        val mockedClass = Mockito.mock(DummyClass::class.java)
+        runHello(mockedClass)
+
+        // verify that DummyClass.hello() mock was called at least once
+        Mockito.verify(mockedClass).hello()
+    }
+}
+```
 
 ## Async and Coroutines
 
