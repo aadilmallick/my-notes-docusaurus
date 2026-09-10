@@ -2798,7 +2798,19 @@ Those are extremely common misunderstandings.
 > [!NOTE]
 > A `suspend` function does nothing asynchronous whatsoever. It is simply a suspendable function.
 
-**Why you can only use `suspend` functions in coroutines or other `suspend` functions**
+
+#### Rules
+
+Here are the main rules of `suspend` functions:
+
+1. **you can only use `suspend` functions in coroutines or other `suspend` functions**
+2. **sequential suspend calls are still sequential**: In the context of a `suspend` function body, the entire body executes in order. All nested `suspend` function invocations are treated as synchronous and are blocking within the `suspend` fun, just like async/await.
+
+
+> [!IMPORTANT]
+> `suspend` does **not** imply concurrency.
+
+##### **Why you can only use `suspend` functions in coroutines or other `suspend` functions**
 
 
 > [!NOTE]
@@ -2954,40 +2966,6 @@ It means:
 
 That leads directly to a deeper idea.
 
-#### Coroutine execution order
-
-Let's step through an execution example:
-
-```kt
-fun main(vararg args: String) : Unit = runBlocking {
-    // 1. recognize coroutine, queue for execution
-    launch {
-	    // 4. dequeue coroutine body for execution, execute sync code
-        println("2")
-        // 5. "suspend" execution when reaching `suspend` function delay
-        delay(1000)
-        // 9. after delay(1000) call finishes suspension, run sync code
-        println("5")
-    }
-
-    // 2. immediately run syunchronous code
-    println("1")
-
-     // 3. recognize coroutine, queue for execution
-    launch {
-        // 6. dequeue coroutine body for execution,
-        // immediately run any synchronous code
-        println("3")
-        // 7. suspend execution of the coroutine
-        // see if any other coroutines have finished their suspending process
-        // finishes suspension and dequeues before the delay(1000) call
-        delay(500)
-        // 8. run synchronous code
-        println("4")
-    }
-}
-```
-
 
 #### Using `suspend` functions
 
@@ -3053,7 +3031,7 @@ fun main() {
 
 As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function. This is nothing special. Coroutines are automatically awaited within a scope.
 
-### Coroutine builders and scope
+### Coroutine builders
 
 
 `suspend` functions do not create coroutines. You need a **coroutine builder**.
@@ -3118,7 +3096,67 @@ Here's an appropriate mental model:
 
 `async` is very similar to `launch`, except it is designed to produce a result.
 
-### Structured concurrency
+Async/await is a way to parallelize suspend functions and coroutines, like if you want to parallelize network requests.
+
+1. Wrap a suspension call in the `async {}` lambda. The return value will be a `Defferable` instance that immediately kicks off coroutine execution in the background.
+2. The coroutine `deferrable.await()` runs blocking until you can get the return of the suspension function
+
+```kotlin
+suspend fun networkRequest1() : String {
+    delay(2000)
+    return "{success: true}"
+}
+
+suspend fun networkRequest2() : String {
+    delay(2000)
+    return "{success2: true}"
+}
+
+GlobalScope.launch {
+		// 1. get deferrables of the suspend functions
+        val deferred1 = async {networkRequest1()}
+        val deferred2 = async {networkRequest2()}
+		
+		// 2. await the suspend functions
+        println(deferred1.await())
+        println(deferred2.await())
+        
+        println("await finished")
+}
+```
+
+Or you can await them in parallel
+
+```kt
+GlobalScope.launch {
+	// 1. get deferrables of the suspend functions
+	val deferred1 = async {networkRequest1()}
+	val deferred2 = async {networkRequest2()}
+	
+	// 2. await the suspend functions
+	awaitAll(deferred1, deferred2)
+	
+	println("await finished")
+}
+```
+
+
+#### `launch` vs `async`
+
+|                 | `launch`             | `async`                                |
+| --------------- | -------------------- | -------------------------------------- |
+| Returns         | `Job`                | `Deferred<T>`                          |
+| Produces result | No meaningful result | Yes                                    |
+| Wait using      | `join()`             | `await()`                              |
+| Typical purpose | Start some work      | Start computation that returns a value |
+
+A useful rule:
+
+- If you don't need a return value, prefer `launch`.  
+- If you're intentionally running a computation concurrently and need its value later, use `async`.
+
+### Scopes and structured concurrency
+
 
 Coroutines have two main features:
 
@@ -3126,15 +3164,32 @@ Coroutines have two main features:
 - **coroutine cancellation**: Kotlin allows you to cancel a coroutine or a coroutine scope.
 	- Typically, cancelling a coroutine cancels any child coroutines and scopes as well.
 
-You have three coroutine scopes, `GlobalScope`, `coroutineScope`, and `runBlocking`, that have different behaviors as to how they control child scopes and coroutines.
+A coroutine scope is a concrete subclass of the `CoroutineScope` class, and is essentially an object that contains a `CoroutineContext`.
 
-- **GlobalScope**: Lives for the entire application lifetime. Use it only for coroutines that should persist throughout your program, but be cautious as it doesn't tie coroutines to any specific lifecycle.  
-      
-    
-- **runBlocking scope**: Creates a scope that blocks the current thread until all coroutines inside it complete. It's useful in main functions or testing to ensure coroutines finish before the program exits.  
-      
-    
-- **Child scopes**: Scopes can be nested to create parent-child relationships, helping manage coroutines hierarchically. Canceling a parent scope cancels all its child coroutines, which is great for cleaning up work tied to specific components or requests.
+Its simplified definition looks conceptually like:
+
+```kt
+interface CoroutineScope {
+    val coroutineContext: CoroutineContext
+}
+```
+
+A scope gives coroutine builders a **context and lifecycle relationship**.
+
+1. A scope invoking a coroutine builder creates a **coroutine**.
+2. coroutine builders invoked within a coroutine body created **child coroutines**.
+
+```kt
+// create parent coroutine associated with scope
+scope.launch {
+	// create child coroutine/scope
+	launch {
+		// ...
+	}
+	
+}
+```
+
 
 
 Here is how scope works in detail:
@@ -3147,14 +3202,18 @@ Here is how scope works in detail:
 > [!NOTE]
 > We can create custom threads and have scopes run in those threads instead, as we'll see in the next section
 
-#### Launching coroutines
+#### Scope types
 
-`launch {}` and `async {}` are two coroutine lambda blocks you can write in any coroutine scope, like globalscope, etc., to create a **child scope**.
 
-- `launch {}` : returns a _job_, which lets you cancel or wait for the coroutine to finish.
-- `async {}` : whatever you return from here is returned as a _Deferable,_ which you can await the value of using `deferable.await()`
+You have three coroutine scopes, `GlobalScope`, `coroutineScope`, and `runBlocking`, that have different behaviors as to how they control child scopes and coroutines.
 
-They both launch a coroutine within a scope, and then you can nest those lambda blocks to create child coroutines and scopes.
+- **GlobalScope**: Lives for the entire application lifetime. Use it only for coroutines that should persist throughout your program, but be cautious as it doesn't tie coroutines to any specific lifecycle.  
+      
+    
+- **runBlocking scope**: Creates a scope that blocks the current thread until all coroutines inside it complete. It's useful in main functions or testing to ensure coroutines finish before the program exits.  
+      
+    
+- **Child scopes**: Scopes can be nested to create parent-child relationships, helping manage coroutines hierarchically. Canceling a parent scope cancels all its child coroutines, which is great for cleaning up work tied to specific components or requests.
 
 
 #### Basic coroutine with `runBlocking`
@@ -3271,18 +3330,6 @@ This is some network call on a worker thread DefaultDispatcher-worker-1
 some UI update that should be run on the same thread runBlocking runs in main
 ```
 
-So let's trace it:
-
-1. Create a `runBlocking` scope on the main thread, there are two coroutines to execute:
-	- Launch child scope on I/O thread
-	- Execute println statement
-2. child scope on I/O thread has two coroutines to execute:
-	1.  Execute println statement
-	2. Launch child coroutine that runs on same thread as `this@runBlocking`, which refers to the top-most `runBlocking` parent scope.
-
-
-
-#####
 
 
 ## Building CLI apps
