@@ -42,6 +42,54 @@ By modifying our code to use these tools, we can integrate each silo together in
 
 Now instead of each team working individually, DevSecOps achieves all three teams working together to achieve their objectives in an automated pipeline.
 
+### Core guiding principles
+
+#### CAMS
+
+The CAMS model in DevOps stands for **Culture, Automation, Measurement, and Sharing**:  
+  
+
+- **Culture** focuses on changing human behaviors and breaking down silos between teams to foster collaboration.
+- **Automation** speeds up processes and reduces manual work, helping to improve efficiency and quality.
+- **Measurement** involves tracking key metrics to understand system performance and team outcomes.
+- **Sharing** promotes transparency and teamwork through open communication and knowledge exchange.
+
+> [!NOTE]
+> Automation is the accelerator that helps you unlock the other benefits of Devops. Manual work is a source of many efficiency and quality problems in technology value streams so you want to outsource the manual work to automation as your primary approach to creating solutions.
+
+The CAMS model in devops helps us view our purpose as the following values:
+
+- **culture**: we want to change the behavior of people
+- **automation**: use automation to accelerate change
+- **measure**: we need to measure what we're doing in order to improve. 
+- **sharing**: working together builds better services.
+
+
+#### The three ways of devops
+
+
+![](https://i.imgur.com/IwTgBVN.jpeg)
+
+The Three Ways of DevOps are strategic principles to bring DevOps values to life:  
+  
+
+- **Systems Thinking and Principles of Flow:** Focus on optimizing the entire system's outcome rather than just individual parts, ensuring smooth flow from concept to delivery.
+	- You have to understand the whole system to optimize it well
+	- The overall flow from beginning to end is how you actually produce value, not improving one part of the system at the expense of other parts.
+- **Amplifying Feedback Loops:** Create and shorten feedback loops between teams to catch issues early and improve efficiency.
+	- Effective and fast feeback yields a better and more efficient system.
+- **Culture of Continuous Experimentation and Learning:** Foster a work culture that encourages trying new ideas, learning from them, and continuously improving through practice.
+
+#### Devops playbook
+
+The five main practice areas of DevOps covered in the video are:  
+  
+
+- **Culture:** Building a stable, safe environment for learning, sharing, experimenting, and collaboration.
+- **Process:** Using agile and lean techniques like small batches, feedback loops, and lightweight change approvals.
+- **Infrastructure as Code:** Managing infrastructure through software practices for reproducibility and rapid scaling.
+- **Continuous Delivery:** Automating testing and deployment to release small changes frequently and reliably.
+- **Site Reliability Engineering:** Engineering systems for reliability with observability and automation.
 
 ### CI/CD
 
