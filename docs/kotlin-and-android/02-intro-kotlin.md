@@ -2838,6 +2838,95 @@ If it suspends, Kotlin needs somewhere to store:
 
 A normal function call doesn't participate in that coroutine machinery, but a suspend function does.
 
+#### Coroutine state deep dive
+
+Suppose:
+
+```kt
+suspend fun example() {
+    println("A")
+
+    delay(1000)
+
+    println("B")
+}
+```
+
+Conceptually, Kotlin needs to remember something like:
+
+```
+state = BEFORE_DELAY
+```
+
+When `delay()` suspends, execution leaves the function.
+
+Later Kotlin resumes it with something conceptually like:
+
+```
+state = AFTER_DELAY
+```
+
+and continues at:
+
+```
+println("B")
+```
+
+You can roughly imagine the compiler transforming suspend functions into state machines.
+
+Not literally this code, but conceptually:
+
+```kt
+when (state) {
+    0 -> {
+        println("A")
+        state = 1
+        delay(...)
+        return
+    }
+
+    1 -> {
+        println("B")
+    }
+}
+```
+
+Coroutines models the event-loop in node, where suspending functions "pause" the execution of a currently executing coroutine and then execute in the background (be it a network or database I/O call) and then move to the next coroutine scheduled for execution.
+
+> [!NOTE]
+> This transformation is one reason coroutines can be much lighter-weight than blocking one OS thread per operation. 
+
+So this is how coroutine execution works in a coroutine like this:
+
+```kt
+fun main(vararg args: String) : Unit = runBlocking {
+	// 1. process coroutine
+    launch {
+	    // 2. any synchronous code is immediately executed
+        println("1")
+        // 3. "suspend" execution when reaching `suspend` function delay
+        delay(1000)
+        // 9. after delay(1000) call finishes suspension, run sync code
+        println("5")
+    }
+
+	// 4. immediately run any synchronous code
+    println("2")
+    
+    // 5. process coroutine
+    launch {
+	    // 6. immediately run any synchronous code
+	    println("3")
+	    // 7. suspend execution of the coroutine
+	    // see if any other coroutines have finished their suspending process
+	    // this finishes suspension before the delay(1000) call
+	    delay(500)
+	    // 8. run synchronous code
+	    println("4")
+    }
+}
+```
+
 #### Suspension vs blocking
 
 This distinction matters enormously.
