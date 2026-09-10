@@ -2544,9 +2544,9 @@ Here is how scope works in detail:
 > [!NOTE]
 > We can create custom threads and have scopes run in those threads instead, as we'll see in the next section
 
-The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
 
-#### Creating coroutines
+
+#### Basic coroutine
 
 1. Install the dependencies
 
@@ -2556,6 +2556,14 @@ dependencies {
 }
 ```
 
+This is an example of launching a coroutine with `GlobalScope.launch`, which means that the coroutine will persist for the lifetime of the app unless we programmatically cancel it.
+
+```kt
+
+```
+#### Jobs
+
+The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
 #### Coroutine contexts
 
 Coroutine contexts are what you use to change which thread a scope or coroutine runs on.
