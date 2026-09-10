@@ -2725,7 +2725,48 @@ for (i in 1..10) {
 
 ### Coroutines
 
-#### What is a coroutine
+#### Why coroutines
+
+For async I/O where we want to initiate a network request without it being blocking, we need some way to offload that network request in a non-blocking way.
+
+A traditional solution is to create more threads:
+
+```
+Thread 1 -> waits for network
+Thread 2 -> handles another request
+Thread 3 -> waits for database
+Thread 4 -> ...
+```
+
+But threads are relatively expensive operating-system resources, and you can only spawn as many threads as there are CPU cores.
+
+Coroutines give us another model:
+
+```
+Thread
+  |
+  | run coroutine A
+  |
+  | A reaches a waiting point
+  |
+  | run coroutine B
+  |
+  | B reaches a waiting point
+  |
+  | resume A
+```
+
+A coroutine can **pause without blocking its thread**.
+
+That's the central idea.
+
+A useful mental model is:
+
+> A thread is where code physically executes.  
+> A coroutine is a resumable computation that can move on and off threads.
+
+#### Coroutines in Kotlin
+
 
 Coroutines are a routine that can be paused and resumed. They can be thought of lightweight threads, but unlike threads, they are not directly tied to the number of CPU cores.
 
@@ -2735,7 +2776,191 @@ Unlike traditional threads, coroutines can be suspended and resumed without bloc
 - Multiple coroutines may be on a single thread
 - Because coroutines can be paused and resumed, coroutine execution may jump threads
 
+
 They run within scopes that manage their lifecycle and support cancellation, making it easier to handle concurrent tasks like API requests or background processing in a clean and resource-friendly way.
+
+### `suspend` functions
+
+#### What is a `suspend` function?
+
+Consider a `suspend` function. The keyword `suspend` means that this function is allowed to suspend the coroutine that is executing it.
+
+It does **not** mean:
+
+> This function automatically runs asynchronously.
+
+And it does **not** mean:
+
+> This function automatically creates a new thread.
+
+Those are extremely common misunderstandings.
+
+> [!NOTE]
+> A `suspend` function does nothing asynchronous whatsoever. It is simply a suspendable function.
+
+**Why you can only use `suspend` functions in coroutines or other `suspend` functions**
+
+
+> [!NOTE]
+> You can only use `suspend` functions in coroutines or other `suspend` functions because how coroutines store execution state.
+
+
+Suppose we had:
+
+```kt
+fun first() {
+    second()
+}
+
+suspend fun second() {
+    delay(1000)
+}
+```
+
+Kotlin won't allow a regular function to call `second()` directly:
+
+```kt
+fun first() {
+    second() // error
+}
+```
+
+Why?
+
+Because `second()` might suspend.
+
+If it suspends, Kotlin needs somewhere to store:
+
+- where execution should resume
+- local variables
+- intermediate state
+- what should happen after the suspended call
+
+A normal function call doesn't participate in that coroutine machinery, but a suspend function does.
+
+#### Suspension vs blocking
+
+This distinction matters enormously.
+
+Compare:
+
+```
+Thread.sleep(1000)
+```
+
+with:
+
+```
+delay(1000)
+```
+
+`Thread.sleep` blocks the thread:
+
+```
+Thread
+|
+| sleep....................................
+|
+| continues
+```
+
+Nobody else can use that thread during the sleep.
+
+`delay` suspends the coroutine:
+
+```
+Thread
+|
+| Coroutine A runs
+| A calls delay()
+| A suspends
+|
+| Coroutine B may run here
+|
+| Coroutine A becomes ready
+| A resumes
+```
+
+So:
+
+```
+delay()
+```
+
+does not mean "sleep this thread."
+
+It means:
+
+> Suspend this coroutine and arrange for it to become runnable later.
+
+That leads directly to a deeper idea.
+
+#### Using `suspend` functions
+
+ A good example of a suspend function is `delay(ms: Int)`.
+
+
+```kt
+suspend fun downloadUser(): User {
+    delay(1000)
+    return User("Alice")
+}
+```
+
+
+
+```kotlin
+import kotlinx.coroutines.*
+
+fun main() {
+    println("Main thread started")
+    
+    GlobalScope.launch {
+        delay(1000)
+        println("coroutine: delayed")
+        delay(1000)
+        println("coroutine: delayed again")
+    }
+    
+    Thread.sleep(3000)
+    println("Main thread finished")
+}
+```
+
+The code above will print out the following output:
+
+```kotlin
+Main thread started
+coroutine: delayed
+coroutine: delayed again
+Main thread finished
+```
+
+You can create your own suspend function using the `suspend fun` keyword.
+
+```kotlin
+suspend fun networkCall() : String {
+    delay(1000) // simulate network call
+    return "{'success': true}"
+}
+
+fun main() {
+    println("Main thread started")
+    
+    GlobalScope.launch {
+        val responseData = networkCall()
+        println("data from network call: ${responseData}")
+    }
+    
+    Thread.sleep(3000)
+    println("Main thread finished")
+}
+```
+
+As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function. This is nothing special. Coroutines are automatically awaited within a scope.
+
+
+### Structured concurrency
 
 Coroutines have two main features:
 
@@ -2896,62 +3121,6 @@ So let's trace it:
 2. child scope on I/O thread has two coroutines to execute:
 	1.  Execute println statement
 	2. Launch child coroutine that runs on same thread as `this@runBlocking`, which refers to the top-most `runBlocking` parent scope.
-#### `suspend`
-
-Suspend functions are syntactic sugar over creating a coroutine.
-
- A good example of a suspend function is `delay(ms: Int)`, which will only be blocking within a coroutine scope.
-
-```kotlin
-import kotlinx.coroutines.*
-
-fun main() {
-    println("Main thread started")
-    
-    GlobalScope.launch {
-        delay(1000)
-        println("coroutine: delayed")
-        delay(1000)
-        println("coroutine: delayed again")
-    }
-    
-    Thread.sleep(3000)
-    println("Main thread finished")
-}
-```
-
-The code above will print out the following output:
-
-```kotlin
-Main thread started
-coroutine: delayed
-coroutine: delayed again
-Main thread finished
-```
-
-You can create your own suspend function using the `suspend fun` keyword.
-
-```kotlin
-suspend fun networkCall() : String {
-    delay(1000) // simulate network call
-    return "{'success': true}"
-}
-
-fun main() {
-    println("Main thread started")
-    
-    GlobalScope.launch {
-        val responseData = networkCall()
-        println("data from network call: ${responseData}")
-    }
-    
-    Thread.sleep(3000)
-    println("Main thread finished")
-}
-```
-
-As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function. This is nothing special. Coroutines are automatically awaited within a scope.
-
 #### `launch` vs `async`
 
 - `launch(lambda)`: launches a scope where coroutines are run sequentially, automatically awaited. Nested scopes are initialized sequentially, but the actual execution runs asynchronously, in the context of the child scope.
