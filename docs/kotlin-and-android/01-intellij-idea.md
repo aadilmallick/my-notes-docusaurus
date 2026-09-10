@@ -4,6 +4,8 @@
 
 Using the JVM, you can create bytecode using JVM, and that bytecode can run on any machine that has the JVM.
 
+Kotlin is fully interoperable with Java, which means Kotlin works great with all existing Java [source code](https://hyperskill.org/learn/step/4350 "In Kotlin, a source code is a set of instructions and statements written in the Kotlin programming language. | These instructions are used to create programs, functions, and data structures. Source code can include various elements such as keywords, identifiers, expressions, blocks, and comments. Keywords are reserved words that have special meanings in the language, while identifiers are names given to variables, functions, and classes. Expressions are pieces of code that produce a single value, and blocks are groups of statements enclosed in curly braces. Comments are ignored by the compiler and are used to explain parts of the code.") and libraries. It also allows companies to make a gradual migration from Java to Kotlin because Java code can access Kotlin code, too. At the same time, developers can use Kotlin as the only language for their projects without Java at all.
+
 - The _JRE_ provides all the necessary built-in Java libraries and includes JVM
 - The _JDK_ includes JRE
 
