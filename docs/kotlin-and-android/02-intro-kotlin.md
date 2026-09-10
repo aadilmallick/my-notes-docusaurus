@@ -2896,36 +2896,6 @@ Coroutines models the event-loop in node, where suspending functions "pause" the
 > [!NOTE]
 > This transformation is one reason coroutines can be much lighter-weight than blocking one OS thread per operation. 
 
-So this is how coroutine execution works in a coroutine like this:
-
-```kt
-fun main(vararg args: String) : Unit = runBlocking {
-	// 1. process coroutine
-    launch {
-	    // 2. any synchronous code is immediately executed
-        println("1")
-        // 3. "suspend" execution when reaching `suspend` function delay
-        delay(1000)
-        // 9. after delay(1000) call finishes suspension, run sync code
-        println("5")
-    }
-
-	// 4. immediately run any synchronous code
-    println("2")
-    
-    // 5. process coroutine
-    launch {
-	    // 6. immediately run any synchronous code
-	    println("3")
-	    // 7. suspend execution of the coroutine
-	    // see if any other coroutines have finished their suspending process
-	    // this finishes suspension before the delay(1000) call
-	    delay(500)
-	    // 8. run synchronous code
-	    println("4")
-    }
-}
-```
 
 #### Suspension vs blocking
 
@@ -3048,7 +3018,61 @@ fun main() {
 
 As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function. This is nothing special. Coroutines are automatically awaited within a scope.
 
+### Coroutine builders and scope
 
+
+`suspend` functions do not create coroutines. You need a **coroutine builder**.
+
+There are five possible coroutine builders
+
+```
+launch
+async
+runBlocking
+coroutineScope
+supervisorScope
+```
+
+#### `launch`
+
+The `launch` coroutine builder starts a coroutine and returns a `Job` instance:
+
+```kt
+```
+
+#### How scope works with coroutine builders
+
+Let's step through an execution example:
+
+```kt
+fun main(vararg args: String) : Unit = runBlocking {
+    // 1. recognize coroutine, queue for execution
+    launch {
+	    // 4. dequeue coroutine body for execution, execute sync code
+        println("2")
+        // 5. "suspend" execution when reaching `suspend` function delay
+        delay(1000)
+        // 9. after delay(1000) call finishes suspension, run sync code
+        println("5")
+    }
+
+    // 2. immediately run syunchronous code
+    println("1")
+
+     // 3. recognize coroutine, queue for execution
+    launch {
+        // 6. dequeue coroutine body for execution,
+        // immediately run any synchronous code
+        println("3")
+        // 7. suspend execution of the coroutine
+        // see if any other coroutines have finished their suspending process
+        // finishes suspension and dequeues before the delay(1000) call
+        delay(500)
+        // 8. run synchronous code
+        println("4")
+    }
+}
+```
 ### Structured concurrency
 
 Coroutines have two main features:
