@@ -24,6 +24,12 @@ DevOps is the intersection of integrating dev with ops teams to attain both spee
 - **dev silo**: works independently to make the code
 - **ops silo**: works independently to test the code, implement observability.
 
+This is often illustrated through the **wall of confusion**, where devs hand their code to ops, and ops is supposed to figure out how to deploy code they've never seen before.
+
+
+![](https://i.imgur.com/oWSKHyK.jpeg)
+
+
 The problem with this silo model is that it takes too long because the dev team finishes their sprint, hands the code to ops, and then waits until ops hands back the code and tells them to fix it. 
 
 DevOps fixes the silo model by using tools to integrate development with operations at every turn:
@@ -41,6 +47,11 @@ By modifying our code to use these tools, we can integrate each silo together in
 ![](https://i.imgur.com/kbWU75p.jpeg)
 
 Now instead of each team working individually, DevSecOps achieves all three teams working together to achieve their objectives in an automated pipeline.
+
+#### Silos between business and tech
+
+IT people take forever to get something done, but that's just because there's a silo between business and IT.
+
 
 ### Core guiding principles
 
