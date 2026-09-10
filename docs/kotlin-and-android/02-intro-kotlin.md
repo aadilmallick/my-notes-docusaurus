@@ -2411,14 +2411,116 @@ class SampleTest {
 
 ### Threads
 
-The `Thread` class in Kotlin is a representation of a single thread and creating a custom subclass that inherits from that class allows us to run our own code in a thread and control that thread.
+The `Thread` class in Kotlin is a representation of a single thread. 
+
+There are three constructors you have for a `Thread`:
 
 ```kt
+Thread() // creates thread with default name, default runnable
+Thread("custom name") // creates thread with custom name, default runnable
+Thread(runnable: Runnable) // creates thread with runnable impl
 ```
+
+A `Runnable` class has one method, a `run()` method that you can override to create a custom implementation of what code is supposed to run in a thread.
+
+Here are the methods available on a thread:
+
+- `thread.start()`: starts the thread in the background
+- `thread.join()`: blocks and waits for the thread to finish.
+
+Here are the static properties available on the `Thread` class:
+
+- `Thread.currentThread()`: get the currently running `Thread` instance back.
+
+#### Creating threads
+
+There are two main ways to run threads and control them in Kotlin:
+
+1. **Create a custom thread**: creating a custom subclass that inherits from that class allows us to run our own code in a thread and control that thread.
+
+```kt
+class CustomThread: Thread("Custom Thread") {
+    override fun run() {
+        var parentThread = Thread.currentThread()
+        var parentThreadName = parentThread.name
+        super.run()
+        println("Custom Thread")
+    }
+}
+
+
+var thread = CustomThread()
+thread.start()
+```
+
+2. **Create a custom runnable**: create a custom `Runnable` subclass and then use it to instantiate a thread and then start it
+
+```kt
+class CustomRunnable: Runnable{
+    override fun run() {
+        println("Custom Runnable")
+    }
+}
+
+Thread(CustomRunnable()).start()
+```
+
+#### Thread pools
+
+The problem with creating your own custom threads and running them is that threads are tied to CPU cores, and you can't go above 8 for the average laptop.
+
+To avoid this limited resource problem, you should delegate resource management to a **pool**,and use Kotlin's thread pools instead, which shift the responsibility model:
+
+- **what pools handle**: the creation and management of threads and deciding when to start running threads
+- **what you handle**: providing a custom `Runnable` subclass implementation to create threads.
+
+```kt
+class CustomRunnable: Runnable{
+    override fun run() {
+        println("Custom Runnable")
+    }
+}
+```
+
+
+There are two types of thread pools:
+
+- **single thread executor pool**: only allows one thread to execute at a time, no concurrency:
+
+```kt
+// method 3
+// only 8 threads is 8 CPUs, so use sparingly, and create a thread pool
+// runs threads one at a time
+val executor = Executors.newSingleThreadExecutor()
+executor.submit(CustomRunnable())
+```
+
+
+- **multi thread executor pool**: Allows you to define a max concurrency for the number of concurrent threads you want running simultaneously
+
+```kt
+val multiThreadExecutor = Executors.newFixedThreadPool(4)
+
+for (i in 1..10) {
+	multiThreadExecutor.submit(CustomRunnable())
+}
+```
+
+
 
 ### Coroutines
 
-Coroutines are how you can write asynchronous, non-blocking code much like async/await and Promises in JavaScript.
+#### What is a coroutine
+
+Coroutines are a routine that can be paused and resumed. They can be thought of lightweight threads, but unlike threads, they are not directly tied to the number of CPU cores.
+
+Unlike traditional threads, coroutines can be suspended and resumed without blocking system resources, allowing multiple coroutines to run on a single thread efficiently
+
+- Coroutines run code in parallel
+- Multiple coroutines may be on a single thread
+- Because coroutines can be paused and resumed, coroutine execution may jump threads
+
+They run within scopes that manage their lifecycle and support cancellation, making it easier to handle concurrent tasks like API requests or background processing in a clean and resource-friendly way.
 
 Here is the basic anatomy of a coroutine:
 
@@ -2437,9 +2539,91 @@ fun main() {
 }
 ```
 
-You have three coroutine scopes, `GlobalScope`, `CoroutineScrop`, and `runBlocking`. All of them have a `launch(lambda)` method that allows you to write an asynchronous coroutine code lambda inside.
+
+Coroutines have two main features:
+
+- **structured concurrency**: the concept where concurrency is scoped to a specific coroutine scope, and you can nest concurrency, allowing you to do things like launch child coroutines within the context of a spawning parent coroutine.
+- **coroutine cancellation**: Kotlin allows you to cancel a coroutine or a coroutine scope.
+	- Typically, cancelling a coroutine cancels any child coroutines and scopes as well.
+
+You have three coroutine scopes, `GlobalScope`, `coroutineScorp`, and `runBlocking`, that you can implement hierarchically to achieve child and parent scopes.
+
+All of them have a `launch(lambda)` method that allows you to write an asynchronous coroutine code lambda inside.
+
+
+Here is how scope works in detail:
+
+- When you cancel the scope, you cancel all coroutines launched by that scope.
+- When a coroutine is launched, by default it will run on the same thread the parent scope is in
+
+> [!NOTE]
+> We can create custom threads and have scopes run in those threads instead, as we'll see in the next section
 
 The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
+
+#### Coroutine contexts
+
+Coroutine contexts are what you use to change which thread a scope or coroutine runs on.
+
+There are two ways to achieve this:
+
+- **Method 1 - custom thread**
+
+#### `suspend`
+
+Suspend functions are asynchronous functions that can only be called in coroutines or in other suspend functions.
+
+They are automatically awaited when ran in a suspend function or another coroutine. A good example of a suspend function is `delay()`
+
+```kotlin
+import kotlinx.coroutines.*
+
+fun main() {
+    println("Main thread started")
+    
+    GlobalScope.launch {
+        delay(1000)
+        println("coroutine: delayed")
+        delay(1000)
+        println("coroutine: delayed again")
+    }
+    
+    Thread.sleep(3000)
+    println("Main thread finished")
+}
+```
+
+The code above will print out the following output:
+
+```kotlin
+Main thread started
+coroutine: delayed
+coroutine: delayed again
+Main thread finished
+```
+
+You can create your own suspend function using the `suspend fun` keyword.
+
+```kotlin
+suspend fun networkCall() : String {
+    delay(1000) // simulate network call
+    return "{'success': true}"
+}
+
+fun main() {
+    println("Main thread started")
+    
+    GlobalScope.launch {
+        val responseData = networkCall()
+        println("data from network call: ${responseData}")
+    }
+    
+    Thread.sleep(3000)
+    println("Main thread finished")
+}
+```
+
+As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function.
 
 ## Building CLI apps
 
