@@ -2409,6 +2409,38 @@ class SampleTest {
 
 ## Async and Coroutines
 
+### Threads
+
+The `Thread` class in Kotlin is a representation of a single thread and creating a custom subclass that inherits from that class allows us to run our own code in a thread and control that thread.
+
+```kt
+```
+
+### Coroutines
+
+Coroutines are how you can write asynchronous, non-blocking code much like async/await and Promises in JavaScript.
+
+Here is the basic anatomy of a coroutine:
+
+```kotlin
+import kotlinx.coroutines.*
+
+fun main() {
+    val job = GlobalScope.launch {
+        // Coroutine code here
+        delay(1000) // Simulate some work
+        println("Coroutine completed")
+    }
+
+    // You can cancel the coroutine if needed
+    // job.cancel()
+}
+```
+
+You have three coroutine scopes, `GlobalScope`, `CoroutineScrop`, and `runBlocking`. All of them have a `launch(lambda)` method that allows you to write an asynchronous coroutine code lambda inside.
+
+The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
+
 ## Building CLI apps
 
 ### Accepting arguments
