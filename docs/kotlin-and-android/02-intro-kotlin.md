@@ -2530,8 +2530,13 @@ Coroutines have two main features:
 
 You have three coroutine scopes, `GlobalScope`, `coroutineScope`, and `runBlocking`, that you can implement hierarchically to achieve child and parent scopes:
 
-- `GlobalScope`: this scope is active for the lifecycle of the application, thus launches persistent coroutines that only end when you cancel them or when the app runtime ends.
-- `coroutineScope`: 
+- **GlobalScope**: Lives for the entire application lifetime. Use it only for coroutines that should persist throughout your program, but be cautious as it doesn't tie coroutines to any specific lifecycle.  
+      
+    
+- **runBlocking scope**: Creates a scope that blocks the current thread until all coroutines inside it complete. It's useful in main functions or testing to ensure coroutines finish before the program exits.  
+      
+    
+- **Child scopes**: Scopes can be nested to create parent-child relationships, helping manage coroutines hierarchically. Canceling a parent scope cancels all its child coroutines, which is great for cleaning up work tied to specific components or requests.
 
 All of them have a `launch(lambda)` method that allows you to write an asynchronous coroutine code lambda inside.
 
@@ -2540,13 +2545,14 @@ Here is how scope works in detail:
 - When you cancel the scope, you cancel all coroutines launched by that scope.
 - When a scope launches a coroutine, by default it will run on the same thread the parent scope is in
 - When a coroutine is launched within a scope, it will finish before the scope ends (coroutines are blocking in scopes)
+- Within a scope, coroutines by default run blocking and in sequential order. To change this, you can launch child scopes.
 
 > [!NOTE]
 > We can create custom threads and have scopes run in those threads instead, as we'll see in the next section
 
 
 
-#### Basic coroutine
+#### Basic coroutine with `runBlocking`
 
 1. Install the dependencies
 
@@ -2559,24 +2565,120 @@ dependencies {
 This is an example of launching a coroutine with `GlobalScope.launch`, which means that the coroutine will persist for the lifetime of the app unless we programmatically cancel it.
 
 ```kt
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
+fun main(vararg args: String) {
+    GlobalScope.launch {
+        println("This runs in background,")
+    }
+
+    println("program exits!")
+}
 ```
-#### Jobs
 
-The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
+However, what gets printed here is just "program exits" because the coroutine is launched asynchronously and thus is not blocking on the main thread, and the program exits before the coroutine finishes.
+
+To make sure we wait for the coroutine (async code) to finish, we have to treat the coroutine as if it were running synchronously, and the way to do that is with the `runBlocking` scope:
+
+In this version, `"This runs in background"` is printed out before `"program exits"`
+
+```kt
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+
+fun main(vararg args: String) : Unit = runBlocking {
+	// 1. called first
+    println("This runs in background,")
+    // 2. called second
+    println("program exits!")
+}
+```
+In this version however, we launch a child scope so "program exits" prints first, but the `runBlocking` scope waits until all children coroutine execution is completed, so the program doesn't exit until `"This runs in background"` is printed.
+
+```kt
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+
+fun main(vararg args: String) : Unit = runBlocking {
+    launch {
+	    // runs second
+        println("This runs in background,")
+    }
+	// runs first
+    println("program exits!")
+}
+```
+
+
+
 #### Coroutine contexts
 
-Coroutine contexts are what you use to change which thread a scope or coroutine runs on.
+By default, all scopes and thus all coroutines are launched in the main thread. 
+
+**Coroutine contexts** are what you use to change which thread a scope or coroutine runs on.
 
 There are two ways to achieve this:
 
 - **Method 1 - custom thread**
+- **Method 2 - dispatchers**: the more common and easy way to launch coroutines on a different thread.
 
+##### Dispatchers
+
+Here is an example of using dispatchers to bounce between threads.
+
+This code:
+
+```kt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+
+fun getCurrentThreadName() = Thread.currentThread().name
+
+// 0. launch runBlocking scope on main thread
+fun main(vararg args: String) : Unit = runBlocking {
+	
+	// 2. launch child scope on I/O thread
+    launch(Dispatchers.IO) {
+	    // 2a. runs coroutine in I/O thread
+        println("This is some network call on a worker thread ${getCurrentThreadName()}")
+
+		// 3. launch coroutine on same thread runBlocking is on (main)
+        withContext(this@runBlocking.coroutineContext) {
+            println("some UI update that should be run on the same thread runBlocking runs in ${getCurrentThreadName()}")
+        }
+    }
+
+	// 1. coroutine runs blocking within runBlocking, on main thread
+    println("program exits on thread ${getCurrentThreadName()}")
+}
+```
+
+Produces this output:
+
+
+```
+program exits on thread main
+This is some network call on a worker thread DefaultDispatcher-worker-1
+some UI update that should be run on the same thread runBlocking runs in main
+```
+
+So let's trace it:
+
+1. Create a `runBlocking` scope on the main thread, there are two coroutines to execute:
+	- Launch child scope on I/O thread
+	- Execute println statement
+2. child scope on I/O thread has two coroutines to execute:
+	1.  Execute println statement
+	2. Launch child coroutine that runs on same thread as `this@runBlocking`, which refers to the top-most `runBlocking` parent scope.
 #### `suspend`
 
-Suspend functions are asynchronous functions that can only be called in coroutines or in other suspend functions.
+Suspend functions are syntactic sugar over creating coroutines.
 
-They are automatically awaited when ran in a suspend function or another coroutine. A good example of a suspend function is `delay()`
+ A good example of a suspend function is `delay(ms: Int)`, which will only be blocking within a coroutine scope.
 
 ```kotlin
 import kotlinx.coroutines.*
@@ -2626,8 +2728,12 @@ fun main() {
 }
 ```
 
-As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function.
+As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function. This is nothing special. Coroutines are automatically awaited within a 
 
+
+#### Jobs
+
+The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
 ## Building CLI apps
 
 ### Accepting arguments
