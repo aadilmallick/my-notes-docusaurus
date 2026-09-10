@@ -2743,7 +2743,7 @@ Coroutines have two main features:
 - **coroutine cancellation**: Kotlin allows you to cancel a coroutine or a coroutine scope.
 	- Typically, cancelling a coroutine cancels any child coroutines and scopes as well.
 
-You have three coroutine scopes, `GlobalScope`, `coroutineScope`, and `runBlocking`, that you can implement hierarchically to achieve child and parent scopes:
+You have three coroutine scopes, `GlobalScope`, `coroutineScope`, and `runBlocking`, that have different behaviors as to how they control child scopes and coroutines.
 
 - **GlobalScope**: Lives for the entire application lifetime. Use it only for coroutines that should persist throughout your program, but be cautious as it doesn't tie coroutines to any specific lifecycle.  
       
@@ -2753,7 +2753,6 @@ You have three coroutine scopes, `GlobalScope`, `coroutineScope`, and `runBlocki
     
 - **Child scopes**: Scopes can be nested to create parent-child relationships, helping manage coroutines hierarchically. Canceling a parent scope cancels all its child coroutines, which is great for cleaning up work tied to specific components or requests.
 
-All of them have a `launch(lambda)` method that allows you to write an asynchronous coroutine code lambda inside.
 
 Here is how scope works in detail:
 
