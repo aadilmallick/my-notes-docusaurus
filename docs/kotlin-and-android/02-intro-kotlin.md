@@ -938,13 +938,26 @@ Kotlin has a similar idea to adding methods to an object prototype. They are cal
 /*: * Extension functions
     You can add functions to any Type! Careful OOP extremists!
 */
-fun Int.isEven() : Boolean {
-    return this % 2 == 0
+
+// extenion function
+fun Int.millisForHours() = this * 60 * 60 * 1000
+
+// extension property
+val Int.isEven: Boolean
+    get() = this % 2 == 0
+
+fun main(vararg args: String) {
+    println("I am also public and global")
+    println(4.millisForHours())
+    println(4.isEven)
 }
-// this refers to the specific Int instance calling this method
-println("is 2 even?: ${2.isEven()}")
 ```
 
+Here is how you can create generic extension functions, which is very useful:
+
+```kt
+fun <T> T.log() = println(this)
+```
 #### **Variable number of arguments**
 
 By declaring a parameter in your function with the `vararg` keyword, you are letting kotlin know that you intend to pass an arbitrary amount of arguments, and it will get stored in one variable as a list.
@@ -2068,6 +2081,80 @@ class Request(val url: String) {
     }
 }
 ```
+
+#### Delegates
+
+The **delegate pattern** is an OOP design pattern that leverages object composition to achieve the same code reuse as inheritance, but in a more flexible way.
+
+Kotlin supports delegation in two primary ways:
+
+1. **interface delegation**: allows to to delegate the implementation of an interface to some other object implementing that interface
+
+```kt
+interface Logger {
+    fun log(tag: String, message: String)
+}
+
+class LoggerImpl : Logger {
+    override fun log(tag: String, message: String) {
+        println("$tag: $message")
+    }
+}
+
+// now DelegatedLogger.log() just executes LoggerImpl.log()
+// think of it as using LoggerIMpl as the overriding class for the interface
+// and DelegatedLogger inherits from LoggerImpl basically
+class DelegatedLogger(private val delegate: Logger) : Logger by delegate {}
+```
+
+2. **property delegation**: allows you to subscribe to changes on a class property or variable, running side effects whenever it changes:
+
+```kts
+class ViewModel {
+    
+    // subscribes to run this side effect each time currentQuery changes
+    var currentQuery: String by Delegates.observable(initialValue = "") { property, oldValue, newValue -> 
+        println("$oldValue -> $newValue")
+    }
+
+    fun search(query: String) {
+        currentQuery = query
+    }
+}
+```
+
+**Lazy delegates** allow us to defer initialization of a property until it is first accessed, which you can do via a `by lazy` keyword then pass in an initialization lambda.
+
+
+```kt
+interface Logger {
+    fun log(tag: String, message: String)
+}
+
+class LoggerImpl : Logger {
+    override fun log(tag: String, message: String) {
+        println("$tag: $message")
+    }
+}
+
+// now DelegatedLogger.log() just executes LoggerImpl.log()
+// think of it as using LoggerIMpl as the overriding class for the interface
+// and DelegatedLogger inherits from LoggerImpl basically
+class DelegatedLogger(private val delegate: Logger) : Logger by delegate {}
+
+class ViewModel {
+    // only runs instantiation code once we try to access ViewModel.logger
+    val logger: Logger by lazy {
+        println("initializing logger")
+        DelegatedLogger(LoggerImpl())
+    }
+
+    fun search(query: String) {
+        logger.log(tag = "search", message = query)
+    }
+}
+```
+
 ### Data classes
 
 **Data classes** automatically generate useful methods for classes that hold data: `toString()` shows all properties and their values, `equals()` compares instances by their property values (not identity), and `copy()` lets you clone with selective property changes.
