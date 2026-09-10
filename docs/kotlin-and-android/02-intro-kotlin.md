@@ -2954,6 +2954,41 @@ It means:
 
 That leads directly to a deeper idea.
 
+#### Coroutine execution order
+
+Let's step through an execution example:
+
+```kt
+fun main(vararg args: String) : Unit = runBlocking {
+    // 1. recognize coroutine, queue for execution
+    launch {
+	    // 4. dequeue coroutine body for execution, execute sync code
+        println("2")
+        // 5. "suspend" execution when reaching `suspend` function delay
+        delay(1000)
+        // 9. after delay(1000) call finishes suspension, run sync code
+        println("5")
+    }
+
+    // 2. immediately run syunchronous code
+    println("1")
+
+     // 3. recognize coroutine, queue for execution
+    launch {
+        // 6. dequeue coroutine body for execution,
+        // immediately run any synchronous code
+        println("3")
+        // 7. suspend execution of the coroutine
+        // see if any other coroutines have finished their suspending process
+        // finishes suspension and dequeues before the delay(1000) call
+        delay(500)
+        // 8. run synchronous code
+        println("4")
+    }
+}
+```
+
+
 #### Using `suspend` functions
 
  A good example of a suspend function is `delay(ms: Int)`.
@@ -3033,46 +3068,43 @@ coroutineScope
 supervisorScope
 ```
 
+Coroutine builders can only be invoked inside a scope.
+
 #### `launch`
 
 The `launch` coroutine builder starts a coroutine and returns a `Job` instance:
 
 ```kt
-```
-
-#### How scope works with coroutine builders
-
-Let's step through an execution example:
-
-```kt
-fun main(vararg args: String) : Unit = runBlocking {
-    // 1. recognize coroutine, queue for execution
-    launch {
-	    // 4. dequeue coroutine body for execution, execute sync code
-        println("2")
-        // 5. "suspend" execution when reaching `suspend` function delay
-        delay(1000)
-        // 9. after delay(1000) call finishes suspension, run sync code
-        println("5")
-    }
-
-    // 2. immediately run syunchronous code
-    println("1")
-
-     // 3. recognize coroutine, queue for execution
-    launch {
-        // 6. dequeue coroutine body for execution,
-        // immediately run any synchronous code
-        println("3")
-        // 7. suspend execution of the coroutine
-        // see if any other coroutines have finished their suspending process
-        // finishes suspension and dequeues before the delay(1000) call
-        delay(500)
-        // 8. run synchronous code
-        println("4")
-    }
+val job: Job = launch {
+    delay(1000)
+    println("Finished")
 }
 ```
+
+Here are the methods you have available on a job:
+
+- `job.cancel()`: synchronously cancels the execution of a job.
+- `job.join()`: blocks and waits synchronously for the job to finish
+
+```kt
+suspend fun jobExample(): Unit = runBlocking {
+    // 1. recognize coroutine, queue to execute
+    val job = launch {
+        // 3. suspends and finishes execution due to job.join()
+        delay(1000)
+        println("Finished")
+    }
+
+    // 2. wait synchronously for coroutine to finish
+    job.join()
+
+    // 4. synchronously blocked by job.join()
+    println("After coroutine")
+}
+```
+
+The main use case for `launch` is to perform some asynchronous work that does not return a value, since the reutrn
+
 ### Structured concurrency
 
 Coroutines have two main features:
