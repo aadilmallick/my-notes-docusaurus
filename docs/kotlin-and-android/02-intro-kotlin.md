@@ -2522,44 +2522,39 @@ Unlike traditional threads, coroutines can be suspended and resumed without bloc
 
 They run within scopes that manage their lifecycle and support cancellation, making it easier to handle concurrent tasks like API requests or background processing in a clean and resource-friendly way.
 
-Here is the basic anatomy of a coroutine:
-
-```kotlin
-import kotlinx.coroutines.*
-
-fun main() {
-    val job = GlobalScope.launch {
-        // Coroutine code here
-        delay(1000) // Simulate some work
-        println("Coroutine completed")
-    }
-
-    // You can cancel the coroutine if needed
-    // job.cancel()
-}
-```
-
-
 Coroutines have two main features:
 
 - **structured concurrency**: the concept where concurrency is scoped to a specific coroutine scope, and you can nest concurrency, allowing you to do things like launch child coroutines within the context of a spawning parent coroutine.
 - **coroutine cancellation**: Kotlin allows you to cancel a coroutine or a coroutine scope.
 	- Typically, cancelling a coroutine cancels any child coroutines and scopes as well.
 
-You have three coroutine scopes, `GlobalScope`, `coroutineScorp`, and `runBlocking`, that you can implement hierarchically to achieve child and parent scopes.
+You have three coroutine scopes, `GlobalScope`, `coroutineScope`, and `runBlocking`, that you can implement hierarchically to achieve child and parent scopes:
+
+- `GlobalScope`: this scope is active for the lifecycle of the application, thus launches persistent coroutines that only end when you cancel them or when the app runtime ends.
+- `coroutineScope`: 
 
 All of them have a `launch(lambda)` method that allows you to write an asynchronous coroutine code lambda inside.
-
 
 Here is how scope works in detail:
 
 - When you cancel the scope, you cancel all coroutines launched by that scope.
-- When a coroutine is launched, by default it will run on the same thread the parent scope is in
+- When a scope launches a coroutine, by default it will run on the same thread the parent scope is in
+- When a coroutine is launched within a scope, it will finish before the scope ends (coroutines are blocking in scopes)
 
 > [!NOTE]
 > We can create custom threads and have scopes run in those threads instead, as we'll see in the next section
 
 The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
+
+#### Creating coroutines
+
+1. Install the dependencies
+
+```kts
+dependencies {
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+}
+```
 
 #### Coroutine contexts
 
