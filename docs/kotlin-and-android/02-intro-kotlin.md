@@ -2676,7 +2676,7 @@ So let's trace it:
 	2. Launch child coroutine that runs on same thread as `this@runBlocking`, which refers to the top-most `runBlocking` parent scope.
 #### `suspend`
 
-Suspend functions are syntactic sugar over creating coroutines.
+Suspend functions are syntactic sugar over creating a coroutine.
 
  A good example of a suspend function is `delay(ms: Int)`, which will only be blocking within a coroutine scope.
 
@@ -2728,12 +2728,69 @@ fun main() {
 }
 ```
 
-As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function. This is nothing special. Coroutines are automatically awaited within a 
+As you can see, we will automatically await the return result of a suspend function when called inside a coroutine or in another suspend function. This is nothing special. Coroutines are automatically awaited within a scope.
+
+#### `launch` vs `async`
+
+- `launch(lambda)`: launches a scope where coroutines are run sequentially, automatically awaited. Nested scopes are initialized sequentially, but the actual execution runs asynchronously, in the context of the child scope.
+- `async(lambda)`: launches scopes that immediately return `Deferrable` instances
+
+##### `launch`
 
 
-#### Jobs
+##### `async`
 
-The `launch {}` lambda returns a **job**, which you can cancel with `job.cancel()` to cancel the coroutine.
+Async/await is a way to parallelize suspend functions and coroutines, like if you want to parallelize network requests.
+
+1. Wrap a suspension call in the `async {}` lambda. The return value will be a _Deferrable_
+2. The coroutine `deferrable.await()` runs blocking until you can get the return of the suspension function
+
+```kotlin
+suspend fun networkRequest1() : String {
+    delay(2000)
+    return "{success: true}"
+}
+
+suspend fun networkRequest2() : String {
+    delay(2000)
+    return "{success2: true}"
+}
+
+GlobalScope.launch {
+		// 1. get deferrables of the suspend functions
+        val deferred1 = async {networkRequest1()}
+        val deferred2 = async {networkRequest2()}
+		
+		// 2. await the suspend functions
+        println(deferred1.await())
+        println(deferred2.await())
+        
+        println("await finished")
+}
+```
+
+Or you can await them in parallel
+
+```kt
+GlobalScope.launch {
+	// 1. get deferrables of the suspend functions
+	val deferred1 = async {networkRequest1()}
+	val deferred2 = async {networkRequest2()}
+	
+	// 2. await the suspend functions
+	awaitAll(deferred1, deferred2)
+	
+	println("await finished")
+}
+```
+##### Jobs and deferrables
+
+A job can be used to remember a coroutine and cancel it.
+
+- The `launch {}` lambda returns a **job**
+- The `async {}` lambda returns a **deferrable**
+
+
 ## Building CLI apps
 
 ### Accepting arguments
