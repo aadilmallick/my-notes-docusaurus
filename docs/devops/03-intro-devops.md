@@ -102,14 +102,6 @@ The five main practice areas of DevOps covered in the video are:
 - **Continuous Delivery:** Automating testing and deployment to release small changes frequently and reliably.
 - **Site Reliability Engineering:** Engineering systems for reliability with observability and automation.
 
-### CI/CD
-
-- **CI (continuous integration)**: the practice of automating the integration of code changes from multiple contributors into a single software project while maintaining code quality and app stability.
-- **CD (continuous delivery)**: the practice of automating the deployment of code changes made via CI and deploying the app to a staging environment
-	- After CD, the QA team takes over and stress-tests the app in the staging environment, and then they deploy the app to production
-
-**continuous deployment** differs from continuous delivery in that continuous deployment automatically deploys to production, skipping the QA team and staging and going straight to production.
-
 ### Containers vs VMs
 
 A host device uses a hypervisor to manage multiple **virtual machines**, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
@@ -170,15 +162,26 @@ The benefit of IaC is error-free automated setup and teardown of resources, whic
 
 - **configuration management**: changing control of system configuration during and after initial provisioning.
 	- Examples are ansible, chef, puppet
+- **baking**: creating a custom image set up to run everything you need for your app on a server, then deploying as a part of immutable deployment.
 - **provisioning**: the process of making a server ready for operation, including hardware, OS, system services, and network connectivity.
 	- Examples are pulumi and terraform
 - **orchestration**: the act of performing coordinated operations across multiple systems while maintaining uptime by intelligently performing operations on services in such a way to avoid disruption of use while they are running.
 
-**configuration management**
+
+
+#### **configuration management and baking**
 
 We use configuration management tools for granularity to individually or batch apply updates to VM(s) in a fleet of VMs provisioned by IaC.
 
 For example, Ansible is a configuration management tool that uses playbook YAML files to declaratively describe the desired state of the environment and automates the process to achieve it.
+
+In DevOps, "configuring" means setting up and managing servers or systems at runtime using tools like Chef, Puppet, or Ansible. These tools adjust the system's settings dynamically when the server is running. 
+
+On the other hand, "baking" means creating a custom image (like a virtual server image or a container image) that already has everything set up inside it before deployment. This image is then deployed as-is, which is called **immutable deployment**. 
+
+Baking shifts setup work earlier in the development process, reducing risks during deployment but also making changes in production less flexible. Both approaches can be combined depending on your needs.
+
+- **Drift** is when your system changes from its intended and defined state.
 
 #### Declarative vs Imperative
 
@@ -191,9 +194,29 @@ For example, Ansible is a configuration management tool that uses playbook YAML 
 
 #### Immutable provisioning
 
-**Immutable provisioning** create deployments that are not intended to change the provisioned resources on updates, but instead delete and recreate and redeploy the entire system if needed.
+Even though IaC became a solved problem, further management of those servers still required configuration management, still creating silos between IaC and configuration management.
+
+With the advent of containers, we now have a way to combine both IaC and configuration management together via adopting an **immutable infrastructure** approach where we treat our servers like disposable cattle and using **immutable provisioning** to launch container services that we don't have to perpetually configure. 
+
+- **immutable infrastructure**: an approach to provisioning and deployment of cloud resources where components are replaced rather than individually SSHed into and changed 
+- **Immutable provisioning** create deployments that are not intended to change the provisioned resources on updates, but instead delete and recreate and redeploy the entire system if needed.
+- **immutable deployment**: instead of provisioning servers and then configuring your app to run as a service on those servers via configuration management, package your app as a container image, upload it to an image repository, and then servers pull from it to build the images and run them as the main app process.
+
+
+![](https://i.imgur.com/KDyAz3c.jpeg)
+
+> [!NOTE]
+> Kubernetes is an approach to solve immutable infra, provisioning, and deployment all at once with one tool.
+
+> [!NOTE]
+> In an immutable provisioning approach, you may still experience drift if you manually change properties on certain cloud resources, but by design, you do not intend to change the infrastructure once it's deployed.
 
 This approach avoids modifying running systems, reducing errors and enabling advanced rollout strategies like blue-green deployments.
+
+Here are the differences between immutable provisioning and configuration management:
+
+- **immutable provisioning**: changes to cloud resources replaces the cloud resources with new ones, rather than updating them.
+- **configuration management**: a centralized agent pushes changes to update cloud resources.
 
 #### IaC philosophy
 
@@ -269,6 +292,87 @@ favicon: ""
 aspectRatio: "50"
 ```
 
+### Basics?
+
+- **CI (continuous integration)**: the practice of automating the integration of code changes from multiple contributors into a single software project while maintaining code quality and app stability.
+- **CD (continuous delivery)**: the practice of automating the deployment of code changes made via CI and deploying the app to a staging environment
+	- After CD, the QA team takes over and stress-tests the app in the staging environment, and then they deploy the app to production
+- **continuous deployment** differs from continuous delivery in that continuous deployment automatically deploys to production, by automatically releasing changes to production after passing tests, enabling multiple deployments per day.
+
+![](https://i.imgur.com/dDbkz3G.jpeg)
+
+#### CI
+
+There are six practices that will help you with continuous integration:
+
+1. **fast builds**: the build should take less time than it takes to get a cup of coffee.
+2. **commit small changes**: seek to commit the smallest amount of code per commit, since small commits makes isolating failure points easier and enables easy rollback
+3. **don't leave the build broken**: When you leave the build broken, you block delivery
+4. **use a trunk-based dev flow**: Devs should frequently merge in dev to make sure they are up to date with the latest changes, which makes merging easier and less likely to cuase a broken build.
+
+![](https://i.imgur.com/UVFIEoo.jpeg)
+
+5. **don't allow flaky automated tests**: Tests should always be deterministic, never failing for random reasons.
+6. **the build should return a status, log, and artifact**: Builds must have appropriate observability, which can be achieved via adding these three components:
+	- **build log**: a detailed record of all the tests run and the results of the run.
+	- **artifact**: installable dist version of the application, should be tagged with the version number.
+
+#### Continuous delivery
+
+>It's not how much you can deliver, but how little.
+
+1. **Build artifacts only once**: built once, then the artifacts are used across all environments, like staging, prod, test, etc.
+2. **artifacts should be immutable**: only the CI system should be able to write the artifact, and only the CD system should have read access to the artifact.
+3. **Deploy to a pre-production environment**: A pre-prod environment should have all the same settings and cloud resources as a production environment
+4. **stop deploys if a previous step fails**: if any point in the build pipeline fails, then need to fail the entire pipeline to prevent a broken build from making it through to the next stage.
+5. **deploys should be idempotent**: deployments should be deterministic, never changing with the same inputs.
+
+> [!NOTE]
+> Why do we use pre-prod environments? It's because it helps us do the acceptance testing, integration tests, smoke testing, and end-to-end testing that is difficult to fully simulate on dev desktops or build servers. 
+
+#### QA
+
+Automated testing is the main driver that enables CI/CD to be valuable.
+
+Any good QA team must add these tests to an application so that the pipeline can have good test coverage in CI:
+
+- **unit testing**
+- **code hygeine**: uses linters and formatters to ensure there is no tech debt and you are using best practices
+- **integration testing**
+- **acceptance testing**: also known as end to end testing, tests the entire flow of the app as a user would do it.
+
+#### Continuous deployment
+
+Continuous delivery means your code changes are automatically deployed to a test environment and are always ready to be released, but the actual release to production might still need manual approval. 
+
+Continuous deployment takes this further by automatically releasing every change to production as soon as it passes all tests, allowing multiple deployments per day without manual steps. 
+
+> [!NOTE]
+> So, continuous deployment is like continuous delivery plus automatic release to production, making the process faster and more automated.
+
+Continuous deployment implementations need an opinionated system that also satisfies these core qualities:
+
+1. **safe**: changes do not break anything in prod. 
+2. **reversible**: easy to rollback to different prod versions, no lingering state
+3. **no down time**: does not affect users and data in prod.
+
+There are two types of deployment strategies you can do for continuous deployment:
+
+1. **blue-green deployment**: provision infra with the new version of your code and direct the production load balancer to direct traffic towards the infra with the new code.
+
+
+![](https://i.imgur.com/aO31sI5.jpeg)
+
+
+2. **canary deployment**: provision some infra with the new version of your code and then distribute a small percentage of production traffic to the infra running the new code.
+
+
+![](https://i.imgur.com/6Huj60U.jpeg)
+
+3. **A/B deployment**: feature-based rollout where you use feature flags to decide which groups of users to allow them to use the new feature, and then the rest of the users do not get access to the new feature.
+
+
+![](https://i.imgur.com/NP8BFCN.jpeg)
 
 ### Types of CI/CD tools
 
