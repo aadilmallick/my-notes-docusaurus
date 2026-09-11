@@ -163,7 +163,22 @@ So here's an example where we want to create a dynamic `repository` parameter th
 ![](https://i.imgur.com/EOZMbJz.jpeg)
 
 
+#### Build numbers
 
+Build numbers are useful for versioning artifacts created by TeamCity, which is essential when moving to Octopus Deploy.
+
+> [!NOTE]
+> Here's the main idea: add a build counter to create a build number string, then dynamically use that build number to add versioning to the naming convention of your build artifacts produced by Teamcity.
+
+
+![](https://i.imgur.com/NPuKdRp.jpeg)
+
+1. Add a **build counter** variable, which starts at 1, then automatically increments each time TeamCity runs the build configuration and creates a new build.
+2. In the **build number format**, use the build counter variable via the TeamCity-managed `build.counter` param, which reads the build counter variable value for dynamically setting the value of the build number.
+3. When creating artifacts in teamcity, it's useful to have these three parameter configurations for dynamic naming:
+	- `repository`: a custom param you set to specify the gitlab repo name associated with the current build configuration.
+	- `build.number`: a TeamCity-managed param that retrieves the build number formatted string associated with the current build configuration.
+	- `teamcity.build.branch`: a TeamCity-managed param that retrieves the branch of the gitlab repo associated with the current build configuration.
 
 ## TeamCity CLI
 
@@ -257,6 +272,8 @@ or specifically for **Claude Code:**
 
 ### How Octopus works
 
+#### Servers, tentacles, calamari
+
 Octopus has these components:
 
 - **octopus deploy server**: stores all CD info and configurations, communicates with the deploy tentacles to perform tasks.
@@ -276,4 +293,101 @@ Octopus has these components:
 
 > [!NOTE]
 > You must put your tentacles on your target servers. If there is a server you want to deploy something to, then it must have a tentacle on it. 
+
+#### Environments
+
+Octopus Deploy allows you to create several environments, like Dev, Test, and QA, which allow you to specify target environments to deploy to for the same package. 
+
+#### Spaces
+
+Octopus Deploy offers an analog to folders called **Spaces**, which allows you to organize your deployments into different categories/buckets.
+
+### Adding tentacles
+
+Here are the steps to add a tentacle on a Windows Server VM you own:
+
+1. Choose the deployment target as Windows and choose a listening tentacle type:
+
+
+![](https://i.imgur.com/aKimkHG.jpeg)
+2. Download the powershell script to install the tentacle, SSH into your windows server, and then run the powershell script
+
+
+![](https://i.imgur.com/IictvLr.jpeg)
+
+3. Specify environment and role
+	- **environment**: the environment to deploy on, like Dev or QA
+	- **target role**: labels that you can then programmatically reference to target certain tentacles only for deployment.
+
+
+![](https://i.imgur.com/zVSIZDq.jpeg)
+4. Upgrade calamari as a good practice. The first time you deploy a tentacle, you should upgrade calamari
+
+
+![](https://i.imgur.com/VoAf75j.jpeg)
+
+
+### Deploying to tentacles
+
+Deployment in Octopus Deploy requires special rules for **packages** (same thing as build artifacts):
+
+1. **file type**: package type should be either a `.zip` file or a `.nupkg` file
+2. **naming**: the package name must follow a standard convention including the package name and package version, in this syntax:
+	- `package_name`: the package name, alphabetic
+	- `package_version`: the package version, in the syntax `<version_number>-<tag-selector>`, like `10.2.1-release` is a valid package version with tag.
+
+```
+<package_name>.<package_version>.<file-extension>
+```
+
+
+
+![](https://i.imgur.com/j79a2FH.jpeg)
+
+
+A common approach where tags come in handy is when we have different branches and we want to create and deploy packages based on those different branches. We would use the branch name as the tag name, like the below example:
+
+![](https://i.imgur.com/4MUHwO3.jpeg)
+
+### Connecting TeamCity to Octopus
+
+Here's a high level overview of how it works:
+
+1. Whether you're using the TeamCity Kotlin DSL or manually creating a build step in TeamCity to publish to Octopus Deploy, you need to install the Octopus Deploy plugin for TeamCity in order to do any of this. 
+2. You then need to add API key from Octopus to the TeamCity project root config so you actually have authorization to publish to Octopus directly via TeamCity. 
+
+Here are the steps in depth
+
+1. Install a plugin on TeamCity so it can connect to Octopus Deploy
+
+
+![](https://i.imgur.com/nVqrcQa.jpeg)
+
+
+2. Go to your plugins list and enable the uploaded plugins:
+
+
+![](https://i.imgur.com/3M2HciX.jpeg)
+
+3. Go to Octopus Deploy and create a new API key. 
+
+
+![](https://i.imgur.com/XQdON3N.jpeg)
+
+4. In your build configuration, add an extra step whose step type is **OctopusDeploy: Push Packages**, and specify the following info:
+	- **Octopus server URL**: Octopus server URL is either going to be on the cloud or some self-hosted IP address. 
+	- **API key**: The OctopusDeploy API key you created
+	- **Space name**: the name of the space to deploy to on your Octopus Server.
+	- **package paths**: the artifact mapping from your source code to the one produced by team city
+	- **publish packages as build artifacts**: if checked, uses the package paths configuration as the naming scheme to find packages and publish them.
+
+
+
+![](https://i.imgur.com/Z9ormIf.jpeg)
+
+5. From your general settings of your project, remove the artifact paths to avoid overriding the ones you specified with Octopus Deploy:
+
+
+
+![](https://i.imgur.com/wXQHeLT.jpeg)
 
