@@ -935,6 +935,11 @@ Other types of injection attacks include command injection and LDAP injection. T
 
 ### Insecure design
 
+Insecure design, as highlighted in the OWASP Top 10, refers to fundamental architectural flaws in software that arise when security isn't integrated from the very beginning. 
+
+- These flaws go beyond simple coding bugs and include issues like poor network segmentation, inadequate logging, and flawed session management. 
+- Such vulnerabilities create significant risks because they can't simply be patched later—they require rethinking the application's design.
+
 Insecure design consists of:
 
 - Failing to identify and address potential threats early in the development process
@@ -1009,6 +1014,7 @@ These situations can negatively affect the confidentiality, availability, and in
 - Catch exceptions locally to ensure that any interrupted transaction is completely rolled back rather than left in an unpredictable, half-finished state
 - Use a centralized global exception handler to provide a consistent, predictable response to errors
 - Add rate limiting, resource quotas, throttling, and other limits wherever possible, to prevent exceptional conditions in the first place
+
 
 ## Vulnerabilities
 

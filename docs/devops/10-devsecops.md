@@ -405,7 +405,9 @@ Application security means building software that is secure from the start by pr
 
 It's important because it helps safeguard sensitive data, ensures the stability of systems, prevents costly disruptions, maintains customer trust, and helps meet regulatory requirements. 
 
-### Secure by design
+### Application security principles
+
+#### Secure by design
 
 Secure by Design in software applications means building security into the product from the very beginning rather than adding it later. It shifts the responsibility of security from users to developers and organizations. The approach is based on three core principles:  
   
@@ -414,7 +416,7 @@ Secure by Design in software applications means building security into the produ
 - **Embrace radical transparency and accountability:** Organizations openly disclose vulnerabilities and share their security processes to build trust and improve continuously.
 - **Lead from the top:** Senior leadership prioritizes security as a core business goal, ensuring proper resources and accountability.
 
-### Secure coding practices
+#### Secure coding practices
 
 - **Memory safety is fundamental:** Using languages like Rust, Go, Python, or Java can prevent common vulnerabilities like buffer overflows, or use compiler tools for C/C++.
 - **Input validation is your first defense:** Always validate data types, length, character sets, and business logic to prevent injection attacks.
@@ -422,9 +424,69 @@ Secure by Design in software applications means building security into the produ
 - **Defensive programming builds resilience:** Implement fail-safe defaults, least privilege access, and error handling that avoids revealing sensitive system details.
 	- **fail-safe defaults**: deny by default if detection fails, prioritize security over convenience.
 
-### Secure by default
+#### Secure by default
 
 Secure by default in application configuration means that security features and settings are automatically enabled and correctly configured out of the box, without requiring manual setup by users or administrators.
+
+Here are the common security settings to enable in a secure by default approach:
+
+- **HTTPS**: force HTTPS and automatic redirect from HTTP to HTTPS
+- **session timeout**: timeout sessions for all users to avoid hijacking somebody else's session
+- **secure cookies**: make sure cookies are HTTP-only, secure, and lax.
+- **secure DB credentials**: generate unique DB credentials on install
+- **disable debug modes and unused services in production**: prevent security misconfiguration by ensuring there is a smaller attack surface, and no verbose logs that reveal too much info.
+
+### Common attacks and their mitigations
+
+#### Supply chain attacks and SBOM
+
+A supply chain attack happens when attackers compromise trusted software components or updates that your application depends on. Instead of attacking your code directly, they infiltrate the software build or distribution process—like what happened in the SolarWinds breach—injecting malicious code into legitimate updates. This lets attackers access thousands of organizations while staying hidden for months.  
+  
+
+> [!NOTE]
+> These attacks are dangerous because you’re not just trusting your own code but also all third-party libraries and tools you use. 
+
+To defend against this, the course emphasizes using a **Software Bill of Materials (SBOM)**, which is like an ingredient list detailing every component and its origin in your software.
+
+A Software Bill of Materials (SBOM) is like an ingredient list for your software. It details all the components used in an application, including direct and transitive dependencies, along with their origins (pedigree) and authenticity (provenance). This comprehensive inventory helps you understand exactly what makes up your software.
+
+An SBOM consists of three critical elements:
+
+1. **inventory**: lists direct and transitive dependencies
+	- **direct dependencies**: dependencies you explicitly install with npm commands
+	- **transitive dependencies**: the peer dependencies of direct dependencies, so you indirectly depend on these dependencies.
+2. **pedigree**: shows the complete origin and version control history of every code component.
+3. **provenance**: verifies the authenticity and integrity of components in code. It ensures that the code you downloaded is exactly what the author intended to publish. 
+
+SBOMs are important because they give you full visibility into your software supply chain, allowing you to quickly identify and respond to vulnerabilities. For example, in supply chain attacks like the SolarWinds breach, attackers compromised trusted software updates to infiltrate thousands of organizations. With an SBOM, you can track and verify every component, reducing the risk of such attacks and enabling faster threat detection and response.
+
+
+#### Secure logging and monitoring
+
+Logging and monitoring are essential to create a complete audit trail to catch and flag suspicious activity. It has 4 pillars:
+
+1. **authentication events**: log every single authentication event, like logins, passwords changes, sessions ending, etc.
+2. **authorization violations**: log when users attempt to access resources they are unauthorized to access.
+3. **data access events**: log when sensitive data is accessed and by who
+4. **system and configuration changes**: log whenever security configuration or permissions change.
+
+There are 6 essential attributes of a security log entry:
+
+1. **who**: unique identification of the prinicipal performing the action
+2. **what**: action attempted or performed
+3. **when**: timestamp with timezone
+4. **where**: system, application, or resource
+5. **why**: context for triggering the event
+6. **outcome**: success, failure, or partial completion
+
+
+![](https://i.imgur.com/FDU3XWZ.jpeg)
+
+There are three ways to classify the severity of what you should log and the actions you should take based on those logs:
+
+- **high-severity (alert)**: for anything like multiple failed authentication attempts, suspicious data access patterns, and access to unauthorized resources, you should immediately alert point of contacts about the attempt.
+- **medium severity (monitor)**: unusual logi
+
 ## DevSecOps pipeline creation
 
 ### Gitlab
