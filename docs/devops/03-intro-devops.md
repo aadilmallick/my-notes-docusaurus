@@ -148,6 +148,8 @@ Toolchains often integrate these categories of tools together in a consolidated,
 6. **Deployment**: complex deployment routines require dedicated tools like Octopus Deploy
 7. **Monitoring**: sentry, datadog
 8. **Confirugation management**: Getting infrastructure up and running via Ansible.
+
+
 ## IaC
 
 ### IaC basics
@@ -1482,6 +1484,83 @@ pipelines:
           - make testdeployment URL=$PRODUCTION_URL VERSION=$BITBUCKET_COMMIT
 ```
 
+## Site Reliability Engineering
+
+### Reliability Engineering
+
+
+SRE is having good engineering practices and designing systems that can tolerate failure through code.
+
+- **Reliability** is the ability of a system to perform its intended function correctly and consistently when it is expected to. 
+- **resilience**: the ability of a system to maintain or regain a stable state and continue operations after a major incident occurred 
+- **SRE** is the discipline of using a software engineering approach to automate operation processes
+
+Most of SRE comes down to dealing with **integration points**
+
+- **integration points**: An integration point is a single point that connects many services together. It is the number one cause of issues in an architecture.
+- **cascading failure**: occurs based on an issue with an integration point
+
+**All systems fail**
+
+All systems eventually fail because changes introduce new modes of failure.
+
+What we're aiming for is not the perfect system, but a system with high resilience:
+
+- **redundancy**: running multiple instance copies of cloud resources for failover
+- **automatic scaling and load balancing**
+#### Circuit breaker
+
+The circuit breaker is a system design concept that is a mitigation against failing systems, where if it detects high frequency of errors, it stops making requests to those failing systems instead of continuing to bombard them with requests
+
+
+
+![](https://i.imgur.com/OjR6owc.jpeg)
+
+
+#### Configuration
+
+Runtime config that varies by deployment should be separated out from the app code and stored into env vars
+
+### Adding observability
+
+**Observability** is a measure of how well the internal states of a system can be inferred from knowledge of its external output. 
+
+Good observability is when by looking at the logs and metrics of our system, we can tell what is going on.
+
+There are 5 areas of observability:
+
+1. **synthetic checks**: health checks that are automated to check if servers and services are running.
+2. **system and application metrics**: measuring time series, numerical data like CPU usage or function execution
+3. **end user performance**: 
+	- **application performance monitoring (APM)**: Instrumentation framework that reports performance at code level how long every function took to run and duration of database queries and I/O calls.
+	- **real user monitoring (RUM)**: frontend script and analytics system like Posthog to monitor how users click on your site and what actions they take, and performance in the case of Lighthouse.
+	- **tracing**: tracing a service across complex system and the path of a request to see how long it took
+4. **system and application logs**: logs should answer these 4 questions:
+	1. what happened
+	2. when did it happen
+	3. where did it happen
+	4. what was involved
+5. **security**: uses existing logs and metrics but queries them to detect threats. Audits certain paths on endpoints, bad IP requester addresses, and suspicious or unusual behavior.
+
+### Incident response
+
+Three activities of incident response management:
+
+1. **troubleshooting**: understanding the system enough to know how to fix 
+2. **automation**: having the tooling to already speed up and conduct remediation activities 
+3. **communication**: communicating to end users and stakeholds what went wrong and how you fixed it.
+
+
+> [!NOTE]
+> If someone makes a mistake and your system goes down, then your system was bad in the first place. Everybody makes mistakes. As an engineer your job is to make the system work anyway. 
+
+#### Postmortems
+
+Here are the core principles behind the mindset you should have when conducting a postmortem:
+
+1. There is no root cause: everything happens as a degradation over time.
+2. Postmortems should be blameles
+3. Use transparent communication when communicating outages.
 ## Source control tools
 
 ### Subversion 
