@@ -172,6 +172,11 @@ Here are the dynamic security testing techniques:
 
 ![](https://i.imgur.com/eAwLpai.jpeg)
 
+### Application security
+
+Application security means building software that is secure from the start by protecting it from vulnerabilities that attackers might exploit. It involves adding layers of protection to prevent unauthorized access, data breaches, and malicious attacks. This applies to all modern applications, including web apps, mobile apps, APIs, and microservices. 
+
+It's important because it helps safeguard sensitive data, ensures the stability of systems, prevents costly disruptions, maintains customer trust, and helps meet regulatory requirements. 
 ### Static testing
 
 ### SAST
