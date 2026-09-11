@@ -1,3 +1,6 @@
+---
+aliases:
+---
 ## DevSecOps foundations
 
 ### Agile vs Waterfall
@@ -262,6 +265,9 @@ Security scanning tools like Akido Security and open-source Checkov can analyze 
 #### DAST
 
 DAST stands for Dynamic Application Security Testing, it is a form of black-box testing, and it tests a running application via its UI or API for common vulnerabilities such as SQL injection and buffer overflows. 
+
+> [!NOTE]
+> DAST simulates how a real attacker interacts with apps, testing vulnerabilities with simulated SQL injections and XSS attacks.
 
 Here are the three core components DAST handles:
 
