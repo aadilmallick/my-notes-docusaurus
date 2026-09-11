@@ -485,7 +485,7 @@ There are 6 essential attributes of a security log entry:
 There are three ways to classify the severity of what you should log and the actions you should take based on those logs:
 
 - **high-severity (alert)**: for anything like multiple failed authentication attempts, suspicious data access patterns, and access to unauthorized resources, you should immediately alert point of contacts about the attempt.
-- **medium severity (monitor)**: unusual logi
+- **medium severity (monitor)**: unusual login times or locations, failed authorization attempts, or configuration changes
 
 ## DevSecOps pipeline creation
 
