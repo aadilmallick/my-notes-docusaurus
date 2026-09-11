@@ -442,9 +442,8 @@ Here are the common security settings to enable in a secure by default approach:
 - **secure DB credentials**: generate unique DB credentials on install
 - **disable debug modes and unused services in production**: prevent security misconfiguration by ensuring there is a smaller attack surface, and no verbose logs that reveal too much info.
 
-### Common attacks and their mitigations
 
-#### Supply chain attacks and SBOM
+### Supply chain attacks and SBOM
 
 A supply chain attack happens when attackers compromise trusted software components or updates that your application depends on. 
 
@@ -455,6 +454,8 @@ Instead of attacking your code directly, they infiltrate the software build or d
 
 > [!NOTE]
 > These attacks are dangerous because you’re not just trusting your own code but also all third-party libraries and tools you use. 
+
+#### SBOM
 
 To defend against this, the course emphasizes using a **Software Bill of Materials (SBOM)**, which is like an ingredient list detailing every component and its origin in your software.
 
@@ -472,6 +473,8 @@ SBOMs are important because they give you full visibility into your software sup
 
 For example, in supply chain attacks like the SolarWinds breach, attackers compromised trusted software updates to infiltrate thousands of organizations. With an SBOM, you can track and verify every component, reducing the risk of such attacks and enabling faster threat detection and response.
 
+#### Dependency management
+
 
 Along with SBOM, this is how you you perform dependency management:
 
@@ -479,8 +482,59 @@ Along with SBOM, this is how you you perform dependency management:
 - **Dependency Pinning:** Control exactly which versions of dependencies run in production through version pinning, lock files, or hash pinning, depending on your risk tolerance.
 - **Balanced Update Policies:** Prioritize updates based on severity and stability, with immediate updates for critical vulnerabilities and scheduled updates for less severe issues.
 
+#### Third-party vendor security frameworks
 
-#### Secure logging and monitoring
+Third-party vendors pose significant security risks as attackers often exploit trusted partners to breach organizations, making systematic vendor risk management essential.
+
+Three main frameworks help manage vendor security effectively: 
+
+1. **NIST Cybersecurity Framework 2.0** (with six core functions and supply chain risk focus)
+2. **ISO 27001** (with comprehensive ISMS controls and certification requirements
+3. **SOC 2 Type** 2 (an evidence-based approach assessing operational effectiveness over time).
+
+#### Continuous supply chain monitoring
+
+**Continuous supply chain monitoring** in software security means continuously tracking and analyzing all software components and dependencies in real time to detect vulnerabilities and threats as soon as they appear. 
+
+Instead of periodic scans, it provides ongoing visibility into changes in your software bill of materials (SBOM) and integrates automated threat intelligence to prioritize risks based on severity and usage. 
+
+This proactive approach enables faster response to security issues, reducing the time from discovery to remediation from weeks to hours, and helps maintain a secure software supply chain.
+
+
+![](https://i.imgur.com/kmxgJkG.jpeg)
+
+**Continuous supply chain monitoring** is only possible with these core components:
+
+- **Realtime SBOM management**: treats SBOM as a living inventory and constantly updates with each new deployment.
+- **automated threat intelligence integration**: goes beyond detection of known vulnerabilities and also covers emerging threats.
+
+#### Supply chain Compliance
+
+The EU Cyber Resilience Act mandates maintaining a comprehensive, machine-readable Software Bill of Materials (SBOM), secure-by-default product configurations, formal vulnerability disclosure programs, and ongoing security updates throughout the product lifecycle.
+
+#### Crowdstrike case study: incident response
+
+Organizations that recovered faster from the CrowdStrike incident shared several key capabilities:  
+
+![](https://i.imgur.com/rDiHHym.jpeg)
+  
+
+- They had mature supply chain monitoring systems that detected widespread issues quickly and activated incident response protocols.
+- They maintained direct, pre-established communication channels with vendors, enabling fast technical guidance and coordinated response.
+- They had dedicated teams trained for manual system recovery with clear roles specific to supply chain incidents.
+- They implemented alternative processes to keep critical operations running during recovery.
+- They used systematic recovery approaches prioritizing revenue-generating systems and had pre-positioned teams trained in complex recovery procedures.
+
+  
+In contrast, organizations lacking these capabilities treated the problem as isolated hardware failures, lacked vendor communication, and had poor recovery prioritization, resulting in prolonged downtime. 
+
+> [!NOTE]
+> This shows that preparation, monitoring, communication, and structured recovery planning are crucial for rapid incident recovery.  
+
+
+
+
+### Secure logging and monitoring
 
 Logging and monitoring are essential to create a complete audit trail to catch and flag suspicious activity. It has 4 pillars:
 
@@ -511,13 +565,43 @@ There are three ways to classify the severity of what you should log and the act
 
 #### SLSA framework
 
-The SLSA framework, which stands for Supply Chain Levels for Software Artifacts, is a security framework designed to improve software supply chain integrity. It provides four graduated levels of security assurance, from no guarantees (Level 0) to maximum tamper protection with strict controls (Level 4).  
+The SLSA framework, which stands for Supply Chain Levels for Software Artifacts, is a security framework designed to improve software supply chain integrity. 
 
-1. **level 0**
+It provides four graduated levels of security assurance in increasing competence, from no guarantees (Level 0) to maximum tamper protection with strict controls (Level 4).  
+
+1. **level 0 - no controls, test builds only**: no supply chain information or SBOM generated
+2. **level 1 - build automation and provenance**: Basic supply chain visibility and provenance generated from metadata about the software build
+3. **level 2 - version control and tamper protection**
+4. **level 3 - enforce hardened source and build platforms**: prevents threats like cross-build contamination by using dedicated build platforms that handle stuff like build agents and runners.
+5. **level 4 - requires two-person code reviews and hermetic builds**:
+
+**Provenance** is verifiable information about software artifacts describing where and when it was created, how it was produced, and who created it.
   
-SLSA focuses on creating verifiable, tamper-evident records called build provenance, which document where, when, and how software was built—including details like the build platform, source repository, build recipe, dependencies, and cryptographic signatures. This helps ensure software authenticity and prevents supply chain attacks.  
+SLSA focuses on creating verifiable, tamper-evident records called **build provenance**, which document where, when, and how software was built—including details like the build platform, source repository, build recipe, dependencies, and cryptographic signatures. This helps ensure software authenticity and prevents supply chain attacks.  
+
+
+
+![](https://i.imgur.com/uggfK7l.jpeg)
+
+So SLSA creates build provenance through these 5 components:
+
+1. **builder identity**: which platform built the software
+2. **source repository**: the source code
+3. **build recipe**: how the software was built, and the build pipeline info
+4. **materials**: what dependencies were needed to build the app
+5. **crypto signatures**: proof of authenticity
   
-Tools like the SLSA Verifier automate checking these records to confirm that software artifacts are trustworthy before deployment. I
+Tools like the SLSA Verifier automate checking these records to confirm that software artifacts are trustworthy before deployment. 
+
+
+#### Digital signatures and artifact integrity
+
+In order to ensure the integrity of artifacts, we need to use digital signatures to create tamper-evident artifacts where it makes unauthorized modifications of the artifact immediately detectable.
+
+- **what they are**: Digital signatures protect software artifacts by providing cryptographic proof that the software has not been altered since it was signed. 
+- **how they work**: They mathematically bind the signature to both the content and the signer's identity, so even a single bit change invalidates the signature, making tampering immediately detectable. 
+- **the result**This ensures that software artifacts come from a trusted source and have not been modified during distribution, establishing a secure and trusted software supply chain. 
+- **tools**: Tools like Sigstore and Cosign automate this process, enabling verification that software is authentic and untampered before deployment.
 
 ## DevSecOps pipeline creation
 
