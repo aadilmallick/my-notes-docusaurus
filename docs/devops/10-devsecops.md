@@ -172,11 +172,7 @@ Here are the dynamic security testing techniques:
 
 ![](https://i.imgur.com/eAwLpai.jpeg)
 
-### Application security
 
-Application security means building software that is secure from the start by protecting it from vulnerabilities that attackers might exploit. It involves adding layers of protection to prevent unauthorized access, data breaches, and malicious attacks. This applies to all modern applications, including web apps, mobile apps, APIs, and microservices. 
-
-It's important because it helps safeguard sensitive data, ensures the stability of systems, prevents costly disruptions, maintains customer trust, and helps meet regulatory requirements. 
 ### Static testing
 
 ### SAST
@@ -402,6 +398,33 @@ docker run -t owasp/zap2docker-stable zap-full-scan.py -t http://10.0.2.15:3000
 docker run -t owasp/zap2docker-stable zap-api-scan.py -t http://10.0.2.15:3000 -f openapi
 ```
 
+
+## Application security
+
+Application security means building software that is secure from the start by protecting it from vulnerabilities that attackers might exploit. It involves adding layers of protection to prevent unauthorized access, data breaches, and malicious attacks. This applies to all modern applications, including web apps, mobile apps, APIs, and microservices. 
+
+It's important because it helps safeguard sensitive data, ensures the stability of systems, prevents costly disruptions, maintains customer trust, and helps meet regulatory requirements. 
+
+### Secure by design
+
+Secure by Design in software applications means building security into the product from the very beginning rather than adding it later. It shifts the responsibility of security from users to developers and organizations. The approach is based on three core principles:  
+  
+
+- **Take ownership of customer security outcomes:** Security features like multi-factor authentication and strong credentials are enabled automatically without user configuration.
+- **Embrace radical transparency and accountability:** Organizations openly disclose vulnerabilities and share their security processes to build trust and improve continuously.
+- **Lead from the top:** Senior leadership prioritizes security as a core business goal, ensuring proper resources and accountability.
+
+### Secure coding practices
+
+- **Memory safety is fundamental:** Using languages like Rust, Go, Python, or Java can prevent common vulnerabilities like buffer overflows, or use compiler tools for C/C++.
+- **Input validation is your first defense:** Always validate data types, length, character sets, and business logic to prevent injection attacks.
+- **Output encoding protects users:** Encode outputs to prevent cross-site scripting (XSS) by ensuring user input is treated as plain text, not executable code.
+- **Defensive programming builds resilience:** Implement fail-safe defaults, least privilege access, and error handling that avoids revealing sensitive system details.
+	- **fail-safe defaults**: deny by default if detection fails, prioritize security over convenience.
+
+### Secure by default
+
+Secure by default in application configuration means that security features and settings are automatically enabled and correctly configured out of the box, without requiring manual setup by users or administrators.
 ## DevSecOps pipeline creation
 
 ### Gitlab

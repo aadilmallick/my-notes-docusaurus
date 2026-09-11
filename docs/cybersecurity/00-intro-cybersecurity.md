@@ -579,13 +579,41 @@ CSRF is an attack that tricks an authenticated user into executing unwanted acti
 
 Would you like to walk through a concrete vulnerable code snippet from the slides (like the C buffer overflow exercises) and fix it step by step?
 
-### SQL injection
+### injection attacks
+
+There are four types of injection attacks:
+
+1. **SQL Injection:** This classic attack involves manipulating database queries. Imagine a login form. An attacker might inject code that bypasses authentication, granting them access without a password. They could also extract all user data from the database or even delete it entirely. 
+
+	- Example: Injecting `' OR '1'='1` into a username field could bypass authentication if the query isn't properly sanitized.
+
+2. **Command Injection:** This targets the operating system underlying the application. By injecting system commands, attackers can execute arbitrary code on the server. Imagine gaining the ability to run any command on a company's server—the possibilities are endless. 
+
+	- Example: Injecting `; ls -l` into a file upload form could list all files in the current directory if the application executes user-supplied input without proper sanitization.
+
+3. **LDAP Injection:** This focuses on exploiting vulnerabilities in directory services like Active Directory. Attackers can manipulate LDAP queries to gain unauthorized access to user accounts, modify permissions, or even take over the entire directory service. 
+
+	- Example: Injecting `*)(uid=*)` into a search field could return all user accounts if the LDAP query isn't properly sanitized.
+
+4. **Cross-site Scripting (XSS):** This involves injecting malicious scripts into web pages viewed by other users. Imagine a comment section on a forum. An attacker could inject JavaScript that steals the cookies of everyone who views that page, potentially hijacking their sessions. 
+
+	- Example: Injecting `<script>alert('XSS')</script>` into a comment field could execute the script in the browser of anyone who views the comment.
+
+There are several types of injection attacks, but all of them have the same mitigations:
 
 - **input validation:** validate user input and sanitize it
 - **prepared statements:** Use prepared statements or stored procedures to prevent passing SQL command queries into your database query from the user-supplied data
 - **least privilege:** put your database on least privilege
 - **role-based access control:** authorization for user accounts
 - **server-side validation:** do not depend on client-side validation. use server-side validation
+
+#### LDAP injection
+
+LDAP stands for Lightweight Directory Access Protocol, which is a protocol used to access and manage directory information services, like user and resource data in a network. 
+
+LDAP injection is a type of injection attack where an attacker manipulates LDAP queries by injecting malicious input, similar to how SQL injection targets databases. This can allow attackers to bypass security controls, access unauthorized information, or alter data.
+
+
 
 ### XSS
 
@@ -812,6 +840,8 @@ here are examples of broken access control
 
 Failure to address broken access control could allow an attacker to access confidential information, modify or delete data, or escalate privileges to obtain administrator rights.
 
+#### Mitigation theory
+
 To avoid broken access control, it's essential for front-end developers to implement proper authorization checks and validate user permissions. 
 
 Additionally, back-end developers should enforce authorization rules, manage user roles and permissions, and implement robust authentication mechanisms.
@@ -821,16 +851,44 @@ Additionally, back-end developers should enforce authorization rules, manage use
 
 Best practices to prevent this include applying the principle of least privilege, using role-based permissions with CRUD operations, practicing deny by default, logging access control failures, rate limiting APIs, and hardening web servers to block unauthorized access.
 
+- **Role-Based Access Control (RBAC)**: Assigns permissions to users based on their roles within the organization (e.g., "manager," "employee"); this model is simpler to implement but can be less flexible
+- **Attribute-Based Access Control (ABAC)**: Uses attributes of users, resources, and the environment to determine access; this model is more complex but offers greater flexibility and granularity
+
+#### Programming mitigation
+
+1. **design access control up front**
+	- Plan your access control strategy early in the design phase  
+	- Consider the specific needs and permissions required for different user roles  
+	- Implement RBAC, ABAC, or both
+2. **Force Every Access Request to Go Through an Access Control Check**  
+	- Ensure that every request to access a resource is subject to an authorization check  
+	- Implement access control mechanisms at all relevant layers of the application (for example, presentation layer, business logic layer, data access layer)
+3. **Consolidate the Access Control Check**
+	- Centralize your access control logic to avoid inconsistencies and potential vulnerabilities  
+	- This approach simplifies maintenance and updates
+4. **Deny by Default**  
+	- Adopt a "deny by default" approach, granting access only when explicitly permitted  
+	- This helps to mitigate the risk of unauthorized access in case of configuration errors or missing permissions
+5. **Leverage Principles of Least Privilege / Just in Time (JIT) and Just Enough Access (JEA)** 
+	- Grant users only the minimum necessary permissions to perform their tasks  
+	- Consider implementing Just-in-Time (JIT) provisioning, where access is granted only when needed and revoked afterward  
+	- Just Enough Access (JEA) further refines this by granting only the specific permissions required for a particular task or operation
+6. **Do Not Hardcode Roles**  
+	- Avoid hardcoding role names or permission levels directly in the application code  
+	- Use a centralized configuration or database to manage roles and permissions, allowing for easier updates and modifications
+
 ### Security misconfiguration
 
 Misconfigured applications could allow attackers to perform unauthorized actions or run malicious scripts or commands. They could also compromise the application by taking control of it or disrupting its functionality.
 
 Here are some examples of security misconfiguration:
 
-- Running applications with default credentials: Many applications come with default usernames and passwords that are widely known
-- Weak encryption settings: Using weak encryption algorithms or failing to properly configure encryption settings puts data at risk
-- Insecure network configurations: Misconfigured firewalls, routers, or other network devices can expose applications to vulnerabilities
-- Outdated software: Running outdated software with known vulnerabilities will make applications susceptible to attacks
+- **Running applications with default credentials**: Many applications come with default usernames and passwords that are widely known
+- **Weak encryption settings**: Using weak encryption algorithms or failing to properly configure encryption settings puts data at risk
+- **Insecure network configurations**: Misconfigured firewalls, routers, or other network devices can expose applications to vulnerabilities
+- **Outdated software**: Running outdated software with known vulnerabilities will make applications susceptible to attacks
+- **Leaving unnecessary features enabled**: it's like leaving the door wide open for exploitation.
+- **revealing too much information**: overly verbose logging and errors can leak information about the system, giving the attacker valuable clues as to how they may exploit you
 
 **mitigations**
 
@@ -1044,6 +1102,8 @@ Threat modeling is a tool used to brainstorm possible threats and corresponding 
 - **Elevation of privilege:** Gaining privileges without proper authorization
 
 ## Configuration Hardening
+
+
 
 ### Best practices
 
