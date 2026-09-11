@@ -102,6 +102,16 @@ The five main practice areas of DevOps covered in the video are:
 - **Continuous Delivery:** Automating testing and deployment to release small changes frequently and reliably.
 - **Site Reliability Engineering:** Engineering systems for reliability with observability and automation.
 
+#### Shifting left and software dev lifecycle
+
+- **Software Development Lifecycle (SDLC):** This is the process of planning, creating, testing, and deploying software. In DevOps, SDLC is integrated with continuous practices to make releases faster and more reliable.  
+      
+    
+- **Shifting Left:** This means moving tasks like testing and security earlier in the development process instead of waiting until the end. For example, security checks happen during coding and build stages, helping catch issues sooner and reduce delays.  
+      
+    
+- **Value Streams:** These represent the flow of work from idea through development to delivery to users. In DevOps, optimizing value streams means removing blockers and improving collaboration so software gets to production faster and with higher quality.
+
 ### Containers vs VMs
 
 A host device uses a hypervisor to manage multiple **virtual machines**, where each virtual machine has their own operating system (ring 0) and then the applications that live on top of that (ring 3)
@@ -149,7 +159,52 @@ Toolchains often integrate these categories of tools together in a consolidated,
 7. **Monitoring**: sentry, datadog
 8. **Confirugation management**: Getting infrastructure up and running via Ansible.
 
+### DevSecOps
 
+There's tension between security and devs because they have opposite goals.
+
+- **devs**: ship fast, eat cocaine
+- **security**: be super safe, take it slow, ensure high quality
+
+The problem is not that devs don't care about security, it's that they don't know what security wants them to fix. So the secret is automation and shifting security left by using security tools earlier in the development lifecycle.
+
+### Kubernetes and Cloud Native
+
+Kubernetes is useful for the following reasons:
+
+- **built-in management features**: has observability, service discovery, health monitoring, and redundant networking
+- **abstracts the infra**: K8S manages all the infra for you
+
+K8S has become the standard for deploying company infra to the cloud, so much so that they invented a term for this:
+
+>**Cloud native** just means adding and using K8S for your deployment solution. Weird name.
+
+### Chaos engineering
+
+Chaos engineering is the discipline of experimenting on a system in order to build confidence in the system's capability to withstand real-world conditions in production. 
+
+In order words, you try to simulate breaking shit and see if the system still hods, and then if not, build the system to stand strong against failures and deliberate adversity against your system.
+
+
+In chaos engineering, we aim to control the chaos that comes with emulating production failures and heavy load with several techniques:
+
+- **fault injection**: intentionally applying an outage or performance degradation to a live system component.
+- **game day**: a coordinated event where your organization plans to respond to a real or simulated incident to learn and improve from it
+
+### MLOps
+
+MLOps, as explained in the course, is the combination of machine learning (ML) and DevOps practices. It focuses on managing not just code and infrastructure, but also the data and machine learning models that are used to find patterns in data. 
+
+Unlike traditional DevOps, MLOps involves collaboration between developers, operations teams, and data scientists, because ML workloads are often run by data scientists who may not have deep systems knowledge.
+
+- It automates versioning and management of large data sets and ML models.
+- It requires high-performance computing resources, often using GPUs, for training ML models.
+- It includes continuous integration and deployment processes for software, infrastructure, and data/models.
+- It involves ongoing monitoring and feedback loops to improve model results over time.
+
+### AIOps and LLMOps
+
+AIOps is using AI to automate IT operations processes, like automatically drafting emails, ingesting data, using ML systems to flag vulnerabilities, etc.
 ## IaC
 
 ### IaC basics
@@ -1484,6 +1539,140 @@ pipelines:
           - make testdeployment URL=$PRODUCTION_URL VERSION=$BITBUCKET_COMMIT
 ```
 
+## Observability and monitoring
+
+- **observability**: uncovers both known and unknown problems
+- **monitoring**: extracting info targeting known problems
+
+### Observability 
+
+**Observability** is a measure of how well the internal states of a system can be inferred from knowledge of its external output. 
+
+> [!NOTE]
+> Good observability is when by looking at the logs and metrics of our system, we can tell what is going on.
+
+There are four pillars of observability:
+
+1. **metrics**: numeric values that provide insights into the characteristics of a system
+	- like how CPU usage or memory usage give insight into the performance of an app
+2. **logs**: text records that get outputted from either infra or apps, lets devs know what is going on and leaves and audit trail.
+3. **traces**: show the lifecycle of a request as it passes through services and infra, show the entire path of a request and how it flows throughout a distributed service
+4. **events**: events are emitted when something of note happens or changes within your infrastructure. 
+
+There are 5 areas of observability:
+
+1. **synthetic checks**: health checks that are automated to check if servers and services are running.
+2. **system and application metrics**: measuring time series, numerical data like CPU usage or function execution
+3. **end user performance**: 
+	- **application performance monitoring (APM)**: Instrumentation framework that reports performance at code level how long every function took to run and duration of database queries and I/O calls.
+	- **real user monitoring (RUM)**: frontend script and analytics system like Posthog to monitor how users click on your site and what actions they take, and performance in the case of Lighthouse.
+	- **tracing**: tracing a service across complex system and the path of a request to see how long it took
+4. **system and application logs**: logs should answer these 4 questions:
+	1. what happened
+	2. when did it happen
+	3. where did it happen
+	4. what was involved
+5. **security**: uses existing logs and metrics but queries them to detect threats. Audits certain paths on endpoints, bad IP requester addresses, and suspicious or unusual behavior.
+
+### Monitoring
+
+Monitoring uses signals to paint a picture of what is happening within the services we track, either by using dashboards, visualizations, or alerting.
+
+There are two main types of monitoring:
+
+- **application-performance monitoring**: monitoring backend performance
+- **frontend monitoring**: monitoring frontend performance
+
+### Observability architecture
+
+The observability architecture models how companies usually implement observability. 
+
+
+![](https://i.imgur.com/kZffcQj.jpeg)
+
+
+- **instrumentation/configuration**: writing your code in such a way that it can create or export observability **signals** like metrics, logs, traces, or events
+- **collection and processing**: an agent or system that collects all observability signals and processes them
+- **export**: export the collected signals to a database or backend
+- **visualization**: view the signals and processed and aggregated data via dashboards.
+
+There are two types of architecture:
+
+- **vendor-based observability**: using third-party vendors in each stage of the pipeline
+- **open-source observability**: using open-source, self-hosted vendors in each stage of the pipeline
+
+#### OpenTelemetry
+
+Open Telemetry is an open source observability framework that provides teams with standardized protocols and tools for collecting and routing telemetry data. 
+
+The main innovation here is that it replaces the need to use custom or different venders in each stage of the observability architecture, and instead OTel makes use of libraries that help with gathering, processing, and exporting data:
+
+- **OTel instrumentation**: language-specific libraries and SDKs that help with gathering, processing, and exporting data.
+- **OTel collector**: open source collector that receives data, processes it, and exports it to different backends. Many vendors support this and collect data with OTel collector.
+- **OTel exporter**: sends data to the third-party vendor or backend
+
+
+
+![](https://i.imgur.com/CfXtIP8.jpeg)
+
+OTel changes the observability architecture by replacing third-party paid vendors with the OTel collector:
+
+
+
+![](https://i.imgur.com/QfmpHrU.jpeg)
+
+### Metrics
+
+#### Metric types
+
+- **counters**: simple increment-only metrics that keep track of the number of occurrences of a specific event or activity 
+	- **examples**: API requests, error occurrences, system restarts
+	- **use case 1**: when you want to record a value that goes up 
+	- **use case 2**: when you want to be able to query how fast the value is increasing 
+- **gauges**: metrics that provide a snapshot of a particular value at a specific point in time, as numeric time-series data that can fluctuate
+	- **examples**: CPU utilization, memory, number of database connections
+- **histograms**: measure the distribution and frequency of time durations for specific events, and then group those numeric values into categorical buckets 
+	- **example**: classifying a continuous numeric value like request duration into a bucket like fast or slow 
+
+Each of the metrics has a purpose:
+
+- **counters**: used for capacity planning, so you can track load and traffic through counting API requests, error occurences, etc. happen, and then plan for what you recorded.
+- **gauges**: used for performance optimization
+- **histograms**: used for end users to understand the metrics better
+
+#### Metric aggregation
+
+- **sums**: summing metrics is useful when you want to track the total count or quantity of events over a period. 
+- **rates**: rates are useful when you want to measure how something changes over time. 
+
+$$rate = quantity/time$$
+- **mean**: averages are useful for finding the central tendency of data, but hide outliers.
+	- **example**: you can find the average response time to calculate the typical performance of your website. 
+- **percentile**: used to understand the distribution of data and to identify outliers 
+	- **example**: for example the 90th percentile of response times can help you understand what 90% of your users experience. 
+
+
+![](https://i.imgur.com/L7YxxCP.jpeg)
+
+
+![](https://i.imgur.com/A3Vdg3m.jpeg)
+
+
+#### Google's four golden signals
+
+Google's four golden signals are a good foundation for defining which metrics you should track in your application. 
+
+- **errors**: rate of unsuccessful events or requests within a service or infra
+- **throughput**: How much volume of requests or events being received by a service or infra
+- **latency**: the amount of time taken for a request or event to be completed 
+- **saturation**: the measure of how a service or infrastructure's limited resources are utilized, like CPU utilization
+
+This is what makes for good metrics. They have these properties:
+
+- **understandable**: perfectly clear and give insight into a characteristic of a specific system
+- **actionable**: alerts your team and drives change
+- **improvable**: able to be improved upon after action
+- **multidimensional**: adds tags to your metrics for more info, like which stage the environment is in.
 ## Site Reliability Engineering
 
 ### Reliability Engineering
@@ -1521,26 +1710,7 @@ The circuit breaker is a system design concept that is a mitigation against fail
 
 Runtime config that varies by deployment should be separated out from the app code and stored into env vars
 
-### Adding observability
 
-**Observability** is a measure of how well the internal states of a system can be inferred from knowledge of its external output. 
-
-Good observability is when by looking at the logs and metrics of our system, we can tell what is going on.
-
-There are 5 areas of observability:
-
-1. **synthetic checks**: health checks that are automated to check if servers and services are running.
-2. **system and application metrics**: measuring time series, numerical data like CPU usage or function execution
-3. **end user performance**: 
-	- **application performance monitoring (APM)**: Instrumentation framework that reports performance at code level how long every function took to run and duration of database queries and I/O calls.
-	- **real user monitoring (RUM)**: frontend script and analytics system like Posthog to monitor how users click on your site and what actions they take, and performance in the case of Lighthouse.
-	- **tracing**: tracing a service across complex system and the path of a request to see how long it took
-4. **system and application logs**: logs should answer these 4 questions:
-	1. what happened
-	2. when did it happen
-	3. where did it happen
-	4. what was involved
-5. **security**: uses existing logs and metrics but queries them to detect threats. Audits certain paths on endpoints, bad IP requester addresses, and suspicious or unusual behavior.
 
 ### Incident response
 
