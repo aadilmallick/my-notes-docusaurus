@@ -1,4 +1,4 @@
-## Teamcity + Octopus basics
+## Teamcity basics
 
 Teamcity is a flexible CI tool that can build artifacts from source code and run pipelines to test them.
 
@@ -65,12 +65,104 @@ In TeamCity, child projects inherit many settings and entities from their parent
 > [!NOTE]
 > Note that since [user permissions](https://www.jetbrains.com/help/teamcity/2026.1/managing-roles-and-permissions.html?Creating%20and%20Editing%20Projects) are project-based, only Root project administrators can edit its settings.
 
+#### Gitlab to Teamcity
+
+Often you'll have all your TeamCity Kotlin DSL code stored in a GitLab repository. Whenever you push to your GitLab repository, it should automatically push up those build configuration file changes to TeamCity to actually run the pipeline. 
+
+1. To achieve this we should add a Team City dedicated user to the GitLab repository
+
+
+
+![](https://i.imgur.com/rhTdRIw.jpeg)
+
 #### Adding build configurations
 
 When trying to add build configurations, you can point to a gitlab repository containing the kotlin template and then the specific kotlin build configuration ID
 
 
 ![](https://i.imgur.com/ZAFWV2v.jpeg)
+
+> [!NOTE]
+> Whenever you create a build configuration, TeamCity creates a unique ID for that, which is used internally and which TeamCity recognizes. 
+
+1. Choose the VCS type, which should be git
+
+
+![](https://i.imgur.com/mimsUdz.jpeg)
+
+2. Specify the VCS root with the teamcity username and password auth from gitlab
+
+
+![](https://i.imgur.com/xyTWad6.jpeg)
+
+
+#### Teamcity artifacts
+
+For a build configuration, you have two important settings when it comes to artifacts:
+
+1. **publish artifacts**: when to publish artifacts. You have these options:
+	- **even if build fails**: even if build fails, publish artifacts
+	- **no publish on fail**: if build fails, don't publish artifacts
+2. **artifact paths**: provide Team City-specific syntax for describing the source code artifact path mapping to the Team City build agent runner environment target directory. The syntax is as follows:
+
+```
++:source => target   // to mount source code path to target path
+-:source   // to ignore a source code path
+```
+
+
+![](https://i.imgur.com/6A7ZNrq.jpeg)
+
+
+> [!NOTE]
+> All of these settings are configurable in the Kotlin DSL for TeamCity. 
+
+So this below:
+
+```
+**/* => target_dir, -: **/folder1 => target_dir
+```
+
+maps all files in the source code to the teamcity build runner filesystem but then removes/ignores `folder1`.
+
+
+#### Adding parameters
+
+If you have many build configurations that are similar or the only difference between them is the repo you're getting the source code from, then use **teamcity parameters** that you define at the project level or root level and then use that to dynamically read from those variables anywhere in the build config.
+
+In teamcity, you can refer to parameters and read their values with the syntax below:
+
+```
+%parameter_name%
+```
+
+So here's an example where we want to create a dynamic `repository` parameter that we then set in teamcity project config:
+
+1. Create a new VCS root that uses the `repository` variable to dynamically define the Fetch URL of the repository
+
+
+![](https://i.imgur.com/J0KctYw.jpeg)
+
+2. Set the VCS root for the build configuration to the one we just created.
+
+
+![](https://i.imgur.com/2Q6Wwgd.jpeg)
+
+
+
+3. Add a specific value for the recognized `repository` configuration parameter in the **settings** -> **parameters** for the current build configuration:
+
+
+![](https://i.imgur.com/fHWeY1F.jpeg)
+
+
+
+4. Edit parameter specs if necessary so you are prompted to provide the parameter values when creating the build configuration or running the build.
+
+
+![](https://i.imgur.com/EOZMbJz.jpeg)
+
+
 
 
 ## TeamCity CLI
@@ -143,7 +235,7 @@ Run `teamcity <command> --help` for usage
 | **skill**    | `list`, `install`, `remove`, `update`                                                                                                                                                                                                                                                                           |
 | **update**   | Check for CLI updates                                                                                                                                                                                                                                                                                           |
 
-## AI
+### AI
 
 The CLI ships with an [Agent Skill](https://agentskills.io/) that teaches coding agents (Claude Code, Cursor, and others) how to drive `teamcity`:
 
@@ -160,3 +252,28 @@ or specifically for **Claude Code:**
 /plugin marketplace add JetBrains/teamcity-cli
 /plugin install teamcity-cli@teamcity-cli
 ```
+
+## Octopus
+
+### How Octopus works
+
+Octopus has these components:
+
+- **octopus deploy server**: stores all CD info and configurations, communicates with the deploy tentacles to perform tasks.
+- **octopus deploy tentacle**: manage of execution of deployment pipelines and to deploy the final result to target servers. There are two types of tentacles:
+	- **listening tentacle**: long-running process on a cloud server, or running on port 10933 locally if self-hosting, listens for commands from the deploy server and then executes those commands.
+	- **polling tentacle**: periodically connects to the Octopus deploy server and polls it for new commands to execute. 
+	- **worker tentacle**: performs tasks on behalf of Octopus Deploy
+- **calamari**: what does the actual legwork of executing the deploy pipeline, controlled via tentacles. Tentacle can run multiple instances of calamari to perform multiple tasks in parallel. 
+
+> [!NOTE]
+> The important thing to understand here is that you'll only use Tentacles mainly and install them on virtual machines if you're hosting on-premises. If you own the virtual machines and infra, then you would need to install Tentacles on those virtual machines. 
+
+
+![](https://i.imgur.com/Vczxt6h.jpeg)
+
+
+
+> [!NOTE]
+> You must put your tentacles on your target servers. If there is a server you want to deploy something to, then it must have a tentacle on it. 
+
