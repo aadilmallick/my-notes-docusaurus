@@ -391,3 +391,18 @@ Here are the steps in depth
 
 ![](https://i.imgur.com/wXQHeLT.jpeg)
 
+
+### Octopus and IIS
+
+When creating an octopus project, you can configure the pipeline with prebuilt step recipes, and Octopus offers a prebuilt step for deploying to IIS app pools.
+
+
+1. Choose the "Deploy to IIS" prebuilt step template:
+
+![](https://i.imgur.com/qy2IRBX.jpeg)
+
+
+2. Configure the deploy to IIS step by specifying the target environment, which will automatically deploy to the IIS app pools on all tentacles tagged by that target environment.
+
+
+![](https://i.imgur.com/FdnD2qc.jpeg)
