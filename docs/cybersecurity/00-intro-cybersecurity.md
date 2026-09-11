@@ -796,6 +796,14 @@ app.post('/fetch-preview', async (req, res) => {
 
 ### Broken access control
 
+Broken access control comes as a result of both authentication and authorization flaws, such as manipulating user IDs or exploiting APIs that assume trust.
+
+
+![](https://i.imgur.com/unCaK6v.jpeg)
+
+
+- **authentication flaws**: attackers are able to hijack authentication state somehow via manipulation of user IDs or exploiting APIs that assume trust
+
 here are examples of broken access control
 
 - Improper authorization checks, where there is no verification that a user has the necessary permissions to perform an action
@@ -804,7 +812,14 @@ here are examples of broken access control
 
 Failure to address broken access control could allow an attacker to access confidential information, modify or delete data, or escalate privileges to obtain administrator rights.
 
-To avoid broken access control, it's essential for front-end developers to implement proper authorization checks and validate user permissions. Additionally, back-end developers should enforce authorization rules, manage user roles and permissions, and implement robust authentication mechanisms.
+To avoid broken access control, it's essential for front-end developers to implement proper authorization checks and validate user permissions. 
+
+Additionally, back-end developers should enforce authorization rules, manage user roles and permissions, and implement robust authentication mechanisms.
+
+> [!NOTE]
+> Broken access control happens when an app's permissions fail, allowing unauthorized users to access or modify data or functions.
+
+Best practices to prevent this include applying the principle of least privilege, using role-based permissions with CRUD operations, practicing deny by default, logging access control failures, rate limiting APIs, and hardening web servers to block unauthorized access.
 
 ### Security misconfiguration
 
