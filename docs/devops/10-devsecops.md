@@ -446,8 +446,12 @@ Here are the common security settings to enable in a secure by default approach:
 
 #### Supply chain attacks and SBOM
 
-A supply chain attack happens when attackers compromise trusted software components or updates that your application depends on. Instead of attacking your code directly, they infiltrate the software build or distribution process—like what happened in the SolarWinds breach—injecting malicious code into legitimate updates. This lets attackers access thousands of organizations while staying hidden for months.  
-  
+A supply chain attack happens when attackers compromise trusted software components or updates that your application depends on. 
+
+Instead of attacking your code directly, they infiltrate the software build or distribution process—like what happened in the SolarWinds breach—injecting malicious code into legitimate updates of third-party packages. This lets attackers access thousands of organizations while staying hidden for months.  
+
+> [!NOTE]
+> This attack is devastating because each third-party GitHub repo we use or each third-party NPM package we install becomes a possible attack vector. 
 
 > [!NOTE]
 > These attacks are dangerous because you’re not just trusting your own code but also all third-party libraries and tools you use. 
@@ -464,7 +468,16 @@ An SBOM consists of three critical elements:
 2. **pedigree**: shows the complete origin and version control history of every code component.
 3. **provenance**: verifies the authenticity and integrity of components in code. It ensures that the code you downloaded is exactly what the author intended to publish. 
 
-SBOMs are important because they give you full visibility into your software supply chain, allowing you to quickly identify and respond to vulnerabilities. For example, in supply chain attacks like the SolarWinds breach, attackers compromised trusted software updates to infiltrate thousands of organizations. With an SBOM, you can track and verify every component, reducing the risk of such attacks and enabling faster threat detection and response.
+SBOMs are important because they give you full visibility into your software supply chain, allowing you to quickly identify and respond to vulnerabilities. 
+
+For example, in supply chain attacks like the SolarWinds breach, attackers compromised trusted software updates to infiltrate thousands of organizations. With an SBOM, you can track and verify every component, reducing the risk of such attacks and enabling faster threat detection and response.
+
+
+Along with SBOM, this is how you you perform dependency management:
+
+- **Systematic Evaluation:** Use OWASP and industry criteria to assess open source components before adding them, focusing on maintainer credibility, release frequency, and vulnerability response.
+- **Dependency Pinning:** Control exactly which versions of dependencies run in production through version pinning, lock files, or hash pinning, depending on your risk tolerance.
+- **Balanced Update Policies:** Prioritize updates based on severity and stability, with immediate updates for critical vulnerabilities and scheduled updates for less severe issues.
 
 
 #### Secure logging and monitoring
@@ -493,6 +506,18 @@ There are three ways to classify the severity of what you should log and the act
 - **high-severity (alert)**: for anything like multiple failed authentication attempts, suspicious data access patterns, and access to unauthorized resources, you should immediately alert point of contacts about the attempt.
 - **medium severity (monitor)**: unusual login times or locations, failed authorization attempts, or configuration changes
 - **low-severity**: successful logins, usual attempts, maintenance
+
+### Artifact security
+
+#### SLSA framework
+
+The SLSA framework, which stands for Supply Chain Levels for Software Artifacts, is a security framework designed to improve software supply chain integrity. It provides four graduated levels of security assurance, from no guarantees (Level 0) to maximum tamper protection with strict controls (Level 4).  
+
+1. **level 0**
+  
+SLSA focuses on creating verifiable, tamper-evident records called build provenance, which document where, when, and how software was built—including details like the build platform, source repository, build recipe, dependencies, and cryptographic signatures. This helps ensure software authenticity and prevents supply chain attacks.  
+  
+Tools like the SLSA Verifier automate checking these records to confirm that software artifacts are trustworthy before deployment. I
 
 ## DevSecOps pipeline creation
 
