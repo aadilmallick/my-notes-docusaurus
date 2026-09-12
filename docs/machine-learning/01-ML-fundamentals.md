@@ -614,6 +614,10 @@ The choice of $k$ is a **hyperparameter**—a parameter that cannot be learned d
     
 - **Validation Strategy:** Evaluate different candidate values of $k$ on a held-out validation set and pick the one with minimal validation error before performing final evaluation on the test set.
 
+
+![](https://i.imgur.com/gNnpelU.jpeg)
+
+
 ### Distance metrics
 
 In order to be a valid distance metric for KNN, it must satisfy three rules:

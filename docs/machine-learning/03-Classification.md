@@ -34,6 +34,69 @@ We call the area under the ROC curve as AUC (area under the curve).
 
 ![](https://i.imgur.com/m68hpJn.jpeg)
 
+
+## SVM
+
+### Problem formulation and intuition
+
+SVM (support vector machine) was designed as a model to create **decision boundaries** between different classes of data, making its primary purpose as classification.
+
+A **decision boundary** is a mathematical equation that segments data points into one of two classes depending on which side of the equation they graphically fall within:
+
+For SVM, the decision boundary degree (linear vs polynomial vs nonlinear) depends on whether you're doing binary classification or multi-class classification and how complex you foresee the decision boundary being.
+
+Although SVM is the one who learns the decision boundary, you as the ML engineer have to decide the nature of the decision boundary (linear or nonlinear) based on the data you're trying to fit to.
+
+There are two types of decision boundaries you can do with SVM:
+
+- **linear decision boundary**: a simple case where the decision boundary is a line. Works well for binary classification.
+
+![](https://i.imgur.com/CCNVhfl.jpeg)
+
+- **nonlinear decision boundary**: when dealing with high-dimensional data, the decision boundary is called a **hyperplane**
+
+
+![](https://i.imgur.com/VTT3j4j.jpeg)
+
+
+Instead of just finding _any_ line that separates the data, the SVM seeks the boundary that maximizes the **margin**—the distance between the boundary and the closest data points from each class. This approach helps the model generalize better to new, unseen data and makes it less sensitive to noise or outliers
+
+The SVM chooses its decision boundary by trying to find the smallest margin possible between **support vectors**, which are the data points that sit right on the edge of the margin. 
+
+- They are used to calculate the margin and classification of new data points.
+- These are the critical data points that "support" or define the position and orientation of the decision boundary. 
+
+> [!NOTE]
+> Because only these points are necessary to determine the boundary, the algorithm is often very memory-efficient, even in higher dimensions
+
+#### Linear case
+
+two data points in different classes, denotes these chosen data points as **support vectors**, then puts a linear decision boundary line smack dab in the middle of that margin.
+
+- **support vectors**: the data points that sit right on the edge of the margin. They are used to calculate the margin and classification of new data points.
+
+
+
+![](https://i.imgur.com/jvIkIWf.jpeg)
+
+#### Nonlinear case
+
+SVM works well even in high dimensions to create effective hyperplane decision boundaries due to the **kernel trick**.
+
+One of the most powerful features of SVMs is the use of **kernel functions**, which allow the algorithm to handle **non-linear data**.
+
+
+![](https://i.imgur.com/1feiBhj.jpeg)
+
+
+By using the "kernel trick," the SVM can implicitly map original features into a higher-dimensional space where it becomes possible to deal with a nonlinear decision boundary as if it were a linear decision boundary.
+
+Common kernels include:
+
+- **Linear Kernel:** Used when data is linearly separable.
+- **Polynomial, RBF (Radial Basis Function), and Sigmoid Kernels:** These allow the algorithm to create highly complex, non-linear decision boundaries to fit more intricate data distributions
+
+Mathematically, the SVM aims to **maximize the margin** between the two classes. It looks for a hyperplane that provides the widest separation between the support vectors of class A and class B.
 ## Decision trees
 
 ## Ensemble methods

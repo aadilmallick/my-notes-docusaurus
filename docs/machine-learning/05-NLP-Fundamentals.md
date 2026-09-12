@@ -621,6 +621,7 @@ The same word can mean different things depending on the sentence context, like 
 
 We often remove stop words like “is”, “or”, “both” because they don’t have a lot of semantic meaning and are context-specific. There is no point creating embeddings for those.
 
+## Naive-bayes
 
 ## Transformers
 
