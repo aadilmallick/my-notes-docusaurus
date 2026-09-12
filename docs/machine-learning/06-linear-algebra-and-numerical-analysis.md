@@ -332,7 +332,7 @@ $$\det(A-\lambda I)=0$$
 
 You can now also use determinants to solve for eigenvectors and eigenvalues.
 
-1. Solve $det(A-\lambda I) = 0$ for $\lambda$
+1. Solve the polynomial $det(A-\lambda I) = 0$ for all the possible $\lambda$
 2. Plug in $\lambda$ into $A \vec v = \lambda \vec v$ to solve for the eigenvectors
 #### Solving for eigenpairs
 
@@ -353,11 +353,20 @@ Here are the general steps:
     $$  
     (A - \lambda I)\vec v = \vec 0  
     $$
-#### Diagonal matrices + eigenvalues connections
 
-The determinant of an $n \times n$ matrix $A$ equals the product of its eigenvalues because the determinant is precisely the constant term of the matrix's characteristic polynomial.
 
-**proof: The determinant of a matrix $A$ is equal to product of its eigenvalues**
+> [!NOTE]
+> A quick tip to find eigenvalues: 
+> ***
+> If $A - \lambda I$ produces a triangular matrix or a diagonal matrix, then the eigenvalues simply lie along the diagonal of $A - \lambda I$. Proof and intuition in [[#Diagonal matrices and eigenvalues]].
+
+#### Eigenvalue theorems
+
+
+
+##### **proof: The determinant of a matrix $A$ is equal to product of its eigenvalues**
+
+>Prove that the determinant of an $n \times n$ matrix $A$ equals the product of its eigenvalues because the determinant is precisely the constant term of the matrix's characteristic polynomial.
 
 The determinant of a matrix $A$ is equal to product of its eigenvalues:
 
@@ -369,13 +378,18 @@ How do we prove this?
 
 
 
-Coming from this theorem, if a matrix has an eigenvalue $\lambda = 0$, then it has a determinant = 0 and is thus noninvertible (the product of eigenvalues becomes 0, thus determinant becomes 0).
+Therefore, for any $n\times n$ matrix $A$:
 
-#### Diagonal matrics and eigenvalues
+$$  
+\det(A)=\prod_{i=1}^n \lambda_i  
+$$
 
+> [!NOTE]
+> Coming from this theorem, if a matrix has an eigenvalue $\lambda = 0$, then it has a determinant = 0 and is thus noninvertible (the product of eigenvalues becomes 0, thus determinant becomes 0).
 
+#### Diagonal matrices and eigenvalues
 
-If $A - \lambda I$ produces a triangular matrix or a diagonal matrix, then the eigenvalues simply lie along the diagonal.
+For both diagonal and triangular (upper or lower) matrices, the **eigenvalues are simply the entries along the main diagonal**.
 
 That is because if a matrix is diagonal, the standard basis vectors are eigenvectors and diagonal entries are eigenvalues.
 
@@ -383,7 +397,7 @@ That is because if a matrix is diagonal, the standard basis vectors are eigenvec
 
 #### Eigenvalue proof
 
-Prove that if λ is an eigenvalue of A, then λ² is an eigenvalue of A².
+
 
 
 ## Algebraic matrix properties
@@ -546,3 +560,36 @@ From these to steps, we arrive this equation:
 $$  
 A = U\lambda U^{-1}  
 $$
+
+### Similarity transforms, diagonalization, and Schur
+
+#### Similarity transform
+
+$$  
+B = S^{-1}AS  
+$$
+
+- Same eigenvalues.
+- Same determinant, trace, characteristic polynomial.
+
+#### Diagonalization (special case)
+
+If $A$ has $n$ independent eigenvectors:
+
+$$  
+A = P D P^{-1}  
+$$
+
+#### Schur decomposition (more general)
+
+Every square matrix has a Schur form (over complex numbers):
+
+$$  
+A = Q T Q^*  
+$$
+
+where $Q$ is unitary and $T$ is upper triangular.
+
+Numerical relevance:
+
+- Many eigenvalue algorithms are based on Schur form because it’s stable.
