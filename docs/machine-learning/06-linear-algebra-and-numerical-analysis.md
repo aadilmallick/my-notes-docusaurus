@@ -34,6 +34,10 @@ Here is how a matrix $A$ translates a vector $\vec x$ in standard coordinate spa
 
 $$A\vec x = \vec v$$
 
+> [!NOTE]
+> $A\vec x = \vec b$ has a solution if $\vec b$ is in the span of the columns of $A$.
+
+
 You can describe a linear transformation by just recording what happens to the $\hat i$ and $\hat j$ basis vectors of the original coordinate space and how they get transformed.
 
 For example, if a linear transformation scales $\hat i$ to $2 \hat i$, then the matrix representation of the linear transformation is $\begin{matrix} 2 & 0 \\ 0 & 1 \end{matrix}$, or $[2 \hat i^T, \hat j^T]$
@@ -135,7 +139,36 @@ $$A\vec x = \vec 0$$
 - When the output of a transformation is a plane, the rank is 2.
 - When the output of a transformation is all of space, the rank is 3.
 - Full rank means that the number of dimensions matches the number of columns.
-    - full rank for an $\mathbb{R}^4$ space is 4.
+    - **example**: full rank for an $\mathbb{R}^4$ space is 4.
+
+> [!IMPORTANT]
+> Matrices are full rank iff they are injective, meaning its null space only has the trivial solution $\vec x = \vec 0$.
+
+
+**column space**
+
+Column space is the span of the columns of the matrix, with the max column space for a $m \times n$ matrix being $\mathbb{R}^n$. 
+
+- **when a matrix is singular based on column space**: If your column space dimensions are less than the dimensions of the matrix, meaning less dimensional than $\mathbb{R}^n$ , then the matrix is singular.
+
+
+**null space**
+
+The null space is the set of all possible vectors that become null, or $\vec 0$ after a linear transformation. 
+
+Geometrically, it's the set of all vectors that land on the origin after a linear transformation, and has two types of solutions:
+
+- **trivial solution**: the only vector that maps to the origin is the origin itself, $\vec 0$, since by nature of a linear transformation the origin (zero vector) always stays fixed.
+- **nontrivial solution**: there is a non-empty set of non-zero vectors called the **kernel** that gets transformed into the $\vec 0$.
+
+You can find the null space by solving a system of equations and setting the post-transformed vector to the $\vec 0$.
+
+$$  
+A\vec x = \vec 0  
+$$
+
+> [!NOTE]
+> The kernel is the set of all solutions to the null space equation, and a trivial solution leads to a **trivial kernel**, and a nontrivial solution leads to a **nontrivial kernel**.
 
 #### Mathematical properties of determinants
 
@@ -157,16 +190,125 @@ $$A\vec x = \vec 0$$
     det(A-B) = det(A) - det(B)  
     $$
 
+#### Cramer's rule
+
+Cramer's rule comes into play when we have an equation $A \vec x = \vec b$, where $A$ and $\vec b$ are known.
+
 
 ### Dot product
 
+For two vectors $\vec v$ and $\vec w$, the dot product $\vec v \cdot \vec w$ can be thought of as the length of projected $\vec w$ on $\vec v$ times the length of $\vec v$
+
+- When two vectors point in generally the same direction, their dot product is positive
+- Whe two vectors point in generally the opposite directions, their dot product is negative.
+
+This is another formula for the cot product that lets you find the angle between two vectors:
+
 $$\vec{a} \cdot \vec{b} = \|\vec a\|\|\vec b\|cos{\theta}$$
 
+#### Orthonormal transformations
+
+here's a thought: in the standard coordinate space, we can represent an arbitrary vector like so:
+
+$$\begin{pmatrix} x \\ y \end{pmatrix} = x \hat i + y \hat j = \begin{pmatrix} x \\ y \end{pmatrix} \cdot \begin{pmatrix} 1 \\ 0 \end{pmatrix} + \begin{pmatrix} x \\ y \end{pmatrix} \cdot \begin{pmatrix} 0 \\ 1 \end{pmatrix} = \begin{pmatrix} x \\ y \end{pmatrix} \cdot \hat i + \begin{pmatrix} x \\ y \end{pmatrix} \cdot \hat j $$
+
+So we would naively think that we can represent any vector $\vec x$ as the sum of its dot products with each basis vector of a matrix.
+
+But that only works in one special case: orthonormal transformations.
+
+**Orthonormal transformations** are those in which the dot product of two vectors is preserved even after the same matrix transformation is applied to those two vectors.
+
+
+![](https://i.imgur.com/er3lmSt.jpeg)
+
+The only matrices $U$ that provide orthonormal transformations are of the **orthogonal** family of matrices, where vectors 1) are not stretched and 2) maintain the same angle. 
+
+More formally, matrices $U$ that provide orthonormal transformations must satisfy these two properties:
+
+1. $det(U) = 1$: Because the basis vectors are uniform, transformed vectors are not stretched.
+2. 
+
+In the case of orthonormal transformations you can very easily find an input vector that results in a corresponding known output vector via these steps:
+
+
+![](https://i.imgur.com/KNu0lgY.jpeg)
+
+### Cross product
+
+The cross product of two vectors $\vec a$ and $\vec b$ measures the area of the parallelogram formed by those two vectors:
+
+$$  
+\vec a \times \vec b = \| \vec a \| \| \vec b \| \sin{\theta}  
+$$
+
+Here are the behaviors of a cross product:
+
+- **greatest when two vectors are orthogonal:** This is because $\sin90 = 1$.
+- $\vec a \times \vec a = 0$: this is because the angle between a vector and itself is 0, therefore $\sin 0 = 0$
 ### Eigenvectors and Eigenvalues
 
-Eigenvectors are simply vectors that stay on their span after a linear transformation. More formally, they satisfy the equation $A\vec v = \lambda \vec v$
+Eigenvectors are simply vectors that stay on their span after a linear transformation. More formally, they satisfy the equation $A\vec v = \lambda \vec v$:
+
+- **Eigenvector:** a vector $\vec v$ that stays on its own span after transformation.
+- **Eigenvalue:** the factor $\lambda$ by which that eigenvector is scaled.
+- **Eigenpair**: the pair of an eigenvector and its corresponding eigenvalue $(\lambda, \vec v)$
+
+To compute eigenvalues, we can try to find the null space of $A\vec v - \lambda \vec v= \vec 0$, which will then give us all the eigenpairs possible.
+
+So we start off with this:
 
 
+$$(A-\lambda I)\vec v = \vec 0$$
+Which then gives us the **characteristic equation** we can solve for as a polynomial:
+
+$$\det(A-\lambda I)=0$$
+
+#### Solving for eigenpairs
+
+Here are the general steps:
+
+1. Rewrite $A\vec v = \lambda \vec v$ to $A\vec v - \lambda \vec v = \vec 0$
+    
+2. Since comparing matrix-vector multiplication with scalar-vector multiplication is awkward, we can rewrite $\lambda$ as $\lambda I$, which will just put the eigenvalues $\lambda$ along the diagonal of the matrix.
+    
+    $$  
+    (A - \lambda I)\vec v = \vec 0  
+    $$
+    
+3. If $(A - \lambda I)\vec v = \vec 0$, then $det(A-\lambda I) = 0$. The reasoning is that the only way for a matrix times a vector to be the $\vec 0$ is if the matrix has a null space and is therefore non-invertible and therefore has a determinant = 0. Use this equation to find the eigenvalues.
+    
+4. Plug back in the eigenvalues you found when you solved for $\lambda$ back into the equation and solve for the eigenvectors:
+    
+    $$  
+    (A - \lambda I)\vec v = \vec 0  
+    $$
+#### Determinant and eigenvalues
+
+**proof: The determinant of a matrix $A$ is equal to product of its eigenvalues**
+
+The determinant of a matrix $A$ is equal to product of its eigenvalues:
+
+$$  
+det(A) = \Pi_{i=1}^n \lambda_i  
+$$
+
+How do we prove this?
+
+
+
+Coming from this theorem, if a matrix has an eigenvalue $\lambda = 0$, then it has a determinant = 0 and is thus noninvertible (the product of eigenvalues becomes 0, thus determinant becomes 0).
+
+#### Diagonal matrics and eigenvalues
+
+If $A - \lambda I$ produces a triangular matrix or a diagonal matrix, then the eigenvalues simply lie along the diagonal.
+
+That is because if a matrix is diagonal, the standard basis vectors are eigenvectors and diagonal entries are eigenvalues.
+
+
+
+#### Eigenvalue proof
+
+Prove that if λ is an eigenvalue of A, then λ² is an eigenvalue of A².
 
 ## Vector and matrix norms
 
@@ -239,3 +381,58 @@ $$
 $$
 
 Common induced norms include $\|A\|_1, \|A\|_\infty, \|A\|_2$.
+
+## Special matrices
+
+### Diagonal matrices
+
+Diagonal matrices have these three core properties:
+
+- **eigenvalues lie along the diagonal:** 
+	- The product of the diagonals of a diagonal matrix is equal to the product of the eigenvalues.
+	- the trace of a diagonal matrix is equal to the sum of the eigenvalues of the diagonal matrix.
+
+$$Tr(D) = \sum_{i = 0}^n \lambda_i$$
+
+- **diagonal matrix exponents are just exponentiating the diagonal elements:** This means it’s trivial to calculate something like $A^n$.
+    
+- **matrix multiplication is commutative:** If you have a diagonal matrix $D$ and a nondiagonal matrix $A$, then matrix multiplication is commutative with diagonal matrices.
+    
+    $$  
+    AD = DA  
+    $$
+#### Diagonal proofs
+
+**determinant of a diagonal matrix is product of its diagonal elements and thus eigenvalues** 
+
+A matrix’s determinant is equal to the product of its eigenvalues, so since diagonal elements in a diagonal matrix are the eigenvalues, the determinant of a diagonal matrix is equal to the product of its diagonal values.
+### Orthogonal, unitary, and Hermitian matrices
+
+
+
+## Decompositions
+
+### Cholesky decomposition
+
+### Eigendecomposition
+
+You can represent any $n \times n$ matrix $A$ with $n$ linearly independent eigenvectors as its **eigendecomposition**, which you can get by manipulating the eigenvector formula $Ax = \lambda x$, which only works for square and invertible matrices $A$.
+
+Starting from a $n \times n$ invertible matrix $A$:
+
+- $\lambda$: the diagonal matrix with eigenvalues of $A$ along the diagonal.
+- $U$: the matrix of eigenvectors of $A$, which we often normalize to be unit vectors.
+- $\Lambda$: the diagonal matrix with the corresponding eigenvalues of $U$ along the diagonal, gotten from the neat trick of $\Lambda = \lambda I$
+
+Here are the steps:
+
+1. Find the eigenpairs of $A$
+2. We can form the matrix $U$ as the matrix whose columns are the eigenvectors of $A$.
+3. From the standard eigenvector equation $A \vec v = \lambda \vec v$, that corresponds to the matrix version $A U = U \Lambda$ , where $\Lambda = \lambda I$, the diagonal matrix with the corresponding eigenvalues of $U$ along the diagonal.
+4. Multiply both sides by $U^{-1}$
+
+From these to steps, we arrive this equation:
+
+$$  
+A = U\lambda U^{-1}  
+$$
