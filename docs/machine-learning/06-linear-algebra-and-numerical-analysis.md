@@ -157,7 +157,14 @@ $$A\vec x = \vec 0$$
     det(A-B) = det(A) - det(B)  
     $$
 
+
+### Dot product
+
+$$\vec{a} \cdot \vec{b} = \|\vec a\|\|\vec b\|cos{\theta}$$
+
 ### Eigenvectors and Eigenvalues
+
+Eigenvectors are simply vectors that stay on their span after a linear transformation. More formally, they satisfy the equation $A\vec v = \lambda \vec v$
 
 
 
