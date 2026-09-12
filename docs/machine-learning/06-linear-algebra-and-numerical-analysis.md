@@ -368,6 +368,7 @@ Here are the general steps:
 
 >Prove that the determinant of an $n \times n$ matrix $A$ equals the product of its eigenvalues because the determinant is precisely the constant term of the matrix's characteristic polynomial.
 
+
 The determinant of a matrix $A$ is equal to product of its eigenvalues:
 
 $$  
@@ -375,7 +376,72 @@ det(A) = \Pi_{i=1}^n \lambda_i
 $$
 
 How do we prove this?
+  
 
+**Proof via the Characteristic Polynomial**
+
+
+Every eigenvalue $\lambda$ of $A$ satisfies the characteristic equation:
+
+  
+
+$$\det(\lambda I - A) = 0$$
+
+Let $p(\lambda) = \det(\lambda I - A)$. Because $A$ is an $n \times n$ matrix, $p(\lambda)$ is a monic polynomial of degree $n$. By the Fundamental Theorem of Algebra, $p(\lambda)$ can be factored completely over the complex numbers in terms of its $n$ roots (the eigenvalues $\lambda_1, \lambda_2, \dots, \lambda_n$, counted with multiplicity):
+
+  
+
+$$p(\lambda) = (\lambda - \lambda_1)(\lambda - \lambda_2)\dots(\lambda - \lambda_n)$$
+
+Now, evaluate both representations of $p(\lambda)$ at $\lambda = 0$:
+
+  
+
+1. **Determinant definition:**
+    $$p(0) = \det(0 \cdot I - A) = \det(-A)$$
+    
+    Factoring out the scalar $-1$ from all $n$ rows yields:
+    
+    $$\det(-A) = (-1)^n \det(A)$$
+    
+2. **Factored roots definition:**
+    $$p(0) = (0 - \lambda_1)(0 - \lambda_2)\dots(0 - \lambda_n) = (-1)^n \prod_{i=1}^{n} \lambda_i$$
+    
+Equating the two expressions for $p(0)$:
+
+$$(-1)^n \det(A) = (-1)^n \prod_{i=1}^{n} \lambda_i$$
+
+Dividing both sides by $(-1)^n$ leaves:
+
+$$\det(A) = \prod_{i=1}^{n} \lambda_i$$
+
+---
+
+**Alternative Proof via Schur Decomposition**
+
+
+In numerical linear algebra, this result is often viewed through the **Schur Decomposition** ( a generalization of diagonalization), which states that any square matrix $A$ can be factored as:
+
+
+$$A = Q T Q^*$$
+
+where $Q$ is unitary ($Q^* Q = I$) and $T$ is upper triangular.
+
+  
+
+- The diagonal entries of $T$ ($t_{11}, t_{22}, \dots, t_{nn}$) are precisely the eigenvalues $\lambda_1, \dots, \lambda_n$ of $A$.
+    
+- Using the multiplicative property of determinants:
+    $$\det(A) = \det(Q)\det(T)\det(Q^*) = \det(Q Q^*)\det(T) = \det(I)\det(T) = \det(T)$$
+    
+- Because $T$ is upper triangular, its determinant is simply the product of its diagonal entries:
+    
+      
+    
+    $$\det(T) = \prod_{i=1}^{n} t_{ii} = \prod_{i=1}^{n} \lambda_i$$
+
+
+Both paths reach the same conclusion: if any eigenvalue $\lambda_k = 0$, the entire product collapses to zero, which is why a matrix with a zero eigenvalue is non-invertible.
 
 
 Therefore, for any $n\times n$ matrix $A$:
@@ -391,11 +457,44 @@ $$
 
 For both diagonal and triangular (upper or lower) matrices, the **eigenvalues are simply the entries along the main diagonal**.
 
-That is because if a matrix is diagonal, the standard basis vectors are eigenvectors and diagonal entries are eigenvalues.
+> [!NOTE]
+> An intuitive look:
+> ***
+> If a matrix is diagonal, the standard basis vectors are eigenvectors and diagonal entries are eigenvalues.
 
+For both diagonal and triangular (upper or lower) matrices, the **eigenvalues are simply the entries along the main diagonal**.
 
+**Why This Holds**
 
-#### Eigenvalue proof
+For any $n \times n$ upper triangular matrix $U$:
+
+$$U = \begin{pmatrix} u_{11} & u_{12} & \dots & u_{1n} \\ 0 & u_{22} & \dots & u_{2n} \\ \vdots & \vdots & \ddots & \vdots \\ 0 & 0 & \dots & u_{nn} \end{pmatrix}$$
+
+The eigenvalues are the roots of the characteristic equation $\det(\lambda I - U) = 0$.
+
+Subtracting $U$ from $\lambda I$ yields another upper triangular matrix:
+
+$$\lambda I - U = \begin{pmatrix} \lambda - u_{11} & -u_{12} & \dots & -u_{1n} \\ 0 & \lambda - u_{22} & \dots & -u_{2n} \\ \vdots & \vdots & \ddots & \vdots \\ 0 & 0 & \dots & \lambda - u_{nn} \end{pmatrix}$$
+
+Because the determinant of any triangular (or diagonal) matrix is the product of its diagonal entries:
+
+$$\det(\lambda I - U) = (\lambda - u_{11})(\lambda - u_{22})\cdots(\lambda - u_{nn}) = 0$$
+
+Setting this polynomial to zero gives the roots directly:
+
+$$\lambda_1 = u_{11}, \quad \lambda_2 = u_{22}, \quad \dots, \quad \lambda_n = u_{nn}$$
+
+Since a diagonal matrix is merely a special case of a triangular matrix (where all off-diagonal elements are zero), the exact same rule applies.
+
+---
+
+**Significance in Numerical Analysis**
+
+Finding the roots of a high-degree polynomial directly is computationally unstable and expensive for large matrices. Because triangular and diagonal matrices reveal their eigenvalues by inspection, nearly all numerical eigenvalue algorithms work by transforming a general matrix into one of these simpler forms via similarity transformations ($A \mapsto X^{-1} A X$), which preserve eigenvalues:
+
+* **Eigendecomposition ($A = X \Lambda X^{-1}$):** Transforms a diagonalizable matrix into a pure diagonal matrix $\Lambda$, where the diagonal holds the eigenvalues and the columns of $X$ are the eigenvectors.
+* **Schur Decomposition ($A = Q T Q^*$):** Transforms any square matrix using a unitary matrix $Q$ into an upper triangular matrix $T$ (Schur form). The eigenvalues are read directly off the diagonal of $T$.
+* **QR Algorithm:** The workhorse method in numerical linear algebra; it iteratively applies QR factorizations to drive a general matrix toward upper triangular (or quasi-triangular) form so the eigenvalues can be read straight off the diagonal.
 
 
 
