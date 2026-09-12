@@ -270,4 +270,168 @@ Here is an example of how one would undertake regularization:
 2. Choose the $\lambda$ value that gave the lowest cross-validation error.
 3. Retrain on all the training data with the found $\lambda$ value, and then test and see the generalization error.
 
+## Curse of dimensionality
+
+The curse of dimensionality states that:
+
+> As the dimensionality increases, the number of data points required for good performance of any machine learning algorithm increases exponentially.
+
+
+![](https://i.imgur.com/vtVfzaH.jpeg)
+
 ## A first algorithm: K-nearest neighbors
+
+### Nearest Neighbor (NN)
+
+The Nearest Neighbors (NN) algorithm works as follows:
+
+1. Represent a data point as a vector
+2. Given a data point, use the Euclidean distance formula with its vector representation to find its nearest neighbor, comparing to other data points.
+3. The neighbor with the least distance value to the data point will be considered as the **nearest neighbor**
+
+**Euclidean distance formula**
+
+This is how you describe the euclidean distance formula in any number of dimensions $d$.
+
+$$  
+\| x^{(a)} - x^{(b)}\| = \sqrt{\sum_{j=1}^d (x_j^{(a)} - x_j^{(b)})^2}  
+$$
+
+> [!NOTE]
+> The distance formula is just the same thing as subtracting the two vectors from each other and then taking the magnitude of that resultant vector.
+
+### Basic KNN
+
+In the k nearest neighbors algorithm, we choose a number $k$, and in the corrdinate space, we consider a data point's distance to the $k$ nearest points to that data point.
+
+Here are some things to keep in mind when implementing this algorithm in a ML practice:
+
+- **train vs test**: For k nearest numbers, we want to keep train sets large and test sets small.
+- **scaling**: Scaling is necessary for K nearest neighbors because this algorithm is dependent on the values of data points.
+- **distance metric**: the choice of distance metric is crucial here.
+- **size of $k$**
+	- **small k:** Sensitive to noise, and overfits as a result
+	- **large k:** Takes into account too much data and underfits as a result.
+
+> [!NOTE]
+> A good rule of thumb is to calculate $k = \sqrt{N}​$
+
+##### Scaling
+
+Because KNN is based on distance, all the points must be on the same distance scale. Therefore something like standard scaling is necessary.
+
+For KNN classification, the neighbors approach only works if classes are not skewed. They need to be balanced, as in near 50-50, or else the neighbors approach will skew towards the majority class regardless of distance.
+#### Runtime complexity
+
+During training and testing, you don’t really make any computations while training. You only do computations when testing a point, which is O(n\log n) complexity.
+
+#### Distance metrics
+
+In order to be a valid distance metric for KNN, it must satisfy three rules:
+
+1. **symmetric**: $d(x, y) = d(y, x)$
+    
+2. **non-negative**: The resulting distance must be non-negative
+    
+3. **holds triangle inequality**: When calculating a triangle of points, the triangle inequality must hold:
+    
+    $$  
+    d(x ,z) \le d(x,y) + d(y, z)  
+    $$
+
+These distance metrics work for KNN:
+
+- cosine similarity
+- euclidean distance
+- edit/hamming distances
+
+
+The default distance metric for KNN is `uniform`, meaning every point is weighted equally. You can change this with the `weights=` kwarg when instantiating the `KNN()` object.
+
+Distance metrics come into play when deciding how to tally up a positive prediction or a negative prediction from the k nearest points.
+
+- **`'uniform'`** : Each point is weighted equally, no matter how far away it is from the data point.
+
+- **`'distance'`** : A point is weighted higher if it's closer to the data point being considered. Each point in the K nearest points to a data point is given a *weight*, which is the inverse of the distance from that point to the data point, 1 / distance.
+
+#### Code
+
+**Code**
+
+1. Import
+
+   ```python
+   from sklearn.neighbors import KNeighborsClassifier as KNN
+   from sklearn.preprocessing import StandardScaler as SS
+   ```
+
+2. Create model
+
+   ```python
+   knn = KNN(n_neighbors=5)
+   ```
+
+3. Fit model
+
+   ```python
+   knn.fit(X, y)
+   ```
+
+**KNN() kwargs**
+
+- `n_neighbors=` : the number of neighbors to set for the algorithm.
+- `weights=` : changes the distance metric. Default is `'uniform'`, where all points are weighted equally 
+
+**Methods**
+
+- `knn.predict_proba(X)` : returns a soft classification for the features, giving probabilities for each class
+- `knn.predict(X)` : returns hard classification and classifies the observations to labels.
+- `knn.score(X, y)`: returns the accuracy of the model on the data
+
+**actual code**
+
+
+```py
+from sklearn.neighbors import KNeighborsClassifier as KNN
+from sklearn.preprocessing import StandardScaler as SS
+from sklearn.datasets import make_moons, make_blobs as mb, load_breast_cancer as lbc, load_iris as li
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split as tts
+
+def knn_kfold(X, y, k):    
+    neighbor_range = np.array(range(2,k))
+    train=[]
+    test=[]
+    
+    # run through k nearest neighbord k times, doing k fold
+    for n_neighbors in neighbor_range:
+        knn = KNN(n_neighbors=n_neighbors)
+        tr, te = do_Kfold(knn, X, y, k, scaler=SS())
+        train.append(np.mean(tr))
+        test.append(np.mean(te))
+
+    # plot error against k
+    plt.figure(figsize=(6,6))
+    plt.plot(neighbor_range, train, ':xk', label='Training')
+    plt.plot(neighbor_range, test, ':xr', label='Testing')
+    plt.ylabel('Mean accuracy', fontsize=14)
+    plt.xlabel('$k$',fontsize=14)
+    plt.xticks(neighbor_range)
+    plt.legend()
+    plt.show()
+```
+
+
+### Curse of dimensionality for KNN
+
+K Nearest neighbors especially suffers whenever points in a space are roughly the same distance from each other, and in higher dimensionality, points are so dispersed from each other that they are approximately the same distance from each other due to the **curse of dimensionality**, so distance metrics become useless and unrepresentative.
+
+> [!NOTE]
+> As number of features $n$ increases, k nearest neighbors becomes an increasingly worse algorithm
+
+**Intrinsic dimensionality** refers to the minimum number of parameters required to capture the essential characteristics of some data.
+
+> [!NOTE]
+> K nearest neighbors works well on data with low intrinsic dimensionality like images.
