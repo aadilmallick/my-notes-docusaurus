@@ -17,9 +17,9 @@ TeamCity contains two main components:
 
 #### Teamcity server
 
-The TeamCity server is usually installed on a single dedicated machine that manages the entire CI/CD process.
+The TeamCity server is a central management component that is usually installed on a single dedicated machine that manages all pipelines.
 
-It does not perform any build or test actions directly; it orchestrates the process of using Build Agents to run these tasks.
+It does not perform any build or test actions directly; it orchestrates the process of using any amount of Build Agents to run these tasks.
 
 > [!NOTE]
 > You can scale up TeamCity servers via a load balancer, to also assign more build agents in total by adding more servers.
@@ -28,18 +28,42 @@ It does not perform any build or test actions directly; it orchestrates the proc
 
 A **Build Agent** is a service that is installed on separate servers (Windows, Linux, or any Linux-based OS) to carry out various build-related tasks. TeamCity itself does not compile code but relies on Build Agents for this purpose.
 
-The Build Agent service can be installed either on the same server as the TeamCity server or on different servers. 
+The Build Agent service can be installed either on the same server as the TeamCity server or on different servers, and in any fashion. It basically just has to be a recognizable process running on an exposed port.
+
+
+![](https://i.imgur.com/CRw7fLu.jpeg)
+
 
 > [!IMPORTANT]
 > However, installing on a separate server is recommended to avoid limitations that can arise if the TeamCity server needs to be reset or if issues occur with the Build Agent.
 
-1. **Configuration**: After installation, the Build Agent must be configured. This includes setting up the necessary tools and SDKs required for building your specific code, such as .NET SDK, JDK, PHP, etc. Essentially, the Build Agent acts as a local environment where all the build and compile processes occur.
-    
-2. **Execution**: Once agents are set up, TeamCity can assign builds to them. The Build Agents check out the source code, compile it, and produce packages, thereby facilitating continuous integration and continuous delivery (CI/CD) workflows.
+1. **Installation**: SSH into another VM and run the build agent as a docker container or install it directly on the VM and start it.
+2. **Configuration**: After installation, the Build Agent must be configured. This includes setting up the necessary tools and SDKs required for building your specific code, such as .NET SDK, JDK, PHP, etc. Essentially, the Build Agent acts as a local environment where all the build and compile processes occur.
+3. **Execution**: Once agents are set up, TeamCity can assign builds to them. The Build Agents check out the source code, compile it, and produce packages, thereby facilitating continuous integration and continuous delivery (CI/CD) workflows.
+
+A very important thing to understand is that TeamCity automatically looks at which build agent to use for which task, depending on the type of software and packages that each build configuration needs. 
+
+For example, a build configuration that uses NPM heavily will only use a build agent that has NPM and Node installed.
+
+TeamCity will understand how to choose that agent automatically by seeing if it has NPM installed via configuration management. 
+
+
+![](https://i.imgur.com/YYMJWo8.jpeg)
+
 
 
 > [!NOTE]
 > On the free tier, you're only allowed to associate max 3 build agents per TeamCity server.
+
+### Why Teamcity
+
+TeamCity is the most flexible CI provider ever because it works with any software and source code repository.
+
+It also has these capabilities:
+
+- **build chains**: ability to create dependencies between builds, able to create a graph so jobs/builds run in a predetermined order.
+- **configuration as code**: offers a Kotlin DSL that is a configuration as code drop-in for manually creating pipelines.
+- **personal builds**: from your local environment, you can create personal builds for a build configuration that only you can see, allowing you to test your builds locally. You can do this via an IntelliJ plugin.
 
 ### Teamcity installation and setup
 
