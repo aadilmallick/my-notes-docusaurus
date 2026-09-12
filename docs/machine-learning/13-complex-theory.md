@@ -61,3 +61,48 @@ $$
 > [!NOTE]
 > **key insight: $\theta$** represents the rotation in radians of the complex number vector rotated around the origin. Think about it as the angle the vector makes with the X (real number) axis.
 
+### Complexity theory with matrices
+
+#### Dagger matrices
+
+Just like how normal complex numbers have conjugates, you can take the conjugate of a matrix $A$ and get $A^*$ out of it by taking the conjugate of each individual complex number in the matrix:
+
+
+![](https://i.imgur.com/8y3F0PH.jpeg)
+
+The transpose of the conjugate and the conjugate of the transpose of a matrix $A$ result in a matrix $A^{\dagger}$.
+
+$$  
+(A^*)^T = (A^T)^* = A^{\dagger}  
+$$
+
+
+
+#### Unitary and hermitian matrices
+
+Unitary matrices are matrices that follow this property:
+
+> if the inverse of a matrix $U$ is $U^{\dagger}$, then $U$ is a unitary matrix
+
+$$  
+U^{\dagger}U = I  
+$$
+
+Unitary matrices possess key characteristics:
+
+1. **posesses orthogonality**: They are representative of **orthonormal transformations**.
+2. The product of two unitary matrices is also unitary.
+
+> [!NOTE]
+> If a square matrix is composed of orthonormal basis vectors (either as its rows or its columns), it is automatically a unitary matrix. That is because by nature, all unitary matrices are also orthogonal matrices.
+
+Hermitian matrices are a special case of unitary matrices where a unitary matrix is also its own inverse.
+
+> if $H$ is the same as $H^{\dagger}$, then $H$ is a hermitian matrix.
+
+$$  
+H = H^{\dagger}  
+$$
+
+> [!NOTE]
+> All Hermitian matrices are unitary but not all unitary matrices are Hermitian.

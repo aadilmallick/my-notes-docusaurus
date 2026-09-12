@@ -124,6 +124,22 @@ Rescales the data to a fixed range, usually between 0 to 1.
 
 #### Standard scaling
 
+Standard scaling fits features to a normal distribution, making each feature have a mean $\mu=0$ and a standard deviation $\sigma=1$
+
+The formula for standard scaling is this, where you subtract the mean from each feature value, and then divide that by the standard deviation.
+
+  
+
+$$\frac{x - \mu}{\sigma}$$
+This results in each scaled feature having a mean = 0 and standard deviation = 1.
+  
+
+> [!NOTE]
+> This is the exact same thing as the Z-score. It returns the z-score of each feature value, about how many standard deviations the observation is from the mean.
+
+
+
+
 > [!WARNING]
 > If you try to calculate the coefficient of variation on standard scaled data, then you will get an error because standard scaled data always has a mean = 0 and variance = 1, thus 1 / 0 nets you undefined.
 
@@ -279,7 +295,7 @@ The curse of dimensionality states that:
 
 ![](https://i.imgur.com/vtVfzaH.jpeg)
 
-## A first algorithm: K-nearest neighbors
+## K-nearest neighbors
 
 ### Nearest Neighbor (NN)
 

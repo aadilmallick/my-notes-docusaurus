@@ -102,7 +102,14 @@ By applying a transformation, then subsequently applying the inverse of that tra
 
 By using the inverse, you can find the variable vector like so
 
-$$\vec{x} = A^{-1} \vec{v}$$.
+$$\vec{x} = A^{-1} \vec{v}$$
+
+A matrix is **invertible/nonsingular** if it has an inverse, else we call it **singular** if it does not have an inverse.
+
+Singular matrices are noninvertible (have det = 0) while nonsingular matrices are invertible. In terms of G.E, this means the following:
+
+- **singular matrices:** infinite solutions or no solutions. One row is just full zeros when reduced via G.E, so there is at least one free variable.
+- **nonsingular:** Has one solution for $A \vec x = \vec b$, meaning there is a pivot in each row and along the diagonals in its correct spot.
 
 **when matrices don’t have an inverse**
 
@@ -190,10 +197,52 @@ $$
     det(A-B) = det(A) - det(B)  
     $$
 
-#### Cramer's rule
+### Cramer's rule 
 
-Cramer's rule comes into play when we have an equation $A \vec x = \vec b$, where $A$ and $\vec b$ are known.
+Cramer's rule comes into play when we have an equation $A \vec x = \vec b$, where $A$ and $\vec b$ are known, and we want to find out what $\vec x = \begin{pmatrix} x \\ y \end{pmatrix}$ is.
 
+#### Intuition
+
+
+Consider that for the standard identity matrix with basis vectors $\hat i$ and $\hat j$, we can represent the coordinates of a vector $\vec x = \begin{pmatrix} x \\ y \end{pmatrix}$ as two areas.
+
+Let's form the following notation:
+
+- $\text{Area}_{\hat i, \vec x}$: the area of the parallelogram formed by $\vec x$ and $\hat i$ 
+- $\text{Area}_{\vec x, \hat j}$: the area of the parallelogram formed by $\vec x$ and $\hat j$
+
+Let's dive into the calculations
+
+- $x$: the area of the parallelogram formed by $\vec x$ and $\hat j$ turns out to be $x \hat j$.
+
+$$x = x \hat j = \det([ \vec x, \hat j])$$
+
+![](https://i.imgur.com/ViSoJYB.jpeg)
+
+- $y$: the area of the parallelogram formed by $\vec x$ and $\hat i$ turns out to be $y \hat i$.
+
+$$y = y \hat j = \det([ \hat i, \vec x]) = \text{Area}_{\hat i, \vec x}$$
+
+
+![](https://i.imgur.com/9bvnc9o.jpeg)
+
+Now that we found what $x$ and $y$ are in terms of basis vectors, we can swap those standard basis vectors out for any matrix, and understand that linear transformations $A$ will scale and stretch vectors evenly:
+
+$$det(AB) = det(A)det(B)$$
+
+Therefore if we do the same thing with the basis vectors from $A$ instead of the basis vectors from $I$, we can find the new coordinates/areas by scaling with $\det(A)$
+
+
+![](https://i.imgur.com/PKi1Fcm.jpeg)
+
+
+
+This allows us to form Cramer's rule:
+
+1. Consider that for a $2 \times 2$ matrix $A$ with basis vectors $\hat a_1$ and $\hat a_2$, we can find $\vec x$ as follows
+
+
+![](https://i.imgur.com/GUjofQR.jpeg)
 
 ### Dot product
 
@@ -226,13 +275,25 @@ The only matrices $U$ that provide orthonormal transformations are of the **orth
 More formally, matrices $U$ that provide orthonormal transformations must satisfy these two properties:
 
 1. $det(U) = 1$: Because the basis vectors are uniform, transformed vectors are not stretched.
-2. 
+
+
+> [!NOTE]
+> So what does it really mean to have a matrix be representative of an orthonormal transformation?
+> 
+> Their rows and columns form orthonormal sets of vectors, which means they preserve the inner product of vectors, thus maintaining lengths and angles in complex vector spaces, which leads to the determinant having an absolute value of 1.
+> 
 
 In the case of orthonormal transformations you can very easily find an input vector that results in a corresponding known output vector via these steps:
 
 
 ![](https://i.imgur.com/KNu0lgY.jpeg)
 
+#### inner products vs outer products
+
+Suppose you have two vectors of the same length, $x$ and $y$ such that $x, y \in \mathbb{R}^n$
+
+- **inner product:** The inner product, also known as the dot product, is $x^T y$
+- **outer product:** The outer product $xy^T$ produces an $n \times n$ matrix.
 ### Cross product
 
 The cross product of two vectors $\vec a$ and $\vec b$ measures the area of the parallelogram formed by those two vectors:
@@ -259,10 +320,20 @@ So we start off with this:
 
 
 $$(A-\lambda I)\vec v = \vec 0$$
+
+If $(A - \lambda I)\vec v = \vec 0$, then $det(A-\lambda I) = 0$.
 Which then gives us the **characteristic equation** we can solve for as a polynomial:
 
 $$\det(A-\lambda I)=0$$
 
+> [!NOTE]
+> The reasoning is that the only way for a matrix times a vector to be the $\vec 0$ is if the matrix has a nontrivial null space and therefore is not full rank, and therefore the matrix is singular, therefore, the determinant of the matrix is 0.
+
+
+You can now also use determinants to solve for eigenvectors and eigenvalues.
+
+1. Solve $det(A-\lambda I) = 0$ for $\lambda$
+2. Plug in $\lambda$ into $A \vec v = \lambda \vec v$ to solve for the eigenvectors
 #### Solving for eigenpairs
 
 Here are the general steps:
@@ -282,7 +353,9 @@ Here are the general steps:
     $$  
     (A - \lambda I)\vec v = \vec 0  
     $$
-#### Determinant and eigenvalues
+#### Diagonal matrices + eigenvalues connections
+
+The determinant of an $n \times n$ matrix $A$ equals the product of its eigenvalues because the determinant is precisely the constant term of the matrix's characteristic polynomial.
 
 **proof: The determinant of a matrix $A$ is equal to product of its eigenvalues**
 
@@ -300,6 +373,8 @@ Coming from this theorem, if a matrix has an eigenvalue $\lambda = 0$, then it h
 
 #### Diagonal matrics and eigenvalues
 
+
+
 If $A - \lambda I$ produces a triangular matrix or a diagonal matrix, then the eigenvalues simply lie along the diagonal.
 
 That is because if a matrix is diagonal, the standard basis vectors are eigenvectors and diagonal entries are eigenvalues.
@@ -309,6 +384,28 @@ That is because if a matrix is diagonal, the standard basis vectors are eigenvec
 #### Eigenvalue proof
 
 Prove that if λ is an eigenvalue of A, then λ² is an eigenvalue of A².
+
+
+## Algebraic matrix properties
+
+### Inverse and transpose proofs
+
+These are general proofs that work with all square matrices:
+
+**proof 1**
+
+We want to prove:
+
+$$  
+(AB)^{-1} = B^{-1}A^{-1}  
+$$
+
+**proof 2**
+
+We want to prove:
+$$  
+(AB)^T = B^TA^T  
+$$
 
 ## Vector and matrix norms
 
@@ -406,6 +503,19 @@ $$Tr(D) = \sum_{i = 0}^n \lambda_i$$
 **determinant of a diagonal matrix is product of its diagonal elements and thus eigenvalues** 
 
 A matrix’s determinant is equal to the product of its eigenvalues, so since diagonal elements in a diagonal matrix are the eigenvalues, the determinant of a diagonal matrix is equal to the product of its diagonal values.
+
+
+### Symmetric matrices
+
+A symmetric matrix is a matrix that is equal to its transpose
+
+$$  
+A = A^T  
+$$
+
+- $A^2 = AA^T$
+
+
 ### Orthogonal, unitary, and Hermitian matrices
 
 
