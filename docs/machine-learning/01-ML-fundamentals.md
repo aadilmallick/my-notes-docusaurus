@@ -181,12 +181,37 @@ Let's take a look at training performance vs generalization performance:
 
 - **in-sample performance**: when training on a train set, which we use to iteratively find a good hypothesis, the error on the training set will be optimistic and having fit the model to the training set, the model would be biased to performing well on the training set.
 - **out-of-sample performance**: When training on new data, the model has never seen before, it can't use its underlying biases to get a lower error, and therefore is a more accurate depiction of a model's performance
+- **overfitting**: When we overfit a data set, essentially the model does well on the training data but fails to generalize on the testing data. It means training score is less than testing score.
+- **underfitting**: When we underfit a data set, it performs poorly on both the training set and and test set.
+- **internal validity** : how well the model performs on the training data
+- **external validity** : how well the model performs on the test data
 
 ### Train test-split
 
-Given a dataset we want to train our model on, reserve 80% of it for training and 20% of it for testing.
+The performance on the validation and test sets will be roughly the same, but the test set will be slightly worse since you will not have trained on the test set at all.
 
-#### k-fold cross validation
+- **train set:** The dataset partition which you use to train your model - around 60% of dataset
+- **validation set:** The dataset partition which you use to choose the best hyperparameters for your model - around 20% of dataset
+- **test set:** The dataset partition which you use to test your model - around 20% of dataset
+#### sklearn implementation
+
+Here is an example of how we can do in sklearn:
+
+The `tts()` method takes in an array of features and an array of target data, and then returns an array of 4 nested arrays, representing the training data and testing data respectively.
+
+```python
+from sklearn.model_selection import train_test_split as tts
+
+X_train, X_test, y_train, y_test = tts(x, y, test_size=0.2, shuffle=True, random_state=201)
+```
+
+The first two arguments you pass to the `tts()` method are the array of features, `x`, and the array of target values `y`. Then after that here are the kwargs you can supply: 
+
+- `test_size=` : the percentage of data to allocate to testing. 20% is pretty good here.
+- `shuffle=` : whether to randomly sort data or not.
+- `random_state=` : `int`. a random seed to set so that you get back the same split every time.
+
+### k-fold cross validation
 
 The idea of K-fold validation is to make each batch of data as the testing data so that there are no discrepancies and bias between what we're choosing for training data and testing data.
 
@@ -200,6 +225,67 @@ You will make $k$ models during this process.
 
 In total, each fold will be in the training data $k-1$  times and in the testing data 1 time. Per iteration, you have $k-1$ train folds and 1 validation fold.
 
+
+#### **Theory of k**
+
+The value of $k$ has a bias-variance tradeoff. 
+
+- As the number of folds $k$ increases, You do better on training data and do worse on testing data (testing data is a smaller portion of data) and thus **variance increases**
+- As the number of folds $k$ decreases, You do worse on training data and do better on testing data (testing data is a bigger portion of data, and you're training on less of data) and thus **bias increases**
+
+#### kfold in code
+
+1. Import `kfold`
+
+   ```python
+   from sklearn.model_selection import KFold
+   ```
+
+2. Create a kfold instance from the `KFold` class
+
+   ```python
+   kf = KFold(n_splits = 10, random_state=146, shuffle=True)
+   ```
+
+
+3. Use the `kf.split(data)` method to create kfold splits on your data, which should be a 2D array. This method returns a generator, so you should iterate through it
+
+    ```python
+    for idxTrain, idxTest in kf.split(x):
+        Xtrain = x[idxTrain]
+        Xtest = x[idxTest]
+        ytrain = y[idxTrain]
+        ytest = y[idxTest]
+    ```
+
+And here's a convenience method:
+
+```py
+from sklearn.model_selection import KFold
+
+def do_Kfold(model,X,y,k,scaler = None, random_state = 146):
+    
+    kf = KFold(n_splits=k, random_state = random_state, shuffle=True)
+
+    train_scores = []
+    test_scores = []
+
+    for idxTrain, idxTest in kf.split(X):
+        Xtrain = X[idxTrain, :]
+        Xtest = X[idxTest, :]
+        ytrain = y[idxTrain]
+        ytest = y[idxTest]
+        if scaler != None:
+            Xtrain = scaler.fit_transform(Xtrain)
+            Xtest = scaler.transform(Xtest)
+
+        model.fit(Xtrain,ytrain)
+
+        train_scores.append(model.score(Xtrain,ytrain))
+        test_scores.append(model.score(Xtest,ytest))
+        
+    return train_scores, test_scores
+```
 ## Overfitting, Underfitting, Bias vs Variance
 
 ### Intro
@@ -294,6 +380,158 @@ The curse of dimensionality states that:
 
 
 ![](https://i.imgur.com/vtVfzaH.jpeg)
+## First algorithm: univariate linear regression
+
+Understanding how univariate linear regression works will give you a foundational base to understand every other machine learning model out there.
+
+### Types of gradient descent
+
+| Type                        | Speed   | Stability                                       | Has vectorization? |
+| --------------------------- | ------- | ----------------------------------------------- | ------------------ |
+| Batch gradient descent      | Slow    | Highest, completely stable                      | Yes                |
+| Stochastic gradient descent | Fastest | Lowest stability, but moves generally downhill. | No                 |
+| Mini-batch gradient descent | Fast    | Medium stability                                | Only a bit         |
+|                             |         |                                                 |                    |
+- **Batch gradient descent**: each step of gradient descent vectorizes over all the training examples to calculate the gradient with respect to cost.
+- **stochastic gradient descent**: each step of gradient descent chooses only one random training sample to calculate the gradient with respect to cost.
+- **mini-batch gradient descent**: each step of gradient descent chooses a small randomly sampled batch of training sample to calculate the gradient with respect to cost.
+#### Batch gradient descent
+
+**Batch gradient descent** is where each step of gradient descent uses all the training examples to calculate the gradient with respect to cost.
+
+> [!NOTE]
+> This is what people usually think of by gradient descent.
+
+- **con - slow**: This is more computationally expensive because you’re training on the entire dataset at once, where each gradient descent step computes on the entire dataset.
+- **pro - accurate**: but it has the most stable downhill gradient descent since you KNOW that you’re going in the opposite direction of the correct gradient.
+- **pro - uses vectorization**: Benefits from vectorization
+
+> [!WARNING]
+> TIP: Batch gradient descent is no longer feasible or efficient after N >> 1, meaning you have more than 1,000,000 training samples.
+
+#### Stochastic gradient descenet
+
+**stochastic gradient descent** is where you train on one random training sample at a time for the feed forward and backprop process, and update parameters based on one training sample per iteration.
+
+- Fastest form of gradient descent, but most unstable since you’re basing entire parameter update off of one training sample
+- Does not benefit from vectorization
+
+#### Mini-batch gradient descent
+
+**mini batch gradient descent** is where you train on a small randomly sampled batch of training samples for the feed forward and backprop process and update parameters based on calculation from that batch.
+
+- **pro - average stability and speed**: Combines stability and speed for the best of both worlds
+- A batch size of 100 training samples per iteration is the most recommended
+## Regularization
+
+Regularization punishes parameters to mitigate overfitting. By adding the parameters to the cost function, gradient descent aims to decrease the values of those parameters to make the hypothesis simpler.
+
+There are three types of regularization: 
+
+- **L1 regression**: regularization using the $L_1$ norm
+- **L2 regression**: regularization using the $L_2$ norm
+- **elastic regression**: regularization combining both L1 and L2 regularization
+
+|         | Effect                                                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| L1      | Lasso regression is likely to completely reduce some parameters to 0, resulting in **sparse models** that require less memory. |
+| L2      | Ridge regression reduces parameters a lot, but does not zero them out.                                                         |
+| elastic | A healthy balance between L1 and L2 regularization                                                                             |
+
+### Regularization fundamentals
+
+**Effect of regularization parameter**
+
+- As $\alpha$ increases, the hypothesis becomes extremely more simple 
+- As $\alpha$ decreases, the hypothesis becomes slightly more simple
+
+A high value of $\alpha$ penalizes the parameters a lot so that they are essentially 0, and the less that value, the less you are penalizing those parameters and thus the parameters only slightly decrease. 
+
+
+**scaling**
+
+You must always scale data with any type of regression so that they can all be penalized the same without any skewed data.
+
+> [!NOTE]
+> If data were not on the same scale, it would either grossly contribute to the cost or contribute nothing at all
+
+
+### **$L_1$ regularization**
+
+$L_1$ regularization, also called **lasso regression**, sums up the absolute value (L1 norm) of all the parameters and adds that to the cost function 
+
+$$J = \sum_{i=1}^N (y_i - \hat{y}_i)^2 + \alpha \sum_{j=1}^n |\beta_i|$$
+
+### **$L_2$ regularization**
+
+
+L2 regularization, also called **ridge regression**, sums up the squares (L2 norm) of all the parameters and adds that to the cost function.
+
+$$  
+J = \sum_{i=1}^N (y_i - \hat{y}_i)^2 + \alpha \sum_{j=1}^n w_j^{2}  
+$$
+
+Here is the cost function for ridge regression, which serves to add the beta coefficients to the cost function so that we can penalize them. 
+
+- $N$ : the number of training rows you have
+- $n$ : the number of features/parameters
+- $\alpha$ : the regularization hyperparameter
+
+
+
+#### **Scaling**
+
+You must always scale data with ridge regression so that they can all be penalized appropriately.
+
+1. Scale training features
+2. Scale testing features with the same scaler parameters as you did for the training data.
+
+```python
+ss = SS()
+ss.fit(Xtrain)
+
+# scale both training and testing data with scaler (based on training specs)
+scaled_Xtrain = ss.transform(Xtrain)
+scaled_Xtest = ss.transform(Xtest)
+```
+
+#### Hyperparameter optimization
+
+Hyperparameter optimiziation is where we try to choose the best value for a hyperparameter that makes our model perform the best.
+
+We always do hyperparameter optimization before training a model. Here are the steps we follow: 
+
+1. Create a range for the $\alpha$ values, like an array of hyperparameter values to test
+2. Loop through that range, and for each $\alpha$ parameter, perform ridge regression with the regularization hyperparameter set to $\alpha$, and add that score to a list of model scores.
+3. Graph the alpha values against the list of model scores. THe optimal alpha lies at the peak of the graph.
+
+```py
+from sklearn.preprocessing import StandardScaler as SS
+
+def getOptimalAlpha() -> int :
+    # 1. setup kfold and scaler 
+    k = 10
+    ss = SS()
+
+    # 2. create array of possible alpha values
+    a_range = np.linspace(10,20,100)
+    
+    avg_tr_score=[]
+    avg_te_score=[]
+    
+    for a in a_range:
+        # 3. run model
+        rid_reg = Ridge(alpha=a)
+        train_scores, test_scores = do_Kfold(rid_reg, X, y, k, ss)
+
+        # 4. collect statistics
+        avg_tr_score.append(np.mean(train_scores))
+        avg_te_score.append(np.mean(test_scores))
+
+        # 5. return alpha that gave highest test score
+        idx_max = np.argmax(avg_te_score)
+        return a_range[idx_max]
+```
 
 ## K-nearest neighbors
 
@@ -307,7 +545,7 @@ The Nearest Neighbors (NN) algorithm works as follows:
 
 **Euclidean distance formula**
 
-This is how you describe the euclidean distance formula in any number of dimensions $d$.
+This is how you describe the euclidean distance formula (or L2 norm) in any number of dimensions $d$.
 
 $$  
 \| x^{(a)} - x^{(b)}\| = \sqrt{\sum_{j=1}^d (x_j^{(a)} - x_j^{(b)})^2}  
@@ -316,32 +554,67 @@ $$
 > [!NOTE]
 > The distance formula is just the same thing as subtracting the two vectors from each other and then taking the magnitude of that resultant vector.
 
-### Basic KNN
+### KNN theory
 
-In the k nearest neighbors algorithm, we choose a number $k$, and in the corrdinate space, we consider a data point's distance to the $k$ nearest points to that data point.
+The **$K$-Nearest Neighbors ($K$-NN)** algorithm is a non-parametric, instance-based supervised learning method that performs prediction by querying stored training data directly at test time without an explicit training phase.
 
-Here are some things to keep in mind when implementing this algorithm in a ML practice:
+- **Training Data Representation:** The training set consists of $N$ pairs $\{(\mathbf{x}^{(1)}, t^{(1)}), \dots, (\mathbf{x}^{(N)}, t^{(N)})\}$, where each $\mathbf{x}^{(i)} \in \mathbb{R}^d$ is a $d$-dimensional feature vector and $t^{(i)}$ is the target label. 
+	- In classification, $t^{(i)} \in \{1, \dots, C\}$
+	- in regression, $t^{(i)} \in \mathbb{R}$.
+    
+- **Core Assumption:** Instances that are close to each other in feature space share the same or similar labels.
+    
+- **Lazy Learning:** The algorithm requires **$0$ computations at training time**. It simply memorizes the entire dataset and defers all computation to test time.
 
-- **train vs test**: For k nearest numbers, we want to keep train sets large and test sets small.
-- **scaling**: Scaling is necessary for K nearest neighbors because this algorithm is dependent on the values of data points.
-- **distance metric**: the choice of distance metric is crucial here.
-- **size of $k$**
-	- **small k:** Sensitive to noise, and overfits as a result
-	- **large k:** Takes into account too much data and underfits as a result.
+To determine distance between data points, we use the L2 norm as the distance metric of choice, but there are multiple different distance metrics.
+
+#### NN as KNN
+
+- **1-NN ($k=1$):** Selects the single closest sample $\mathbf{x}^*$, and predicted label is directly assigned as $y = t^*$. 
+    
+    $$\mathbf{x}^* = \arg\min_{\mathbf{x}^{(i)}} \Vert{}\mathbf{x} - \mathbf{x}^{(i)}\Vert{}_2$$
+    
+    
+- **$K$-NN ($k > 1$):** Finds the $k$ training examples $\{(\mathbf{x}^{(1)}, t^{(1)}), \dots, (\mathbf{x}^{(k)}, t^{(k)})\}$ having the smallest Euclidean distances to $\mathbf{x}$.
+
+However, NN is naive because it is extremely sensitive to noise. KNN solves this problem by having more neighbors factor into a classification technique like majority voting.
+
+
+![](https://i.imgur.com/tH5t4c4.jpeg)
+
+
+#### Majority voting
+
+The predicted label $y$ is determined by a plurality/majority vote among the $k$ neighbors:
+
+$$y = \arg\max_{t^{(z)}} \sum_{i=1}^k \mathbb{I}(t^{(z)} = t^{(i)})$$
+
+Where $\mathbb{I}(\cdot)$ is the indicator function:
+
+$$\mathbb{I}(A) = \begin{cases} 1 & \text{if } A \text{ is true} \\ 0 & \text{if } A \text{ is false} \end{cases}$$
 
 > [!NOTE]
-> A good rule of thumb is to calculate $k = \sqrt{N}​$
+> The main intuition here is that if most of the neighbors are in one category, then you join the majority category. For example, for $k=9$ if you have 6 neighbors in one category, the new data point gets labeled as part of that majority category
 
-##### Scaling
+#### $k$ and the decision boundary
 
-Because KNN is based on distance, all the points must be on the same distance scale. Therefore something like standard scaling is necessary.
+The choice of $k$ is a **hyperparameter**—a parameter that cannot be learned directly from training data and must be selected using a separate validation set.
 
-For KNN classification, the neighbors approach only works if classes are not skewed. They need to be balanced, as in near 50-50, or else the neighbors approach will skew towards the majority class regardless of distance.
-#### Runtime complexity
 
-During training and testing, you don’t really make any computations while training. You only do computations when testing a point, which is O(n\log n) complexity.
 
-#### Distance metrics
+![](https://i.imgur.com/yxS0TRb.jpeg)
+
+
+| **Parameter Choice**         | **Model Behavior**                                                                                              | **Variance & Bias**     | **Risk**                                                                                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------- |
+| **Small $k$ (e.g., $k=1$)**  | Fits intricate local structures; captures fine-grained boundaries. Highly sensitive to label noise or outliers. | High Variance, Low Bias | **Overfitting:** Creates fragmented decision boundaries around mislabeled points.           |
+| **Large $k$ (e.g., $k=15$)** | Averages over broader neighborhoods; smooths out decision boundaries.                                           | Low Variance, High Bias | **Underfitting:** Fails to capture localized patterns and may misclassify minority regions. |
+
+- **Heuristic Guideline:** A practical rule of thumb is to choose $k < \sqrt{N}$, where $N$ is the number of training samples.
+    
+- **Validation Strategy:** Evaluate different candidate values of $k$ on a held-out validation set and pick the one with minimal validation error before performing final evaluation on the test set.
+
+### Distance metrics
 
 In order to be a valid distance metric for KNN, it must satisfy three rules:
 
@@ -370,7 +643,57 @@ Distance metrics come into play when deciding how to tally up a positive predict
 
 - **`'distance'`** : A point is weighted higher if it's closer to the data point being considered. Each point in the K nearest points to a data point is given a *weight*, which is the inverse of the distance from that point to the data point, 1 / distance.
 
+### KNN in implementation
+
+In the k nearest neighbors algorithm, we choose a number $k$, and in the corrdinate space, we consider a data point's distance to the $k$ nearest points to that data point.
+
+Here are some things to keep in mind when implementing this algorithm in a ML practice:
+
+- **train vs test**: For k nearest numbers, we want to keep train sets large and test sets small.
+- **scaling**: Scaling is necessary for K nearest neighbors because this algorithm is dependent on the values of data points.
+- **distance metric**: the choice of distance metric is crucial here.
+- **size of $k$**
+	- **small k:** Sensitive to noise, and overfits as a result
+	- **large k:** Takes into account too much data and underfits as a result.
+
+> [!NOTE]
+> A good rule of thumb is to calculate $k = \sqrt{N}​$
+
+#### Scaling
+
+Because Euclidean distance aggregates squared differences across all dimensions, features with larger numerical ranges (e.g., seconds vs. minutes, or kilograms vs. grams) disproportionately dominate the distance calculation.
+
+Because KNN is based on distance, all the points must be on the same distance scale. Therefore something like standard scaling is necessary.
+
+> [!NOTE]
+> For KNN classification, the neighbors approach only works if classes are not skewed. They need to be balanced, as in near 50-50, or else the neighbors approach will skew towards the majority class regardless of distance.
+
+You can use standard scaling like so:
+
+Transform each feature dimension $j$ to have zero mean and unit variance:
+
+$$\tilde{x}_j = \frac{x_j - \mu_j}{\sigma_j}$$
+
+where $\mu_j$ is the mean and $\sigma_j$ is the standard deviation of feature $j$.
+#### Runtime complexity
+
+During training and testing, you don’t really make any computations while training. You only do computations when testing a point, which is $O(n\log n$) complexity.
+
+For each novel query instance at test time:
+
+- **Distance Computations:** $O(ND)$ arithmetic operations against all $N$ data points.
+    
+- **Neighbor Sorting:** $O(N \log N)$ to rank distances and extract the top $k$.
+    
+- **Space Complexity:** $O(ND)$ memory to keep the complete training dataset loaded in RAM.
+
 #### Code
+
+In order to get the best performance of our model, we need to find out which value of k works best for the dataset. To fit a hyperparameter like k, we need to tune it on a validation set. 
+
+
+![](https://i.imgur.com/yOUJ9Dz.jpeg)
+The best way to do that is via KFOLD.
 
 **Code**
 
@@ -407,6 +730,8 @@ Distance metrics come into play when deciding how to tally up a positive predict
 **actual code**
 
 
+
+
 ```py
 from sklearn.neighbors import KNeighborsClassifier as KNN
 from sklearn.preprocessing import StandardScaler as SS
@@ -439,15 +764,36 @@ def knn_kfold(X, y, k):
     plt.show()
 ```
 
+### KNN for regression and clustering
+
+KNN is a non-parametric model, meaning that we don't really start off with a model equation like linear regression or a neural network we try to fit to per se, but rather we just let the algorithm do the work. 
+
+The main idea of the regression algorithm is this: for any new data point we will predict its target to be the average value of its k nearest neighbors and k is a hyperparameter we set for how many neighbors to check. 
+
+Over time this nudges data points even closer together and over thousands of iterations this eventually forms clusters, which helps you find categories and groupings via unsupervised learning. 
+
+
 
 ### Curse of dimensionality for KNN
 
 K Nearest neighbors especially suffers whenever points in a space are roughly the same distance from each other, and in higher dimensionality, points are so dispersed from each other that they are approximately the same distance from each other due to the **curse of dimensionality**, so distance metrics become useless and unrepresentative.
 
-> [!NOTE]
-> As number of features $n$ increases, k nearest neighbors becomes an increasingly worse algorithm
+As dimension $d$ grows, the volume of the feature space increases exponentially, causing data points to become extremely sparse.
 
 **Intrinsic dimensionality** refers to the minimum number of parameters required to capture the essential characteristics of some data.
 
 > [!NOTE]
 > K nearest neighbors works well on data with low intrinsic dimensionality like images.
+
+    
+- **the problem**: In very high-dimensional spaces, distances between all pairs of points become roughly equidistant, eroding the predictive utility of proximity.
+    
+- **Saving Grace:** Datasets like images often reside on or near a lower-dimensional manifold (a low _intrinsic dimension_), preserving meaningful neighborhood structures despite high raw dimensionality.
+
+> [!NOTE]
+> TLDR
+> ***
+> Due to how the curse of dimensionality makes data points in higher dimensions more equidistant, a distance-based algo like KNN suffers as a result. As number of features $n$ increases, k nearest neighbors becomes an increasingly worse algorithm
+
+
+

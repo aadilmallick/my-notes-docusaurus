@@ -592,6 +592,16 @@ $$
 
 Common induced norms include $\|A\|_1, \|A\|_\infty, \|A\|_2$.
 
+### L2 Norm (Frobenius Norm)
+
+For matrices, the L2 norm is just the sum of the squares of all the elements in the matrix, and then take the square root of that.
+
+This norm is also called the **Frobenius Norm**.
+
+```python
+np.linalg.norm(matrix) # returns frobenius norm of matrix
+```
+
 ## Special matrices
 
 ### Diagonal matrices
