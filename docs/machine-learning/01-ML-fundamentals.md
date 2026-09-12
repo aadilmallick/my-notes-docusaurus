@@ -1,49 +1,160 @@
 
-
-## Learning Model
-
-### 5 components of learning
-
-![Illustration of learning model](https://i.imgur.com/3KcLDbP.jpeg)
-
-Here is the essence of machine learning:
-
-1. A pattern exists
-2. We cannot pin it down mathematically (no pattern we can mathematically compute)
-3. We have data on it
-
-> [!NOTE]
-> A **learning problem** is when we have to use machine learning to solve it, and a **design problem** is a problem that can be solved mathematically.
+## Features
 
 
-> [!IMPORTANT]
-> The basic premise of learning is using a set of observations to uncover an underlying process.
+
+### Univariate data and bivariate data
+
+In statistics, the terms univariate and bivariate refer to the number of variables being analyzed.
+
+- **Univariate data** involves the analysis of a single variable. The goal is to describe the distribution of this variable, often using measures of central tendency (like mean or median) and measures of spread (like variance or standard deviation). 
+    
+- **Bivariate data** involves the analysis of two variables simultaneously. The goal is to understand the relationship or correlation between these two variables. 
+
+### Univariate data and feature types
+
+There are 4 types of univariate data, meaning when you're looking at just one feature:
+
+- **nominal data** : categorical data with no order to the data
+- **ordinal data** : categorical data with order to the data and labels
+- **continuous data** : numerical data that includes decimals
+- **discrete data** : numerical data that includes only integers or a finite collection of integers.
+
+There are two types of feature types:
+
+- **qualitative**: either nominal or ordinal data, where the feature is based on categories and uses one-hot encoding to encode the category numerically.
+- **quantitative**: either continuous or discrete data, using numerical data.
+
+#### Measures of central tendency
+
+Based on the skewness of the distribution, these facts are guaranteed:
+
+- **Symmetric** : mean = median
+- **Right skewed** : mean > median
+- **Left Skewed** : mean < median
+
+**Best measures of central tendency for each situation**
+
+- **Median** : when dealing with ordinal data or with skewed data
+- **Mean** : When dealing with evenly distributed data like in a normal distribution
+
+#### Measures of spread
+
+- **variance** : we can use the `np.var(arr)` method to get the variance of the data within a vector.
+- **standard deviation** : we can use the `np.std(arr)` method to get the standard deviation of the data within a vector.
+- **coefficient of variation** : the coefficient of variation is the standard deviation divided by the mean.
+
+```py
+x = np.random.randn(20)
+
+print("standard deviation:", np.std(x))
+print("variance:", np.var(x))
+print("coefficient of variation", np.std(x) / np.mean(x))
+```
 
 
-Here are all the components:
+### Feature scaling
 
-1. **unknown target function**: We denote this as $f(\mathbb{x})$, the true hypothesis that deterministically describes how the input affects the output and is a perfect predictor of inputs to outputs.
-    - A **hypothesis**  $g(\mathbb{x})$  is a candidate approximation of the target function.
-    - We're to find a hypothesis that solves a problem that can’t be mathematically solved, a hypothesis that we’ll truly never know.
-2. **data**
-    - A set of training examples
-3. **learning algorithm**: Selects the best hypothesis from the a hypothesis set over an iterative process, and picks the _final hypothesis_.
-4. **hypothesis set**: the set of all possible variations to the current hypothesis, and you will pick one hypothesis from that set as the final hypothesis.
-    1. A set of candidate formulas that approximate the target function.
-    2. As the hypothesis set gets more complex, the more data we need.
-    3. As the hypothesis set gets less complex, the less data you need.
-5. **final hypothesis**: Our chosen best hypothesis  $g(\mathbb{x})$ from the hypothesis set, and we hope that  $g(\mathbb{x}) \approx f(\mathbb{x})$.
+Most machine learning algorithms use **distance metrics** (like Euclidean distance) or **gradient descent** for optimization. If one feature has a range of 0-1 and another has a range of 0-1,000,000, the algorithm will be dominated by the larger magnitude feature, even if the smaller feature is more predictive.
 
-> [!NOTE]
-> **Learning in a nutshell**
-> ***
-> From a large hypothesis set of potential hypothesis functions, we want to select the hypothesis function that has the lowest generalization error from the set, which means it generalizes well to new examples and is thus an effective model.
+
+So why do we use feature scaling? Three key principles:
+
+1.  **Comparability:** It brings all features to a similar scale, making them directly comparable.
+
+2.  **Convergence:** Algorithms that use Gradient Descent (like Logistic Regression or Neural Networks) converge much faster when features are scaled.
+
+3.  **Distance Sensitivity:** Algorithms like KNN, K-Means, and PCA are highly sensitive to the magnitude of features.
+
+
+There are three types of scaling:
+
+*   **Standardization (Z-score normalization):** Transforms data to have a mean of 0 and a standard deviation of 1. It is robust to outliers compared to Min-Max scaling.
+
+    $$\text{Standard Scaled } x = \frac{x - \mu}{\sigma}$$
+
+*   **Normalization (Min-Max Scaling):** Rescales the data to a fixed range, usually 0 to 1. It is very sensitive to outliers (a single outlier can compress all other values into a tiny range).
+
+    $$\text{Min-Max Scaled } x = \frac{x - x_{min}}{x_{max} - x_{min}}$$
+
+- **log 10 scaling**: Simple rescaling of data on large magnitudes, but not actually used to improve the performance of a machine learning model in the sense of how feature scaling is supposed to be. It's only used for human-readable values so we can see smaller values instead of all values being in the thousands.
+
+
+```py
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import numpy as np
+
+# Sample data: [Feature A, Feature B]
+data = np.array([[10, 0.001], [20, 0.002], [30, 0.005], [1000, 0.01]])
+
+# Standard Scaler
+std_scaler = StandardScaler()
+std_data = std_scaler.fit_transform(data)
+
+# Min-Max Scaler
+mm_scaler = MinMaxScaler()
+mm_data = mm_scaler.fit_transform(data)
+
+print("Original Data:\n", data)
+print("\nStandard Scaled (Mean=0, Std=1):\n", std_data)
+print("\nMin-Max Scaled (Range 0-1):\n", mm_data)
+```
+
+#### Log transformation
+
+We use **log transformation** to get better resolution on a plot where our data varies widely between magnitudes, like on a range from 1,000 - 350,000.
+
+- `np.log10(arr)` : applies base 10 log to all elements in the array. Returns new array
+- `np.log(arr)` : applies natural log to all elements in the array. Returns new array
+
+We want to apply the log 10 transformation on our features that vary widely in magnitude.
+
+
+#### Min-max scaling
+
+Rescales the data to a fixed range, usually between 0 to 1.
+
+- **pro (fixed range)**: a fixed range offers predictability and standardization in mathematical outputs
+- **con (sensitive to outliers)**: very sensitive to outliers since a single outlier can compress all other values into a tiny range. 
+	- For example if the max is 1,000,000 and the average is maybe 29, then that single million value outlier basically ruins the rest of the range because it makes every single other value extremely small while the largest value is equal to 1. 
+
+
+
+   $$\text{Min-Max Scaled } x = \frac{x - x_{min}}{x_{max} - x_{min}}$$
+
+#### Standard scaling
+
+> [!WARNING]
+> If you try to calculate the coefficient of variation on standard scaled data, then you will get an error because standard scaled data always has a mean = 0 and variance = 1, thus 1 / 0 nets you undefined.
+
+
+We can get access to a standard scaler through the sklearn library, like so: 
+
+```python
+from sklearn.preprocessing import StandardScaler as SS
+standard_scaler = SS()
+```
+
+- `ss.fit_transform(df)` : takes in a dataframe or another 2D array, and then feature scales all the feature columns. It returns the scaled dataframe or array.
+- `ss.fit(df)` : calculates mean and standard deviation of data and stores it in the `ss` object. Returns `None`
+- `ss.transfom(df)` : feature scales the data after you call `ss.fit()`. Only does this for standard scaler, but applies fitted parameters to data
+
+These three methods do different things depending on which object instance of sklearn you use. Here is how they work in general: 
+
+- `.fit()` : fits the data to the model
+- `.transform()` : transforms the model
+- `.fit_transform()` : fits the data to the model, and then returns the transformed data.
+
+
+```py
+standard_scaler = StandardScaler()
+scaled_df = standard_scaler.fit_transform(data)
+```
+
 
 ## Training, Validation, Test
 
 ### Generalization error
-
-#### A surface level view
 
 Generalization error is how much your model errors on new data it hasn't seen before. 
 
@@ -158,6 +269,5 @@ Here is an example of how one would undertake regularization:
 1. Perform k-fold cross validation with different values of $\lambda$.
 2. Choose the $\lambda$ value that gave the lowest cross-validation error.
 3. Retrain on all the training data with the found $\lambda$ value, and then test and see the generalization error.
-## Mathematical View of Machine Learning
 
-
+## A first algorithm: K-nearest neighbors
