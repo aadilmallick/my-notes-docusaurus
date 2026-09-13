@@ -1,5 +1,27 @@
 
-##
+## Linkedln post mastery
+
+### What makes a good post
+
+### Post writing masterclass
+
+#### Preserving your unique voice
+
+```embed
+title: "Clarity: AI writing skill and editor | Addy Osmani"
+image: "https://clarity.addy.ie/og.png"
+description: "An open-source writing skill for AI agents and a private browser editor for clearer, more human prose without invented facts or flattened voice."
+url: "https://clarity.addy.ie/"
+favicon: ""
+aspectRatio: "52.5"
+```
+
+
+### Post types
+
+#### Showcasing new apps - Ram method
+
+### The phases of growth on Linkedln
 
 ## Posts with video
 
@@ -13,6 +35,10 @@ url: "https://www.linkedin.com/in/rammcodes/recent-activity/all/"
 favicon: ""
 ```
 
+Here's how to post videos on Linkedln:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/l0JrYbDgXy4?si=41V2DzXMKoOurNHV" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 
 ### Video software
 
@@ -25,6 +51,25 @@ Here are the best free video recording software to create nice=looking videos.
 - **AutoZoom** (macOS & Windows) – An AI-powered recorder specializing in automatic screen zooms, smooth cursor paths, and gradient background frames.
     
 - **Canvid** (Windows) – A popular Windows alternative designed to recreate Screen Studio's automatic zoom effects and background padding.
+
+### Example posts
+
+#### Product showcase example
+
+Let's disect this post:
+
+```embed
+title: "Peer-to-Peer LLM Engine for Cross-Device Inference | Nehanth Narendrula posted on the topic | LinkedIn"
+image: "https://dms.licdn.com/playlist/vid/v2/D5605AQGU69GjeAQRyQ/thumbnail-with-play-button-overlay-high/B56aB9giLTIAC0-/0/1788812077761?e=2147483647&v=beta&t=6w0yRL7vwbAqJDWvJ6a1PWoUGBWi1TTJijCZpb4ce6E"
+description: "I built a peer-to-peer inference engine that runs a large language model across any of your devices (phones, laptops, PCs, and all different hardware) from a browser tab.  Last week, I showed my phone and my Mac running Qwen 3.8 27B together. The response was far beyond what I expected: 250k views, hundreds of questions, and many offers to help build it. Thank you.  If you missed it: each device holds a slice of the model, tokens pass between them peer-to-peer over WebRTC, and the answer appears on every screen. It is open-source now, under the MIT license. (Repo in the comments)  Since the first video, performance has gone from 2.5 to 10.7 tokens a second, and the output stays bit-for-bit identical with speculative decoding on. There is still a lot to optimize. The new demo is below.  The repo has a full roadmap: multi-turn conversations, rooms that survive a device leaving, longer context, faster prefill, and more models. Every item is up for grabs. Help me build it out!  Check it out: swarmllm.ai  PS: That is still AI Nehanth on the voiceover. The original was busy writing kernels. | 230 comments on LinkedIn"
+url: "https://lnkd.in/p/eW5RHBp9"
+favicon: ""
+aspectRatio: "71.71314741035857"
+```
+
+
+<iframe src="https://www.linkedin.com/embed/feed/update/urn:li:ugcPost:7502821633083183104" height="1003" width="504" frameborder="0" allowfullscreen="" title="Embedded post"></iframe>
+
 
 ## Linkedln shorts
 
