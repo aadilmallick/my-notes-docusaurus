@@ -305,6 +305,21 @@ Now let's understand how this geometric interpretation works with other cases:
 
 ![](https://i.imgur.com/2Ucqpg2.jpeg)
 
+#### Algebraic duality interpretation
+
+Great. Now we know that dot products correspond to projections but we need to understand why the mathematical way of just ordered coordinate pair multiplication of dot products actually corresponds to a projection. 
+
+The way we can view this is through duality, which considers vectors as linear transformations that squish space onto a lower dimension, namely a single number line:
+
+- **linear transformations** that squish space onto a line have basis vectors land on a number in the number line.
+
+Consider an example $\vec v = \begin{pmatrix} 4 \\ 3 \end{pmatrix}$ and $\vec w = \begin{pmatrix} 1\\ -2 \end{pmatrix}$, and we are doing $\vec w \cdot \vec v$, which has the duality interpretation of transforming $\vec v$ into the coordinate space (single number line) of $\vec w$ using the basis vectors of $\vec w$ being $\hat w_1 = 1$ and $\hat w_2 = -2$, so we can rewrite the dot product as a linear transformation which ends up being just a linear combination:
+
+$$\vec w \cdot \vec v = 4 \hat w_1 + 3 \hat w_2 = 4(1) + 3(-2) = -2 $$
+
+
+![](https://i.imgur.com/xCm08ej.jpeg)
+
 
 #### Projections
 
