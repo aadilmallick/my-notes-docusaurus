@@ -314,7 +314,6 @@ This allows us to find the lengths of the individual projections even if the dot
 
 Let's start off with some notation:
 
-- $p_{}
 
 
 
