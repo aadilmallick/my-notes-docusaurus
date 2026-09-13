@@ -305,6 +305,56 @@ def do_Kfold(model,X,y,k,scaler = None, random_state = 146):
         
     return train_scores, test_scores
 ```
+
+### Leave-one-out-validation
+
+Leave one out validation is where you train on every single observation except for one, which is your test set. 
+
+> [!NOTE]
+> This is extremely useful when paired with K nearest neighbors.
+
+### Grid Search
+
+Here are the essential components to grid search: 
+
+- **estimator** : the model to run grid search on
+- **param grid** : the dictionary of hyperparameters to try and optimize
+- **cv** : the KFold validation and number of folds to use
+- **scoring**: how the Grid model shoudl evaluate performance to select the best estimator.
+
+**Grid search kwargs**
+
+- `cv=` : the custom cross validation to use, like a custom KFold instance. By default it's 5 folds KFold validation.
+- `scoring=` : string, how the Grid model should evaluate performance to select the best estimator.
+  - `"accuracy"` : uses accuracy as the score. Useful for classification
+  - `"neg_mean_squared_error"` : uses negative mean squared error as score. Useful for regression
+  - `"recall"`: uses recall as the score
+
+#### sklearn implementation
+
+```py
+from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier as RFC
+
+# 1. create parameter grid
+param_grid = {
+    'n_estimators' : [64, 100, 128],
+    'max_depth' : [2,3,4,5],
+    'min_samples_split' : [2,3,4,5]
+}
+
+# 2. create custom cv validation
+cv = KFold(n_splits=10, random_state=146, shuffle=True)
+
+# 3. create estimator
+estimator = RFC()
+
+# 4. create grid search
+grid = GridSearchCV(estimator, param_grid, cv=cv, scoring='accuracy')
+
+# 5. train grid
+grid.fit(Xtrain, ytrain)
+```
 ## Overfitting, Underfitting, Bias vs Variance
 
 ### Intro
@@ -421,11 +471,36 @@ Lower dimensionality brings us two key benefits:
 - **easier to understand and visualize**: As humans, we can't visualize past 3 dimensions.
 - **easier to train**: most models perform better on low-dimensional data.
 
-### SVD for dimensionality reduction
+#### SVD for dimensionality reduction
 
-### PCA for dimensionality reduction
+#### PCA for dimensionality reduction
 
-### tSNE for dimensionality reduction
+PCA finds the directions (axes/vectors) in which the most variance the data set is retained, and those directions are called **principal components**
+
+
+![](https://i.imgur.com/uIWPP6M.jpeg)
+
+
+1. The first principal component, also called PC1, accounts for the highest percentage of variance in the data set (it's the most important feature)
+2. Each succeeding principal component will be orthogonal to the previous PC, and explain less and less variance.
+
+#### tSNE for dimensionality reduction
+
+### Feature cardinality
+
+**Cardinality** of a feature refers to how many unique values that feature has. 
+
+**the effect of high cardinality**
+
+High cardinality features can increase the complexity of models, particularly those based on tree algorithms. Decision trees, for example, may struggle to effectively split on high cardinality features, leading to inefficient use of computational resources and potentially overfitting.
+
+> [!NOTE]
+> For features with a high cardinality, you need more data to have robust training on them.
+
+
+
+
+
 ## First algorithm: univariate linear regression
 
 Understanding how univariate linear regression works will give you a foundational base to understand every other machine learning model out there.

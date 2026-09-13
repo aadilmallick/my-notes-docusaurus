@@ -623,6 +623,25 @@ We often remove stop words like “is”, “or”, “both” because they don�
 
 ## Naive-bayes
 
+The **Naive Bayes classifier** is a probabilistic machine learning algorithm frequently used for classification tasks, most notably for **spam filters**.
+
+At its heart, the algorithm calculates the probability that a piece of data belongs to a specific class based on its features, which follows **Baye's rule**.
+
+![](https://i.imgur.com/1DZ8JBN.jpeg)
+
+ Using the example of a **spam filter**, if you want to determine if an email is "Spam" or "Not Spam," the classifier looks at the words contained in that email. It calculates the likelihood of those specific words appearing in a "Spam" email versus a "Not Spam" email.
+
+
+![](https://i.imgur.com/9WhG8KK.jpeg)
+
+> [!NOTE]
+> This algorithm is considered **naive** because it makes the assumption via conditional probability that all words/events are *independent* to each other, which is a very false assumption when it comes to language.
+
+
+It is called "Naive" because it makes a simplifying assumption: it treats the occurrence of each word in the email as **independent** of all other words. 
+
+While in reality, word order and context matter, this assumption makes the algorithm **computationally efficient** and surprisingly effective for text classification
+
 ## Transformers
 
 ### Self-attention
