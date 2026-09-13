@@ -85,6 +85,27 @@ But what if the determinant is 0, meaning the basis vectors are collinear with e
 	- **linearly dependent**: basis vectors are not collinear, since that is the only way for the parallelogram formed by the basis vectors to have non-zero area
 	- **singular**: since the columns of the matrix (basis vectors) are linearly dependent, matrix is singular.
 
+#### Mathematical properties of determinants
+
+- **multiplicative rule**: if a matrix $B$ gets transformed via composition by matrix $A$, then the area formed by its basis vectors ($\det(b)$) gets scaled by the area formed from the basis vectors of $A$, namely $\det(a)$.
+    
+    $$  
+    det(AB) = det(A) \cdot det(B)  
+    $$
+    
+- **inverse rule**
+    
+    $$  
+    det(A^{-1}) = \frac{1}{det(A)}  
+    $$
+    
+- **additive rule**
+    
+    $$  
+    det(A-B) = det(A) - det(B)  
+    $$
+
+
 #### Invertible and singular matrices
 
 To represent a system of equations, you can use a coefficient matrix, multiply it by a variable vector, and set it equal to a constants vector: $A\vec{x}=\vec{v}$.
@@ -177,25 +198,6 @@ $$
 > [!NOTE]
 > The kernel is the set of all solutions to the null space equation, and a trivial solution leads to a **trivial kernel**, and a nontrivial solution leads to a **nontrivial kernel**.
 
-#### Mathematical properties of determinants
-
-- **multiplicative rule**
-    
-    $$  
-    det(AB) = det(A) \cdot det(B)  
-    $$
-    
-- **inverse rule**
-    
-    $$  
-    det(A^{-1}) = \frac{1}{det(A)}  
-    $$
-    
-- **additive rule**
-    
-    $$  
-    det(A-B) = det(A) - det(B)  
-    $$
 
 ### Cramer's rule 
 
@@ -215,13 +217,13 @@ Let's dive into the calculations
 
 - $x$: the area of the parallelogram formed by $\vec x$ and $\hat j$ turns out to be $x \hat j$.
 
-$$x = x \hat j = \det([ \vec x, \hat j])$$
+$$x = x \hat j = \det([ \vec x, \hat j]) = x \det(I) = \text{Area}_{\vec x, \hat j}$$
 
 ![](https://i.imgur.com/ViSoJYB.jpeg)
 
 - $y$: the area of the parallelogram formed by $\vec x$ and $\hat i$ turns out to be $y \hat i$.
 
-$$y = y \hat j = \det([ \hat i, \vec x]) = \text{Area}_{\hat i, \vec x}$$
+$$y = y \hat j = \det([ \hat i, \vec x]) = y \det(I) = \text{Area}_{\hat i, \vec x}$$
 
 
 ![](https://i.imgur.com/9bvnc9o.jpeg)
@@ -230,16 +232,19 @@ Now that we found what $x$ and $y$ are in terms of basis vectors, we can swap th
 
 $$det(AB) = det(A)det(B)$$
 
-Therefore if we do the same thing with the basis vectors from $A$ instead of the basis vectors from $I$, we can find the new coordinates/areas by scaling with $\det(A)$
-
-
 ![](https://i.imgur.com/PKi1Fcm.jpeg)
 
 
+ - $\text{Area}_{\hat i, \vec x} = y \cdot \det(I) = y$, but after transformation from A, it becomes $y \det(A)$, and now find the signed area using the **output vector** $\vec b$, since $A\vec x = \vec b$, thus we deal with $\vec b$ instead of $\vec x$ in the transformed coordinate space of $A$ and luckily since we know $\vec b$, thus we arrive at this new formula:
 
-This allows us to form Cramer's rule:
+$$y = \frac{\text{Area}_{\hat a_1, \vec b}}{\det(A)}$$
 
-1. Consider that for a $2 \times 2$ matrix $A$ with basis vectors $\hat a_1$ and $\hat a_2$, we can find $\vec x$ as follows
+![](https://i.imgur.com/9Q7Fkij.jpeg)
+
+
+ - $\text{Area}_{\vec x, \hat j} = x \cdot \det(I) = x$, but after transformation from A, it becomes $x \det(A)$, and now find the signed area using the **output vector** $\vec b$, since $A\vec x = \vec b$, thus we deal with $\vec b$ instead of $\vec x$ in the transformed coordinate space of $A$ and luckily since we know $\vec b$, thus we arrive at this new formula:
+
+$$x = \frac{\text{Area}_{\vec b, \hat j}}{\det(A)}$$
 
 
 ![](https://i.imgur.com/GUjofQR.jpeg)
