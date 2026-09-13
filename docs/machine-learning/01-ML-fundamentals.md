@@ -1,6 +1,13 @@
 
-## Features
 
+## An overview of machine learning
+
+
+![](https://i.imgur.com/kBSaGnF.jpeg)
+
+
+
+## Features
 
 
 ### Univariate data and bivariate data
@@ -55,7 +62,9 @@ print("coefficient of variation", np.std(x) / np.mean(x))
 
 ### Feature scaling
 
-Most machine learning algorithms use **distance metrics** (like Euclidean distance) or **gradient descent** for optimization. If one feature has a range of 0-1 and another has a range of 0-1,000,000, the algorithm will be dominated by the larger magnitude feature, even if the smaller feature is more predictive.
+Most machine learning algorithms use **distance metrics** (like Euclidean distance) or **gradient descent** for optimization. 
+
+If one feature has a range of 0-1 and another has a range of 0-1,000,000, the algorithm will be dominated by the larger magnitude feature, even if the smaller feature is more predictive. That is why we must scale feature ranges into a more suitable, standardized and smaller range.
 
 
 So why do we use feature scaling? Three key principles:
@@ -166,6 +175,16 @@ These three methods do different things depending on which object instance of sk
 standard_scaler = StandardScaler()
 scaled_df = standard_scaler.fit_transform(data)
 ```
+
+### Feature engineering
+
+Feature engineering is the process of creating new features from existing raw data and other existing features in order to improve a model's performance and use new features that would benefit the model training.
+
+> [!NOTE]
+> Good feature engineering makes the difference between an average model and an excellent one, as it helps the model to focus on the most relevant patterns in the data.
+
+
+![](https://i.imgur.com/i4AIc26.jpeg)
 
 
 ## Training, Validation, Test
@@ -372,14 +391,41 @@ Here is an example of how one would undertake regularization:
 2. Choose the $\lambda$ value that gave the lowest cross-validation error.
 3. Retrain on all the training data with the found $\lambda$ value, and then test and see the generalization error.
 
-## Curse of dimensionality
+## Dimensionality
+
+Dimensionality of your data is the number of features that contribute to the data.
+### Curse of dimensionality
 
 The curse of dimensionality states that:
 
 > As the dimensionality increases, the number of data points required for good performance of any machine learning algorithm increases exponentially.
 
+The cure of dimensionality has many effects:
+
+- **equidistant points**: high-dimensional points are sparse and spread out, thus distance-based algorithms like KMeans or KNN degrade in utility with high dimensionality.
+- **harder to learn patterns**: as the set of all possible data points becomes increasingly more sparse, it becomes harder to learn patterns in the data.
 
 ![](https://i.imgur.com/vtVfzaH.jpeg)
+
+### Dimensionality Reduction
+
+Dimensionality reduction is the practice of approximating high dimensional data to lower dimensions while trying to maintain as much accuracy and capture most of the patterns in the original data as possible.
+
+
+
+![](https://i.imgur.com/EptIK0x.jpeg)
+
+
+Lower dimensionality brings us two key benefits:
+
+- **easier to understand and visualize**: As humans, we can't visualize past 3 dimensions.
+- **easier to train**: most models perform better on low-dimensional data.
+
+### SVD for dimensionality reduction
+
+### PCA for dimensionality reduction
+
+### tSNE for dimensionality reduction
 ## First algorithm: univariate linear regression
 
 Understanding how univariate linear regression works will give you a foundational base to understand every other machine learning model out there.
