@@ -91,6 +91,122 @@ Normal agentic engineering in the past was just giving agents the tools while yo
 > [!IMPORTANT]
 > The harness is the infra around the agent loop. It is not the agent loop itself.
 
+### Agentic libraries
+
+There is a difference between an agentic library and a coding harness. 
+
+Roughly speaking, an agentic library is a small abstraction over just calling the raw AI inference SDKs, where the agentic library handles small stuff like the agent loop and agent orchestration for you, but you have to do everything else like supply tools, add hooks, add prompts, create subagents, etc.
+
+- **Agentic libraries**: code SDKs that have varying degrees of how much harness ownership you have, but they all let you add your own logic into the harness via code.
+	- **libraries that take care most of the work**: Libraries like Strands and OpenAI Agents SDK have built out most of the harness for you, including prebuilt tools, web search, hooks, and more.
+	- **libraries that give you full control**: libraries like Google ADK, Langchain, and Langgraph, expect you to take care of everything, including the agent loop, but they take care of simple stuff like agent orchestration.
+- **coding harness**: a prebuilt product that you use as a harness over the agent. An example is Claude code.
+
+Here's an interview talking point that explains the differences between different agentic libraries:
+
+>"When building agentic workflows for administrative automation at HHMI, I choose the orchestration framework based on the risk profile of the task. If we are building a flexible research exploration assistant, a model-driven approach like Strands lets the LLM dynamically reason and pick tools with minimal boilerplate. But for high-consequence administrative workflows—like automated resource provisioning or policy actions—I lean toward LangGraph to enforce explicit state machines, checkpointing, and hard human-in-the-loop approval gates before any execution step occurs."
+
+Here's a comparison of strands vs langgraph
+
+| **Dimension**      | **Strands (Model-Driven)**                                                      | **LangGraph (Graph-Driven)**                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Primary Driver** | The LLM's internal reasoning loop.                                              | Explicit developer-defined state machine edges.                                                                 |
+| **Boilerplate**    | Very low. Write a function, add `@tool`, pass to `Agent`.                       | High. Requires state definitions, nodes, and routing logic.                                                     |
+| **Determinism**    | Lower. Emergent behavior; great for open-ended research or discovery.           | High. Enforces strict execution paths and safety boundaries.                                                    |
+| **Best Used For**  | Rapid prototyping, flexible workflows, text processing, and multi-agent swarms. | High-consequence enterprise actions (database writes, provisioning, financial triggers) requiring audit trails. |
+
+- **Using Strands:** Ideal when you want to spin up a quick microservice wrapper around internal documentation, letting an agent query models via Amazon Bedrock, Anthropic, or OpenAI with minimal overhead. You rely on hooks and streaming limits to keep the agent from looping infinitely.
+    
+- **Using LangGraph:** Ideal when building administrative accelerator tools at HHMI that cross boundary lines—such as an automated resource request workflow that requires state persistence, pause/resume capability, and strict **human-in-the-loop** approval before execution.
+#### Strands Agents
+
+Strands Agents is an agentic coding library made from AWS that goes for a model-driven approach where the harness is kind of out of the way and the model is basically driving all the execution. The harness is just there to support the model. 
+
+- **What it is:** An open-source, lightweight SDK created by AWS where the LLM itself drives the execution loop.
+    
+- **How it works:** You define a system prompt, supply tools as simple Python or TypeScript functions (decorated with something like `@tool`), and hand them to an agent object. The model natively plans, reasons, chooses tools, reads outputs, and loops until the task is complete.
+    
+- **When to use it:** For speed, flexibility, and rapid prototyping when you trust the frontier model's reasoning to handle the sequence dynamically.
+
+In Strands, you define the prompt and tools, and the LLM handles the execution loop autonomously (ReAct: reason, act, observe). Python uses native type hints and docstrings to automatically expose tools:
+
+```py
+from strands import Agent, tool
+
+@tool
+def search_system_logs(query: str, hours: int = 24) -> list:
+    """Search enterprise application logs by keyword and time window.
+    
+    Args:
+        query: The search term (e.g., 'timeout', 'DB_Error')
+        hours: How many hours back to search
+    """
+    # Simulated log searching logic
+    return [f"Found log matching '{query}' from {hours}h ago"]
+
+# Instantiate the agent with system instructions and tools
+agent = Agent(
+    system_prompt="You are an administrative infrastructure assistant helping diagnose operational bottlenecks.",
+    tools=[search_system_logs]
+)
+
+# The agent autonomously executes the loop until the task is complete
+response = agent("Find all timeout errors from the last 6 hours and summarize them.")
+print(response)
+```
+
+#### Langgraph
+
+In LangGraph, you explicitly construct a state machine (nodes and conditional edges). You control the exact routing paths, state schema, and where human checkpoints occur:
+
+- **What it is:** A lower-level orchestration framework from the LangChain team where you define an explicit state machine (nodes, edges, and a typed state schema).
+    
+- **How it works:** You explicitly map out every path the agent can take. Determinism is favored over pure emergence. It features built-in **checkpointing**, allowing for pause/resume functionality, time-travel debugging, and explicit **human-in-the-loop** approval gates.
+    
+- **When to use it:** For high-stakes enterprise workflows where an agent _cannot_ improvise an unauthorized path—such as executing database writes or triggering administrative payouts—requiring strict audit trails and human approval gates.
+
+```py
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Annotated
+import operator
+
+# 1. Define the explicit state schema
+class WorkflowState(TypedDict):
+    messages: Annotated[list, operator.add]
+    requires_approval: bool
+
+# 2. Define node functions
+def reasoning_node(state: WorkflowState):
+    # Model decides the next action based on state
+    return {"messages": ["Model generated an administrative plan."]}
+
+def execution_node(state: WorkflowState):
+    # Executes the tool deterministically
+    return {"messages": ["Tool executed successfully."]}
+
+# 3. Build the graph topology
+workflow = StateGraph(WorkflowState)
+workflow.add_node("reasoning", reasoning_node)
+workflow.add_node("execution", execution_node)
+
+workflow.set_entry_point("reasoning")
+
+# Define deterministic routing rules
+def route_decision(state: WorkflowState):
+    if state.get("requires_approval"):
+        return "human_review"
+    return "execution"
+
+workflow.add_conditional_edges(
+    "reasoning",
+    route_decision,
+    {"execution": "execution", "human_review": END}
+)
+
+app = workflow.compile()
+```
+
+## Nontechnical AI agent basics
 ### Prompt engineering for AI agents
 
 #### Developing the system prompt

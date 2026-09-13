@@ -922,3 +922,59 @@ As dimension $d$ grows, the volume of the feature space increases exponentially,
 
 
 
+## ML Engineering Primer
+
+### Best practices
+
+#### Pick the right tool for the job
+
+One of the most important parts of being an ML engineer is to always pick the right tool for the job. Different models excel in different areas and you need to pick the one that makes sense for the business problem.
+
+- _Structured/Tabular Operational Data:_ If you are predicting administrative workflow durations, resource bottlenecks, or classification tasks on structured database logs, classical ML (like Gradient Boosted Trees via XGBoost/LightGBM or regularized logistic regression) often outperforms LLMs, trains in seconds, costs fractions of a cent, and offers native feature importance (explainability).
+    
+- _Unstructured Text & Reasoning:_ When dealing with unstructured documents, policy manuals, or complex semantic parsing, Large Language Models and retrieval pipelines shine.
+
+Each tool has its tradeoffs, which you can classify in 4 core areas:
+
+- **Cost:** Inference costs at scale compound quickly with LLMs. Token efficiency matters.
+    
+- **Latency:** Real-time administrative tools need sub-second or low-latency responses. Heavy models or multi-step agent loops introduce bottlenecks.
+    
+- **Reliability & Determinism:** Classical models are mathematically deterministic. LLMs are probabilistic—requiring guardrails (e.g., JSON mode, function calling, or programmatic constraints).
+    
+- **Explainability:** In institutional or operational environments, stakeholders often need to know _why_ a decision or prediction was made.
+
+Here's an appropriate interview response to feign expertise:
+
+>"When approaching a problem for the Accelerator team, I treat model selection as an architectural trade-off. If we're automating structured operational routing, a gradient-boosted tree gives us high performance, low latency, and native feature interpretability at minimal cost. If we're parsing unstructured administrative policies to automate workflows, that's when we lean into LLMs coupled with rigorous evaluation guardrails."
+
+
+### Evaluating models
+
+#### 1. Pre-Deployment (Offline) Evaluation
+
+Before any model or agent touches production, you must evaluate it against a curated test dataset of edge cases and ground-truth expectations.
+
+- **Classical ML Metrics:** Precision, recall, $F1$-score, ROC-AUC, and calibration curves to ensure your probabilities match reality.
+    
+- **LLM & RAG Evaluation (e.g., using frameworks like Ragas or TruLens):**
+    
+    - **Context Precision & Recall:** Did the retrieval system actually fetch the right internal documents?
+        
+    - **Faithfulness / Groundedness:** Is the model's generated answer strictly derived from the retrieved context, or is it hallucinating?
+        
+    - **Answer Relevance:** Did it actually answer the user's prompt without introducing off-topic noise?
+
+#### 2. Post-Deployment (Online) Observability & Monitoring
+
+Once in production, static metrics degrade because the real world changes. You must monitor for two primary types of drift:
+
+- **Data Drift:** The statistical properties of incoming input data change over time (e.g., users writing administrative requests using entirely new terminology or formatting).
+    
+- **Concept Drift:** The statistical relationship between the input and the target output changes (e.g., an internal approval policy changes, making previous historical routing logic obsolete).
+    
+- **Operational Metrics:** Latency (p95/p99), token consumption/cost tracking, and error/exception rates.
+
+#### 3. Rigorous Experimentation
+
+- **A/B Testing:** Routing a percentage of live production traffic to a newly fine-tuned model or updated prompt chain to measure concrete business impact (e.g., resolution time, user correction rate) before full rollout.
