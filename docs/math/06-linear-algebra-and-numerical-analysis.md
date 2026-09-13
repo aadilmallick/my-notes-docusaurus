@@ -256,9 +256,67 @@ For two vectors $\vec v$ and $\vec w$, the dot product $\vec v \cdot \vec w$ can
 - When two vectors point in generally the same direction, their dot product is positive
 - Whe two vectors point in generally the opposite directions, their dot product is negative.
 
-This is another formula for the cot product that lets you find the angle between two vectors:
+This is another formula for the dot product that lets you find the angle between two vectors:
 
 $$\vec{a} \cdot \vec{b} = \|\vec a\|\|\vec b\|cos{\theta}$$
+#### Geometric interpretation
+
+For two vectors $\vec v$ and $\vec w$, the dot product $\vec v \cdot \vec w$ can be thought of as the length of projected $\vec w$ on $\vec v$ times the length of $\vec v$.
+
+Here's how to geometrically visualize $\vec v \cdot \vec w$ and $\vec w \cdot \vec v$:
+
+1. Think that you are projecting $\vec w$ onto $\vec v$, so draw a line down from the tip of $\vec w$ towards $\vec v$ until you hit $\vec v$, and that line should form a right triangle, with $\vec v$ and $\vec w$.
+
+
+![](https://i.imgur.com/QDdMLhB.jpeg)
+
+
+2. Now multiply the length of the projected  $\vec w$ onto $\vec v$ by the length of $\vec v$ to achieve the dot product $\vec v \cdot \vec w$.
+
+
+![](https://i.imgur.com/g1CMGr8.jpeg)
+
+3. Notice that this operation is commutative, where $\vec w \cdot \vec v$ yields the same result, even though now we're projecting $\vec v$ onto $\vec w$  instead. This is because both geometric interpretations are exact mirror opposites of each other.
+
+![](https://i.imgur.com/ZcpWRPZ.jpeg)
+
+
+![](https://i.imgur.com/0dDIc1n.jpeg)
+
+4. Even with scalar multiplication that breaks symmetry, the overall effect is still the same if you go through the math:
+	- $2\vec v \cdot \vec w$: The length of $\vec w$ projected onto $2\vec v$ doesn't change, but we now multiply by $\| 2 \vec v \|$, which doubles the dot product.
+	- $\vec w \cdot 2\vec v$: The length of $2 \vec v$ projected onto $\vec w$ does change, but it approximately doubles the length of the previous projection of $\vec v$ onto $\vec w$, so the overall effect still doubles the dot product.
+
+
+![](https://i.imgur.com/GlShZIz.jpeg)
+
+
+Now let's understand how this geometric interpretation works with other cases:
+
+- **vectors point in roughly same direction**: results in a positive length
+- **vectors point in roughly opposite directions**: results in a negative length
+
+
+![](https://i.imgur.com/La4rnmn.jpeg)
+
+
+- **vectors are perpendicular**: geometrically, to form a projection you draw a line straight down from the tip of the vector you're trying to project onto the other vector. You can't do it if they're perpendicular, which is why the dot product is zero if the vectors are perpendicular, Because there's no way to draw a projection from one vector onto another if the vectors are perpendicular 
+
+
+![](https://i.imgur.com/2Ucqpg2.jpeg)
+
+
+#### Projections
+
+Although the dot product may seem asymmetric since the vector you are projecting is different depending on which vector comes first in the dot product, in the end they both calculate out to be the exact same thing. 
+
+This allows us to find the lengths of the individual projections even if the dot product is the same.
+
+Let's start off with some notation:
+
+- $p_{}
+
+
 
 #### Orthonormal transformations
 
