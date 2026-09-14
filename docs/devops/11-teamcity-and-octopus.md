@@ -349,7 +349,6 @@ version = "2022.04"
 
 - **Project block:** The `project` block defines the scope of your _TeamCity_ project, and you must define several sub blocks and objects here:
 	- `buildType(buildConfiguration: BuildType)`: defines a build configuration job that runs multiple steps, associating a `BuildType` object with the project.
-	- 
 
 ```kts
 project {
@@ -368,10 +367,62 @@ project {
 }
 ```
 
-- **Build types:** Within the project, you define **build types** (equivalent to _build configurations_ in the UI). The script uses a singleton object (e.g., `build`) to set attributes like the configuration name
-- **VCS Roots:** The `vcs` block links your project to the repository. The reference `dslContext.settingsRoot` ensures the project uses the same repository as the configuration file itself
-- **Build steps:** This defines the actual work, such as a _Maven_ step with specific goals like `clean test` to run project tests (5:12-5:22). It can also include runner arguments to control behavior, such as ensuring all tests execute
-- **Triggers:** A `triggers` section handles automation. An empty `vcs` trigger configuration defaults to polling the repository for changes every 60 seconds
+- **Build types:** Within the project, you define **build types** (equivalent to _build configurations_ in the UI) by instantiating `BuildType` objects that TeamCity DSL recognizes. Here are the different things you can set on an individual build configuration:
+
+	- **VCS Roots (`vcs`)**: The `vcs` block links your project to the repository. The reference `dslContext.settingsRoot` ensures the project uses the same repository as the configuration file itself
+	- **Build steps (`steps`)**: This defines the actual work, such as a _Maven_ step with specific goals like `clean test` to run project tests. It can also include runner arguments to control behavior, such as ensuring all tests execute
+	- **Build features**: configuration for the build agent execution runner environment, like adding CPU and compute restraints that are required in order for the build to run.
+	- **Triggers:** A `triggers` section handles automation. An empty `vcs` trigger configuration defaults to polling the repository for changes every 60 seconds
+	- **dependencies**: You can create **build chains** which are the equivalent of job dependencies in github actions to create sequential builds that depend on each other.
+
+```kts
+version = "2020.1"
+
+// project configuration lives here
+project {
+	// 1. Use the build configuration specified by the Build object we created
+	buildType(Build)
+}
+
+// 2. create a build configuration with the BuildType class
+object Build: BuildType({
+	name = "build"
+	id("build")
+	
+	vcs {
+		root(DslContext.settingsRoot)
+	}
+	
+	steps {
+		exec {
+            name = "NPM Install"
+            workingDir = ""
+            path = "npm"
+            arguments = "install"
+        }
+
+        exec {
+            name = "NPM Build"
+            workingDir = ""
+            path = "npm"
+            arguments = "run build"
+        }
+
+	}
+	
+	triggers {
+        vcs {
+            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+            quietPeriod = 300
+            branchFilter = ""
+        }
+    }
+
+})
+
+```
+
+
 
 
 #### `pom.xml`
@@ -485,7 +536,307 @@ The `pom.xml` reads settings from the `settings.kts` to define the build configu
 </project>
 ```
 
-### Basics
+### Creating a project
+
+
+The `settings.kts` should contain a single invocation of the `project` block, which is where all the build configuration, VCS settings, and subproject settings are configured.
+
+`VcsRoot`, `BuildType`, `Template`, and subprojects objects can be registered inside the project using the `vcsRoot()`, `buildType()`, `template()`, and `subProject()` methods respectively:
+
+#### creating VCS roots
+
+### **complete example**
+
+```kts
+import jetbrains.buildServer.configs.kotlin.v2019_2.*
+import jetbrains.buildServer.configs.kotlin.v2019_2.buildSteps.*
+import jetbrains.buildServer.configs.kotlin.v2019_2.vcs.GitVcsRoot
+import jetbrains.buildServer.configs.kotlin.v2019_2.triggers.VcsTrigger
+import jetbrains.buildServer.configs.kotlin.v2019_2.triggers.vcs
+
+/*
+The settings script is an entry point for defining a TeamCity
+project hierarchy. The script should contain a single call to the
+project() function with a Project instance or an init function as
+an argument.
+
+VcsRoots, BuildTypes, Templates, and subprojects can be
+registered inside the project using the vcsRoot(), buildType(),
+template(), and subProject() methods respectively.
+
+To debug settings scripts in command-line, run the
+
+    mvnDebug org.jetbrains.teamcity:teamcity-configs-maven-plugin:generate
+
+command and attach your debugger to the port 8000.
+
+To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
+-> Tool Windows -> Maven Projects), find the generate task node
+(Plugins -> teamcity-configs -> teamcity-configs:generate), the
+'Debug' option is available in the context menu for the task.
+*/
+
+version = "2022.04"
+
+project {
+    subProject {
+        id("CustomerPortalBuilds")
+        name = "Customer Portal Builds"
+
+        buildType(APIBuild)
+        buildType(ReactBuild)
+    }
+
+    vcsRoot(PortalAppVcsRoot)
+    vcsRoot(PortalApiVcsRoot)
+
+    buildType(Publish)
+}
+
+object PortalAppVcsRoot : GitVcsRoot({
+    name = "Portal App VCS Root"
+    url = "git@gitlab.compusearch.com:corporatecomponents/customerportal/portalapp.git"
+    branch = "main"
+    authMethod = uploadedKey {
+        uploadedKey = "tc_gitlab.id_rsa"
+    }
+})
+
+object PortalApiVcsRoot : GitVcsRoot({
+    name = "Portal API VCS Root"
+    url = "git@gitlab.compusearch.com:corporatecomponents/customerportal/portalapi.git"
+    branch = "main"
+    authMethod = uploadedKey {
+        uploadedKey = "tc_gitlab.id_rsa"
+    }
+})
+
+object Publish : BuildType({
+    name = "Publish"
+    buildNumberPattern = "2026.4.0.%build.counter%"
+    publishArtifacts = PublishMode.SUCCESSFUL
+
+    steps {
+        step {
+            name = "Publish Package to Server"
+            type = "octopus.push.package"
+            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
+            param("octopus_host", "%allprojects.octopus.url%")
+            param("octopus_packagepaths", """
+                aggregateBuilds/** => COCO.CustomerPortal.%build.number%.zip
+                database/sqlserver/** => COCO.CustomerPortalApi.SqlServerDB.%build.number%.zip
+                database/oracle/** => COCO.CustomerPortalApi.OracleDB.%build.number%.zip                
+            """.trimIndent())
+            param("octopus_forcepush", "false")
+            param("octopus_publishartifacts", "true")
+            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
+        }
+        step {
+            name = "Create Release"
+            type = "octopus.create.release"
+            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
+            param("octopus_channel_name", "%coco.octopus.channel.unified%")
+            param("octopus_version", "3.0+")
+            param("octopus_host", "%allprojects.octopus.url%")
+            param("octopus_project_name", "Customer Portal - IIS")
+            param("octopus_forcepush", "IgnoreIfExists")
+            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
+            param("octopus_releasenumber", "%build.number%%coco.octopus.unified.prerelease%")
+        }
+    }
+
+    params {
+        param("param.rjs.package", "COCO.CustomerPortalApp.${ReactBuild.depParamRefs.buildNumber}.zip")
+        param("param.net.package", "COCO.CustomerPortalApi.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("param.dbsql.package", "COCO.CustomerPortalApi.SqlServerDB.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("param.dbora.package", "COCO.CustomerPortalApi.OracleDB.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("coco.octopus.channel.unified", "Unified")
+        param("coco.octopus.unified.prerelease", "%allprojects.octopus.prereleasetag%")
+    }
+
+    triggers {
+        vcs {
+            branchFilter = ""
+            watchChangesInDependencies = true
+        }
+    }
+
+    dependencies {
+        dependency(APIBuild) {
+            snapshot {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = """
+                    %param.net.package%!** => aggregateBuilds
+                    %param.dbsql.package%!** => database/sqlserver
+                    %param.dbora.package%!** => database/oracle
+                """.trimIndent()
+
+            }
+        }
+        dependency(ReactBuild) {
+            snapshot {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "%param.rjs.package%!** => aggregateBuilds/build"
+            }
+        }
+    }
+})
+
+object APIBuild : BuildType({
+    id("APIBuild")
+    name = "API Build"
+
+    artifactRules = """
+        CustomerPortalApi\bin\net10.0\publish\** => COCO.CustomerPortalApi.%build.number%.zip
+        -: CustomerPortalApi\bin\net10.0\publish\Migrations => COCO.CustomerPortalApi.%build.number%.zip
+        CustomerPortalApi\bin\net10.0\publish\Migrations\SqlServer\** => COCO.CustomerPortalApi.SqlServerDB.%build.number%.zip
+        CustomerPortalApi\bin\net10.0\publish\Migrations\Oracle\** => COCO.CustomerPortalApi.OracleDB.%build.number%.zip
+    """.trimIndent()
+    buildNumberPattern = "2026.4.0.%build.counter%"
+    publishArtifacts = PublishMode.SUCCESSFUL
+
+    params {
+        param("param.solution", "CustomerPortalApi.sln")
+        param("system.DeployOnBuild", "true")
+        param("system.PublishProfile", "FolderProfile")
+    }
+
+    vcs {
+        root(PortalApiVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
+    }
+
+    steps {
+        powerShell {
+            name = "Pull SlowCheetah"
+            platform = PowerShellStep.Platform.x64
+            scriptMode = script {
+                content = """
+            %teamcity.tool.NuGet.CommandLine.DEFAULT%\tools\nuget install SlowCheetah -OutputDirectory packages -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages;https://api.nuget.org/v3/index.json"
+        """.trimIndent()
+            }
+        }
+
+        powerShell {
+            name = "Run Project Transform Version Update"
+            platform = PowerShellStep.Platform.x64
+            scriptMode = file {
+                path = "%devops.teamcity.tools.dir%/General/Invoke-MsBuildXmlTransform.ps1"
+            }
+            param("jetbrains_powershell_scriptArguments", "-NuGetRootPath %teamcity.build.workingDir%/packages -BaseFile %teamcity.build.workingDir%/CustomerPortalApi/log4net.config -TransformFile %teamcity.build.workingDir%/CustomerPortalApi/log4net.Release.config -TargetPath %teamcity.build.workingDir%/CustomerPortalApi/log4net.config")
+        }
+
+        dotnetRestore {
+            name = "Restore Packages"
+            projects = "%param.solution%"
+            sources = """
+                https://nuget.compusearch.com/v3/index.json
+                https://api.nuget.org/v3/index.json
+            """.trimIndent()
+            param("dotNetCoverage.dotCover.home.path", "%teamcity.tool.JetBrains.dotCover.CommandLineTools.DEFAULT%")
+        }
+        dotnetMsBuild {
+            name = "Run Build"
+            projects = "%param.solution%"
+            version = DotnetMsBuildStep.MSBuildVersion.CrossPlatform
+            targets = "Rebuild"
+            configuration = "Release"
+            param("dotNetCoverage.dotCover.home.path", "%teamcity.tool.JetBrains.dotCover.CommandLineTools.DEFAULT%")
+        }
+        dotnetPublish {
+            name = "DotNet Publish"
+            projects = "%param.solution%"
+            configuration = "Release"
+            skipBuild = true
+            args = "/p:PublishProfile=%system.PublishProfile%"
+            param("dotNetCoverage.dotCover.home.path", "%teamcity.tool.JetBrains.dotCover.CommandLineTools.DEFAULT%")
+        }
+        reSharperInspections {
+            name = "Run Inspections"
+            enabled = false
+            solutionPath = "%param.solution%"
+            cltPath = "%teamcity.tool.jetbrains.resharper-clt.DEFAULT%"
+            cltPlatform = ReSharperInspections.Platform.X64
+            customCmdArgs = "-s=WARNING"
+        }
+        dotnetVsTest {
+            name = "Run Tests"
+            assemblies = """
+                Unison.Corporate.CustomerPortal.Tests\bin\Release\net10.0\Unison.Corporate.CustomerPortal.Tests.dll
+            """.trimIndent()
+            version = DotnetVsTestStep.VSTestVersion.V15
+            filter = testCaseFilter {
+                filter = "TestCategory!=Integration"
+            }
+            platform = DotnetVsTestStep.Platform.Auto
+            coverage = dotcover {
+                toolPath = "%teamcity.tool.JetBrains.dotCover.CommandLineTools.DEFAULT%"
+                assemblyFilters = "-:Unison.Corporate.*.Tests"
+            }
+        }
+    }
+
+    requirements {
+        doesNotEqual("system.agent.name", "LXCI01")
+    }
+
+    triggers {
+        vcs {
+            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+            quietPeriod = 300
+            branchFilter = ""
+        }
+    }
+})
+
+object ReactBuild : BuildType({
+    id("ReactBuild")
+    name = "React Build"
+
+    artifactRules = """build\** => COCO.CustomerPortalApp.%build.number%.zip"""
+    buildNumberPattern = "2026.4.0.%build.counter%"
+    publishArtifacts = PublishMode.SUCCESSFUL
+
+    vcs {
+        root(PortalAppVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
+    }
+
+    steps {
+        exec {
+            name = "NPM Install"
+            workingDir = ""
+            path = "npm"
+            arguments = "install"
+        }
+
+        exec {
+            name = "NPM Build"
+            workingDir = ""
+            path = "npm"
+            arguments = "run build"
+        }
+    }
+
+    triggers {
+        vcs {
+            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+            quietPeriod = 300
+            branchFilter = ""
+        }
+    }
+})
+
+```
+
+
+
 
 
 
