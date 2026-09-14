@@ -83,7 +83,7 @@ Automate deployment pipelines, orchestrate containers, provision cloud instances
 | **AWS Serverless (SAM)** | [AWS: SAM IaC](./AWS/AWS-IaC.md) | Deploying serverless functions, gateways, and DBs with AWS SAM syntax. |
 | **AWS Amplify** | [AWS: Amplify](./AWS/AWS-amplify.md) | Compare Gen 1 vs Gen 2 setups, and learn how to quickly configure authentication and APIs. |
 | **AWS SDK & CLI Auth** | [AWS: SDK & CLI](./AWS/AWS-SDK-CLI.md) | Authenticating terminal clients, scripting AWS actions, and using the SDK in apps. |
-| **Vercel & App Deployment** | [DevOps: Deploying Apps](./devops/06-deploying-apps.md) | Best practices to host frontends, SPAs, and fullstack servers (like Express) on Vercel. |
+| **Vercel & App Deployment** | [DevOps: Deploying Apps](01-netlify.md) | Best practices to host frontends, SPAs, and fullstack servers (like Express) on Vercel. |
 | **NGINX Reverse Proxy** | [Backend Engineering: Fullstack Engineering](./backend-engineering/09-Fullstack-Engineering.md) | Configure Nginx as a reverse proxy, load balancer, and secure static file server. |
 
 ---
