@@ -80,7 +80,16 @@ It also has these capabilities:
 If you want to self-host build agents on the cloud by putting the build agents on EC2 instances so they don't interfere and hog RAM from the Teamcity server, you can do so by following these steps:
 
 1. Create EC2 instances, grab the key pairs
-2. In Teamcity, create a new **cloud profile** and specify the EC2 instance IP as well as connection settings via your AWS access key
+2. In Teamcity, create a new **cloud profile** and fill out the AWS connection settings via your AWS access key
+
+
+![](https://i.imgur.com/IYOYDRE.jpeg)
+
+
+3. Specify an EC2 image tempalte ot use for launching new EC2 isntances that will then be used as build agent VMs
+
+
+![](https://i.imgur.com/v33qNfW.jpeg)
 
 
 ### TeamCity projects
@@ -99,7 +108,7 @@ In TeamCity, child projects inherit many settings and entities from their parent
 > [!NOTE]
 > Note that since [user permissions](https://www.jetbrains.com/help/teamcity/2026.1/managing-roles-and-permissions.html?Creating%20and%20Editing%20Projects) are project-based, only Root project administrators can edit its settings.
 
-#### Gitlab to Teamcity
+#### Gitlab to Teamcity + Triggers
 
 Often you'll have all your TeamCity Kotlin DSL code stored in a GitLab repository. Whenever you push to your GitLab repository, it should automatically push up those build configuration file changes to TeamCity to actually run the pipeline. 
 
@@ -108,6 +117,53 @@ Often you'll have all your TeamCity Kotlin DSL code stored in a GitLab repositor
 
 
 ![](https://i.imgur.com/rhTdRIw.jpeg)
+2. When creating a teamcity project, you should also add a trigger, and choose a VCS trigger:
+
+
+![](https://i.imgur.com/Sl8Wy13.jpeg)
+
+3. For the VCS trigger, specify the branches that should be listened to for the trigger. By default, all branches trigger the trigger, but you can filter it down to only specific branches like so:
+
+
+![](https://i.imgur.com/AbuNAHK.jpeg)
+
+> [!TIP]
+> For more info on the special syntax and what it means, check out [[#Teamcity artifacts]].
+
+Now Teamcity is configured to receive push trigger request from Gitlab. 
+
+
+##### How VCS triggers work
+
+How triggers work is through a polling schedule. 
+
+In this specific case, Teamcity checks every 60 seconds if there is a new push to the gitlab repo that should trigger the configured VCS trigger, and if so, then run the project and its build configurations.
+
+You can configure this VCS trigger behavior like so:
+
+- **quiet period**: the polling interval. By default, this is 60 seconds
+- **branch filter**: the branches to amtch on for the trigger
+
+
+
+![](https://i.imgur.com/ugdlZ4E.jpeg)
+
+You can also add extra advanced trigger rules which include matching on the following:
+
+- **specific VCS root**: you can configure multiple possible VCS roots for a project aand then add different trigger rules for them
+- **gitlab username**: trigger or don't trigger depending on the user who pushed the branch
+- **comment regex**: trigger or don't trigger depending on the commit message content regex matching.
+	- **example use case**: skip build on commit with content `[skip ci]`
+
+![](https://i.imgur.com/YC9rGFL.jpeg)
+
+
+##### Scheduled triggers
+
+Scheduled triggers let you run builds on a cron schedule. 
+
+
+![](https://i.imgur.com/mFvCnRO.jpeg)
 
 #### Adding build configurations
 
@@ -150,6 +206,13 @@ For a build configuration, you have two important settings when it comes to arti
 
 > [!NOTE]
 > All of these settings are configurable in the Kotlin DSL for TeamCity. 
+
+Let's go more in depth into the language:
+
+- `+`: include
+- `-`: exclude
+- `*`: star glob pattern
+- `**`: recursive star glob pattern
 
 So this below:
 
@@ -213,6 +276,101 @@ Build numbers are useful for versioning artifacts created by TeamCity, which is 
 	- `repository`: a custom param you set to specify the gitlab repo name associated with the current build configuration.
 	- `build.number`: a TeamCity-managed param that retrieves the build number formatted string associated with the current build configuration.
 	- `teamcity.build.branch`: a TeamCity-managed param that retrieves the branch of the gitlab repo associated with the current build configuration.
+
+#### Build features
+
+Build features in a TeamCity project offer additional configuration for the build and let you do important side effects like auto-merging or other shit. I don't know. 
+
+- **auto-merging**: create a rule so that if a build succeeds, merge the source code branch into another branch like `main`
+- **commit status publisher**: Create a rule so that you get Team City to automatically build on a pull request, and the pull request can only get merged if the build passes.
+
+> [!NOTE]
+> Although build features are powerful, make sure to not overuse them because it will be confusing for other developers when they see build features do such things like change the content of the repository after a push. Only use build features that don't actually change anything in the source code. 
+
+##### Auto-merge
+
+Here's what the below auto-merge thing example does:
+
+1. Watch for all branches except the `rc` (release candidate) branch
+2. Choose to perform the merge if the build is successful, specify to create a merge commit for that and with a specific message syntax.
+3. Merge the incoming branch into the `rc` branch
+
+
+![](https://i.imgur.com/1gyouV0.jpeg)
+
+
+##### commit status publisher
+
+1. Specify the VCS root and the Teamcity Gitlab user that will be the one with access to the gitlab repo and able to do stuff like run pull request actions 
+
+![](https://i.imgur.com/T6jgrsh.jpeg)
+
+### Teamcity + Gitlab SSH keys
+
+> [!NOTE]
+> Why should we use SSH keys to connect Team City to a Gitlab VCS root? Because it removes the need for a username and password by having a direct SSH connection, we can avoid credentials being leaked. 
+
+Here's the grand overview for how we'll achieve this:
+
+1. **Create SSH key pair**: give the public key to Gitlab and the private key to Teamcity.
+2. **Configure the connection**: edit the VCS root to use SSH instead of standard HTTPS authentication with GitLab. 
+
+SSH keys for connecting to a GitLab repo from Team City live on the project level. For each project it needs its own individual SSH key pair to connect to a certain VCS root or multiple VCS roots. 
+
+Here are the steps:
+
+1. Create the ssh keys in the `.pem` format, which is what TeamCity requires:
+
+```
+ssh-keygen -f teamcity -m 'PEM'
+```
+
+2. Uplaod the private key to Teamcity
+
+
+![](https://i.imgur.com/fALJk01.jpeg)
+
+3. Upload the public key to GIthub (should end in `.pub`)
+
+
+![](https://i.imgur.com/zAQlbmr.jpeg)
+
+
+4. When editing the VCS root, make sure to change to the SSH `<user>@<host>` syntax for specifying which repo to connect to for the VCS root:
+
+
+![](https://i.imgur.com/nsBpUMU.jpeg)
+
+
+5. Change the authentication method to use SSH keys and specify the specific SSH key you set at the project level
+
+
+![](https://i.imgur.com/DUeYRkH.jpeg)
+### Users, groups, and roles
+
+- **users**: represent individual users in a Teamcity server with individual permissions
+- **group**: represent groups of permissions just like user groups in AWS, where we can assign permissions to the group, and then users assigned to that group will gain the permissions of the group.
+- **roles**: 
+
+#### Roles
+
+Roles are disabled by default.
+
+To enable roles, you must enable the per-project permissions.
+
+Here’s how roles typically function in CI/CD systems like TeamCity:
+
+1. **Role Creation**: Roles are created to group specific permissions. For example, a role may be labeled as "Project Developer," granting access to develop and manage project configurations.
+    
+2. **Assigning Permissions**: Once a role is created, you can assign various permissions to that role. For instance, you may assign permissions to run builds or manage specific project configurations.
+    
+3. **User Assignment**: Users or groups can then be assigned a particular role. This means that every user with this role will inherit the permissions it grants.
+    
+4. **Project Level**: Roles are generally assigned at the project level, allowing you to manage access effectively. For example, one user may be assigned the role of "Developer" for a .NET project while another may have restricted access on a different project.
+    
+
+Roles help in maintaining security and appropriateness within project teams, ensuring that users only have access to the areas necessary for their tasks.
+
 
 ## TeamCity CLI
 
