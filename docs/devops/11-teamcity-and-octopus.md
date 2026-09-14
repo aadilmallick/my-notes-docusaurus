@@ -304,6 +304,192 @@ or specifically for **Claude Code:**
 
 ## Teamcity DSL
 
+If you want to write config as code much like how YAML files are used to create github action workflows, you can do the same thing as Teamcity with XML files that represent build configurations that live in the `.teamcity` folder within a repo, to have automatic gitOps configuration with teamcity when pushing up your repo.
+
+Kotlin DSL for Teamcity compile into these XML files behind the scenes, so that's what we'll use for our config as code.
+
+### Teamcity to gitlab necessary setup
+
+1. Configure a git repo for source control:
+
+
+![](https://i.imgur.com/TsgQYdF.jpeg)
+
+2. For the version settings of a project make sure to enable these settings. 
+	1. **synchronization enabled**: use project settings from VCS root
+	2. **VCS root**: specify which repo and which branch to look inside for the `.teamcity` folder of configuration files.
+	3. **build start settings**: use the VCS as the source of truth for providing teamcity build configuration settings.
+	4. **settings format**: Choose Kotlin to use the Kotlin DSL. 
+
+
+![](https://i.imgur.com/RhbHFMf.jpeg)
+
+3. Make sure you have a teamcity user on your gitlab repo that has READ/WRITE access to the repo
+
+
+
+### `.teamcity` folder structure
+
+After enabling **Versioned Settings** and configuring the synchronization, _TeamCity_ automatically creates a new **.teamcity** folder within your repository. This folder contains the following two initial required files:
+
+- **`pom.xml`**: This file defines the folder as a _Maven_ project, which is necessary for _IntelliJ IDEA_ to properly recognize and provide features like auto-completion for your configuration scripts.
+- **`settings.kts`**: This is your primary _Kotlin_ script file where the project's build configuration logic is stored.
+
+#### `settings.kts`
+
+The `settings.kts` is the entrypoint for describing the Teamcity build configuration. A standard Teamcity build configuration will have many objects that compose a pipeline.
+
+A standard, simple configuration file includes several key blocks:
+
+- **Version definition:** At the top, the file specifies the _TeamCity_ server version that generated the script, ensuring compatibility, using the `version` variable
+
+```kotlin
+version = "2022.04"
+```
+
+- **Project block:** The `project` block defines the scope of your _TeamCity_ project, and you must define several sub blocks and objects here:
+	- `buildType(buildConfiguration: BuildType)`: defines a build configuration job that runs multiple steps, associating a `BuildType` object with the project.
+	- 
+
+```kts
+project {
+    subProject {
+        id("CustomerPortalBuilds")
+        name = "Customer Portal Builds"
+
+        buildType(APIBuild)
+        buildType(ReactBuild)
+    }
+
+    vcsRoot(PortalAppVcsRoot)
+    vcsRoot(PortalApiVcsRoot)
+
+    buildType(Publish)
+}
+```
+
+- **Build types:** Within the project, you define **build types** (equivalent to _build configurations_ in the UI). The script uses a singleton object (e.g., `build`) to set attributes like the configuration name
+- **VCS Roots:** The `vcs` block links your project to the repository. The reference `dslContext.settingsRoot` ensures the project uses the same repository as the configuration file itself
+- **Build steps:** This defines the actual work, such as a _Maven_ step with specific goals like `clean test` to run project tests (5:12-5:22). It can also include runner arguments to control behavior, such as ensuring all tests execute
+- **Triggers:** A `triggers` section handles automation. An empty `vcs` trigger configuration defaults to polling the repository for changes every 60 seconds
+
+
+#### `pom.xml`
+
+The `pom.xml` reads settings from the `settings.kts` to define the build configuration
+
+```xml
+<?xml version="1.0"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <name>Corporate_CustomerPortal Config DSL Script</name>
+  <groupId>Corporate_CustomerPortal</groupId>
+  <artifactId>Corporate_CustomerPortal_dsl</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <parent>
+    <groupId>org.jetbrains.teamcity</groupId>
+    <artifactId>configs-dsl-kotlin-parent</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+
+  <repositories>
+    <repository>
+      <id>jetbrains-all</id>
+      <url>https://download.jetbrains.com/teamcity-repository</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>teamcity-server</id>
+      <url>http://ci.compusearch.com/app/dsl-plugins-repository</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>JetBrains</id>
+      <url>https://download.jetbrains.com/teamcity-repository</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <build>
+    <sourceDirectory>${basedir}</sourceDirectory>
+    <plugins>
+      <plugin>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <version>${kotlin.version}</version>
+
+        <configuration/>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>test-compile</id>
+            <phase>process-test-sources</phase>
+            <goals>
+              <goal>test-compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jetbrains.teamcity</groupId>
+        <artifactId>teamcity-configs-maven-plugin</artifactId>
+        <version>${teamcity.dsl.version}</version>
+        <configuration>
+          <format>kotlin</format>
+          <dstDir>target/generated-configs</dstDir>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.teamcity</groupId>
+      <artifactId>configs-dsl-kotlin</artifactId>
+      <version>${teamcity.dsl.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.teamcity</groupId>
+      <artifactId>configs-dsl-kotlin-plugins</artifactId>
+      <version>1.0-SNAPSHOT</version>
+      <type>pom</type>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib-jdk8</artifactId>
+      <version>${kotlin.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-script-runtime</artifactId>
+      <version>${kotlin.version}</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+</project>
+```
+
+### Basics
+
+
+
+
 
 ## Octopus Basics
 
