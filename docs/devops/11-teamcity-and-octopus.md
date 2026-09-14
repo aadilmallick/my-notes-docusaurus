@@ -526,11 +526,75 @@ project {
 ```
 
 - **Build types:** Within the project, you define **build types** (equivalent to _build configurations_ in the UI) by instantiating `BuildType` objects that TeamCity DSL recognizes. Here are the different things you can set on an individual build configuration:
+	- **VCS Roots (`vcs`)**: The `vcs` block links your project to the repository. 
+		- The reference `DslContext.settingsRoot` ensures the project uses the same repository as the configuration file itself
 
-	- **VCS Roots (`vcs`)**: The `vcs` block links your project to the repository. The reference `dslContext.settingsRoot` ensures the project uses the same repository as the configuration file itself
+	```kts
+	object Build: BuildType({
+		name = "build"
+		id("build")
+	
+		vcs {
+			root(DslContext.settingsRoot)
+		}
+	}
+	```
+
 	- **Build steps (`steps`)**: This defines the actual work, such as a _Maven_ step with specific goals like `clean test` to run project tests. It can also include runner arguments to control behavior, such as ensuring all tests execute
-	- **Build features**: configuration for the build agent execution runner environment, like adding CPU and compute restraints that are required in order for the build to run.
+
+	```kts
+	object Build: BuildType({
+		name = "build"
+		id("build")
+	
+		vcs {
+			root(DslContext.settingsRoot)
+		}
+	```
+	
+	- **Build features**: configuration for the build agent execution runner environment and also third-party stuff like running builds on pull requests, adding minimum CPU and compute constraints, and more.
+
+	```kts
+	object Build: BuildType({
+		name = "build"
+		id("build")
+	
+		vcs {
+			root(DslContext.settingsRoot)
+		}
+		
+		// add features
+		features {
+			// define build agent VM constraint
+			freeDiskSpace {
+				requiredSpace = "6gb"
+				failBuild = true // fail build if not satisfied
+			}
+		}
+	```
+
 	- **Triggers:** A `triggers` section handles automation. An empty `vcs` trigger configuration defaults to polling the repository for changes every 60 seconds
+
+	```kts
+	object Build: BuildType({
+		name = "build"
+		id("build")
+	
+		vcs {
+			root(DslContext.settingsRoot)
+		}
+		
+		// add triggers
+		triggers {
+			// confgure VCS trigger that creates trigger from VCS root
+	        vcs {
+	            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+	            quietPeriod = 300
+	            branchFilter = ""
+	        }
+	    }
+	```
+
 	- **dependencies**: You can create **build chains** which are the equivalent of job dependencies in github actions to create sequential builds that depend on each other.
 
 ```kts
@@ -701,9 +765,31 @@ The `settings.kts` should contain a single invocation of the `project` block, wh
 
 `VcsRoot`, `BuildType`, `Template`, and subprojects objects can be registered inside the project using the `vcsRoot()`, `buildType()`, `template()`, and `subProject()` methods respectively:
 
+
+```kts
+project {
+    subProject {
+        id("CustomerPortalBuilds")
+        name = "Customer Portal Builds"
+
+        buildType(APIBuild)
+        buildType(ReactBuild)
+    }
+
+    vcsRoot(PortalAppVcsRoot)
+    vcsRoot(PortalApiVcsRoot)
+
+    buildType(Publish)
+}
+```
+
 #### creating VCS roots
 
-### **complete example**
+#### subprojects
+
+#### creating build configuration files with `BuildType`
+
+#### **complete example**
 
 ```kts
 import jetbrains.buildServer.configs.kotlin.v2019_2.*
@@ -995,7 +1081,22 @@ object ReactBuild : BuildType({
 
 
 
+### Patches
 
+In _TeamCity_, when your project configuration is stored as _Kotlin DSL_ in version control, the system tries to automatically commit changes made in the web UI back to your code. 
+
+However, **DSL patches** are created when _TeamCity_ cannot automatically map a UI-driven change to your existing _Kotlin_ code structure.
+
+Here's how they work
+
+- **Trigger:** Patches occur when you have customized your _Kotlin_ files in a way that _TeamCity_ cannot parse or reconcile automatically, such as by introducing custom variables or complex logic
+- **Mechanism:** When a conflict occurs, _TeamCity_ commits a new folder to your repository named `patches`. Inside, you will find a `build.kts` file representing the change
+- **Resolution:** These files are not automatically merged. You must follow these steps:
+	1. You must manually review the patch file to understand the required setting change, then update your primary `settings.kts` file to reflect that change
+	2. Delete the `patches` folder entirely to apply the fix and resolve the state mismatch 
+	3. Commit and push the latest changes
+
+This approach works well because we treat the VCS with the kotlin DSL as the source of truth, and any changes made in the UI as a "nice suggestion" we can choose to include in the code as config or not.
 
 
 
