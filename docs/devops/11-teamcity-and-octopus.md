@@ -67,12 +67,22 @@ It also has these capabilities:
 
 ### Teamcity installation and setup
 
+#### Local development to Teamcity server on Cloud
+
 1. Install from EXE
 2. Install TeamCity server, but not the build agent
 3. Connect to a remote TeamCity server, put in the one your company gave you
 
 
 ![](https://i.imgur.com/0tZctgz.jpeg)
+#### Creating cloud build agents
+
+If you want to self-host build agents on the cloud by putting the build agents on EC2 instances so they don't interfere and hog RAM from the Teamcity server, you can do so by following these steps:
+
+1. Create EC2 instances, grab the key pairs
+2. In Teamcity, create a new **cloud profile** and specify the EC2 instance IP as well as connection settings via your AWS access key
+
+
 ### TeamCity projects
 
 A project is a container for **templates**, **build configurations**, and **source control** connections.
@@ -292,7 +302,8 @@ or specifically for **Claude Code:**
 /plugin install teamcity-cli@teamcity-cli
 ```
 
-## Octopus
+## Teamcity DSL
+## Octopus Basics
 
 ### How Octopus works
 
@@ -326,7 +337,10 @@ Octopus Deploy allows you to create several environments, like Dev, Test, and QA
 
 Octopus Deploy offers an analog to folders called **Spaces**, which allows you to organize your deployments into different categories/buckets.
 
-### Adding tentacles
+
+### Package to Octopus
+
+#### Adding tentacles
 
 Here are the steps to add a tentacle on a Windows Server VM you own:
 
@@ -351,7 +365,7 @@ Here are the steps to add a tentacle on a Windows Server VM you own:
 ![](https://i.imgur.com/VoAf75j.jpeg)
 
 
-### Deploying to tentacles
+#### Deploying to tentacles
 
 Deployment in Octopus Deploy requires special rules for **packages** (same thing as build artifacts):
 
@@ -373,7 +387,7 @@ A common approach where tags come in handy is when we have different branches an
 
 ![](https://i.imgur.com/4MUHwO3.jpeg)
 
-### Connecting TeamCity to Octopus
+#### Connecting TeamCity to Octopus
 
 Here's a high level overview of how it works:
 
@@ -415,8 +429,43 @@ Here are the steps in depth
 
 ![](https://i.imgur.com/wXQHeLT.jpeg)
 
+## Octopus deployments
 
-### Octopus and IIS
+### Intro
+
+In Octopus Deploy, the normal design is:
+
+- **Project/process** = how DIS is deployed
+- **Environment** = where it is deployed, such as Dev, QA, or Production
+- **Release** = a versioned snapshot of the process, packages, and variables that gets promoted through those environments
+
+Here's an overarching mental model:
+
+```
+Project
+│
+├── Deployment process
+│   └── Defines WHAT Octopus does
+│
+├── Channel
+│   └── Defines WHICH release lane is used
+│
+├── Lifecycle
+│   └── Defines WHERE and in WHAT ORDER the release goes
+│
+└── Release
+    └── A deployable snapshot of packages, process, and variables
+```
+
+A useful shorthand is:
+
+- **Process:** What deployment actions happen?
+- **Environment:** Where does the application run?
+- **Lifecycle:** In what order may environments receive a release?
+- **Channel:** Which release strategy or lane does the release follow?
+- **Release:** Which version is being deployed?
+### Creating deployments
+### Octopus and creating an IIS pipeline
 
 When creating an octopus project, you can configure the pipeline with prebuilt step recipes, and Octopus offers a prebuilt step for deploying to IIS app pools.
 
@@ -430,3 +479,111 @@ When creating an octopus project, you can configure the pipeline with prebuilt s
 
 
 ![](https://i.imgur.com/FdnD2qc.jpeg)
+3. Select the specific package (artifact) to deploy
+
+
+![](https://i.imgur.com/mgbIVnN.jpeg)
+
+### Releases
+
+Releases are ways to version packages and have them get ready to be deployed to individual stages.
+
+1. Create a release from a package
+
+
+![](https://i.imgur.com/EUKxfS5.jpeg)
+
+### Variables
+
+There are two types of variables in Octopus Deploy:
+
+- **system variables**: Variables managed by Octopus, available under the `Octopus` namespace, available system wide or specific ones that inject project-specific values.
+- **project variables**: user-created variables that you make available at the project level. You can further constrain the use of these variables by **scoping** them to certain environments, target roles, target servers/tentacles, and specific deployment steps.
+	- Scopes allow you to supply different variable values for each scope, namespaced under a single variable.
+
+You can add variables for a project, which lets you use the variable anywhere inside the project.
+
+Once you create variables, you can use them anywhere when configuring Octopus pipelines or releases via template string interpolation, with the `#{}` syntax.
+
+1. Create a project variable
+
+
+![](https://i.imgur.com/HZ0IaLN.jpeg)
+2. You can also scope the variable to restrict its use more and provide conditional, scoped values for the variable.
+
+
+![](https://i.imgur.com/2mQRdK0.jpeg)
+
+
+
+![](https://i.imgur.com/KCZk6EX.jpeg)
+
+
+3. Use the variable to make build steps in a pipeline more dynamic:
+
+
+![](https://i.imgur.com/js2N375.jpeg)
+
+#### Extra variable configuration
+
+
+If you want extra variable configuration, you have these options:
+
+1. Edit an existing variable
+
+![](https://i.imgur.com/DZLlq47.jpeg)
+2. Add configuration, like dropdowns, prompts, etc.
+
+
+
+![](https://i.imgur.com/iHjwLjK.jpeg)
+
+A caveat here is that if you decide to provide extra configuration for your variable and prompt for its value, then for project scopes you can only scope by environment and nothing else (because that's the only thing known beforehand). 
+
+
+![](https://i.imgur.com/bKp31vP.jpeg)
+
+#### System variables
+
+Here are the important namespaces:
+
+- `Octopus.Environment`: object with info about the environment being deployed to.
+- `Octopus.Action.Package`: object with info about the current package that is trying to be deployed.
+- `Octopus.Deployment`: object with info about deployments
+
+### Lifecycles
+
+A **lifecycle** defines the path that a release can take through deployment environments.
+
+Think of it as the project’s promotion roadmap:
+
+```
+Development → QADEMO → QA
+```
+
+A lifecycle can control:
+
+- The environments available to a release
+- The order in which releases move through environments
+- Whether an environment or phase is required or optional
+- Whether deployment to an environment begins automatically
+- How many releases and deployment files are retained
+
+Octopus calls each stage in a lifecycle a **phase**. A phase can contain one environment or multiple environments. A lifecycle can require a successful deployment to an earlier phase before a later phase becomes available.
+
+
+### Channel
+
+A **channel** is a release lane inside a project.
+
+Channels let one Octopus project support different release strategies without duplicating the project. Every release belongs to a channel, and the channel can determine:
+
+- Which lifecycle the release follows
+- Which package versions are allowed
+- Which process steps run
+- Which variables apply
+- Which tenants apply
+
+Each channel can behave differently while still using the same underlying project.
+
+Octopus supports channel-specific lifecycles, process steps, variables, tenants, and package-version rules. Every project has a default channel, and additional channels can be created when genuinely different release behavior is needed.
