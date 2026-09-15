@@ -305,6 +305,14 @@ Here's what the below auto-merge thing example does:
 
 ![](https://i.imgur.com/T6jgrsh.jpeg)
 
+### Build chains
+
+You can consider build configurations within a project as individual pipelines/jobs, and then if you want to do what github actions does in parallelizing and adding jobs as dependencies of each other, then you can look to **build chains**, where you can create a directed dependency graph of builds that depend upon other builds.
+
+In teamcity, you can specify two behaviors when it comes to build chains:
+
+- **sequential execution**: specify that a build needs another build to finish, so it executes sequentially after.
+- **parallel execution**: specify that a build can run in parallel with another build.
 ### Teamcity + Gitlab SSH keys
 
 > [!NOTE]
@@ -550,6 +558,23 @@ project {
 		vcs {
 			root(DslContext.settingsRoot)
 		}
+		
+		steps {
+		exec {
+            name = "NPM Install"
+            workingDir = ""
+            path = "npm"
+            arguments = "install"
+        }
+
+        exec {
+            name = "NPM Build"
+            workingDir = ""
+            path = "npm"
+            arguments = "run build"
+        }
+
+	}
 	```
 	
 	- **Build features**: configuration for the build agent execution runner environment and also third-party stuff like running builds on pull requests, adding minimum CPU and compute constraints, and more.
@@ -593,9 +618,14 @@ project {
 	            branchFilter = ""
 	        }
 	    }
+	}
 	```
 
 	- **dependencies**: You can create **build chains** which are the equivalent of job dependencies in github actions to create sequential builds that depend on each other.
+
+Here's a basic, simple example that does the following:
+
+1. Registers a build configuration using the project's configured VCS root (configured on teamcity UI), steps to install and build with npm, and build triggers on VCS push
 
 ```kts
 version = "2020.1"
@@ -758,6 +788,245 @@ The `pom.xml` reads settings from the `settings.kts` to define the build configu
 </project>
 ```
 
+### Build types in depth
+
+#### Build outputs and variable interpolation
+
+In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
+
+- **build output variables**: when you instantiate a `BuildType` object, you're just creating a normal Kotlin object, so of course you can access properties on it.
+
+#### Dependencies
+
+You can consider build configurations as jobs/pipelines, and in order to orchestrate sequential and parallel jobs running according to a specific order, we have to create **build chains**.
+
+There are two ways to create a build chain (configuring sequential dependencies of build configuration files and thus pipelines):
+
+- **Method 1 - Use `BuildType.dependencies`**: Specify which other builds an individual BuildType instance depends on via the `dependencies` block. 
+	- **Pro**: granular
+	- **Con**: gets messy and has messy logic
+- **Method 2 - specify job order in `project` block**: Specify sequential chains of builds in the `sequential` block in the `project` block, and parallel blocks with the `parallel` block.
+	- **Pro**: super easy and readable
+	- **Con**: lower granularity, can't access individual snapshot properties.
+
+> [!IMPORTANT]
+> Then an important thing to understand once you configure a build chain is that the VCS trigger should only be on the LAST build type in the chain.
+
+**Method 1 example**
+
+Here's an example using Method 1:
+
+1. Create the two jobs
+
+```kts
+object APIBuild : BuildType({
+    id("APIBuild")
+    name = "API Build"
+
+    vcs {
+        root(PortalApiVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
+    }
+
+    steps {
+        powerShell {
+            name = "Pull SlowCheetah"
+            platform = PowerShellStep.Platform.x64
+            scriptMode = script {
+                content = """
+            %teamcity.tool.NuGet.CommandLine.DEFAULT%\tools\nuget install SlowCheetah -OutputDirectory packages -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages;https://api.nuget.org/v3/index.json"
+        """.trimIndent()
+            }
+        }
+	}
+
+    triggers {
+        vcs {
+            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+            quietPeriod = 300
+            branchFilter = ""
+        }
+    }
+})
+
+object ReactBuild : BuildType({
+    id("ReactBuild")
+    name = "React Build"
+
+
+    vcs {
+        root(PortalAppVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
+    }
+
+    steps {
+        exec {
+            name = "NPM Install"
+            workingDir = ""
+            path = "npm"
+            arguments = "install"
+        }
+
+        exec {
+            name = "NPM Build"
+            workingDir = ""
+            path = "npm"
+            arguments = "run build"
+        }
+    }
+
+    triggers {
+        vcs {
+            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+            quietPeriod = 300
+            branchFilter = ""
+        }
+    }
+})
+
+```
+
+
+2. Create a job that is dependent on those two jobs:
+
+```kt
+object Publish : BuildType({
+    name = "Publish"
+    buildNumberPattern = "2026.4.0.%build.counter%"
+    publishArtifacts = PublishMode.SUCCESSFUL
+
+    steps {
+        step {
+            name = "Publish Package to Server"
+            type = "octopus.push.package"
+            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
+            param("octopus_host", "%allprojects.octopus.url%")
+            param("octopus_packagepaths", """
+                aggregateBuilds/** => COCO.CustomerPortal.%build.number%.zip
+                database/sqlserver/** => COCO.CustomerPortalApi.SqlServerDB.%build.number%.zip
+                database/oracle/** => COCO.CustomerPortalApi.OracleDB.%build.number%.zip                
+            """.trimIndent())
+            param("octopus_forcepush", "false")
+            param("octopus_publishartifacts", "true")
+            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
+        }
+        step {
+            name = "Create Release"
+            type = "octopus.create.release"
+            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
+            param("octopus_channel_name", "%coco.octopus.channel.unified%")
+            param("octopus_version", "3.0+")
+            param("octopus_host", "%allprojects.octopus.url%")
+            param("octopus_project_name", "Customer Portal - IIS")
+            param("octopus_forcepush", "IgnoreIfExists")
+            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
+            param("octopus_releasenumber", "%build.number%%coco.octopus.unified.prerelease%")
+        }
+    }
+
+	// dependent on those two builds because it uses outputs from them
+    params {
+        param("param.rjs.package", "COCO.CustomerPortalApp.${ReactBuild.depParamRefs.buildNumber}.zip")
+        param("param.net.package", "COCO.CustomerPortalApi.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("param.dbsql.package", "COCO.CustomerPortalApi.SqlServerDB.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("param.dbora.package", "COCO.CustomerPortalApi.OracleDB.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("coco.octopus.channel.unified", "Unified")
+        param("coco.octopus.unified.prerelease", "%allprojects.octopus.prereleasetag%")
+    }
+
+    triggers {
+        vcs {
+            branchFilter = ""
+            watchChangesInDependencies = true
+        }
+    }
+
+    dependencies {
+        dependency(APIBuild) {
+            snapshot {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = """
+                    %param.net.package%!** => aggregateBuilds
+                    %param.dbsql.package%!** => database/sqlserver
+                    %param.dbora.package%!** => database/oracle
+                """.trimIndent()
+
+            }
+        }
+        dependency(ReactBuild) {
+            snapshot {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "%param.rjs.package%!** => aggregateBuilds/build"
+            }
+        }
+    }
+})
+```
+
+
+**Method 2**
+
+here's method 2 in action:
+
+```kts
+projects {
+	sequential {
+		// run the build first
+		buildType(Build)
+		
+		// run tests in parallel
+		parallel {
+			buildType(UnitTest)
+			buildType(IntegrationTest)
+			buildType(e2eTest)
+			buildType(SAST)
+			buildType(DAST)
+		}
+		
+		// deploy last
+		buildType(Deploy)
+	}
+}
+```
+
+If you want to refactor using functions and classes as abstractions over creating `BuildType` instances, here is what you should do, where now you are using trailing lambda syntax and dynamically registering build types:
+
+```kts
+project {
+	// 1. define build chain, get all BuildType objects back in Collection
+    val bts = sequential {
+        buildType(Maven(name = "Build", goals = "clean compile"))
+        parallel {
+            buildType(Maven(name = "Fast Test", goals = "clean test"))
+            buildType(Maven(name = "Slow Test", goals = "clean test"))
+        }
+        buildType(Maven(name = "Package", goals = "clean package"))
+    }.buildTypes()
+
+	// 2. register all BuildType instances
+    bts.forEach { buildType(it) }
+    
+    // 3. Set the VCS trigger on the last build in the build chain
+    bts.last().triggers {
+	    vcs {
+	    
+	    }
+    }
+}
+
+class Maven(public var name: String, public var goals: String): BuildType({
+	name = this.name,
+	goals = this.goals
+})
+```
+
+
 ### Creating a project
 
 
@@ -785,9 +1054,50 @@ project {
 
 #### creating VCS roots
 
+In the `projects` block, you can register VCS roots for the project via the `vcsRoot()` function, which takes in a `GitVcsRoot` instance:
+
+
+```kt
+project {
+    vcsRoot(PortalAppVcsRoot)
+    vcsRoot(PortalApiVcsRoot)
+}
+
+
+object PortalAppVcsRoot : GitVcsRoot({
+    name = "Portal App VCS Root"
+    url = "git@gitlab.compusearch.com:corporatecomponents/customerportal/portalapp.git"
+    branch = "main"
+    authMethod = uploadedKey {
+        uploadedKey = "tc_gitlab.id_rsa"
+    }
+})
+
+object PortalApiVcsRoot : GitVcsRoot({
+    name = "Portal API VCS Root"
+    url = "git@gitlab.compusearch.com:corporatecomponents/customerportal/portalapi.git"
+    branch = "main"
+    authMethod = uploadedKey {
+        uploadedKey = "tc_gitlab.id_rsa"
+    }
+})
+```
+
+Here are the basic properties that the `GitVcsRoot` object takes in:
+
+- `name`: the name to set for the VCS root
+- `url`: either the HTTPS or SSH url of the repo to connect to
+- `branch`: the git branch to use as the source, like `"main"`
+
+**auth methods**
+
+There are two ways to authenticate with a Git repo when setting up the Git VCS root:
+
+- **Method 1 - HTTPS**: for the `url` property you pass the HTTPS URL to your github repo, and then for the `authMethod`, you specify HTTPS
+- **Method 2 - SSH**: for the `url` property you pass the SSH URL to connect to your github repo in `<user>@<host>` style, and then use the `uploadedKey` lambda to specify the public key in gitlab that should be used to connect to the private key in Teamcity (check out [[#Teamcity + Gitlab SSH keys]] for more info).
+
 #### subprojects
 
-#### creating build configuration files with `BuildType`
 
 #### **complete example**
 
@@ -1129,14 +1439,27 @@ Octopus has these components:
 
 #### Environments
 
+
 Octopus Deploy allows you to create several environments, like Dev, Test, and QA, which allow you to specify target environments to deploy to for the same package. 
 
+- **Definition:** Environments are groupings of your deployment targets that represent different stages of your deployment pipeline.
+- **Purpose:** They help organize targets so you can manage releases as they move through your infrastructure.
+
+For practical use, apply the same environments across multiple projects rather than creating unique sets for every project.
+
+- **Naming:** Use common company terminology, such as _Development (dev)_, _Test (qa)_, _Staging (pre-prod)_, and _Production_.
+- **Abbreviations:** Only use industry-standard abbreviations (e.g., _QA_) to avoid team confusion.
+
+
+In _Octopus Deploy_, managing deployment targets is primarily achieved by organizing them into **Environments**. Environments act as containers for your targets, representing the different stages of your deployment pipeline
+
+On the environments page, you can see how many deployment targets are assigned to each environment—for example, you might see that your _Development_ environment contains three targets, while your _Test_ environment holds eleven.
 #### Spaces
 
 Octopus Deploy offers an analog to folders called **Spaces**, which allows you to organize your deployments into different categories/buckets.
 
 
-### Package to Octopus
+### Setting up connection to Octopus
 
 #### Adding tentacles
 
@@ -1227,7 +1550,27 @@ Here are the steps in depth
 
 ![](https://i.imgur.com/wXQHeLT.jpeg)
 
-## Octopus deployments
+
+### Octopus projects
+
+- **Projects:** Used to define deployment processes, runbooks, and variables to deploy software across defined environments.
+- **Project Groups:** Used to organize related projects, typically by application, to keep your instance tidy.
+
+#### Configuring dashboard to view project groups
+
+You can select which project groups and projects are visible in the dashboard by following these steps:
+
+1. Search for and then click on **configure dashboard**
+
+
+![](https://i.imgur.com/Rc8Sgr2.jpeg)
+
+2. Configure the dashboard 
+
+
+![](https://i.imgur.com/n46nGHc.jpeg)
+
+## Octopus Deployments
 
 ### Intro
 
