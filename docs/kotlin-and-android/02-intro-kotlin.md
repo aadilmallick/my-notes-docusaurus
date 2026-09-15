@@ -1826,7 +1826,12 @@ map.forEach { (key, value) ->
 
 ### Basics
 
-Classes in kotlin have `public`, `private`, and `protected` identifiers, as well as the `this` keyword.
+
+**Class properties**
+
+
+
+Classes in kotlin have `public`, `private`, and `protected` identifiers for methods and properties, as well as the `this` keyword.
 
 ```kotlin
 class Person {
@@ -1839,18 +1844,6 @@ class Person {
 }
 ```
 
-**Class properties**
-
-To create properties in a class, just declare variables within the class header.
-
-```kotlin
-class MyClass {
-  var var1 = ""
-  var var2 = ""
-}
-```
-
-You can then access those properties on an instance via dot-property syntax.
 
 
 **Adding methods**
@@ -1879,11 +1872,9 @@ Much like Python, you do not use the `new` keyword. Instead you just call the cl
 var myObjInstance = MyClass()
 ```
 
-#### Constructors + properties
+#### Basic Constructors + properties
 
-The basic form of a class constructor is like this.
-
-Whatever arguments you pass in, if you declare them with `var` or `val`, they will automatically become class properties.
+The most basic way to declare a constructor of a class is like a function signature:
 
 ```kotlin
 class MyClass(arguments) {
@@ -1891,8 +1882,68 @@ class MyClass(arguments) {
 }
 ```
 
+**Level 1**
 
-In Kotlin, the constructor is in the class header, and you have two ways of setting properties on a class:
+The most basic class representation has a single constructor in the class header, and then you set class properties inside the class, outside any block, like :
+
+```kt
+class Person(age: Int) {
+    var age = age
+}
+```
+
+1. Declare the constructor in the class header, and the necessary args that you want to accept in the constructor
+
+```kt
+class Person(age: Int) {
+
+}
+```
+
+
+2. Inside the class definition, set the class properties you want using the values from the constructor or not, which populates values for the properties on any object instances created from this class
+
+```kts
+class Person(age: Int) {
+    var age = age
+}
+```
+
+
+To create properties in a class, just declare variables within the class header.
+
+```kotlin
+class MyClass {
+  var var1 = ""
+  var var2 = ""
+}
+```
+
+- You can also add explicit access modifiers to class properties and methods, like `public`, `private`, `protected`, etc.
+- You can then access those properties on an instance via dot-property syntax.
+
+**Level 2**
+
+Whatever arguments you pass in, if you declare them with `var` or `val`, they will automatically become class properties.
+
+For example, we can reduce a lot of code for free:
+
+```kt
+// ❌ old, boring way
+class Person(firstname: String, lastname: String) {
+    // accept constructor arguments, use them to set class properties.
+    private var firstname: String = firstname
+    private var lastname: String = lastname
+    private var age: Int = 0
+}
+
+// ✔️ LEVEL 2: set class properties implicitly in constructor
+class Person(private var firstname: String, private var lastname: String) {
+    private var age: Int = 0
+}
+```
+
+So in summary, the constructor is in the class header, and you have two ways of setting properties on a class:
 
 - **Method 1 (classic - constructor populating property values)**: You can accept arguments, and then create class properties and set them equal to the arguments passed in.
 
@@ -1913,32 +1964,14 @@ class MyClass(private var var1: Type1, private var var2: Type2, ...) {
 }
 ```
 
-
-
-**Level 1: basic constructor**
+#### Methods
 
 ```kt
-// LEVEL 1: accepting arguments, setting them in class properties
-
-class Person(firstname: String, lastname: String) {
-    // accept constructor arguments, use them to set class properties.
-    private var firstname: String = firstname
-    private var lastname: String = lastname
-    private var age: Int = 0
+class Person(public var age: Int) {
+    fun printName() = println("Name: ${this.age}")
 }
 ```
 
-**level 2: set access modifiers and class properties in constructor**
-
-This is pretty much the same way you set it in TypeScript
-
-```kt
-// LEVEL 2: set class properties implicitly in constructor
-
-class Person(private var firstname: String, private var lastname: String) {
-    private var age: Int = 0
-}
-```
 
 #### Secondary constructors
 
@@ -1990,7 +2023,7 @@ The `init` block is used to run code after the constructor runs.
 class Request(val url: String) {
     private var timeout = 10;
     init {
-				// runs after Request() is executed
+		// runs after Request() is executed
         print("fetching url $url")
     }
 }
@@ -2006,10 +2039,89 @@ class User(val id: Int, val name: String) {
 }
 ```
 
-- When you create `User(1, "Alice")`, the `init` block executes automatically after the object is instantiated.
+Here's the lifecycle order explained:
+
+1. **Constructor runs**: When you invoke `User(1, "Alice")`, that triggers the constructor to run, which then populates any declared class fields. 
+2. `init` runs: the `init` block executes automatically after the object is instantiated, in the context of the object instance.
 
 > [!NOTE]
 > You can also use init blocks alongside secondary constructors—the init block always runs after any constructor completes.
+
+##### validation
+
+You can perform validation of the created object instance inside the `init` block using the `check` function which takes in a callback to run the validation:
+
+
+```kt
+class Person(public var age: Int) {
+    init {
+        check (age > 0) {
+            "A person can only have a positive age"
+        }
+    }
+}
+```
+
+The `check(bool: Boolean, cb: () -> String)` function will throw an `IllegalStateException` with the content of what's returned from the callback if the boolean condition is `false`.
+### Inheritance
+
+> [!NOTE]
+> Kotlin classes are `final` by default; to allow inheritance, use the `open` keyword on classes and methods.
+
+By default, you cannot inherit from other classes. 
+
+1. To make a class inheritable, you have to put the `open class` keyword modifier on it. 
+2. You can then inherit from that class by supplying default arguments for the superclass constructor. 
+
+Here's the basic syntax
+
+```kotlin
+open class ParentClass(arguments) {}
+
+class ChildClass(arguments): ParentClass(arguments) {}
+```
+
+Let's walk through an example:
+
+1. To establish a class as a parent class children class should inherit from, use the `open` keyword.
+
+```kotlin
+open class MyParentClass(public val name: String, public var age: Int) {
+
+}
+```
+
+2. Then to inherit from a parent class, invoke the superclass constructor, passing the required constructor arguments for the primary or secondary constructor you want to invoke.
+
+```kotlin
+class MyChildClass(): MyParentClass() {
+  fun myFunction() {
+    println(x) // x is now inherited from the superclass
+  }
+}
+
+```
+
+#### Overriding methods
+
+To override methods, you must follow these steps:
+
+1. In the parent class, declare the method as `open`
+2. In the child class, declare that you want to override the parent class method with the `override func` keyword
+
+```kotlin
+open class ParentClass {
+    open fun greet() {
+        print("Hello")
+    }
+}
+
+class ChildClass: ParentClass() {
+    override fun greet() {
+        print("Hi")
+    }
+}
+```
 
 ### Interfaces
 
@@ -2126,61 +2238,8 @@ class Person: Actions {
     }
 }
 ```
-### Inheritance
 
-By default, you cannot inherit from other classes. To make a class inheritable, you have to put the `open class` keyword modifier on it.
-
-You can then inherit from that class by doing a type annotation
-
-```kotlin
-open class ParentClass {}
-
-class ChildClass: ParentClass() {}
-```
-
-**Basic example: level 1**
-
-To establish a class as a parent class children class should inherit from, use the `open` keyword.
-
-```kotlin
-open class MyParentClass {
-  val x = 5
-}
-```
-
-Then to inherit from a parent class, just type annotate the child class with the parent class's type.
-
-```kotlin
-class MyChildClass: MyParentClass() {
-  fun myFunction() {
-    println(x) // x is now inherited from the superclass
-  }
-}
-
-```
-
-#### Overriding methods
-
-To override methods, you must follow these steps:
-
-1. In the parent class, declare the method as `open`
-2. In the child class, declare that you want to override the parent class method with the `override func` keyword
-
-```kotlin
-open class ParentClass {
-    open fun greet() {
-        print("Hello")
-    }
-}
-
-class ChildClass: ParentClass() {
-    override fun greet() {
-        print("Hi")
-    }
-}
-```
-
-### Object
+### Objects and their use cases
 
 #### Objects in Kotlin
 
