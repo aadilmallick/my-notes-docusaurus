@@ -2162,6 +2162,16 @@ Here is all the inheritance rules you need to know about interfaces:
 	- Interfaces have abstract properties to be overriden and default properties
 	- Interfaces can attach getters and setters to those properties
 
+On top of inheritance, interfaces can act as abstract class by providing default method implementations while also having the contract for abstract methods and properties
+
+Here are all the rules you need to know about how interfaces create reusable type contracts over methods and properties:
+
+- **interfaces provide a contract for abstract methods and properties**: interfaces describe the shape of a class with the methods and properties it is supposed to implement and override.
+- **interfaces do not have property initializers**: If adding a property to an interface, you CANNOT provide a default value for the property. You can only override them
+- **interfaces can provide default method implementations**: Interfaces can act like an abstract class by providing default method implementations
+
+#### Implementing an interface
+
 To implement an interface, simply type annotate the class as the interface.
 
 ```kt
@@ -2193,7 +2203,7 @@ class MyClass : Interface1, Interface2 {
 }
 ```
 
-#### Overriding methods
+#### Overriding methods and default methods
 
 We specify we want to override a method on the class inheriting from the interface with the `override fun` keyword
 
@@ -2213,20 +2223,6 @@ class Human: Listener {
     }
 }
 ```
-
-
-#### Checking if something is an interface
-
-Because interfaces are basically the equivalent of an abstract class, you can use it with the `is` keyword to see if a variable is of a specific interface type:
-
-```kt
-interface MyInterface {}
-
-if (someVariable is MyInterface) {
-
-}
-```
-#### **DEFAULT METHODS**
 
 One thing you can do in kotlin is that interfaces are more like abstract classes now. You can have default method implementations that classes don't need to override.
 
@@ -2285,13 +2281,51 @@ class Person: Actions {
 }
 ```
 
+#### Overriding properties
+
+You can declare properties on an interface, but you can't give them default implementations/values. You have to use classes for that
+
+On a class that implements an interface, you can override properties and use getters and setters with them
+
+```kt
+interface Human {
+    val name: String
+    var age: Int
+    var introduction: String
+}
+
+class Student(_name: String, _age: Int) : Human {
+    override val name: String = _name
+    override var age: Int = _age
+    override var introduction: String
+	    get() = "Hi, I am $name and I am $age years old"
+	    set(value) {
+	        println("$value is $value")
+	    }
+}
+```
+#### Checking if something is an interface
+
+Because interfaces are basically the equivalent of an abstract class, you can use it with the `is` keyword to see if a variable is of a specific interface type:
+
+```kt
+interface MyInterface {}
+
+if (someVariable is MyInterface) {
+
+}
+```
+
 ### Objects and their use cases
 
-#### Objects in Kotlin
+In Kotlin, object declarations provide a thread-safe way to create singletons.
+
+Objects have **lazy initialization**, meaning that they will only be instantiated and loaded into memory the first time they are accessed in code.
 
 Objects in kotlin are similar to objects in javascript, where they are just containers for properties and methods.
 
-By convention, we titlecase the object identifier.
+> [!NOTE]
+> By convention, we titlecase the object identifier because objects are syntactic sugar over singleton classes.
 
 ```kotlin
 object Rocky {
@@ -2304,18 +2338,74 @@ object Rocky {
 
 Objects can be used globally in kotlin, where they can be used to access global constants and methods easily.
 
+#### Objects, interfaces, and anonymous objects
+
+Objects can actually implement interfaces.
+
+We can also create anonymous objects (non-global, scoped to a function) like so:
+
+```kt
+val cat = object {
+	val name = "Rocky"
+	val paws = 4
+	fun meow() {
+        println("Meow!")
+    }
+}
+```
+
+These anonymous objects can implement interfaces:
+
+```kt
+interface Cat {
+    val name: String
+    val paws: Int
+    fun meow() {
+        println("$name is $paws")
+    }
+}
+
+fun main(vararg args: String)  {
+
+    val rocky : Cat = object : Cat {
+        override val name = "Rocky"
+        override val paws = 4
+        override fun meow() {
+            super.meow() // call interface's implemention
+            println("Meow! I piss everywhere!")
+        }
+    }
+    
+}
+```
 #### Companion objects
 
 Kotlin doesn't have static members like Java does. Instead, each class has a **companion object**—a single object instance attached to the class itself—where you put functions, constants, and variables that belong to the class rather than to individual instances.
 
-Everything in the companion object is accessible via the class name (e.g., `User.collection`) and is shared across all instances of that class. The companion object is created automatically when the class loads, even if you never create an instance.
+Everything in the companion object is accessible via the class name (e.g., `User`) or on the `Companion` static property of a class  (e.g., `User.Companion`), which returns a direct reference to that companion object.
+
+
+Here are the general rules of how a companion object works:
+
+- The companion object is created automatically when the class loads, even if you never create an instance.
+- A companion object is Kotlin’s version of `static`. Any properties or methods put inside a `companion object` will belong to the class itself rather than the object instance.
+- The companion object is accessible and shared across all instances of that class. 
+
+Here are the rules of companion objects when creating them:
+
+- **complete class property and method access**: when you create an instance of a class the companion object is attached to, that companion object has full access to even the private properties and methods of that instance.
 
 ```kt
 class Person(private var firstname: String, private var lastname: String)  {
+	private var greeting = "my name is $firstname $lastname"
+	
     companion object {
 	    val people = mutableListOf(Person("Josh", "Allen"))
         fun createPerson(fname: String, lname: String) : Person {
-            return Person(fname, lname)
+            val person = Person(fname, lname)
+            
+            // companion object feature: access private properties of instance
+            person.greeting = "Hello, I am ${person.firstName} ${person.lastName}"
         }
     }
 }
@@ -2325,7 +2415,7 @@ Person.createPerson("John", "Doe")
 ```
 
 
-A companion object is Kotlin’s version of `static`. Any properties or methods put inside a `companion object` will belong to the class itself rather than the object instance.
+
 
 ```kotlin
 class Request(val url: String) {
@@ -2334,8 +2424,10 @@ class Request(val url: String) {
         print("fetching url $url")
     }
     companion object {
-        fun create(url: String): Request {
-            return Request(url)
+        fun createWithTimeout(url: String, timeout: Int): Request {
+            val request = Request(url)
+            request.timeout = timeout
+            return request
         }
         val methods = listOf("GET", "POST", "PUT", "DELETE")
     }
@@ -2344,7 +2436,7 @@ class Request(val url: String) {
 
 #### Extension functions
 
-Kotlin has a similar idea to adding methods to an object prototype. They are called **extension functions**, where `this` refers to the instance of the class we are extending the method from.
+Kotlin has a similar idea to adding methods to a class and by extension their object instances' prototypes. They are called **extension functions**, where `this` refers to the instance of the class we are extending the method from.
 
 ```kotlin
 /*: * Extension functions
@@ -2492,24 +2584,57 @@ println(p1 === p2)            // false (different objects in memory)
 
 **Three key generated methods:**
 
+All data class instances have these three methods already implemented and working:
+
 1. **`toString()`** — shows all properties and values instead of the useless default class name + hash code.
     
-2. **`equals()`** — compares two instances by their property values. Two `Product` objects with the same `id`, `name`, and `price` are equal, even if they're separate instances.
+2. **`equals()`** — compares two instances by their property values and is a method overload for the `==` operator.
+	- Two `Product` objects with the same `id`, `name`, and `price` are equal, even if they're separate instances.
     
-3. **`copy()`** — clones the object with selective property changes:
+3. **`copy()`** — clones the object with selective property changes that you can pass in via kwargs
 
 ```kt
 val p1 = Product(1, "Laptop", 999.99)
 val p2 = p1.copy(price = 799.99)  // Same id and name, new price
 println(p2)                        // Product(id=1, name=Laptop, price=799.99)
+
+println(p1 == p2)
+```
+
+
+#### Destructuring data classes
+
+You can destructure properties and methods from a data class just like javascript but using parentheses instead:
+
+```kt
+data class Cat(val name: String) {
+    val paws = 4
+
+    fun meow() {
+        println("$name is $paws")
+    }
+}
+
+fun main(vararg args: String)  {
+    val rocky = Cat("Rocky")
+    val (name) = rocky
+}
 ```
 
 ### Sealed classes
 
-**Sealed classes** are classes you can't instantiate. They're typically used as containers for global utilities or constants, especially useful in Android where you can't have truly global functions.
+**Sealed classes** are classes you can't instantiate.  A sealed class in Kotlin is a special kind of class that lets you define a restricted hierarchy of subclasses. 
+
+- Each subclass in a sealed class can have its own unique properties, making it very flexible for modeling complex states, like UI states or operation results. 
+- The compiler knows all the possible subclasses, which helps ensure you handle every case when using them in your code. 
 
 > [!NOTE]
-> Typically a sealed class is used with companion objects because you can't instantiate them. They're simply data containers. 
+> This makes sealed classes great for managing different states in applications with clear, type-safe code.
+
+
+> [!NOTE]
+> They're typically used as containers for global utilities or constants, especially useful in Android where you can't have truly global functions.
+
 
 ```kt
 sealed class Result {
@@ -2520,20 +2645,89 @@ sealed class Result {
     
     data class Success(val data: String) : Result()
     data class Error(val message: String) : Result()
+    
+	object Loading: Result()
+}
+```
+
+All objects and nested classes within a sealed class must inherit from the sealed class. Here's what's going on:
+
+1. All nested classes/objects within a sealed class are stored as "states" on the sealed class.
+
+```kt
+sealed class UiState {
+    object Loading: UiState()
+
+    data class Loaded(val title: String): UiState()
+
+    class Error(val error: Throwable): UiState()
+
+    // sealed class gives advantage of forcing compiler to make this exhaustive
+    companion object Presentation {
+        fun render(state: UiState) = when (state) {
+            is Loading -> println("loading")
+            is Loaded -> println("loaded ${state.title}")
+            is Error -> println("error ${state.error}")
+        }
+    }
+}
+
+fun main(vararg args: String)  {
+
+    var state: UiState = UiState.Loading
+    // 1. render loading, do work with state
+    UiState.Presentation.render(state)
+
+    state = UiState.Loaded(title = "Loaded, but oops, error!")
+    // 2. render loaded state, do work with state
+    UiState.Presentation.render(state)
+
+    state = UiState.Error(RuntimeException("Oops"))
+    // 3. render error state, do work with state
+    UiState.Presentation.render(state)
 }
 ```
 
 
-The sealed class itself can't be instantiated, but its subclasses can—and the companion object provides a convenient way to construct them.
 ### Enum classes
 
-**Enum classes** define a fixed set of named values. Each value can have associated data—for example, `Color(value: Int)` lets each color constant hold an integer.
+**Enum classes** are syntactic sugar over an `Object` that is meant to represent an enum by defining a fixed set of named values, where the members of an enum class are `EnumEntry` instances, and have the following properties and methods:
+
+- `enumEntry.name`: returns the name of the enum property, like `North`.
+- `enumEntry.ordinal`: returns the integer value of the enum property, starting from `0` then goes in ascending order.
+
+
+```kt
+enum class Direction {
+    North, East, South, West
+}
+
+// 1. all of these do the same thing, evaluate to string
+println(Direction.North) // prints out "North"
+println(Direction.North.name) // prints out "North"
+println(Direction.North.toString()) // prints out "North"
+println(Direction.valueOf(Direction.North.toString())) // prints out "North"
+```
+
+
+On the enum class itself (since it's just an object), you have these properties:
+
+- `EnumClass.entries`: returns a `List<EnumEntry>` collection back, so you can do all sorts of cool stuff with it
+- `EnumClass.values`: returns a `List<EnumEntry>` collection back, so you can do all sorts of cool stuff with it
+- `EnumClass.valueOf(enumEntryName: String)`: returns the `EnumEntry` instance of the corresponding enum entry by the string name
+
+
+**Level 2**
+
+Each value can have associated data—for example, `Color(value: Int)` lets each color constant hold an integer.
 
 ```kt
 enum class Color(val rgb: Int) {
 	RED(0xFF0000)
 }
 ```
+
+**Level 3**
 
 You can also add companion objects to enum classes, since they're just a class:
 
