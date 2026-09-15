@@ -157,6 +157,12 @@ You can also add extra advanced trigger rules which include matching on the foll
 
 ![](https://i.imgur.com/YC9rGFL.jpeg)
 
+You can also exclude certain filepaths from being tracked, and therefore don't trigger builds
+
+
+
+
+![](https://i.imgur.com/sfKuCxU.jpeg)
 
 ##### Scheduled triggers
 
@@ -305,7 +311,7 @@ Here's what the below auto-merge thing example does:
 
 ![](https://i.imgur.com/T6jgrsh.jpeg)
 
-### Build chains
+#### Build chains
 
 You can consider build configurations within a project as individual pipelines/jobs, and then if you want to do what github actions does in parallelizing and adding jobs as dependencies of each other, then you can look to **build chains**, where you can create a directed dependency graph of builds that depend upon other builds.
 
@@ -313,6 +319,24 @@ In teamcity, you can specify two behaviors when it comes to build chains:
 
 - **sequential execution**: specify that a build needs another build to finish, so it executes sequentially after.
 - **parallel execution**: specify that a build can run in parallel with another build.
+
+#### Agent requirements
+
+On each build configuration, you can set the **agent requirements** for the build configuration, which restricts the build configuration to only be compatible with agents that pass the criteria you set:
+
+
+![](https://i.imgur.com/krsZqlJ.jpeg)
+
+### Subprojects 
+
+Subprojects help with organizing build configurations into individual subprojects but they also have granular control over permissions for who can run stuff in those subprojects. 
+
+SUbprojects appear like nested folders in a Teamcity server
+
+
+
+![](https://i.imgur.com/FnesBfy.jpeg)
+
 ### Teamcity + Gitlab SSH keys
 
 > [!NOTE]
@@ -1437,6 +1461,18 @@ Octopus has these components:
 > [!NOTE]
 > You must put your tentacles on your target servers. If there is a server you want to deploy something to, then it must have a tentacle on it. 
 
+### Hierarchy
+
+Here is what lives at the same level:
+
+- **environments**: stuff like `dev`, `qa`, etc., which you can use to tag deployment targets with.
+- **spaces**: organize projects
+- **project groups**: organize projects
+- **projects**: contain the configuration for deployments
+
+
+
+
 #### Environments
 
 
@@ -1454,39 +1490,114 @@ For practical use, apply the same environments across multiple projects rather t
 In _Octopus Deploy_, managing deployment targets is primarily achieved by organizing them into **Environments**. Environments act as containers for your targets, representing the different stages of your deployment pipeline
 
 On the environments page, you can see how many deployment targets are assigned to each environment—for example, you might see that your _Development_ environment contains three targets, while your _Test_ environment holds eleven.
+
+
+#### Deployment targets and roles
+
+Prereqs: [[#Creating deployments]].
+
+
+- **Deployment Targets:** The specific machines, services, or environments (e.g., Windows/Linux servers, Azure, AWS, Kubernetes) where applications are deployed.
+- **Environments:** The stages in a software lifecycle (e.g., Development, Test, Production) where targets are assigned.
+- **Roles:** Descriptive tags used to identify the function of a deployment target (e.g., "Web Server"). Roles allow specific steps in a deployment process to execute on relevant targets.
+
+
+
+When registering a deployment target there are two things that must be specified:
+
+1. **environments**: the environments to tag the deployment target with, meaning that only when deployment processes run on those environments will the deployment target be deployed to.
+2. **target roles**: Descriptive tags used to identify the function of a deployment target
+
+![](https://i.imgur.com/bayUkCz.jpeg)
+
+
+During a release, Octopus checks which deployment targets match the assigned environments and roles defined in the deployment step, ensuring the application is deployed to the correct deployment target.
+
+> [!NOTE]
+> Basically you can use the combination of both roles and environments to get really granular with how you select specific deployment targets a step in a deployment process applies to.
+
+**roles in depth**
+
+Roles are assigned to deployment targets and dictate how _Octopus Deploy_ selects machines during a deployment or runbook run.
+
+- **Generic Roles:** Describe server types (e.g., IIS Server 2019).
+- **Specific Roles:** Describe application-specific functions (e.g., Hello World API).
+
+A deployment target can have multiple roles:
+
+
+![](https://i.imgur.com/x4BXqrY.jpeg)
+
+
+If a step is assigned multiple roles, _Octopus Deploy_ uses logic to select targets.
+
+- **OR Logic:** Multiple roles on a single step are treated as an OR statement. If a server has _either_ role, it is selected.
+- **Target Assignment:** Assigning both UI and API roles to a server allows it to be picked up by multiple different project steps.
+
+**Best practices for roles**
+
+- **Specific Roles:** Use for deployments and application-specific runbooks to cleanly model environments.
+- **Generic Roles:** Use for maintenance runbooks (e.g., OS updates, software installation), by targeting by software/VM type, like `nginx` or `windows-server-2019`
+- **Dual Assignment:** It is recommended to assign both generic and application-specific roles to a single target to maximize utility.
 #### Spaces
 
 Octopus Deploy offers an analog to folders called **Spaces**, which allows you to organize your deployments into different categories/buckets.
 
+#### Projects
 
-### Setting up connection to Octopus
+- **Projects:** Used to define deployment processes, runbooks, and variables to deploy software across defined environments.
+- **Project Groups:** Used to organize related projects, typically by application, to keep your instance tidy.
+
+Here is the general process that showcases the hierarchy of what you're mainly going to do in Octopus:
+
+1. Create a project group
+2. Within that project group, create a project
+3. Within that project, create a new deployment
+
+### Tentacles and deployment targets
 
 #### Adding tentacles
 
-Here are the steps to add a tentacle on a Windows Server VM you own:
+Here are the steps to add a tentacle on a Windows Server VM you own to make that VM a deployment target:
 
-1. Choose the deployment target as Windows and choose a listening tentacle type:
+1. Go to the **deployment targets** tab. Click on **Add Deployment Target**
+
+
+
+![](https://i.imgur.com/zXbScfC.jpeg)
+
+2. Choose the deployment target as Windows and choose a listening tentacle type:
 
 
 ![](https://i.imgur.com/aKimkHG.jpeg)
-2. Download the powershell script to install the tentacle, SSH into your windows server, and then run the powershell script
+3. Download the powershell script to install the tentacle, remember the **thumbprint**, then SSH into your windows server, and then run the powershell script
 
 
 ![](https://i.imgur.com/IictvLr.jpeg)
 
-3. Specify environment and role
-	- **environment**: the environment to deploy on, like Dev or QA
-	- **target role**: labels that you can then programmatically reference to target certain tentacles only for deployment.
+4. Specify environment and role
+	- **environment**: the environment(s) to deploy on, like Dev or QA. This tells Octopus that we only want to deploy to this deployment target when a deployment process runs on that environment.
+	- **target role**: labels that you can then programmatically reference to target certain tentacles only for deployment. They describe the functionality of the target and are used by the deployment process
 
 
 ![](https://i.imgur.com/zVSIZDq.jpeg)
-4. Upgrade calamari as a good practice. The first time you deploy a tentacle, you should upgrade calamari
+5. Upgrade calamari as a good practice. The first time you deploy a tentacle, you should upgrade calamari
 
 
 ![](https://i.imgur.com/VoAf75j.jpeg)
 
+6. Now in your deployment process, target your deployment target via the target role
 
-#### Deploying to tentacles
+
+![](https://i.imgur.com/mRTry5R.jpeg)
+
+#### Best practices of creating deployment targets
+
+- **Naming Conventions:** Use descriptive names for roles based on application names and server functions (e.g., _Hello-World-Web-Server_).
+- **Tentacle Selection:** Prioritize **Listening Tentacles** over polling unless network restrictions necessitate otherwise.
+- **Environment Flexibility:** A single deployment target can be mapped to one or multiple environments (e.g., a server shared between Development and Test).
+
+#### Deploying packages directly to tentacles
 
 Deployment in Octopus Deploy requires special rules for **packages** (same thing as build artifacts):
 
@@ -1508,7 +1619,7 @@ A common approach where tags come in handy is when we have different branches an
 
 ![](https://i.imgur.com/4MUHwO3.jpeg)
 
-#### Connecting TeamCity to Octopus
+### Connecting TeamCity to Octopus
 
 Here's a high level overview of how it works:
 
@@ -1551,10 +1662,25 @@ Here are the steps in depth
 ![](https://i.imgur.com/wXQHeLT.jpeg)
 
 
-### Octopus projects
+### Octopus projects overview
 
-- **Projects:** Used to define deployment processes, runbooks, and variables to deploy software across defined environments.
-- **Project Groups:** Used to organize related projects, typically by application, to keep your instance tidy.
+Here's an overarching mental model:
+
+```
+Project
+│
+├── Deployment process
+│   └── Defines WHAT Octopus does
+│
+├── Channel
+│   └── Defines WHICH release lane is used
+│
+├── Lifecycle
+│   └── Defines WHERE and in WHAT ORDER the release goes
+│
+└── Release
+    └── A deployable snapshot of packages, process, and variables
+```
 
 #### Configuring dashboard to view project groups
 
@@ -1569,6 +1695,22 @@ You can select which project groups and projects are visible in the dashboard by
 
 
 ![](https://i.imgur.com/n46nGHc.jpeg)
+### Users, roles, permissions, and teams
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/f_JPU7sAE8M?si=XRCM684nMbxq9a3O" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+- **permissions**: A single policy for an action
+	- Example: creating a project, creating a release, running a deployment process
+- **roles**: a grouping of one or more permissions
+	- Example: project deployer role would be able to create projects, releases, and deployment processes.
+- **teams**: Each team contains one or more roles, and is thus a large grouping of permissions
+- **users**: users are added to teams and then assume the permissions of the roles within the team
+
+
+![](https://i.imgur.com/lH3VdBn.jpeg)
+
 
 ## Octopus Deployments
 
@@ -1606,7 +1748,46 @@ A useful shorthand is:
 - **Channel:** Which release strategy or lane does the release follow?
 - **Release:** Which version is being deployed?
 ### Creating deployments
-### Octopus and creating an IIS pipeline
+
+A deployment requires these components:
+
+- **Deployment Process:** A set of steps defined within an _Octopus Deploy_ project that the server runs to deploy software.
+
+#### Creating a deployment process
+
+1. Add a step to the deployment process
+
+
+![](https://i.imgur.com/ZiVtKbN.jpeg)
+
+2. Configure the step to run on specific deployment targets. 
+
+
+![](https://i.imgur.com/fg6SOW3.jpeg)
+
+#### Email notifications
+
+To add email notifications into the deployment process, just use the **Send an email** step:
+
+
+![](https://i.imgur.com/K2r3GkY.jpeg)
+
+Here are some best practices when using the email-sending action:
+
+- **use variables for email addresses**: it's best to use a variable for the destination email address since you may want to send to different email addresses depending on the current environment the release or deployment process is executing for. 
+- **use the environment name for dynamic emails**: Use the system variable `Octopus.Environment.Name` for dynamic emails for different environments
+
+
+#### Adding a manual intervention step
+
+Adding a manual intervention step into the deployment process is a great way for us to require a human in the loop and notify people when pushing or creating an important deployment process execution in something important like prod. 
+
+That's when something like a manual intervention step would be necessary and then an Octopus administrator can step in and approve the deployment process execution to go ahead. 
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/ePQjCClGfZQ?si=nmjwYimVW_faNzNF" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+### Deployment examples
+#### Octopus and creating an IIS pipeline
 
 When creating an octopus project, you can configure the pipeline with prebuilt step recipes, and Octopus offers a prebuilt step for deploying to IIS app pools.
 
@@ -1627,27 +1808,77 @@ When creating an octopus project, you can configure the pipeline with prebuilt s
 
 ### Releases
 
-Releases are ways to version packages and have them get ready to be deployed to individual stages.
+**Releases** are a snapshot of the deployment process and the associated artifacts/assets as they existed when the release was created.
 
-1. Create a release from a package
+From a single versioned release, you can deploy to different environments, which then deploys to the actual deployment targets/tentacles.
+
+> [!NOTE]
+> The primary philosophy of Octopus Deploy is that how you deploy to dev and test should be the same way you deploy to production. You can do this by creating a release abstraction and the release abstraction is the thing that actually handles the individual configuration and parameter injection to deploy to test, dev, and prod with a unified interface. 
+
+- You can have one release generator per project
+- You can create releases either from deployment processes or from packages.
+
+
+Here are the prereqs: 
+
+- **deployment process**: Can't release shit without a deployment process.
+
+Ok now here are the steps:
+
+1. Click on **Create Release** button
+
+
+![](https://i.imgur.com/rlRkdtP.jpeg)
+
+
+2. Specify version and release notes
+
+
+![](https://i.imgur.com/WJOVT1L.jpeg)
+
+3. Choose the **lifecycle** (see [[#Lifecycles]]) that you want this release to follow, and then deploy it to the first environment in the lifecycle
+
+
+![](https://i.imgur.com/TXix9UX.jpeg)
+
+4. Choose to deploy now or schedule later, then click the **Deploy** button to start the deployment
+
+
+
+![](https://i.imgur.com/JF0T3Ln.jpeg)
+
+5. Once it starts to get deployed, you can view the deployment pipeline status and progress via the **task list**, which gives complete observability over the individual deployment process steps.
+
+![](https://i.imgur.com/Rj7OPpx.jpeg)
+
+
+
+#### Creating a release from a package
+
+1. Create a release from a package, sele
 
 
 ![](https://i.imgur.com/EUKxfS5.jpeg)
 
 ### Variables
 
+Variables allow your applications to run in deployment pipelines and get deployed to different environments and infrastructure without having to manually hardcode parameters or config settings.
+
+- **Purpose:** To parameterize deployment processes and runbooks.
+- **Benefit:** Enables applications to function across various infrastructure stages without hardcoding or manually updating configuration settings.
+
 There are two types of variables in Octopus Deploy:
 
 - **system variables**: Variables managed by Octopus, available under the `Octopus` namespace, available system wide or specific ones that inject project-specific values.
 - **project variables**: user-created variables that you make available at the project level. You can further constrain the use of these variables by **scoping** them to certain environments, target roles, target servers/tentacles, and specific deployment steps.
-	- Scopes allow you to supply different variable values for each scope, namespaced under a single variable.
+	- **Scopes** allow you to supply different variable values for each scope, namespaced under a single variable.
 
-You can add variables for a project, which lets you use the variable anywhere inside the project.
+You can add variables for a project via the **project variables** tab, which lets you use the variable anywhere inside the project.
 
-Once you create variables, you can use them anywhere when configuring Octopus pipelines or releases via template string interpolation, with the `#{}` syntax.
+> [!IMPORTANT]
+> Once you create variables, you can use them anywhere when configuring Octopus pipelines or releases via template string interpolation, with the `#{}` syntax.
 
 1. Create a project variable
-
 
 ![](https://i.imgur.com/HZ0IaLN.jpeg)
 2. You can also scope the variable to restrict its use more and provide conditional, scoped values for the variable.
@@ -1660,7 +1891,7 @@ Once you create variables, you can use them anywhere when configuring Octopus pi
 ![](https://i.imgur.com/KCZk6EX.jpeg)
 
 
-3. Use the variable to make build steps in a pipeline more dynamic:
+3. Use the variable to make steps in a deployment process more dynamic:
 
 
 ![](https://i.imgur.com/js2N375.jpeg)
@@ -1692,6 +1923,28 @@ Here are the important namespaces:
 - `Octopus.Action.Package`: object with info about the current package that is trying to be deployed.
 - `Octopus.Deployment`: object with info about deployments
 
+
+#### Variable interpolation and filters
+
+You already know that  you can use template string interpolation with the `#{}` syntax to retrieve the values of variables and inject them into a string.
+
+But you can also invoke functions on those variables and transform them before they get interpolated, using **filters**:
+
+
+![](https://i.imgur.com/xvayXXW.jpeg)
+
+THen you can use them in this syntax:
+
+
+```
+#{variableName | filterFn }
+```
+
+![](https://i.imgur.com/slwGK1o.jpeg)
+
+
+
+
 ### Lifecycles
 
 A **lifecycle** defines the path that a release can take through deployment environments.
@@ -1710,12 +1963,66 @@ A lifecycle can control:
 - Whether deployment to an environment begins automatically
 - How many releases and deployment files are retained
 
-Octopus calls each stage in a lifecycle a **phase**. A phase can contain one environment or multiple environments. A lifecycle can require a successful deployment to an earlier phase before a later phase becomes available.
+Octopus calls each stage in a lifecycle a **phase**, where a phase can contain one environment or multiple environments. 
+
+- You can configure a lifecycle to require a successful deployment to an earlier phase before a later phase becomes available. 
+- In the case of multiple environments in a phase, a deployment process has to successfully complete for all of those environments in order to graduate to the next phase.
+
+> [!NOTE]
+> Think of a phase as a stage in your product life cycle that your application is deployed to.
 
 
-### Channel
+By default, Octopus creates a **default lifecycle** for each project which creates a phase for each environment you have and creates a sequential ordering of those phases.
 
-A **channel** is a release lane inside a project.
+
+![](https://i.imgur.com/WgSCEh9.jpeg)
+
+![](https://i.imgur.com/mTawn8p.jpeg)
+
+
+#### Creating lifecycles
+
+1. Go the the **lifecycles** tab, then click on **create lifecycle**, then name the lifecycle:
+
+
+![](https://i.imgur.com/16E409V.jpeg)
+
+
+2. Add a new phase, filling in this info:
+	- **phase name**: how the phase should be named
+	- **environments**: a list of environments that make up the phase
+	- **required to progress**: the strictness of how many environments need to have successful deployment process executions within the phase before you consider a phase successful and then you can pass on to the next one.
+
+![](https://i.imgur.com/lZd1eSt.jpeg)
+
+3. For each environment you add, you can specify if you want to automatically deploy to the deployment targets tagged by that environment or if you need to manually deploy to that environment via clicking a button.
+
+
+![](https://i.imgur.com/dc0oOyc.jpeg)
+
+
+4. Finish adding all the phases the same way, then save the lifecycle.
+5. Change the lifecycle of your deployment process to your newly created lifecycle
+
+
+
+![](https://i.imgur.com/7OyEIyx.jpeg)
+
+
+
+
+
+![](https://i.imgur.com/2MZUdWj.jpeg)
+
+
+
+
+### Channels
+
+> [!NOTE]
+> Channels are lifecycles for packages.
+
+A **channel** is a release lane inside a project, where we can enforce lifecycles for packages based on the **branch**, not just on the environment like lifecycles do.
 
 Channels let one Octopus project support different release strategies without duplicating the project. Every release belongs to a channel, and the channel can determine:
 
@@ -1725,6 +2032,152 @@ Channels let one Octopus project support different release strategies without du
 - Which variables apply
 - Which tenants apply
 
-Each channel can behave differently while still using the same underlying project.
+> [!NOTE]
+> **So what makes channels different to life cycles?** 
+> ***
+> With channels you can get even more granular than life cycles and specify additional rules that will do basically the same thing as life cycles (where you force a certain progression in phases), but you can do it based on the package name that you're trying to deploy. 
 
-Octopus supports channel-specific lifecycles, process steps, variables, tenants, and package-version rules. Every project has a default channel, and additional channels can be created when genuinely different release behavior is needed.
+
+> [!NOTE]
+> Each channel can behave differently while still using the same underlying project.
+
+Octopus supports channel-specific lifecycles, process steps, variables, tenants, and package-version rules. 
+
+Every project has a default channel, and additional channels can be created when genuinely different release behavior is needed.
+
+
+
+![](https://i.imgur.com/FxydXba.jpeg)
+
+
+#### Creating a new channel
+
+1. Create a new channel and choose its lifecycle
+
+
+![](https://i.imgur.com/7OV92vW.jpeg)
+
+2. Add package version rules for creating releases in the channel, apply the rule to steps in the deployment process, then create the channel.
+	- **package steps**: the deployment process steps where the package name is available
+	- **version range**: a certain range of versions to include for the channel
+	- **pre-release tag**: the tag on the package branch, where only the packages with this tag will get deployed to the channel.
+
+
+![](https://i.imgur.com/76Mtwwt.jpeg)
+
+
+##### Channel version ranges
+
+Here is the syntax for defining the version ranges for channels:
+
+![](https://i.imgur.com/cVURPhi.jpeg)
+#### Creating a release from channels
+
+Now that you created a channel, you can use channels in your releases to further scope which packages will actually get deployed and follow a lifecycle as well.
+
+> [!NOTE]
+> The advantages of creating a channel and then using that channel for releases are that now you have further scopes and filters on what packages are even available to get deployed at each stage, sort of like life cycles but for packages. 
+
+1. Select the channel to use for creating a release
+
+
+![](https://i.imgur.com/0XDP3LP.jpeg)
+
+
+### Tenants
+
+
+Tenants are an extra layer over environments where a single consumer or developer can get a parameterized individualized version of an environment deployment. 
+
+
+![](https://i.imgur.com/ks90sDI.jpeg)
+
+Here are the rules of tenants:
+
+1. Each tenant must be associated with a project and at least one environment.
+2. You can provide variable templates for each tenant to parameterize them at runtime and inject each tenant with individual values
+
+Here's how to create a tenant:
+
+1. Go to the Tenants tab and click on the Add Tenant button. 
+
+
+
+![](https://i.imgur.com/mMJy2Vi.jpeg)
+
+2. coNNECT THe tenant to a project and environment
+
+
+![](https://i.imgur.com/8FPNLJo.jpeg)
+3. Go to **project templates** within a project, and then click on the "add template" button to add a variable for a tenant, then repeat this for as many variables as you need.
+
+![](https://i.imgur.com/lpl2A4I.jpeg)
+
+4. Specify the name and variable type for the variable you want to add
+
+
+![](https://i.imgur.com/BvuG0Eb.jpeg)
+
+5. Go to the **tenants** tab and then fill out the variable values for each individual tenant for whom you created a project variable template in a project the tenants are connected to.
+
+
+![](https://i.imgur.com/N3s1mFS.jpeg)
+
+6. Now you have to configure tenanted deployments for the deployment targets. Go to **Infrastructure** -> **Deployment targets** then click on the individual deployment target(s) that are deployment targets for the projects and environments you tenants are connected to.
+
+![](https://i.imgur.com/Rqy7JgS.jpeg)
+
+7. Change the tenanted deployments setting on the deployment target to include both tenanted and untenanted deployments:
+
+
+![](https://i.imgur.com/r5MI2eh.jpeg)
+8. Associate this deployment target with the specific tenants you want to deploy for, then hit save.
+
+
+![](https://i.imgur.com/BQh1OcL.jpeg)
+
+
+
+9. When creating a release, choose the tenants you want to deploy to.
+
+
+
+![](https://i.imgur.com/QKPYRF8.jpeg)
+
+
+
+
+## Octopus REST API
+
+### Creating an API key
+
+```embed
+title: "Create an API Key"
+image: "https://octopus.com/docs/img/devops.png"
+description: "How to create an API key to interact with Octopus without the need for a username and password."
+url: "https://octopus.com/docs/api/authentication/create-an-api-key"
+favicon: ""
+aspectRatio: "53.333333333333336"
+```
+ 
+ With an Octopus API key, you can connect Octopus with TeamCity directly and also use the Octopus Server REST API .
+
+### Service accounts
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/SMsZMpUwCZc?si=2RIQTPI1v_IvpXeG" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+
+
+Service accounts allows non-human entities (like build servers) to interact with the Octopus Deploy RESTful API securely while obeying the principle of least privilege.
+
+> [!NOTE]
+> It's sorta like Github apps
+
+- **Login Restrictions:** Service accounts cannot log in to the Octopus Deploy UI using a password.
+
+Here's the overview:
+
+1. Create a service account for a use case, then save the API key
+2. Add a service account to a team to give it permissions, accounting for the principle of least privilege
+3. Use the service account API key to access the REST API, granted with the permissions it gained from the team it was added to.
