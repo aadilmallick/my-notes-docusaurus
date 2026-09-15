@@ -1824,7 +1824,7 @@ map.forEach { (key, value) ->
 ```
 ## Classes
 
-### Basics
+### Constructors and class properties
 
 
 **Class properties**
@@ -1964,15 +1964,6 @@ class MyClass(private var var1: Type1, private var var2: Type2, ...) {
 }
 ```
 
-#### Methods
-
-```kt
-class Person(public var age: Int) {
-    fun printName() = println("Name: ${this.age}")
-}
-```
-
-
 #### Secondary constructors
 
 **secondary constructors** are constructor overloads you can provide to a class.
@@ -2063,6 +2054,35 @@ class Person(public var age: Int) {
 ```
 
 The `check(bool: Boolean, cb: () -> String)` function will throw an `IllegalStateException` with the content of what's returned from the callback if the boolean condition is `false`.
+
+### Methods, getters, and setters
+
+Methods, getters, and setters are all class methods, but here are the differences between them:
+
+- **methods**: bonafide methods you can invoke from an object instance
+- **getters and setters**: synctacic sugar over creating methods and hooking into the standard accessor and setters behind a class property. 
+	- Whatever you can do in a normal method, you can do in a getter and setter.
+
+
+
+#### Methods
+
+Methods inside a class are declared with the `fun` keyword and you can use normal function syntax with it, including lambda syntax.
+
+```kt
+class Person(public var age: Int) {
+    fun printName() = println("Name: ${this.age}")
+}
+```
+
+
+You also have access to some cool stuff with methods, (and by extension getters and setters) like built-in functions you can invoke within methods:
+
+- `TODO(message: String)`: Throws a `NotImplemented` error, useful for documentation or creating stubs
+
+#### Getters and setters
+
+
 ### Inheritance
 
 > [!NOTE]
@@ -2094,9 +2114,9 @@ open class MyParentClass(public val name: String, public var age: Int) {
 2. Then to inherit from a parent class, invoke the superclass constructor, passing the required constructor arguments for the primary or secondary constructor you want to invoke.
 
 ```kotlin
-class MyChildClass(): MyParentClass() {
+class MyChildClass(name: String, age: Int): MyParentClass(name, age) {
   fun myFunction() {
-    println(x) // x is now inherited from the superclass
+    println(this.name) // name is now inherited from the superclass
   }
 }
 
@@ -2108,6 +2128,7 @@ To override methods, you must follow these steps:
 
 1. In the parent class, declare the method as `open`
 2. In the child class, declare that you want to override the parent class method with the `override func` keyword
+3. In the overriden function, you gain access to the `super` keyword to refer to the parent class.
 
 ```kotlin
 open class ParentClass {
@@ -2118,6 +2139,7 @@ open class ParentClass {
 
 class ChildClass: ParentClass() {
     override fun greet() {
+	    super.greet()
         print("Hi")
     }
 }
@@ -2128,17 +2150,31 @@ class ChildClass: ParentClass() {
 
 Interfaces are a way to enforce classes to implement certain methods and adhere to their methods signatures.
 
+> [!NOTE]
+> It's a way to create reusable type contracts, and you can treat interfaces as both a type and as an abstract class. 
+
+Here is all the inheritance rules you need to know about interfaces:
+
+- **multiple implementation**: classes can implement/inherit from one interface, or from multiple interfaces.
+- **interfaces can extend other interfaces**: You have ultimate reusability by allowing interfaces to extend from other interfaces.
+- **interfaces can do whatever classes do (except have constructors)**: Interfaces are abstract classes without constructors. Remember them that way.
+	- Interfaces have abstract methods to be overriden and default methods
+	- Interfaces have abstract properties to be overriden and default properties
+	- Interfaces can attach getters and setters to those properties
+
 To implement an interface, simply type annotate the class as the interface.
 
 ```kt
 interface Actions {
-    fun buttfuck()
+	val name: String // abstract property to implement
+    fun buttfuck(): Unit
     fun isOlder(age: Int) : Boolean
 }
 
 // type annotate as Actions interface
 class Person(private var firstname: String, private var lastname: String) : Actions {
     private var age: Int = 0
+    override val name: String = "${this.firstname} ${this.lastname}"
     override fun epsteinfilesreveal() {
         TODO("Not yet implemented")
     }
@@ -2146,6 +2182,14 @@ class Person(private var firstname: String, private var lastname: String) : Acti
     override fun isOlder(age: Int) : Boolean {
        return this.age > age
     }
+}
+```
+
+To implement from multiple interfaces, just do the type annotation, and use a commma to separate out the list of interfaces.
+
+```kotlin
+class MyClass : Interface1, Interface2 {
+  // code here
 }
 ```
 
@@ -2170,16 +2214,18 @@ class Human: Listener {
 }
 ```
 
-#### **Inherit from multiple interfaces**
 
-Just do the type annotation, and use a commma to separate out the list of interfaces.
+#### Checking if something is an interface
 
-```kotlin
-class MyClass : Interface1, Interface2 {
-  // code here
+Because interfaces are basically the equivalent of an abstract class, you can use it with the `is` keyword to see if a variable is of a specific interface type:
+
+```kt
+interface MyInterface {}
+
+if (someVariable is MyInterface) {
+
 }
 ```
-
 #### **DEFAULT METHODS**
 
 One thing you can do in kotlin is that interfaces are more like abstract classes now. You can have default method implementations that classes don't need to override.
