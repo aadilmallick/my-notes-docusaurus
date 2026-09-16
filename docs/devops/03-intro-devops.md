@@ -1950,6 +1950,8 @@ Based on filtering with labels, you can view them in boards and save those views
 
 #### SSH 
 
+**Linux**
+
 Here are the steps to set up SSH keys with Gitlab:
 
 1. Create an SSH key pair on your local machine
@@ -2000,4 +2002,32 @@ Host gitlab.compusearch.com
     User git
     IdentityFile ~/.ssh/gitlab_devsecops
 
+```
+
+**Windows**
+
+On windows, the keys are saved in `%USERPROFILE%\.ssh` — the private key has no extension, the public key ends with `.pub`.
+
+On windows, the only difference is the filepath structure, but the `~/.ssh/config` path and file still works the same and the `ssh` command still works the same:
+
+
+1. Generate the SSH key pair. Give the public key to GitLab as usual. 
+2. In the SSH config point the identity file for your specific self-hosted GitLab host to your private key from the key pair you created. 
+
+
+```bash
+Host gitlab.compusearch.com
+  HostName gitlab.compusearch.com
+  User git
+  IdentityFile 'C:\Users\amallick.ENGINEERS/.ssh/gitlab_devsecops'
+  IdentitiesOnly yes
+```
+
+3. Test the SSH connection. 
+
+```
+PS C:\Users\amallick.ENGINEERS> ssh -T git@gitlab.compusearch.com
+
+Authorized uses only. All activity may be monitored and reported.
+Welcome to GitLab, @amallick!
 ```
