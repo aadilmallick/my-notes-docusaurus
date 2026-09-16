@@ -412,3 +412,13 @@ In summary:
 - **classes**: to search class names only, do `CTRL + N`, then when hovering over a class definition, you can press `CTRL + Q` to view documentation of the class, then press `esc` to close th epopup
 - **symbols**: 
 
+## IntelliJ with AI
+
+### Setting up completion
+
+1. Go to **Tools** -> **AI** -> **JetBrains AI** and then fill out the completion endpoint with an OpenAI compatible endpoint or connect your Jetbrains AI account
+
+
+![](https://i.imgur.com/4aYExCY.jpeg)
+
+### Setting up skills
