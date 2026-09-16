@@ -1947,3 +1947,57 @@ Based on filtering with labels, you can view them in boards and save those views
 
 
 ![](https://i.imgur.com/YCjnhEO.jpeg)
+
+#### SSH 
+
+Here are the steps to set up SSH keys with Gitlab:
+
+1. Create an SSH key pair on your local machine
+
+```sh
+ssh-keygen -t ed25519 -C "aadil.mallick@unisonglobal.com"
+```
+
+2. THis is what the full process looks like
+
+```
+amallick@5DTBSJ4:~$ ssh-keygen -t ed25519 -C "aadil.mallick@unisonglobal.com"
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/home/amallick/.ssh/id_ed25519): gitlab_devsecops
+Enter passphrase for "gitlab_devsecops" (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in gitlab_devsecops
+Your public key has been saved in gitlab_devsecops.pub
+The key fingerprint is:
+SHA256:asfalksjfalsda aadil.mallick@unisonglobal.com
+The key's randomart image is:
++--[ED25519 256]--+
+|                 |
+|                 |
+afjdaskhfajksfaj
+|=XO*o=+          |
++----[SHA256]-----+
+amallick@5DTBSJ4:~$
+```
+
+3. Paste the public SSH key contents (the file ending in `.pub`) into Gitlab
+4. Extract your company's gitlab self-hosted host domain, which you will use for scoping easy SSH authentication configuration for specific hosts.
+
+![](https://i.imgur.com/KqBwPDT.jpeg)
+
+5. For the host, edit your `~/.ssh/config` and point to your private key filepath of the SSH key pair you created for the identity file.
+
+```bash title="~/.ssh/config"
+# Personal GitHub Account
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_personal_aadilmallick
+
+# company gitlab
+Host gitlab.compusearch.com
+    HostName gitlab.compusearch.com
+    User git
+    IdentityFile ~/.ssh/gitlab_devsecops
+
+```
