@@ -1,3 +1,6 @@
+---
+aliases:
+---
 ## The Enterprise Java Ecosystem
 
 ### JVM
@@ -448,6 +451,58 @@ You have these options:
 - `--disableNonBundledPlugins` → Starts without custom plugins (useful for troubleshooting).
 
 - `--line <n>`: open a file at a specific line number
+
+
+## IntelliJ with Git
+
+### Basics
+
+#### 1 - Clone a project
+
+You can clone a project like so: you go to **File**, then to **New**, then to **Project from Version Control**. 
+
+
+![](https://i.imgur.com/kjEXO0y.jpeg)
+
+You can either authenticate with a repository URL and SSH or with a Github or Gitlab account so you have direct integration with your remote Github/Gitlab account and your local IDE and git.
+
+#### 2 - Make a commit, view changes, create a branch
+
+When clicking on the top bar branch view, you have three categories of branch groupings available:
+
+- **Recent**: shows you the top 5 most recently accessed branches
+- **Local**: shows you all your local branches
+- **Remote**: shows you all the remote branches
+
+A cool feature that IntelliJ offers on top of Git is the ability to group branches into folders via a `<foldername>/<branchname>` syntax, which is semantically meaningless in normal git, but in IntelliJ, it lets you group branches into subfolders.
+
+![](https://i.imgur.com/TImP0Ri.jpeg)
+1. Once you make a change, you can press **Alt + 0** to open the commit view (shows staged and modified/unstaged files) or just manually go to the commit sidebar.
+
+
+![](https://i.imgur.com/3DcWjCY.jpeg)
+2. You can create a new branch if you don't want to commit on Main. You can do so manually by clicking on the branch picker, or by pressing `CTRL + ALT + N`
+
+![](https://i.imgur.com/uMxHXPb.jpeg)
+
+### Git Log View
+
+The **Git Log View** at the bottom can be used tot view the log to undo, squash, and drop specific commits for any individual commit.
+
+> [!NOTE]
+> You can also open up the git log view with `ALT + 9`
+
+Here's what you can do for individual commits:
+
+- **undo commit**: removes the commit by performing a `git reset --soft HEAD~1`
+- **edit commit message**: amends the commit with a new message
+
+#### Undoing commits
+
+
+![](https://i.imgur.com/NJbXpeu.jpeg)
+
+
 ## IntelliJ with AI
 
 ### Setting up completion
