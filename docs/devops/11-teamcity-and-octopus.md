@@ -2181,3 +2181,25 @@ Here's the overview:
 1. Create a service account for a use case, then save the API key
 2. Add a service account to a team to give it permissions, accounting for the principle of least privilege
 3. Use the service account API key to access the REST API, granted with the permissions it gained from the team it was added to.
+
+## Forbidden Knowledge from Michael Jordan (Joseph Dempsey) to Lebron James (Rohit)
+
+### Teamcity to Veracode
+
+1. Go to yoru organization's dashboards in veracode
+
+
+![](https://i.imgur.com/m1NFc8u.jpeg)
+2. Click on the one named "findings, filtration, customization date"
+
+
+![](https://i.imgur.com/85wSka5.jpeg)
+3. Filter the table for high and very high vulnerabilities within the past month:
+
+
+![](https://i.imgur.com/lClHSk4.jpeg)
+
+4. Download the data
+
+
+![](https://i.imgur.com/nozQnBn.jpeg)
