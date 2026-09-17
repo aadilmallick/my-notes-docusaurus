@@ -422,7 +422,32 @@ In summary:
 
 Log points allow you to do dynamically add print statements that get outputted to the console without you writing any code, and you can add log points during runtime as well.
 
+### IntelliJ CLI
 
+You can launch IntelliJ IDEA directly from the terminal or command prompt using its **command-line launcher**. This is useful for quickly opening projects, files, or even jumping to a specific line in a file.
+
+```bash
+# Open a project folder
+idea ~/MyProject
+# Open a specific file at line 42
+idea --line 42 ~/MyProject/scripts/app.js
+```
+
+The basic syntax is as follows:
+
+```
+idea <path-to-project-or-file>
+```
+
+You have these options:
+
+- `--wait` → Waits until the file is closed before returning control to the terminal.
+    
+- `--nosplash` → Skips the splash screen.
+    
+- `--disableNonBundledPlugins` → Starts without custom plugins (useful for troubleshooting).
+
+- `--line <n>`: open a file at a specific line number
 ## IntelliJ with AI
 
 ### Setting up completion
