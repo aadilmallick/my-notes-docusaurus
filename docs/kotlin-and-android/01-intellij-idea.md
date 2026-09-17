@@ -422,5 +422,6 @@ In summary:
 ![](https://i.imgur.com/4aYExCY.jpeg)
 
 
-![](https://i.imgur.com/zTNH1U8.jpeg)
 ### Setting up skills
+
+![](https://i.imgur.com/zTNH1U8.jpeg)
