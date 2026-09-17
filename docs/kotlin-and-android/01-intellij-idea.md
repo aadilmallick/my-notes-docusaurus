@@ -389,6 +389,12 @@ application {
 ./gradlew run
 ```
 
+### Using gradle with IntelliJ
+
+- **Optimized Dependencies Block:** IntelliJ now provides cleaned-up code completion within the `dependencies` block, focusing only on relevant options and scopes (e.g., `implementation`). It also supports version catalogs with easy navigation ([36:51](https://www.youtube.com/watch?v=1wzW-gM9OZE#) - [37:38](https://www.youtube.com/watch?v=1wzW-gM9OZE#)).
+- **Smart Dependency Completion:** The IDE now fetches dependencies from a central server, displaying them with a cloud icon. You can even search by partial names to find the latest versions, and the IDE will automatically add the correct scope and version ([37:40](https://www.youtube.com/watch?v=1wzW-gM9OZE#) - [39:05](https://www.youtube.com/watch?v=1wzW-gM9OZE#)).
+- **Resilient Syncing:** For Gradle 9.7 and beyond, IntelliJ can now successfully sync projects even if the build script is in a "broken" state. This allows you to view the project structure and tasks in the tool window to better diagnose issues ([41:36](https://www.youtube.com/watch?v=1wzW-gM9OZE#) - [43:55](https://www.youtube.com/watch?v=1wzW-gM9OZE#)).
+- **Navigation:** You can now jump directly from the build script to the relevant Gradle API code to understand breaking changes ([42:52](https://www.youtube.com/watch?v=1wzW-gM9OZE#) - [43:16](https://www.youtube.com/watch?v=1wzW-gM9OZE#)).
 ## IntelliJ basics
 
 ### Code actions
@@ -412,6 +418,11 @@ In summary:
 - **classes**: to search class names only, do `CTRL + N`, then when hovering over a class definition, you can press `CTRL + Q` to view documentation of the class, then press `esc` to close th epopup
 - **symbols**: 
 
+### Logpoints
+
+Log points allow you to do dynamically add print statements that get outputted to the console without you writing any code, and you can add log points during runtime as well.
+
+
 ## IntelliJ with AI
 
 ### Setting up completion
@@ -425,3 +436,5 @@ In summary:
 ### Setting up skills
 
 ![](https://i.imgur.com/zTNH1U8.jpeg)
+
+THen in a chat you can use slash commands to refer to specific skills and force AI to use those skills.
