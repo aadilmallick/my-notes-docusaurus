@@ -30,6 +30,69 @@ Cybersecurity aims to have these three aspects in the practice, abbreviated CIA:
 ![](https://i.imgur.com/dgzLnaS.jpeg)
 
 
+![CIA triad](https://ucarecdn.com/13cee5af-0c33-4c14-abfa-109fe944d2f1/)
+
+**Confidentiality**
+
+- **Confidentiality as Information Protection:** In the CIA triad context, confidentiality means safeguarding data from unexpected access or disclosure. It makes sure only users with the correct permissions can access information.
+    
+- **Confidentiality as a Security Strategy:** Confidentiality works as a security strategy featuring multiple protective layers to prevent unauthorized information disclosure. It employs varied tools and techniques, including encryption, access control, and multi-factor authentication.
+    
+- **Confidentiality as an Ethical Obligation:** In IT security, confidentiality signifies an ethical duty to protect user privacy by securing their data from unauthorized access or disclosure. This matter is central to maintaining a company's trust and credibility.
+
+
+**Integrity**
+
+- **Integrity as Preservation of Data Invariance:** Within the CIA triad, integrity means preserving data invariance and authenticity. It assures that unauthorized individuals do not modify or erase information.
+    
+- **Integrity as a Protection Mechanism:** Integrity serves as a protection method that guards data from unauthorized changes using techniques and tools like checksum controls, system audits, and Security Information and Event Management (SIEM) systems.
+    
+- **Integrity as Organizational Responsibility:** Integrity also denotes an organization's obligation to continuously monitor and protect data to maintain its accuracy and consistency. This obligation is crucial for preserving customer trust and complying with legal norms.
+    
+
+**Availability**
+
+- **Availability as Uninterrupted Operation:**Availability, the third aspect of the CIA triad, involves ensuring that information systems and data are readily available to authorized users to facilitate the organization's ongoing operations.
+    
+- **Availability as a Resilience Strategy:** Availability serves as a resilience strategy that protects information systems against failures and disruptions. It contains different measures like redundancy, business continuity planning, and regular backups.
+    
+- **Availability as the Key to Customer Satisfaction:** Availability is crucial for customer satisfaction as it assures that customers can always access the organization's services and resources, which is key to securing their trust and loyalty.
+
+#### CIA defense mechanisms
+
+**Confidentiality:**
+
+- Access Restriction (various access control models)
+    
+- Cryptographic methods
+    
+- Authentication
+    
+- Organizational measures (non-disclosure agreement, etc)
+    
+
+**Integrity**
+
+- Version control
+    
+- Checksums
+    
+- Digital signatures
+    
+- Backups
+    
+
+**Availability**
+
+- Data recovery
+    
+- Fail-over clusters
+    
+- Redundant Array of Independent Disks(RAID)
+    
+- Failover
+
+
 #### Defense in depth
 
 Defense in depth is the concept that we should have multiple layers of security/defense to prevent a single point of failure and promote stronger defense.
@@ -46,6 +109,13 @@ The concept that you should only give a user or system the least permissions pos
 Principle of Least Privilege (PoLP) means giving users, applications, or systems the minimum access needed for their tasks, nothing extra. For example, a database administrator should have admin rights only to their assigned databases, not to the entire network.
 
 This approach starts with “default deny,” where all access is forbidden unless specifically allowed. Additional permissions are granted only when justified. This prevents accounts from gathering too many permissions over time, limiting damage if one of them is compromised.
+
+![](https://ucarecdn.com/9ab1de8c-e20a-4df8-a4da-3d4641c8b52d/)
+
+
+
+
+
 
 #### **Separation of duties**
 
@@ -133,6 +203,20 @@ There are three types of attackers/hackers
 
 - **hacktivists**: those who hack systems for political gain
 - **script kiddies**: those who break into systems for fun
+
+These are the types of attacks:
+
+- **Malware** — Any type of harmful software designed to damage a computer system.
+    
+- **Phishing** — A cyberattack that attempts to fool users into providing sensitive information.
+
+- **DDoS Attack** — A distributed denial of service attack involves the use of multiple devices to flood a website or server with traffic.
+
+- **Ransomware** — A type of cyber attack that locks users out of their computer systems until they pay a ransom. By encrypting important files on a network, victims are placed in a position to either pay the ransom to decrypt the files or risk losing business-critical data.
+
+- **Botnet** — A network of compromised computers used to carry out cyberattacks on other systems. The originator of the attack is known as the **"bot master"** and **zombies** are computers that have been infected with **malware.** All three are necessary to launch a botnet attack.
+
+- **Spyware** — A type of malware that can collect and transmit private user information without the user's consent.
 
 ### Common Attack Patterns
 
@@ -236,6 +320,11 @@ Over 143 million data records were stolen, affecting over 40% of Americans. Equi
 ### Malware distribution tactics
 
 #### botnets
+
+> [!NOTE]
+> **In a nutshell**
+> ***
+> A botnet is a network of compromised computers used to carry out cyberattacks on other systems. The originator of the attack is known as the **"bot master"** and **zombies** are computers that have been infected with **malware.** All three are necessary to launch a botnet attack.
 
 Botnets are a legion of compromised computers called **zombies** that an attacker uses to perform the cyber-kill chain against a target.
 
@@ -1088,12 +1177,24 @@ These situations can negatively affect the confidentiality, availability, and in
 
 ## Vulnerabilities
 
-### CVE and CVSS
+### aCRONYMS
 
-CVE (common vulnerabilities and exposures) catalog cyber vulnerabilities.
+#### CVE and CWE
 
-> [!NOTE]
-> CVE is maintained by MITRE.
+- **CWE** — Stands for Common Weakness Enumeration. It is a system that categorizes software and hardware security flaws to understand and create tools to prevent them.
+- **CVE** — Stands for Common Vulnerabilities and Exposures. It is a repository of publicly disclosed information about security issues that is used to identify and track vulnerabilities.
+
+Let's dedicate some time to explaining the difference between a **CVE** and a **CWE**. 
+
+- CVE is maintained by the [National Vulnerability Database (NVD)](https://nvd.nist.gov/). This U.S. government repository holds the largest publicly available source of vulnerability intelligence. 
+- CWE is maintained by the MITRE Corporation and can be accessed free on a worldwide basis.
+
+And here's the main difference between the two:
+
+- CVE refers to a specific instance of a vulnerability within a product or system.
+- In contrast, CWE refers to a list of common software weaknesses
+
+#### CVSS
 
 CVSS stands for common vulnerability scoring system, and is a universal way of assessing how bad a CVE vulnerability in software is.
 
@@ -1115,7 +1216,7 @@ Here are some things that determine the severity of a vulnerability.
 - **Privileges required:** Vulnerability is worse if you don’t need any privilege to do the exploit, as opposed to high privilege required.
 - **User interaction:** Worse if no user interaction is required for the exploit is triggered
 
-### EPSS
+#### EPSS
 
 EPSS means Exploit prediction scoring system, and is a daily estimate of the probability of exploitation activity being observed over the next 30 days.
 
@@ -1167,6 +1268,56 @@ Threat modeling is a tool used to brainstorm possible threats and corresponding 
 
 ![](https://i.imgur.com/0GFZIma.jpeg)
 
+
+#### Risk management
+
+Risk management in cybersecurity involves spotting, assessing, and ranking risks related to resources, then deciding on the optimal action to minimize them.
+
+Crucial Elements of Risk Management:
+
+- **Risk Identification**: In application security, this involves locating possible weak points in an application or system. These could be gaps in the code, outdated software, or weak passwords.
+    
+- **Risk Assessment**: After pointing out potential threats, you need to evaluate their likelihood of occurrence and possible harm.
+    
+- **Risk Mitigation**: This stage involves implementing measures to lower the risk. In cybersecurity, this might involve using technical solutions, procedures, and policies.
+    
+- **Monitoring and Review**: Continual surveillance and reassessment of your resources for new threats are essential in cybersecurity. Evaluate how effective your mitigation efforts are. Stay informed about the latest security breach news, conduct regular security audits, and adjust policies and protocols in response to new threats and technologies.
+
+#### Attack surface
+
+The attack surface comprises all feasible points in an application that can be attacked. As the application gets larger and more complex, its attack surface expands, leading to an increased risk of potential threats.
+
+Main Characteristics of the Attack Surface:
+
+- **Code Complexity**: The source code of a complex application tends to have a larger attack surface. Each additional line of code, function, or component presents new potential entry points for an assailant.
+    
+- **Exposed Interfaces**: Each interface allowing communication such as API, a network port, or a user interface, poses a potential risk.
+    
+- **Third-Party Dependencies**: Reliance on external libraries or services carries the risk of unexpected security vulnerabilities.
+    
+- **Configuration and Settings**: Easily accessible settings, open ports, or default passwords are tempting targets for attackers.
+    
+- **User Data and Assets**: Important info stored by applications is frequently the main target for many cybercriminals.
+    
+- **Physical Access Points**: The attack surface isn't just digital; physical devices can also be targets if they are not properly secured.
+
+TO reduce the attack surface and harden your app, you must first know the attack surface:
+
+1. **attack surface analysis**: It encompasses dissecting the application's architecture, scrutinizing the code, identifying interfaces and dependencies, and evaluating communication protocols. Automated scanning tools and penetration tests can help uncover any security gaps
+2. **reduce attack surface**: Once potential entry points are pinpointed, organizations need to set in motion strategies to diminish the risk.
+
+
+Techniques to reduce the attack surface consist of these five strategies:
+
+- Removing unnecessary code or functions.
+    
+- Updating or substituting third-party components prone to errors.
+    
+- Building strong authentication and authorization mechanisms for all entry points.
+    
+- Encrypting sensitive data, in storage and during transmission.
+    
+- Consistently updating and patching systems to counter known vulnerabilities.
 
 #### **STRIDE**
 
@@ -1280,6 +1431,65 @@ Each object is assigned a specific integrity level (low, medium, high), and give
 
 - **no read down:** Objects cannot write to another object with a higher integrity level.
 - **no write up:** Objects with a higher integrity level cannot read data from objects with a lower integrity level.
+
+
+## Authentication and authorization
+
+### Authentication and authorization attacks
+
+1. **Unauthorized access and griefing**: Without proper access controls, players could gain unauthorized access to administrative functions or sensitive areas of the server. This could lead to griefing (deliberate destruction or disruption of the game environment) or unauthorized changes that affect the gameplay experience for others.
+    
+2. **Data breach**: Lack of access controls might result in unauthorized access to player data, including personal information and chat logs. This could lead to privacy breaches and put players' sensitive information at risk.
+    
+3. **Server instability**: Players or plugins with excessive privileges could inadvertently or maliciously modify server settings or configurations. Incorrect modifications lead to server crashes, instability, or degraded performance.
+    
+4. **Exploits and hacks**: Hackers could exploit vulnerabilities in the game or server software, gaining elevated access to the server and potentially compromising its integrity.
+    
+5. **Malicious plugins**: Plugins with unnecessary or excessive permissions could be used to compromise the server's security or even act as a platform for launching attacks against other systems.
+    
+6. **Lateral movement**: In a networked environment, a compromised Minecraft server could be used as a stepping stone for lateral movement within your network, potentially leading to further breaches.
+    
+7. **Regulatory and legal issues**: Depending on your server's user base and location, not implementing proper access controls could lead to violations of data protection laws and regulations.
+    
+8. **Loss of trust and players**: Players may lose trust in the server's security and integrity, leading to a decline in the server's popularity and user base.
+
+### Principle of Least Privilege
+
+> [!NOTE] 
+> **In a nutshell**
+> ***
+> **Least Privilege Principle** or **POLP** for short is a computer security concept and best practice that revolves around restricting access rights and permissions for users, processes, and systems to only the minimum level necessary for them to perform their required tasks. In simpler terms, it means giving individuals or entities only the permissions they absolutely need to do their job. POLP minimizes the potential damage that could result from unauthorized access or misuse.
+
+You're probably wondering how you can implement something that follows POLP. Though it seems simple in words, the technical part might be a daunting challenge. Let's look at some possible approaches:
+
+1. **User Role-Based Access Control (RBAC)**: Assign permissions based on specific job roles or functions. Users are only granted access to the resources necessary for their roles.
+    
+2. **Permission auditing**: Regularly review and audit permissions to ensure that they are appropriate and necessary. Remove any unnecessary or excessive permissions.
+    
+3. **Separation of duties**: Divide tasks and responsibilities among different individuals to prevent a single user from having too much power or control.
+    
+4. **Default deny**: Adopt a "default deny" approach, where access is denied by default and only granted when explicitly needed.
+    
+
+One of the most natural ways to implement POLP is to use IDM, which we discuss in the section below.
+
+### Identity management system
+
+IDentity Management (IDM) systems are tools and frameworks that help organizations manage and control user identities, access rights, and authentication processes within their digital systems. 
+
+Following the principle of _separation of concern_, each component (or sub-system) handles a single logical function and depends on other components for operations that are out of scope for the component. 
+
+![](https://ucarecdn.com/d174c601-b8a4-4c31-8432-6729823c4a8c/)
+
+An Identity Management System should consist of logical components for the following services:
+
+- **Authentication Service** — responsible for authenticating users; provides user self-service for password resets, sign-ups, and other services.
+- **Federation Service** — responsible for cross-domain Single Sign-on for web applications.
+- **Token Service** — responsible for security token issuance and introspection. Primarily for API access and for modern web and mobile application access.
+- **User Management Service** — Responsible for user provisioning operations.
+
+> [!NOTE]
+> Identity Management (IDM) systems play a crucial role in the implementation of POLP by managing user identities, access rights, and authentication
 
 ## Sockets
 

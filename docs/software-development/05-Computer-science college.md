@@ -18,7 +18,23 @@
 
 ### File size standards
 
-A kilobyte (KB) is 1000 bytes. A kibibyte (KiB) is 1024 bytes. So any acronyms using with an "i" in them are referring to a power of 2.
+To reduce confusion, the [International Electrotechnical Commission](https://en.wikipedia.org/wiki/International_Electrotechnical_Commission) (IEC) proposed using prefixes kilo, mega, and giga only for the decimal-based system. For the binary-based system, they introduced new prefixes: **kibi**, **mebi**, and **gibi**. Here, 'bi' stands for binary. 
+
+- So, a kibibyte (KiB) equals 1,024 bytes
+- A kilobyte (kB) equals 1,000 bytes.
+
+So any acronyms using with an "i" in them are referring to a power of 2.
+
+|               |            |                   |                |            |                      |
+| ------------- | ---------- | ----------------- | -------------- | ---------- | -------------------- |
+| **SI metric** | **Symbol** | **Powers of ten** | **IEC metric** | **Symbol** | **Powers of two**    |
+| Kilobyte      | kB         | 10^3 B (1000 B)   | Kibibyte       | KiB        | 2^10 B (or 1024 B)   |
+| Megabyte      | MB         | 10^6 B (1000 kB)  | Mebibyte       | MiB        | 2^20 B (or 1024 KiB) |
+| Gigabyte      | GB         | 10^9 B (1000 MB)  | Gibibyte       | GiB        | 2^30 B (or 1024 MiB) |
+| Terabyte      | TB         | 10^12 B (1000 GB) | Tebibyte       | TiB        | 2^40 B (or 1024 GiB) |
+| Petabyte      | PB         | 10^15 B (1000 TB) | Pebibyte       | PiB        | 2^50 B (or 1024 TiB) |
+
+
 
 ## Authentication
 
