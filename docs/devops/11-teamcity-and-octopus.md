@@ -94,21 +94,27 @@ If you want to self-host build agents on the cloud by putting the build agents o
 
 ### TeamCity projects
 
-A project is a container for **templates**, **build configurations**, and **source control** connections.
+A project is a container for **templates**, **subprojects**, **build configurations**, and **version control** connections.
 
-- **build configuration**: a Kotlin code-as-config file that defines the steps and instructions for building and packaging a project.
+- **build configuration**: a set of build steps or a Kotlin code-as-config file that defines the steps and instructions for building and packaging a project.
 - **template**: A kotlin file that is a used as a template to create build configuration files.
+- **subproject**: a subfolder within a project that contains its own scoped build configurations and templates, mainly used for organization purposes.
+- **versioned settings**: connects your Kotlin config as code from a remote git repo to be used to create all the build configs, templates, and subprojects of a project.
 
 All projects inherit from the **root project**
 
 
 ![](https://i.imgur.com/N0W4UwS.jpeg)
-In TeamCity, child projects inherit many settings and entities from their parent, such as [connections](https://www.jetbrains.com/help/teamcity/2026.1/configuring-connections.html?Creating%20and%20Editing%20Projects) and [cloud agent profiles](https://www.jetbrains.com/help/teamcity/2026.1/teamcity-integration-with-cloud-solutions.html?Creating%20and%20Editing%20Projects). The Root project lets you take advantage of this concept and define server-wide resources. For example, you can create [AWS cloud profile](https://www.jetbrains.com/help/teamcity/2026.1/setting-up-teamcity-for-amazon-ec2.html?Creating%20and%20Editing%20Projects) that spawns cloud agents accessible to all projects on the server.
+1. In TeamCity, child projects inherit many settings and entities from their parent, such as [connections](https://www.jetbrains.com/help/teamcity/2026.1/configuring-connections.html?Creating%20and%20Editing%20Projects) and [cloud agent profiles](https://www.jetbrains.com/help/teamcity/2026.1/teamcity-integration-with-cloud-solutions.html?Creating%20and%20Editing%20Projects). 
+2. The Root project lets you take advantage of this concept and define server-wide resources. 
+3. For example, you can create [AWS cloud profile](https://www.jetbrains.com/help/teamcity/2026.1/setting-up-teamcity-for-amazon-ec2.html?Creating%20and%20Editing%20Projects) that spawns cloud agents accessible to all projects on the server.
 
 > [!NOTE]
 > Note that since [user permissions](https://www.jetbrains.com/help/teamcity/2026.1/managing-roles-and-permissions.html?Creating%20and%20Editing%20Projects) are project-based, only Root project administrators can edit its settings.
 
-#### Gitlab to Teamcity + Triggers
+#### Triggers
+
+
 
 Often you'll have all your TeamCity Kotlin DSL code stored in a GitLab repository. Whenever you push to your GitLab repository, it should automatically push up those build configuration file changes to TeamCity to actually run the pipeline. 
 
@@ -2182,11 +2188,11 @@ Here's the overview:
 2. Add a service account to a team to give it permissions, accounting for the principle of least privilege
 3. Use the service account API key to access the REST API, granted with the permissions it gained from the team it was added to.
 
-## Forbidden Knowledge from Michael Jordan (Joseph Dempsey) to Lebron James (Rohit)
+## Forbidden Knowledge from Michael Jordan (Joseph Dempsey) to Lebron James (Rohit Ramakrishnan), with special appearances by Allen Iverson (Clint Smith)
 
 ### Teamcity to Veracode
 
-1. Go to yoru organization's dashboards in veracode
+1. Go to your organization's dashboards in veracode
 
 
 ![](https://i.imgur.com/m1NFc8u.jpeg)
