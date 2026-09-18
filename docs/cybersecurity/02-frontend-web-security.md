@@ -1,4 +1,3 @@
-# 15: Web Security
 
 ## Frontend Attacks
 

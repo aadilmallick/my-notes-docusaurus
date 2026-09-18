@@ -6,6 +6,75 @@ Cybersecurity encompasses total networked system security, extending to critical
 - **Computer Security:** Securing individual endpoint machines and operating systems.
 - **Network Security:** Securing communication channels and traffic across nodes.
 
+### Crash course terminology
+
+- **authenticity:** modified by the correct owner, the authorized owner
+- **secrecy:** Access control when based with local data like files
+- **non-repudiation:** Prevent a party from denying that some action took place. Done with code signing and digital signatures
+- **privacy:** control over ones information and confidentiality. Confidentiality with a touch of ownership
+- **confidential info:** information that can be used to authenticate you, to unique identify who you are.
+- **private info:** information that is personal to you, like your home address.
+
+The difference between confidentiality and privacy is that privacy is information personal to you (home address) while confidentiality is information used to authenticate you (SSN).
+
+**Risk**
+
+Risk is the potential for an asset to be misused. An asset is any valuable resource to a company, like money or data.
+
+A good equation is Risk = likelihood * impact. Your google account being compromised has a low likelihood, but would have a great impact.
+
+**Threat**
+
+A threat is a specific means by which an attacker can put a system at risk. We take into account the attacker’s goals and their skills.
+
+**Threat model**
+
+A threat model is a structured approach to identifying and evaluating potential threats to a system, organization, or product.
+
+Here are the steps in creating a threat model:
+
+1. **Identifying Assets**: Identify what needs to be protected.
+2. **Identifying Threats**: Identify potential threats to those assets.
+3. **Assessing Vulnerabilities**: Brainstorm possible vulnerabilities
+4. **Analyzing Risks**: Score vulnerabilities to focus on most critical ones first
+5. **Mitigation Strategies**: Finally, you develop strategies to mitigate or reduce the risks.
+
+**adversary**
+
+These are the levels of adversaries, from least threatening to most threatening
+
+1. Script-kiddies
+2. Malicious hackers
+3. Industrial espionage hackers
+4. Governments
+
+**attacks**
+
+Attacks are attempts to exploit vulnerabilities. A _compromise_ is when an attack is successful.
+
+There are three different kinds of attacks:
+
+- **passive:** eavesdropping, basically an attack where there’s no way to trace it back to you
+- **active:** guessing passwords. Basically an attack where you leave evidence
+- **Denial of Service:** DOS attacks hinder availability
+
+**trust**
+
+Trust refers to the degree to which an entity is expected to behave.
+
+For example, we expect the organization to not expose our password and email. We expect the organization to ask permission to get our data.
+
+There are two ways we describe systems in terms of trust
+
+- **trusted:** We choose to trust this system, but there is no guarantee that it won’t be broken into
+- **trustworthy:** This system will not fail at all. They are mathematically guaranteed from being compromised.
+
+**security model**
+
+A security model is the combination of three things: trust model, threat model, and risk.
+
+It is always important to create your security model before you build your application, because it is extremely difficult to refactor
+
 ### Principles of cybersecurity
 
 These are the four main components of cybersecurity:
