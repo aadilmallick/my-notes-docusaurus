@@ -603,6 +603,11 @@ In order to ensure the integrity of artifacts, we need to use digital signatures
 - **the result**This ensures that software artifacts come from a trusted source and have not been modified during distribution, establishing a secure and trusted software supply chain. 
 - **tools**: Tools like Sigstore and Cosign automate this process, enabling verification that software is authentic and untampered before deployment.
 
+
+## Veracode
+
+
+
 ## DevSecOps pipeline creation
 
 ### Gitlab

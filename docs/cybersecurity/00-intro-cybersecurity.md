@@ -38,6 +38,64 @@ Defense in depth is the concept that we should have multiple layers of security/
 
 The concept that you should only give a user or system the least permissions possible 
 
+
+### Core principles of privileged access
+
+#### **Principle of Least Privilege**
+
+Principle of Least Privilege (PoLP) means giving users, applications, or systems the minimum access needed for their tasks, nothing extra. For example, a database administrator should have admin rights only to their assigned databases, not to the entire network.
+
+This approach starts with “default deny,” where all access is forbidden unless specifically allowed. Additional permissions are granted only when justified. This prevents accounts from gathering too many permissions over time, limiting damage if one of them is compromised.
+
+#### **Separation of duties**
+
+Separation of Duties (SoD) divides critical tasks between multiple people to prevent fraud and errors. For example, when creating a new admin account, one person requests it, another approves it, and a third person creates it. It also means using separate accounts for admin tasks versus daily activities like email.
+
+This provides oversight at every step, reducing the risk of errors and making it harder for insiders to abuse their position.
+
+#### **just in time access**
+
+Just-in-Time (JIT) access provides temporary privileges instead of permanent elevated access. For example, someone gets one hour of access to patch a server. ​​Once the hour is done, their access reverts to standard privileges.
+
+This eliminates permanent elevated permissions, which reduces the window attackers can exploit compromised accounts.
+
+
+#### **accountability and audit trails**
+
+This approach aims to ensure that all privileged activities are logged and traceable. For example, when someone modifies firewall rules, the system logs who made the change, when it was changed, and what was changed. Each admin should have their own individual account, not shared accounts.
+
+This enables the detection of suspicious activity and keeps your actions transparent and accountable at all times.
+
+#### Essential Security Practices for Daily Operations
+
+**MFA**
+
+- Always use Multi-Factor Authentication (MFA), a security method that requires a password plus a second verification step, when available.
+- Use the MFA method provided by your organization. Choose phishing-resistant MFA if offered, such as hardware security keys or certificate-based authentication.
+- Never share MFA codes or approve requests you didn't initiate.
+- If you receive an unexpected MFA notification, report it immediately.
+
+**session management**
+
+- Always lock your screen when leaving your desk, even if you step away briefly.
+- Log out completely from privileged systems when finished; don't just close the window.
+- Never leave privileged sessions open and unattended.
+- Set screen savers with password protection when available.
+
+**login information storage**
+
+- Never write down your passwords, store them in documents, or share them with others.
+- Use your organization's approved password management tools when available.
+- Create strong, unique passwords for each account, and never reuse your privileged account passwords for personal accounts.
+- Change passwords if you suspect they have been compromised or follow your organization's schedule if they have one.
+
+**activity monitoring**
+
+- Understand what actions are being tracked in the systems you use.
+- Review your own activity logs when possible to ensure all actions are legitimate and authorized.
+- Report any suspicious activity you notice in logs or systems.
+- Make sure your actions are always justifiable and aligned with your assigned responsibilities.
+
 ### Cloud services
 
 There are three main types of cloud services:
@@ -373,8 +431,20 @@ The main purpose of the EEA is to protect trade secrets and intellectual propert
 
 - **The Shift to IoT:** The 2016 Mirai botnet harnessed millions of default-credential IoT devices to launch massive DDoS attacks against KrebsOnSecurity (600+ Gbps) and DynDNS (knocking out major platforms like Netflix, Twitter, and Amazon).
     
-- **Legal Repercussions:** In January 2017, the FTC sued router/camera manufacturer **D-Link**, alleging failures to patch software, hardcoded credentials, and compromised private code-signing keys. The 2019 settlement set a legal precedent: hardware/software vendors face regulatory liability and required security oversight for failing to follow reasonable security-by-design standards.
+- **Legal Repercussions:** In January 2017, the FTC sued router/camera manufacturer **D-Link**, alleging failures to patch software, hardcoded credentials, and compromised private code-signing keys. The 2019 settlement set a legal precedent: hardware/software vendors face regulatory liability and required security oversight for failing to follow reasonable security-by-design standards.\
 
+### Insider threats
+
+Are you an insider threat? No? Really? Don't worry, you can tell me. I can keep a secret.
+
+*Ahem* - sorry, where were we? Oh yeah, there are three types of insider threats:
+
+- **malicious insider**: someone who uses their privileged access to harm a system or steal info from it. 
+- **negligent insider**: someone who uses their privileged access carelessly, accidentally stealing funds or causing a system to go down
+- **compromised insider**: a person with privileged access whose system was hijacked and now the malicious attacker is using that privileged access to wreak havoc on a system.
+
+> [!NOTE]
+> Research shows that most insider threat actions are unintentional, like clicking phishing links, wrong online storage settings, or using weak passwords.
 
 ### Protection against hackers
 ![](https://i.imgur.com/9kAxHKk.jpeg)
