@@ -1771,11 +1771,49 @@ async def stream_response(request: PromptRequest):
 
 ### Hooks
 
-Hooks are like the middleware for the agent lifecycle, which lets you deterministically inject logic into the lifecycle at specific points to either block or allow certain actions to happen. 
+For foundational info on what hooks are, read [[05-agentic-AI-development#Hooks]].
 
+> [!NOTE]
+> In Strands, built-in hooks include approval workflows for human-in-the loop.
 
-![](https://i.imgur.com/cJ3qqML.jpeg)
+Here are the general rules of hooks:
 
+- You can have multiple callback handlers for the same hook event; they will all execute in sequence
+
+Here's the basic syntax for creating a custom hook and registering it on a Strands agent, which you do through the `hooks=` kwarg:
+
+1. Create a function that takes in a hook event class type param, and doesn't return anything.
+2. Pass that function as a member of a list to the `hooks=` kwarg.
+
+```py
+from strands import Agent
+from strands.hooks import BeforeToolCallEvent
+
+def custom_hook(event: BeforeToolCallEvent):
+    if WRITE:
+	    # ask for approval, run logic, etc.
+	else:
+		return # allow execution
+        
+
+agent = Agent(
+    hooks=[custom_hook],
+)
+```
+
+In general, for all hooks, returning via the `return` keyword within a hook callback means that execution is allowed and the hook passes execution and defers back to the model.
+#### Writing custom tool use hooks
+
+Here are a list of hook events that deal with the tool use lifecycle:
+
+- `AfterToolCallEvent`: type/class for a post-tool use hook
+- `BeforeToolCallEvent`: type/class for a pre-tool use hook
+
+Dealing with a custom tool use event hook, you have these properties:
+
+- `event.tool_use`: a dictionary of tool info with the following properties:
+	- `"name"`: returns the name of the tool that was or will be invoked.
+	- `"input"`: returns the value of the argument passed as the tool input, which will almost always be a dictionary if you design your code right.
 
 ```py
 from strands import Agent
@@ -1796,9 +1834,422 @@ agent = Agent(
 )
 ```
 
-#### Custom hooks
+In a tool use event hook, you have three possible flows:
+
+1. **interrupt for human in the loop**: invoke `event.interrupt()` method to ask for a human-in-the-loop decision via CLI
+2. **cancel execution**: cancel the execution of an agent action in the hook by setting the `event.cancel_tool` property to a string reason, which the agent will then receive and understand why the tool call was canceled.
+3. **allow execution**: let the hook pass execution and return back to the model, which you do by invoking the `return` keyword or doing nothing.
+#### Custom hook classes
 
 If you want to create custom hooks, then you can create custom classes that inherit from the `HookProvider` class.
+
+```py
+import os
+from strands import Agent, tool
+from strands.hooks import BeforeToolCallEvent, HookProvider, HookRegistry
+
+
+@tool
+def list_files(directory: str) -> str:
+    """List files in a directory.
+
+    Args:
+        directory: Path to the directory to list
+    """
+    try:
+        entries = os.listdir(directory)
+        if not entries:
+            return f"{directory} is empty"
+        return "\n".join(entries)
+    except FileNotFoundError:
+        return f"Directory not found: {directory}"
+
+
+@tool
+def read_file(path: str) -> str:
+    """Read the contents of a file.
+
+    Args:
+        path: Path to the file to read
+    """
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        return f"File not found: {path}"
+    except IsADirectoryError:
+        return f"{path} is a directory, not a file"
+
+
+@tool
+def write_file(path: str, content: str) -> str:
+    """Write content to a file. Creates the file if it doesn't exist.
+
+    Args:
+        path: Path to the file to write
+        content: Content to write to the file
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w") as f:
+        f.write(content)
+    return f"Wrote {len(content)} characters to {path}"
+
+
+@tool
+def delete_file(path: str) -> str:
+    """Delete a file from the filesystem.
+
+    Args:
+        path: Path to the file to delete
+    """
+    try:
+        os.remove(path)
+        return f"Deleted {path}"
+    except FileNotFoundError:
+        return f"File not found: {path}"
+
+
+class DeleteApprovalHook(HookProvider):
+    """Only intercepts delete operations — all other file tools run freely."""
+
+    def register_hooks(self, registry: HookRegistry) -> None:
+        registry.add_callback(BeforeToolCallEvent, self.check_delete)
+
+    def check_delete(self, event: BeforeToolCallEvent) -> None:
+        if event.tool_use["name"] != "delete_file":
+            return
+
+        approval = event.interrupt(
+            "delete-approval",
+            reason={"path": event.tool_use["input"]["path"]}
+        )
+
+        if approval.lower() != "y":
+            event.cancel_tool = "User denied file deletion"
+
+
+agent = Agent(
+    tools=[list_files, read_file, write_file, delete_file],
+    hooks=[DeleteApprovalHook()],
+)
+
+print("File Manager Agent (type 'quit' to exit)")
+print("-" * 45)
+
+while True:
+    user_input = input("\nYou: ").strip()
+    if user_input.lower() in ("quit", "exit", "q"):
+        print("Goodbye!")
+        break
+    if not user_input:
+        continue
+
+    print()
+    result = agent(user_input)
+
+    while result.stop_reason == "interrupt":
+        for interrupt in result.interrupts:
+            approval = input(f"\n⚠️  Delete '{interrupt.reason['path']}'? (y/N): ")
+            result = agent([
+                {
+                    "interruptResponse": {
+                        "interruptId": interrupt.id,
+                        "response": approval,
+                    }
+                }
+            ])
+```
+
+You also have
+
+```py
+import urllib.request
+import urllib.parse
+import json
+from strands import Agent, tool
+from strands.hooks import (
+    HookProvider, HookRegistry,
+    BeforeInvocationEvent, BeforeToolCallEvent,
+)
+
+
+@tool
+def get_weather(city: str) -> str:
+    """Get the current weather for a city using the wttr.in API.
+
+    Args:
+        city: Name of the city to get weather for
+    """
+    url = f"https://wttr.in/{urllib.parse.quote(city)}?format=j1"
+    req = urllib.request.Request(url, headers={"User-Agent": "strands-agent"})
+    with urllib.request.urlopen(req) as resp:
+        data = json.loads(resp.read())
+    current = data["current_condition"][0]
+    return (
+        f"{city}: {current['temp_F']}°F, "
+        f"{current['weatherDesc'][0]['value']}, "
+        f"humidity {current['humidity']}%, "
+        f"wind {current['windspeedMiles']} mph"
+    )
+
+
+class LimitToolCounts(HookProvider):
+    def __init__(self, max_calls: int = 3):
+        self.max_calls = max_calls
+        self.counts: dict[str, int] = {}
+
+    def register_hooks(self, registry: HookRegistry) -> None:
+        registry.add_callback(BeforeInvocationEvent, self.reset)
+        registry.add_callback(BeforeToolCallEvent, self.check)
+
+    def reset(self, event: BeforeInvocationEvent) -> None:
+        self.counts = {}
+
+    def check(self, event: BeforeToolCallEvent) -> None:
+        name = event.tool_use["name"]
+        self.counts[name] = self.counts.get(name, 0) + 1
+        if self.counts[name] > self.max_calls:
+            event.cancel_tool = (
+                f"'{name}' hit the {self.max_calls}-call limit. "
+                "Do NOT call this tool again."
+            )
+```
+
+### Plugins and skills
+
+Skills can be loaded on demand via **progressive disclosure** so that your system prompt doesn't blow up.
+
+
+![](https://i.imgur.com/5IoMoGT.jpeg)
+
+
+Plugins package multiple primitives (hooks, skills, tools, system prompts) into a single, reusable component that you can attach to an agent for use.
+
+
+![](https://i.imgur.com/6wA5lsX.jpeg)
+
+You can register a directory of skills to attach to an agent via the `AgentSkills` class, which at a high level just attaches a `skill` tool to the agent which the agent uses to choose which skill to execute from the configured skills directory.
+
+Here are the steps:
+
+1. Create a skills directory which has `SKILL.md` files in them, each skill md representing a single skill.
+2. 
+
+```py
+from strands import Agent, AgentSkills, tool
+
+# Tools for customer service operations
+@tool
+def lookup_customer(customer_id: str) -> str:
+    """Look up a customer by their ID."""
+    # ... database/API call ...
+
+@tool
+def get_order_history(customer_id: str) -> str:
+    """Get order history for a customer."""
+    # ...
+
+@tool
+def process_refund(order_id: str, amount: float) -> str:
+    """Process a refund for an order."""
+    # ...
+
+# Skills plugin discovers and registers all skills in the directory
+skills_plugin = AgentSkills(skills=["./skills"])
+
+agent = Agent(
+    tools=[lookup_customer, get_order_history, process_refund],
+    plugins=[skills_plugin],
+    system_prompt="""You are a customer service agent. When a customer needs help,
+    activate the appropriate skill for step-by-step guidance."""
+)
+
+```
+
+#### Complete skills example
+
+```py
+from strands import Agent, AgentSkills, tool
+
+# --- Mock customer data ---
+
+CUSTOMERS = {
+    "C-1001": {
+        "name": "Sarah Johnson",
+        "email": "example@example.com",
+        "phone": "555-0142",
+        "account_status": "active",
+    },
+    "C-1002": {
+        "name": "Mike Chen",
+        "email": "example@example.com",
+        "phone": "555-0198",
+        "account_status": "locked",
+    },
+}
+
+ORDERS = {
+    "C-1001": [
+        {
+            "order_id": "ORD-5521",
+            "item": "Wireless Headphones",
+            "amount": 79.99,
+            "status": "Delivered",
+            "order_date": "2026-04-20",
+            "delivered_date": "2026-04-28",
+            "tracking": "TRK-998877",
+        },
+        {
+            "order_id": "ORD-5488",
+            "item": "USB-C Hub",
+            "amount": 45.00,
+            "status": "Shipped",
+            "order_date": "2026-05-01",
+            "estimated_delivery": "2026-05-06",
+            "tracking": "TRK-887766",
+        },
+    ],
+    "C-1002": [
+        {
+            "order_id": "ORD-5390",
+            "item": "Mechanical Keyboard",
+            "amount": 149.99,
+            "status": "Delayed",
+            "order_date": "2026-04-15",
+            "estimated_delivery": "2026-04-25",
+            "tracking": "TRK-776655",
+        },
+    ],
+}
+
+
+# --- Tools ---
+
+@tool
+def lookup_customer(customer_id: str) -> str:
+    """Look up a customer by their ID.
+
+    Args:
+        customer_id: The customer ID (e.g. C-1001)
+    """
+    customer = CUSTOMERS.get(customer_id)
+    if not customer:
+        return f"No customer found with ID {customer_id}"
+    return (
+        f"Customer: {customer['name']}\n"
+        f"Email: {customer['email']}\n"
+        f"Phone: {customer['phone']}\n"
+        f"Account Status: {customer['account_status']}"
+    )
+
+
+@tool
+def get_order_history(customer_id: str) -> str:
+    """Get order history for a customer.
+
+    Args:
+        customer_id: The customer ID (e.g. C-1001)
+    """
+    orders = ORDERS.get(customer_id)
+    if not orders:
+        return f"No orders found for customer {customer_id}"
+    lines = []
+    for order in orders:
+        line = (
+            f"Order {order['order_id']}: {order['item']} — ${order['amount']:.2f} "
+            f"[{order['status']}] Ordered: {order['order_date']} "
+        )
+        if order.get("delivered_date"):
+            line += f"Delivered: {order['delivered_date']} "
+        if order.get("estimated_delivery"):
+            line += f"Est. Delivery: {order['estimated_delivery']} "
+        line += f"Tracking: {order['tracking']}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+@tool
+def process_refund(order_id: str, amount: float) -> str:
+    """Process a refund for an order.
+
+    Args:
+        order_id: The order ID to refund
+        amount: The refund amount in dollars
+    """
+    return f"Refund of ${amount:.2f} processed for order {order_id}. Expect 3-5 business days."
+
+
+# --- Agent setup ---
+
+SYSTEM_PROMPT = """You are a customer service agent for an online electronics store.
+Be helpful, professional, and concise. Use the available tools to look up customer
+information and process requests. When a customer needs help, activate the appropriate
+skill for step-by-step guidance.
+
+Important guidelines:
+- Always ask for the customer ID first if you don't have it.
+- Use the data returned by tools to answer questions. Do not ask the customer for
+  information that is already available in the tool results (like delivery dates or order amounts).
+- When confirming actions like refunds, briefly summarize what you're about to do and ask
+  for a simple yes/no confirmation. Keep it short.
+- Be warm but efficient. Customers want their problem solved, not a long conversation."""
+
+skills_plugin = AgentSkills(skills=["./skills"])
+
+agent = Agent(
+    tools=[lookup_customer, get_order_history, process_refund],
+    plugins=[skills_plugin],
+    system_prompt=SYSTEM_PROMPT,
+)
+
+print("Customer Service Agent (type 'quit' to exit)")
+print("-" * 50)
+
+while True:
+    user_input = input("\nCustomer: ").strip()
+    if user_input.lower() in ("quit", "exit", "q"):
+        print("Goodbye!")
+        break
+    if not user_input:
+        continue
+    print()
+    agent(user_input)
+```
+#### Goal loop
+
+Alongside opinionated defaults and out of the box components, Strands has a plugin called goal loop. You would use this when your agent's response needs to meet a quality bar before returning, and GoalLoop handles the retry loop. 
+
+1. It validates the response after each invocation, feeds feedback back as a user message on failure, and re-invokes the agent. 
+2. This continues until validation passes, a max attempt count is reached, or a timeout elapses.
+
+
+This is how it works in detail:
+
+1. The agent processes the prompt and produces a response.
+2. GoalLoop extracts the last assistant message and runs the validator.
+3. If the validator passes, the loop terminates with a "satisfied" result.
+4. If the validator fails and budget remains, GoalLoop injects feedback as a new user message and re-invokes the agent.
+5. If the attempt limit or timeout is exhausted, the loop terminates without retrying.
+
+
+```py
+from strands import Agent
+from strands.vended_plugins.goal import GoalLoop
+
+concise = GoalLoop(
+    goal="At most 3 sentences, accessible to a 10-year-old, "
+         "no jargon.",
+    max_attempts=3,
+)
+
+agent = Agent(plugins=[concise])
+result = agent("Explain how rainbows form.")
+
+print(concise.last_result(agent))
+# Typical output:
+# GoalResult(passed=True, stop_reason='satisfied', attempts=[...])
+
+```
 
 ### Policies and self-steering
 
@@ -1830,6 +2281,10 @@ agent = Agent(
     plugins=[QueryQualityPolicy()],
 )
 ```
+
+
+
+
 ## Strands TypeScript
 
 ### Basics

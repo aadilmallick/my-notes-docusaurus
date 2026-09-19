@@ -310,6 +310,12 @@ To fix this issue, use **tool filtering** to select only the relevant tools from
 
 ### Hooks
 
+Hooks are like the middleware for the agent lifecycle, which lets you deterministically inject logic into the lifecycle at specific points to either block or allow certain actions to happen. 
+
+
+![](https://i.imgur.com/cJ3qqML.jpeg)
+
+
 Hooks add deterministic control to a probabilistic loop. They inject code at lifecycle events - before/after tool calls and before/after the agent loop - without changing the agent's logic. Unlike tools (which the model decides to use), hooks fire automatically every time, regardless of what the model reasons.
 
 A runaway loop could call the same tool dozens of times. A model might attempt a destructive operation without asking. Hooks solve this by enforcing rules that don't depend on the model "deciding" to behave.

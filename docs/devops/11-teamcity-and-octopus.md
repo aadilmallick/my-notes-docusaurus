@@ -112,6 +112,14 @@ All projects inherit from the **root project**
 > [!NOTE]
 > Note that since [user permissions](https://www.jetbrains.com/help/teamcity/2026.1/managing-roles-and-permissions.html?Creating%20and%20Editing%20Projects) are project-based, only Root project administrators can edit its settings.
 
+
+#### Gitlab + Kotlin DSL
+
+To enable a GItlab repo to push up Kotlin DSL to create a TeamCity project, you nned to modify the **versioned control settings** of a project to point to Gitlab.
+
+
+![](https://i.imgur.com/IUNHaKG.jpeg)
+
 #### Triggers
 
 
