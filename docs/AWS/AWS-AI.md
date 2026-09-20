@@ -2253,6 +2253,17 @@ print(concise.last_result(agent))
 
 ### Policies and self-steering
 
+Agent reliability goes down as context fills up, as important info and rules in the system prompt can get lost and not be obeyed anymore
+
+
+![](https://i.imgur.com/Ti4xzgt.jpeg)
+
+Steering allows you to influence agent behavior during runtime via hooks.
+
+
+![](https://i.imgur.com/KTjKI7E.jpeg)
+
+
 Then the harness gives specific feedback: "add a WHERE clause," "check permissions first." The agent corrects itself. You get reliable outcomes without micromanaging every step.
 
 
