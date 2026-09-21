@@ -703,7 +703,51 @@ You can set them on:
 - Applies to all application profiles for a team
 - Applies to all application profiles for a portfolio
 
-Veracode security policies are the governing standards that define an organization's security requirements for its applications. When a scan is completed, the results are evaluated against these rules to determine if the application is **Pass** or **Fail** (Policy Compliance status).
+> [!NOTE]
+> Veracode security policies are the governing standards that define an organization's security requirements for its applications. 
+
+
+A security policy is built from several key constraints:
+
+- **Rules**: These define which types of findings are prohibited. You can set rules based on:
+    - **Severity**: e.g., "No findings with a severity of Very High or High."
+    - **CWE Categories**: e.g., "No SQL Injection or Cross-Site Scripting (XSS)."
+    - **CVSS Score**: e.g., "No findings with a CVSS score greater than 7.0."
+    - **Veracode Level (VL)**: A pre-defined security tier (VL1 to VL5) based on scan types and results.
+- **Scan Requirements**: This mandates that specific scan types (Static, Dynamic, SCA, or MPT) must be performed at a minimum frequency (e.g., "Must perform a Static Analysis scan every 30 days").
+- **Remediation Grace Periods**: This gives developers a window to fix violations before the application officially fails policy. For example, you might allow 30 days to fix "High" severity flaws and 90 days for "Medium."
+
+
+When a scan is completed, the results are evaluated against these rules to determine if the application is **Pass** or **Fail** (Policy Compliance status).
+
+An application's compliance status is calculated based on the latest results of its policy scans:
+
+- **Pass**: The application meets all rules and scan requirements, and no grace periods have expired.
+- **Did Not Pass**: The application violates one or more rules or has failed to meet a scan requirement within the required timeframe.
+- **Conditional Pass**: The application has open findings that violate policy, but they are still within their grace period.
+
+If a finding cannot be fixed (e.g., a false positive or an acceptable business risk), a user can propose a **Mitigation**.
+
+If a **Mitigation Approver** accepts the proposal, that specific finding is excluded from the policy evaluation, allowing the application to pass even if the code remains unchanged.
+
+#### Types of policies
+
+There are three main types of built-in policies that Veracode provides:
+
+- **transitional policies**: Not recommended, very simple, leads to false positives.
+
+
+For all of these policies, you have them categorized into strictness levels starting from strictest to least strict: "low", "medium", "high", or "very high."
+
+- If you assign a policy with a "very high" strictness level, the security scan only fails if a vulnerability with a "very high" level is discovered, meaning this is not a strict policy. 
+- If you assign a policy with a "low" strictness level, the security scan will fail if a vulnerability with a "low" level or any higher level is discovered, meaning this is a very strict policy that fails on even the slightest of slight vulnerabilities. 
+
+**Business criticality**
+
+When you create an application profile, you assign it a **Business Criticality** (Very High to Very Low). By default, Veracode automatically assigns a policy based on this level:
+
+- **Very High/High**: Stricter rules, requiring more frequent scans and shorter grace periods.
+- **Medium/Low**: More permissive rules with longer remediation timelines.
 
 ## DevSecOps pipeline creation
 
