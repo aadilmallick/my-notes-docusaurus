@@ -707,7 +707,7 @@ You can set them on:
 > Veracode security policies are the governing standards that define an organization's security requirements for its applications. 
 
 
-A security policy is built from several key constraints:
+A security policy is built from several key constraints called **security policy constraints**:
 
 - **Rules**: These define which types of findings are prohibited. You can set rules based on:
     - **Severity**: e.g., "No findings with a severity of Very High or High."
@@ -716,15 +716,26 @@ A security policy is built from several key constraints:
     - **Veracode Level (VL)**: A pre-defined security tier (VL1 to VL5) based on scan types and results.
 - **Scan Requirements**: This mandates that specific scan types (Static, Dynamic, SCA, or MPT) must be performed at a minimum frequency (e.g., "Must perform a Static Analysis scan every 30 days").
 - **Remediation Grace Periods**: This gives developers a window to fix violations before the application officially fails policy. For example, you might allow 30 days to fix "High" severity flaws and 90 days for "Medium."
+- **evaluation timeframe**: defines the period during which findings violate the policy.
+
+
+![](https://i.imgur.com/VsopYHL.jpeg)
+
 
 
 When a scan is completed, the results are evaluated against these rules to determine if the application is **Pass** or **Fail** (Policy Compliance status).
 
 An application's compliance status is calculated based on the latest results of its policy scans:
 
+- **not assessed**: the application has not yet had a policy level scan run on it.
 - **Pass**: The application meets all rules and scan requirements, and no grace periods have expired.
 - **Did Not Pass**: The application violates one or more rules or has failed to meet a scan requirement within the required timeframe.
 - **Conditional Pass**: The application has open findings that violate policy, but they are still within their grace period.
+
+
+
+![](https://i.imgur.com/JhUlIFH.jpeg)
+
 
 If a finding cannot be fixed (e.g., a false positive or an acceptable business risk), a user can propose a **Mitigation**.
 
@@ -735,9 +746,11 @@ If a **Mitigation Approver** accepts the proposal, that specific finding is excl
 There are three main types of built-in policies that Veracode provides:
 
 - **transitional policies**: Not recommended, very simple, leads to false positives.
+- **recommended policies**: built-in better policies for business criticality
+- **SCA policies**: policies directly meant for SCA (software composition analysis)
 
 
-For all of these policies, you have them categorized into strictness levels starting from strictest to least strict: "low", "medium", "high", or "very high."
+For all of these policies, you have them categorized into strictness levels: "low", "medium", "high", or "very high."
 
 - If you assign a policy with a "very high" strictness level, the security scan only fails if a vulnerability with a "very high" level is discovered, meaning this is not a strict policy. 
 - If you assign a policy with a "low" strictness level, the security scan will fail if a vulnerability with a "low" level or any higher level is discovered, meaning this is a very strict policy that fails on even the slightest of slight vulnerabilities. 
