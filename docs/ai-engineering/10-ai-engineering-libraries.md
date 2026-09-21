@@ -2231,7 +2231,52 @@ export class VercelAIFileCompletions {
 
 ```
 
-## Langchain
+## Langchain Python
+
+### Prompt templates
+
+```py
+# Your code goes here
+from langchain.chat_models import init_chat_model
+from langchain_core.prompts import PromptTemplate
+
+# 1. create a prompt
+prompt_template_str = """
+Your task is to explain the concept of **{concept}** to me in a way that is:
+
+1. Clear and intuitive
+2. Concise (in under 100 words)
+3. Tailored specifically to me and what I already know
+
+Use the following information about me to personalize your explanation:
+
+- Background: AI engineering, combining deep ML fundamentals with agentic AI applications and workflows
+- Professional Interests: Building autonomous agents with computer use, browser tools, web search, deep research, and GTM automation
+- Technical Level: Advanced — comfortable with Python, software engineering, and ML fundamentals
+
+The personalization should be subtle and natural. Avoid forced references to my background that don't genuinely enhance understanding.
+"""
+
+# 2. create prompt template and inject variables to get final prompt
+prompt_template = PromptTemplate.from_template(prompt_template_str)
+concept = "agent memory management systems"
+prompt = prompt_template.format(concept=concept)
+
+# 3. invoke the model and pass the prompt
+model = init_chat_model("gpt-4o-mini", model_provider="openai")
+response = model.invoke(prompt)
+print(response.text)
+```
+
+## Langchain TS
+
+### Basics
+
+Langchain provides the following
+
+- **Provider abstraction** — swap between OpenAI, Anthropic, and others without changing your application code
+- **First-class primitives** — prompt templates, structured output, chains, and more, all with a consistent interface
+- **Active ecosystem** — frequent updates and a large community building extensions on top of it
 
 #### Creating models
 
