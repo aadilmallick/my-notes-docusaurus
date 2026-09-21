@@ -652,13 +652,18 @@ Here are general tips
 
 ### User roles and permissions
 
-In the Veracode Platform, user access is controlled through **roles**, which are collections of specific permissions. These roles are assigned to user accounts to determine what actions they can perform and what data they can see.
+In the Veracode Platform, user access is controlled through **roles**, which are collections of specific permissions. These roles are assigned to user accounts to determine what actions they can perform.
+
+In Veracode, there are two types of users:
+
+- **UI users**: human users you add to your team and assign them roles
+- **API Users**: These are non-human accounts used for automation (CI/CD pipelines). They have their own set of roles (e.g., **Upload API**, **Results API**).
 
 Here are key permission concepts.
 
 - **Team Restrictions**: Most technical roles (Creator, Submitter, Reviewer) require membership in a specific team to see that team's applications and data.
 - **Scan Type Restrictions**: You can limit a user's role to specific scan types (e.g., only Static Analysis or only DAST).
-- **API Users**: These are non-human accounts used for automation (CI/CD pipelines). They have their own set of roles (e.g., **Upload API**, **Results API**).
+
 
 
 #### Admin roles
@@ -687,6 +692,18 @@ Some roles provide targeted access to specific features or products.
 - **Executive**: Provides high-level visibility. They can view Analytics and reports for all applications in the organization.
 - **Security Labs (Admin/Manager/User)**: These roles are specific to Veracode's interactive training platform, Security Labs.
 - **Workspace Administrator / Editor**: Specific to Veracode Software Composition Analysis (SCA) for managing workspaces and agents.
+
+### Security policies
+
+Veracode security policies set a threshold of security requirements for your applications.
+
+You can set them on:
+
+- Individual application profile level
+- Applies to all application profiles for a team
+- Applies to all application profiles for a portfolio
+
+Veracode security policies are the governing standards that define an organization's security requirements for its applications. When a scan is completed, the results are evaluated against these rules to determine if the application is **Pass** or **Fail** (Policy Compliance status).
 
 ## DevSecOps pipeline creation
 
