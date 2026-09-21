@@ -606,12 +606,87 @@ In order to ensure the integrity of artifacts, we need to use digital signatures
 
 ## Veracode
 
-### Basics
 
-#### Application profiles
+
+### Application profiles
 
 In simple terms, an application profile is a digital container or "folder" in the Veracode Platform that stores all the security information for a specific piece of software. You must create an application profile before you can submit a scan.
 
+An application profile performs three main functions:
+
+- **Identifies your software**: It stores the name, description, and business unit of the application you are testing.
+- **Sets security standards**: It links your application to a specific security policy. This policy defines whether your application "passes" or "fails" based on the flaws and vulnerabilities found during scans.
+- **Organizes results**: It aggregates results from different types of scans (such as Static Analysis and DAST) into a single report, allowing you to track security performance over time.
+
+The number of different application profiles you need to create depends on the architecture of your application. 
+
+> [!NOTE]
+> In general terms you should think of an application profile as representing a single service, like a front end, a back end, or an individual microservice. 
+
+When you create a profile, you define several important details:
+
+- **Business criticality**: How important the application is to your organization. This usually determines which security policy applies.
+- **Teams and owners**: Who is responsible for the application and who has permission to view the scan results.
+- **Metadata and tags**: Information used to organize and filter your applications within your portfolio.
+
+> [!IMPORTANT]
+> You must create an application profile before you can submit a scan to Veracode. 
+
+Here are general tips
+
+- **One profile per application**: We recommend creating one profile for a single application or monolith. For complex architectures, like microservices, you typically create multiple profiles.
+- **Data stays in the profile**: Findings, mitigations, and comments are specific to an application profile and cannot be transferred to another profile.
+
+#### Creating application profiles
+
+1. Go to **My Portfolio** -> **Applications**
+
+
+![](https://i.imgur.com/5HrpD3S.jpeg)
+
+
+2. Fill out the application name, business criticality level, and any policies to attach for that level.
+
+
+![](https://i.imgur.com/JajlH15.jpeg)
+
+### User roles and permissions
+
+In the Veracode Platform, user access is controlled through **roles**, which are collections of specific permissions. These roles are assigned to user accounts to determine what actions they can perform and what data they can see.
+
+Here are key permission concepts.
+
+- **Team Restrictions**: Most technical roles (Creator, Submitter, Reviewer) require membership in a specific team to see that team's applications and data.
+- **Scan Type Restrictions**: You can limit a user's role to specific scan types (e.g., only Static Analysis or only DAST).
+- **API Users**: These are non-human accounts used for automation (CI/CD pipelines). They have their own set of roles (e.g., **Upload API**, **Results API**).
+
+
+#### Admin roles
+
+These roles are responsible for managing the Veracode Platform itself and the users within it.
+
+- **Administrator**: Manages users, teams, and SAML settings. This role can view most areas but cannot create or delete scans. Note: You cannot have both the **Administrator** and **Team Admin** roles.
+- **Team Admin**: A localized version of the Administrator. They can manage users and teams but only within the specific teams they manage.
+- **Policy Administrator**: Responsible for governance. They create and edit security policies, set default policies, and assign them to applications.
+
+#### Tech and analysis roles
+
+These roles are used by developers and security engineers to perform the day-to-day work of security testing.
+
+- **Security Lead**: The most powerful technical role. They can create application profiles, view all scan results across the organization, submit any scan, and approve mitigations.
+- **Creator**: Focused on the initial setup. They can create application profiles and workspaces for their assigned teams. They can also request and delete scans for those applications.
+- **Submitter**: The primary role for developers. They can upload binaries and request scans for their teams' applications but cannot create or delete application profiles.
+- **Reviewer**: A "read-only plus" role. They can view scan results, reports, and flaw details for their teams. They can propose mitigations but cannot approve them.
+
+#### Specialized roles
+
+Some roles provide targeted access to specific features or products.
+
+- **Mitigation Approver**: Can approve or reject proposed mitigations (exceptions) for flaws.
+- **Sandbox Administrator / User**: These roles allow users to create and scan in "sandboxes," which are private testing areas that do not affect an application's official policy compliance.
+- **Executive**: Provides high-level visibility. They can view Analytics and reports for all applications in the organization.
+- **Security Labs (Admin/Manager/User)**: These roles are specific to Veracode's interactive training platform, Security Labs.
+- **Workspace Administrator / Editor**: Specific to Veracode Software Composition Analysis (SCA) for managing workspaces and agents.
 
 ## DevSecOps pipeline creation
 
