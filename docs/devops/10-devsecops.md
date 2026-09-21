@@ -606,6 +606,11 @@ In order to ensure the integrity of artifacts, we need to use digital signatures
 
 ## Veracode
 
+### Basics
+
+#### Application profiles
+
+In simple terms, an application profile is a digital container or "folder" in the Veracode Platform that stores all the security information for a specific piece of software. You must create an application profile before you can submit a scan.
 
 
 ## DevSecOps pipeline creation
