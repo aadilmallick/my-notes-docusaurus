@@ -752,15 +752,62 @@ There are three main types of built-in policies that Veracode provides:
 
 For all of these policies, you have them categorized into strictness levels: "low", "medium", "high", or "very high."
 
-- If you assign a policy with a "very high" strictness level, the security scan only fails if a vulnerability with a "very high" level is discovered, meaning this is not a strict policy. 
-- If you assign a policy with a "low" strictness level, the security scan will fail if a vulnerability with a "low" level or any higher level is discovered, meaning this is a very strict policy that fails on even the slightest of slight vulnerabilities. 
 
-**Business criticality**
 
-When you create an application profile, you assign it a **Business Criticality** (Very High to Very Low). By default, Veracode automatically assigns a policy based on this level:
+#### Security policy planning
 
-- **Very High/High**: Stricter rules, requiring more frequent scans and shorter grace periods.
-- **Medium/Low**: More permissive rules with longer remediation timelines.
+Security policy planning is a strategic process used to establish a consistent set of security standards across your entire application portfolio. Effective planning ensures that your security goals are technically sound and achievable for your development teams.
+
+**business criticality**
+
+When you create an application profile, you assign it a **Business Criticality** (Very High to Very Low).
+
+The foundation of your policy plan is identifying how important each application is to your business. This determines the level of scrutiny and risk tolerance for that application.
+
+- **Very High/High**: Mission-critical applications (e.g., customer-facing financial portals). These require the strictest rules and frequent scanning.
+- **Medium**: Applications with moderate risk (e.g., internal HR systems).
+- **Low/Very Low**: Non-critical applications with no sensitive data.
+
+**policy constraints**
+
+Your policy is built from specific rules that dictate what "security" looks like for your organization:
+
+- **Finding Rules**: Prohibit findings based on **Severity** (e.g., no Severity 4 or 5 flaws), **CWE Category** (e.g., no SQL Injection), or **CVSS Score** (e.g., nothing above 7.0).
+- **Scan Requirements**: Specify which scans must be run and how often. For high-criticality apps, we recommend performing Static (SAST), Dynamic (DAST), and SCA (open-source) scans at least every 30 days.
+- **Remediation Grace Periods**: Set realistic deadlines for fixing violations. For example, you might allow 30 days to fix "High" severity flaws but 90 days for "Medium."
+
+**strategy and rollout**
+
+- **Uniformity**: Use policies to enforce a uniform standard across different teams and business units.
+- **Phased Approach**: Start with achievable goals (e.g., "Fix all Critical flaws in 30 days") and gradually tighten the policy as your security posture improves.
+- **Stakeholder Alignment**: Involve AppSec managers, security leaders, and developers in the planning process to ensure the grace periods and rules are practical.
+
+**continuous monitoring**
+
+- **Review Compliance**: Use the **Policy Evaluation** section in the Veracode Platform to monitor which applications are passing or failing.
+- **Adjust as Needed**: If applications are consistently failing due to unrealistic grace periods, review and adjust the policy to better balance security and speed.
+
+#### Creating custom policies
+
+> [!NOTE]
+> You must have the **policy administrator** tole to perform policy maintenance activities.
+
+1. GO to **policies** -> **policy** to create a new policy
+
+
+![](https://i.imgur.com/8x6P8Ap.jpeg)
+
+2. Add the policy name and description
+
+
+
+![](https://i.imgur.com/4yCuB3r.jpeg)
+
+3. Add a new rule. IN this example, we select basic CWE vulnerabilities like SQL injections to look for.
+
+
+
+![](https://i.imgur.com/1GnYsu3.jpeg)
 
 ## DevSecOps pipeline creation
 
