@@ -604,7 +604,7 @@ In order to ensure the integrity of artifacts, we need to use digital signatures
 - **tools**: Tools like Sigstore and Cosign automate this process, enabling verification that software is authentic and untampered before deployment.
 
 
-## Veracode
+## Veracode basics
 
 
 
@@ -808,6 +808,142 @@ Your policy is built from specific rules that dictate what "security" looks like
 
 
 ![](https://i.imgur.com/1GnYsu3.jpeg)
+
+## Advanced Veracode
+
+### Veracode CLI
+
+#### Installation
+
+Check out:
+
+[Install the Veracode CLI | Veracode Docs](https://docs.veracode.com/r/Install_the_Veracode_CLI?install-options=powershell)
+
+
+#### Authentication
+
+You can authenticate with Veracode in the following ways:
+
+- **SSO**: If your organization uses single sign-on (SSO), use [OAuth](https://docs.veracode.com/r/Install_the_Veracode_CLI?install-options=powershell#use-oauth-authentication) to sign in with your username and password.
+- **HMAC (static API credentials)**: If your organization doesn't use SSO, use your API credentials to authenticate with Veracode using HMAC. When using the CLI in automation, such as scripts, use [HMAC authentication](https://docs.veracode.com/r/Install_the_Veracode_CLI?install-options=powershell#use-hmac-authentication).
+
+##### SSO Auth
+
+Use OAuth authentication if your organization uses SSO and you interact directly with the CLI. 
+
+> [!TIP]
+> When using the CLI in automation, where you do not interact with the CLI, then use HMAC with a veracode credentials file.
+
+1. In the CLI, run:
+    
+    ```
+    veracode auth login
+    ```
+    
+2. Enter your username and password.
+    
+3. Select **Sign in** to authenticate. You can now return to the CLI.
+
+##### HMAC Auth
+
+Use HMAC authentication to authenticate with Veracode using your API credentials. Use this method if your organization doesn't use SSO, or you're using Veracode CLI for automation, such as in a script.
+
+To setup Veracode integrations you need to store the Veracode **API credentials** for your user locally on your device in a **Veracode credentials file**, which usually lives in a `~/.veracode/credentials` file on your local machine.
+
+> [!NOTE]
+> To authenticate both the CLI and the VS Code extension, you need Veracode API credentials and then store them in a `~/.veracode/credentials` file.
+
+1. From your user profile menu, select **API Credentials**.
+
+
+![](https://i.imgur.com/eBjaHoc.jpeg)
+
+
+2. Select **Generate API Credentials** and save the ID and Secret Key.
+
+![](https://i.imgur.com/ypKP8S0.jpeg)
+
+2. Store your credentials in a file named `credentials` in a `.veracode` folder in your home directory:
+	- **Windows**: `C:\Users\<username>\.veracode\credentials`
+	- **macOS/Linux**: `~/.veracode/credentials`
+
+```bash
+[default]
+veracode_api_key_id = <YOUR_API_ID>
+veracode_api_key_secret = <YOUR_API_SECRET>
+```
+
+
+Or optionally, authenticate with HMAC by running the `veracode configure` command, which pulls the generated API credentials from your veracode account and automatically populations the `~/.veracode/credentials` file with those credentials:
+
+1. Set the environment variables for the API credentials:
+
+```bash
+set VERACODE_API_KEY_ID=<your_API_ID>
+set VERACODE_API_KEY_SECRET=<your_API_key>
+```
+
+2. Run the `veracode configure` command to read those env vars
+
+```
+veracode configure
+```
+
+#### Veracode CLI with github and gitlab
+
+You can authenticate your GitHub and GitLab repositories using the `GITHUB_TOKEN` and `GITLAB_TOKEN` environment variables, respectively. These variables store your personal access token (PAT) and are used when you run commands such as `veracode scan` and `veracode repository add`.
+
+To configure the environment variable for authenticating your GitHub repository, run:
+
+```
+export GITHUB_TOKEN=<your_github_token>
+```
+
+To configure the environment variable for authenticating your GitLab repository, run:
+
+```
+export GITLAB_TOKEN=<your_gitlab_token>
+```
+### Veracode Fix
+
+**Veracode Fix** is an AI-assisted remediation solution that generates secure code patches for security findings found in your application. 
+
+It supports both **Static Analysis (SAST)** flaws and **Software Composition Analysis (SCA)** vulnerabilities across several languages, including Java, C#, JavaScript, TypeScript, and Python.
+
+> [!NOTE]
+> To use Veracode Fix, you must have a Veracode account with the **Submitter** role.
+
+### Veracode Scan - VSCode
+
+The VSCode Veracode scan extension allows you to run veracode application profile security testing on your codebase and then view the results directly in the IDE.
+
+Here is the high level overview behind how Veracode Scan for VSCode allows you to expedite your security testing workflow:
+
+1. Packages your project
+2. Uploads your packaged project to Veracode for scanning against an application profile.
+3. Downloads the results and then displays them in your IDE
+
+Veracode scan is a combination of three key components:
+
+- **static analysis**: uses Veracode's static analysis testing to find application security vulnerabilities on your codebase using SAST. ALso highlights technical debt and insecure coding patterns.
+- **SCA**: uses Veracode's software composition analysis to find vulnerabilities in third-party packages using agent-based testing.
+- **Veracode Fix**: generates code patches to remediate some of the identified flaws or vulnerabilities using AI.
+
+**Setup**
+
+Here are the steps to set it up:
+
+1. Ensure that your veracode account has a **submitter** role.
+2. Download the Veracode Scan extension in VSCode
+3. Authenticate with SSO in the extension or use HMAC with the `~/.veracode/credentials` file after generating **API credentials**.
+
+![](https://i.imgur.com/dwGgGJd.jpeg)
+
+4. Install the local agent for SCA
+
+
+![](https://i.imgur.com/01EGvi2.jpeg)
+
 
 ## DevSecOps pipeline creation
 
