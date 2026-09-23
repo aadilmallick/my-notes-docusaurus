@@ -15,6 +15,16 @@ TeamCity contains two main components:
 - **TeamCity build agent**: the agent that actually does the building and execution of pipelines.
 	- These are dedicated services that execute the actual build tasks. They compile code, run tests, and produce artifacts as part of the CI/CD process.
 
+Each CI process is encapsulated into a **project**, where the basic flow is as follows:
+
+1. **Choose VCS roots**: choose the VCS roots that should trigger a new Teamcity build when new code is pushed up to those repos.
+2. **Add build configurations**: either manually create build configurations or write Kotlin DSL config-as-code to define individual jobs, and then the project defines the pipeline/build chain to run.
+
+
+
+![](https://i.imgur.com/tIhlWLk.jpeg)
+
+
 #### Teamcity server
 
 The TeamCity server is a central management component that is usually installed on a single dedicated machine that manages all pipelines.
@@ -341,7 +351,7 @@ On each build configuration, you can set the **agent requirements** for the buil
 
 ![](https://i.imgur.com/krsZqlJ.jpeg)
 
-### Subprojects 
+#### Subprojects 
 
 Subprojects help with organizing build configurations into individual subprojects but they also have granular control over permissions for who can run stuff in those subprojects. 
 
@@ -350,6 +360,19 @@ SUbprojects appear like nested folders in a Teamcity server
 
 
 ![](https://i.imgur.com/FnesBfy.jpeg)
+
+
+### Teamcity pipelines
+
+**TeamCity Pipelines** is a CI/CD server designed to integrate seamlessly into a developer's workflow. It offers a **visual pipeline editor** that allows users to configure pipelines without needing to manually manage complex YAML files, though YAML configuration is also supported.
+
+Key features include:
+
+* **Intelligent Configuration Assistance:** The tool provides suggestions based on the build steps you define, such as optimizing Maven packages for test result collection or parallel execution.
+* **Environment Flexibility:** Pipelines can run on various build agents, including *Linux*, *macOS*, and *Windows*.
+* **Smart Optimization:** It includes features like job reuse, build caching, and easy parallelization for tests, which can be configured via simple sliders or buttons to reduce overall build time .
+* **Integrated Debugging:** Users can view build logs, visualize pipeline progress, and even connect to a terminal on the running build agent for troubleshooting, all within the same interface.
+* **Configuration as Code:** Pipelines support both _YAML_ and _Kotlin DSL_, allowing you to define your pipeline structure as code that can be fully branched
 
 ### Teamcity + Gitlab SSH keys
 
@@ -416,6 +439,38 @@ Here’s how roles typically function in CI/CD systems like TeamCity:
     
 
 Roles help in maintaining security and appropriateness within project teams, ensuring that users only have access to the areas necessary for their tasks.
+
+### Access tokens + API
+
+#### Creating an access token
+
+Here's how to create a teamcity access token:
+
+1. Create an access token
+
+![](https://i.imgur.com/wIPaMvG.jpeg)
+
+2. Select permissions type, like read-only.
+
+#### Teamcity MCP
+
+This is how the teamcity configuration should be set up:
+
+```json
+{
+	"mcpServers": {
+		"teamcityMCP": {
+			"url": "<instance_url>/app/mcp",
+			"headers": {
+				"Authorization": "Bearer <teamcity_access_token>"
+			}
+		}
+	}
+}
+```
+
+1. Then replace `<instance_url>` with your specific self-hosted TeamCity instance origin like `https://ci.compusearch.com`.
+2. Grab an access token so you can attach it as bearer auth for the `Authorization` header for authorizing with the remote MCP server.
 
 
 ## TeamCity CLI
