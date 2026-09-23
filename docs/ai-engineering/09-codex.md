@@ -149,24 +149,22 @@ codex --dangerously-bypass-approvals-and-sandbox \
   "Bulk-apply code style fixes across the repo"
 ```
 
-### Tips & Best Practices
 
-- Be explicit: Include filenames, functions, and constraints in prompts.
-- Iterate: Start broad, then refine with follow-ups or `exec` reruns.
-- Review diffs: Read proposed patches before `codex apply`.
-- Keep changes scoped: Smaller prompts produce clearer, safer edits.
-- Use profiles: Store your defaults in `~/.codex/config.toml` and reference them
- with `-p`.
-- Treat `danger-full-access` and `--dangerously-bypass-approvals-and-sandbox` wi
-th care; prefer `workspace-write` + `on-request` for day-to-day work.
 
 ## Codex
 
-### COnversation basics
+### Conversation basics
 
 #### Slash commands
 
 - `/plan`: plan
+
+### Prompting codex
+
+#### General prompting best practices
+
+- **Always give acceptance criteria**: give codex acceptance criteria to get done as a list of TODOs.
+	- - Verification of AI-generated code against predefined acceptance criteria is essential to ensure quality and correctness.
 
 ### MCP
 
