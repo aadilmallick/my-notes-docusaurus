@@ -913,6 +913,34 @@ It supports both **Static Analysis (SAST)** flaws and **Software Composition Ana
 > [!NOTE]
 > To use Veracode Fix, you must have a Veracode account with the **Submitter** role.
 
+
+
+
+![](https://i.imgur.com/s4R4FDL.jpeg)
+
+
+#### Veracode fix CLI
+
+You can use veracode fix with the CLI
+
+The following table shows the available commands for each Fix product and their supported flags:
+
+|Product|Command|Without `--remote`|With `--remote`|
+|---|---|---|---|
+|Fix for SAST|`veracode fix`|Supported|Not available|
+|Fix for SCA|`veracode fix sca <source>`|Not available|Supported|
+
+
+> [!NOTE]
+> The `--remote` flag is required for Fix for SCA and is not available for SAST fixes. It enables server-side processing for SCA, which supports batch operations and handling of complex dependency changes.
+
+#### Veracode fix github action
+
+The Veracode Fix GitHub action is a GitHub app in the marketplace that you can install and then it would run Veracode scans on any of your pull requests. 
+
+
+![](https://i.imgur.com/WZyeUPw.jpeg)
+
 ### Veracode Scan - VSCode
 
 The VSCode Veracode scan extension allows you to run veracode application profile security testing on your codebase and then view the results directly in the IDE.
@@ -950,6 +978,13 @@ For SCA, you must enable a policy to filter out which SCA vulnerabilities you ac
 
 
 ![](https://i.imgur.com/30tBi4S.jpeg)
+
+#### Veracode fix
+
+Vulnerability flaws that appear with a blue icon means that Veracode Fix can automatically fix them.
+
+
+![](https://i.imgur.com/J6RvG64.jpeg)
 
 ## DevSecOps pipeline creation
 
