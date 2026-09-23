@@ -466,6 +466,48 @@ teamcity config set ro true
 
 ### Commands 
 
+#### `teamcity run`
+
+- `teamcity run list`: lists the 30 most recent teamcity runs
+
+```bash
+(prism-7.6.5-bug) PS C:\Users\amallick.ENGINEERS\Documents\work\prism-7.6.5-bug> teamcity run list           
+STATUS     RUN                              JOB               BRANCH  TRIGGERED BY  DURATION  AGE    
+* Running  375502  #40                      AutomationClm...  ...     ...           27m 35s   now    
++ Success  375500  #20                      AutomationClm...  ...     ...           6m 32s    51m ago
++ Success  375501  #20                      AutomationClm...  ...     ...           8m 45s    48m ago
+x Failed   375499  #32                      AutomationClm...  ...     ...           1h 24m    1h ago 
++ Success  375498  #2649                    PrismModern_T...  -       vcs           1m 46s    2h ago 
++ Success  375497  #2496                    TestingZone_T...  -       vcs           3m 43s    2h ago 
++ Success  375496  #20                      AutomationClm...  ...     ...           8m 2s     2h ago 
++ Success  375495  #21                      AutomationClm...  ...     ...           8m 23s    2h ago 
++ Success  375494  #2026.2.0.24             Clm_CLM_Insta...  ...     ...           1m 4s     2h ago 
++ Success  375493  #48                      PrismModern_O...  -       vcs           1m 15s    3h ago 
++ Success  375492  #2026.2.0.24             Clm_AI_Pipeli...  ...     ...           2m 25s    3h ago 
++ Success  375491  #2026.2.0.20             Clm_CLM_Insta...  ...     ...           1m 25s    3h ago 
++ Success  375490  #47                      PrismModern_O...  -       vcs           2m 56s    3h ago 
+x Failed   375489  #29                      AutomationClm...  ...     ...           51m 34s   3h ago 
++ Success  375488  #8                       PrismModern_P...  -       ...           3m 59s    3h ago 
+x Failed   375487  #27                      AutomationClm...  ...     ...           43m 34s   3h ago 
++ Success  375486  #12                      PrismModern_A...  -       vcs           11m 23s   4h ago 
++ Success  375485  #2648                    PrismModern_T...  -       vcs           1m 46s    5h ago 
++ Success  375484  #2328                    PrismModern_T...  -       vcs           12m 53s   4h ago 
++ Success  375483  #2495                    TestingZone_T...  -       vcs           3m 52s    5h ago 
++ Success  375482  #2259                    TestingZone_T...  -       vcs           12m 49s   4h ago 
++ Success  375481  #8.8.0.2382              Clm_ClmMergeR...  ...     vcs           23m 35s   4h ago 
++ Success  375480  #8.8.0.2381              Clm_ClmMergeR...  ...     vcs           27m 3s    4h ago 
++ Success  375477  #7.6.7.11.OTPortFeature  PrismModern_O...  -       ...           17m 57s   5h ago 
++ Success  375479  #8.8.0.198               Clm_ClmTrunkC...  ...     vcs           31m 21s   5h ago 
++ Success  375478  #11                      PrismModern_A...  -       vcs           13m 31s   5h ago 
++ Success  375470  #8.8.0.2380              Clm_ClmMergeR...  ...     vcs           23m 15s   5h ago 
++ Success  375469  #2647                    PrismModern_T...  -       vcs           1m 36s    5h ago 
++ Success  375458  #8.8.0.2379              Clm_ClmMergeR...  ...     vcs           28m 28s   5h ago 
++ Success  375467  #7.6.7.11.OTPortFeature  PrismModern_O...  -       ...           12m 18s   5h ago
+
+! Showing only the first 30 results - use --limit 0 to fetch all
+```
+
+- `teamcity run view <job-id>`: provides detailed info of a specific run
 #### Reference
 
 Run `teamcity <command> --help` for usage
