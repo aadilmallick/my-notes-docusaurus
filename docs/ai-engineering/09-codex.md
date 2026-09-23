@@ -87,18 +87,12 @@ re you’re in a clean repo or understand what will change before applying.
 
 ### Practical Workflows & Use Cases
 
-- Code edits in a repo: Ask Codex to modify specific files/functions; review the
- proposed patch; run `codex apply` to commit changes locally.
-- Bug triage and fixes: Provide failing test output; Codex pinpoints the issue, 
-proposes a change, and helps validate the fix.
-- Documentation & READMEs: Generate outlines or complete docs via `codex exec` a
-nd refine interactively.
-- Refactors: Guide multi-file refactors in steps; use sandboxed execution and ap
-provals to run formatters and tests.
-- UI reviews: Attach screenshots with `-i` so Codex can suggest accessibility im
-provements and produce code updates.
-- OSS/local models: Use `--oss` to target a local provider when network-limited 
-or to keep data local.
+- **Code edits in a repo**: Ask Codex to modify specific files/functions; review the proposed patch; run `codex apply` to commit changes locally.
+- **Bug triage and fixes**: Provide failing test output; Codex pinpoints the issue, proposes a change, and helps validate the fix.
+- **Documentation & READMEs**: Generate outlines or complete docs via `codex exec` and refine interactively.
+- Refactors: Guide multi-file refactors in steps; use sandboxed execution and approvals to run formatters and tests.
+- UI reviews: Attach screenshots with `-i` so Codex can suggest accessibility improvements and produce code updates.
+- OSS/local models: Use `--oss` to target a local provider when network-limited  or to keep data local.
 
 Here are some examples
 
@@ -166,5 +160,21 @@ codex --dangerously-bypass-approvals-and-sandbox \
 - Treat `danger-full-access` and `--dangerously-bypass-approvals-and-sandbox` wi
 th care; prefer `workspace-write` + `on-request` for day-to-day work.
 
+## Codex
 
+### COnversation basics
+
+#### Slash commands
+
+- `/plan`: plan
+
+### MCP
+
+### Skills
+
+### Plugins
+
+## Codex workflows
+
+### Github integration
 
