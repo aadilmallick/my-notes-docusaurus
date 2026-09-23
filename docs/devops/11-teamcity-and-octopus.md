@@ -511,19 +511,24 @@ x Failed   375487  #27                      AutomationClm...  ...     ...       
 
 ##### **running locally**
 
-The below command lets you run changes you made locally within your Kotlin DSL project.
+The `teamcity run start <JobName>` command lets you rerun a job in the teamcity cloud, specified by a job name.
 
-For running teamcity builds locally to work, you must be within a directory that has a `.teamcity` folder and a `.teamcity/settings.kts` file.
+The below command lets you run changes you made locally within your Kotlin DSL project.
 
 ```
 teamcity run start <JobName> --local-changes --watch
 ```
+
+> [!NOTE]
+> For running teamcity builds locally to work, you must be within a directory that has a `.teamcity` folder and a `.teamcity/settings.kts` file.
 
 #### `teamcity agent`
 
 The `teamcity agent` commands family lets you manage agents, SSH into them, and more.
 
 - `teamcity agent list`: lists all agents associated with your Teamcity server
+- `teamcity agent term <agent-id>`: SSH into a specific agent
+- `teamcity agent exec <agent-id> <cmd>`: Execute a command within the context of an agent's terminal
 
 #### Reference
 
