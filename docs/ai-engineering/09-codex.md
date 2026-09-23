@@ -178,3 +178,8 @@ th care; prefer `workspace-write` + `on-request` for day-to-day work.
 
 ### Github integration
 
+Once you connect codex to github through your ChatGPT account, you can do the following:
+
+- **Add the `codex` label on issues**: Assign codex to take on issues for you by assigning the "codex" label to an issue
+- **Tag `@codex` on comments**: on PR comments or issue bodies, you can tag `@codex` and tell it to do whatever you want.
+
