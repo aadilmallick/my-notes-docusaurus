@@ -362,42 +362,11 @@ You can also set local MCP settings for your workspace, which is often way more 
 }
 ```
 
-### Awesome MCP: list of MCP servers
+### MCP use cases
+#### Awesome MCP: list of MCP servers
 
 - https://mcpmcp.io/#install: mcp server to ask your agent about what MCP servers there are
 - https://github.com/regenrek/deepwiki-mcp: to find info about a specific repo
-
-#### Image transformation MCP servers
-
-```embed
-title: "GitHub - BoomLinkAi/image-worker-mcp: Effortlessly resize, convert, optimize, and transform images with a single MCP server—then upload them directly to S3, Cloudflare R2, or Google Cloud Storage. Ideal for AI workflows, automation scripts, and developers who want seamless image handling in one tool."
-image: "https://opengraph.githubassets.com/3ff12fed5d0f07d944f7b8289dfc146ad5408466b21a4ecd324c3e83d729a675/BoomLinkAi/image-worker-mcp"
-description: "Effortlessly resize, convert, optimize, and transform images with a single MCP server—then upload them directly to S3, Cloudflare R2, or Google Cloud Storage. Ideal for AI workflows, automation scr..."
-url: "https://github.com/BoomLinkAi/image-worker-mcp"
-favicon: ""
-aspectRatio: "50"
-```
-
-```embed
-title: "GitHub - InhiblabCore/mcp-image-compression: A high-performance image compression microservice based on MCP (Modal Context Protocol)"
-image: "https://opengraph.githubassets.com/f710c12e91c1387a11c3dfe14d7a0cd52e8c045d6172bdfa7cc589b8395da83f/InhiblabCore/mcp-image-compression"
-description: "A high-performance image compression microservice based on MCP (Modal Context Protocol) - InhiblabCore/mcp-image-compression"
-url: "https://github.com/InhiblabCore/mcp-image-compression"
-favicon: ""
-aspectRatio: "50"
-```
-
-
-
-### MCP strategies
-
-#### Ideas
-
-- **Github MCP/skill**: The most powerful way to use this MCP server is:
-	- **creating issues**: ask claude code to create a github issue, tag other AIs (like claude, jules, gemini cli, codex) as assignees
-	- **creating pull requests**: create a nicely formatted pull request
-	- **solve issues**: ask claude to look at a specific issue, read it, and then solve it.
-- **Playwright**: You can use this to create integration tests and take screenshots.
 
 #### Vibing with MCP
 
@@ -457,6 +426,16 @@ One of the most important uses of MCP is giving online, up-to-date docs for an A
 - **Context7**: An MCP server that has tools to fetch online documentation and return it as markdown.
 - **RepoMix**: Go to the [Repomix website](https://repomix.com/) to download the entire docs as a markdown file you cna then feed into LLMs.
 
+
+
+
+
+
+### Playwright MCP
+
+#### Installation
+
+**Claude**
 
 
 
