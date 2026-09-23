@@ -809,7 +809,7 @@ Your policy is built from specific rules that dictate what "security" looks like
 
 ![](https://i.imgur.com/1GnYsu3.jpeg)
 
-## Advanced Veracode
+## Veracode Tools
 
 ### Veracode CLI
 
@@ -944,6 +944,12 @@ Here are the steps to set it up:
 
 ![](https://i.imgur.com/01EGvi2.jpeg)
 
+#### SCA
+
+For SCA, you must enable a policy to filter out which SCA vulnerabilities you actually want to care about.
+
+
+![](https://i.imgur.com/30tBi4S.jpeg)
 
 ## DevSecOps pipeline creation
 
