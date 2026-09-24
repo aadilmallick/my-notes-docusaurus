@@ -903,7 +903,81 @@ The AI agent:
 
 **Commit**: `git commit -m "phase-4: migrate to new architecture and remove old code"`
 
-### Examples
+
+### Testing
+
+#### UX audit
+
+1. Add the chrome devtools MCP
+
+```bash
+claude mcp add chrome-devtools -- npx @anthropic-ai/chrome-devtools-mcp@latest
+```
+
+2. `/ux-audit` slash command that runs a full checklist automatically.
+
+```md
+Run an automated UX audit on the running application using DevTools MCP.
+
+Prerequisites: Dev server must be running. Chrome DevTools MCP must be configured.
+
+Steps:
+
+1. **Page inventory**: Take a screenshot of each key page (home, task list, task detail, create task form). Log any console errors on each navigation.
+
+2. **Interactive element check**: For each page, identify all buttons, links, and form inputs. Click each one and verify it produces the expected response (navigation, modal, form submission, etc.). Report any that are unresponsive or produce errors.
+
+3. **Responsive layout check**: Resize the viewport to three breakpoints:
+   - Desktop (1280px wide)
+   - Tablet (768px wide)
+   - Mobile (375px wide)
+   Take a screenshot at each size. Flag any layout issues: overlapping elements, text overflow, unreachable buttons, horizontal scroll.
+
+4. **Loading and error states**: Navigate with simulated slow network. Verify loading indicators appear. Submit forms with invalid data. Verify error messages are shown clearly and are actionable.
+
+5. **Performance check**: Run a performance trace on the heaviest page. Flag any long tasks (>50ms), layout thrashing, or excessive re-renders.
+
+6. **Report**: Summarize findings as:
+   - PASS: [what looks good]
+   - WARN: [minor issues worth addressing]
+   - FAIL: [issues that need fixing before shipping]
+
+Fix any FAIL issues automatically. For WARN issues, describe the fix but leave it for the developer to decide.
+```
+
+#### Fixing errors with chrome MCP
+
+1. Add the chrome devtools MCP
+
+```bash
+claude mcp add chrome-devtools -- npx @anthropic-ai/chrome-devtools-mcp@latest
+```
+
+2. `/debug-runtime` slash command uses the devtools MCP to troubleshoot web app errors
+
+```md
+Systematically debug runtime issues using DevTools MCP.
+
+Steps:
+1. Take a screenshot of the current page state
+2. Check the browser console for errors or warnings
+3. Inspect network requests for failed or slow responses
+4. If performance issues suspected, run a performance trace
+5. For each issue found:
+   - Identify the root cause in the source code
+   - Propose a fix
+   - Implement the fix
+   - Verify with another screenshot/console check
+
+Report findings as:
+- Issue: [what's wrong]
+- Root cause: [why it happens]
+- Fix: [what you changed]
+- Verified: [how you confirmed the fix]
+```
+
+
+### Playbook
 
 ```embed
 title: "mastering-ai-assisted-development-10666010/5.4-demo-fullstack-agent-team/README.md at main · LinkedInLearning/mastering-ai-assisted-development-10666010"
@@ -913,7 +987,314 @@ url: "https://github.com/LinkedInLearning/mastering-ai-assisted-development-1066
 favicon: ""
 ```
 
+#### When to use what
 
+```embed
+title: "mastering-ai-assisted-development-10666010/6.3-demo-ai-playbook/playbook/decision-framework.md at main · LinkedInLearning/mastering-ai-assisted-development-10666010"
+image: "https://opengraph.githubassets.com/b864c8d13aec1d1a8f7ae9b8340c45b752c3c8b1d056ecabafc4496e0da5ee59/LinkedInLearning/mastering-ai-assisted-development-10666010"
+description: "This is a repo for the LinkedIn Learning course: Mastering AI-Assisted Development - LinkedInLearning/mastering-ai-assisted-development-10666010"
+url: "https://github.com/LinkedInLearning/mastering-ai-assisted-development-10666010/blob/main/6.3-demo-ai-playbook/playbook/decision-framework.md"
+favicon: ""
+aspectRatio: "50"
+```
+
+
+#### The Templates
+
+
+
+This demo includes starter templates you can customize:
+
+1. Spec Template (`templates/SPEC.md.template`): A reusable project specification following this formula:
+
+	- Technology constraints
+	- Visual / functional requirements
+	- Performance targets
+	- Interaction model
+
+````md
+# Project Spec: [PROJECT NAME]
+
+## Technology Constraints
+- **Framework**: [e.g., React 18, Next.js 15, Vue 3]
+- **Language**: [e.g., TypeScript strict mode]
+- **Styling**: [e.g., Tailwind CSS, CSS Modules]
+- **Dependencies**: [list specific libraries and versions]
+- **No**: [explicitly exclude anything you don't want]
+
+## Functional Requirements
+- [What should the application DO? List the core behaviors.]
+- [Be specific about WHAT, flexible about HOW.]
+- [Include interaction model: clicks, hover, keyboard, etc.]
+
+## Visual Requirements
+- [Color palette, typography, layout constraints]
+- [Responsive breakpoints]
+- [Animation and transition expectations]
+- [Reference designs or inspiration (if any)]
+
+## Performance Targets
+- [Load time, bundle size, frame rate expectations]
+- [e.g., "60 FPS animations", "< 200KB bundle", "< 2s initial load"]
+
+## Out of Scope
+- [What this project is NOT — helps Claude stay focused]
+````
+
+2. Skill Template (`templates/SKILL.md.template`): An empty template for creating a skill that contains these sections:
+
+	- Purpose (when to activate)
+	- Principles (domain expertise)
+	- Patterns (code examples)
+	- Anti-Patterns (what to avoid)
+	- Checklist (verification steps)
+
+````md
+# Skill: [SKILL NAME]
+
+## Purpose
+
+When to activate this skill:
+- [Trigger condition 1: e.g., "When creating React components"]
+- [Trigger condition 2: e.g., "When the user asks for UI work"]
+
+## Principles
+
+Core expertise this skill encodes:
+
+1. **[Principle Name]**: [What to do and why]
+2. **[Principle Name]**: [What to do and why]
+3. **[Principle Name]**: [What to do and why]
+
+Start with 3-5 principles. You can always add more later.
+
+## Patterns
+
+Code examples showing the RIGHT way:
+
+```typescript
+// Good: [describe what this demonstrates]
+```
+
+## Anti-Patterns
+
+Code examples showing the WRONG way:
+
+```typescript
+// Bad: [describe what to avoid and why]
+```
+
+## Checklist
+
+Before considering the work done, verify:
+
+- [ ] [Quality check 1]
+- [ ] [Quality check 2]
+- [ ] [Quality check 3]
+````
+
+3. CLAUDE.md Template (`templates/CLAUDE.md.template`): A project-level constitution covering:
+
+	- Project context and architecture
+	- Code style and conventions
+	- Testing requirements
+	- Common commands
+
+````md
+# CLAUDE.md — Project Constitution
+
+## Project Overview
+
+[One paragraph: what this project is, what it does, who it's for.]
+
+## Architecture
+
+[Brief description of the project structure:]
+
+- `src/` — [what lives here]
+- `tests/` — [testing strategy]
+- `docs/` — [documentation approach]
+
+## Code Style & Conventions
+
+- [Language/framework conventions: e.g., "Use functional components with hooks, not class components"]
+- [Naming conventions: e.g., "camelCase for variables, PascalCase for components"]
+- [File naming: e.g., "kebab-case for files, one component per file"]
+- [Import order: e.g., "external deps → internal modules → relative imports"]
+
+## Testing Requirements
+
+- [Test framework and approach: e.g., "Jest + React Testing Library"]
+- [Coverage expectations: e.g., "All new code must have tests"]
+- [What to test: e.g., "Test behavior, not implementation details"]
+
+## Common Commands
+
+```bash
+npm run dev      # Start development server
+npm test         # Run test suite
+npm run build    # Production build
+npm run lint     # Run linter
+```
+
+## Important Notes
+
+- [Any gotchas, quirks, or critical context about the project]
+- [Things that frequently trip people (and AI agents) up]
+````
+
+4. Agent Config Template (`templates/AGENT.md.template`): Subagent definition template
+
+	- Name and description
+	- Allowed tools
+	- Model selection
+	- System prompt with expertise
+
+```md
+---
+name: [agent-name]
+description: "[When should the parent delegate to this agent? Be specific.]"
+model: sonnet
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+---
+
+# [Agent Name] — [Role]
+
+## Expertise
+
+You are a specialist in [domain]. Your job is to [primary responsibility].
+
+## Scope
+
+**You own these files**:
+- `src/[your-layer]/`
+- `tests/[your-layer]/`
+
+**You do NOT touch**:
+- [files owned by other agents]
+
+## Approach
+
+1. [Step 1: e.g., "Read the shared types to understand the contract"]
+2. [Step 2: e.g., "Implement each function with error handling"]
+3. [Step 3: e.g., "Write tests for every public function"]
+4. [Step 4: e.g., "Run tests and fix failures before committing"]
+
+## Quality Standards
+
+- [Standard 1: e.g., "Every function has JSDoc comments"]
+- [Standard 2: e.g., "No `any` types — everything is strictly typed"]
+- [Standard 3: e.g., "Tests cover happy path, edge cases, and error cases"]
+```
+
+#### Slash Commands
+
+- `.claude/commands/evaluate.md` — Assess which AI pattern fits a given task
+
+```md
+Evaluate which AI development pattern best fits a given task.
+
+Analyze the task and recommend an approach:
+
+1. **Assess the task**:
+   - How complex is it? (minutes, hours, days)
+   - Can concerns be separated? (frontend/backend, modules, layers)
+   - Is it visual/creative or logic-heavy?
+   - Does it need external data or tools?
+   - Is it a one-off or a repeating pattern?
+
+2. **Recommend a pattern**:
+   - Vibe Coding (quick visual prototypes)
+   - Skills + Commands (repeating patterns)
+   - MCP (external data/tools needed)
+   - RALPH/Tasks (too big for one context)
+   - Multi-Phase (large refactors)
+   - Subagents (separable concerns, sequential)
+   - Swarms (independent parallel work)
+   - Agent Teams (full applications)
+
+3. **Explain why**: One sentence on why this pattern fits better than alternatives.
+
+4. **Suggest a starting point**: What's the first concrete step?
+```
+
+- `.claude/commands/retro.md` — Run a retrospective on your last AI-assisted session
+
+```md
+Run a quick retrospective on the current or most recent AI-assisted development session.
+
+Review what happened and provide structured feedback:
+
+1. **What worked well?**
+   - Which prompts produced good results on the first try?
+   - Which patterns or tools were most effective?
+   - Any particularly efficient moments worth repeating?
+
+2. **What didn't work?**
+   - Where did the AI struggle, hallucinate, or go off track?
+   - Which prompts needed multiple iterations to get right?
+   - Any wasted effort or dead ends?
+
+3. **What should be saved?**
+   - Any prompt worth saving as a slash command?
+   - Any pattern worth encoding as a skill?
+   - Any spec worth saving as a template?
+   - Any CLAUDE.md rules that helped?
+
+4. **What should be tuned?**
+   - Any existing skills that need refinement?
+   - Any commands that could be more specific?
+   - Any CLAUDE.md rules to add or adjust?
+
+5. **Action items**:
+   - List 1-3 specific things to do before the next session
+   - e.g., "Save the dashboard spec as templates/dashboard.md"
+   - e.g., "Add error handling principle to the API skill"
+
+Format the output as a brief, actionable summary — not a lengthy report.
+```
+
+Use the `/retro` command or ask yourself:
+
+1. **What worked?** — Which prompts, specs, or patterns produced good results?
+2. **What didn't?** — Where did Claude struggle, hallucinate, or go off track?
+3. **What should I save?** — Any prompt, spec, or approach worth reusing?
+4. **What should I tune?** — Any skill, command, or CLAUDE.md rule to adjust?
+
+The empty retrospective log template looks like this:
+
+```md
+# Pattern Log
+
+Track which AI development patterns work for you. Fill this in after each session.
+
+| Date | Task | Pattern Used | Result (Great/Good/Meh/Bad) | What Worked | What to Improve |
+|------|------|-------------|----------------------------|-------------|-----------------|
+|      |      |             |                            |             |                 |
+|      |      |             |                            |             |                 |
+|      |      |             |                            |             |                 |
+|      |      |             |                            |             |                 |
+|      |      |             |                            |             |                 |
+
+## Templates Saved
+
+| Date | Template Name | Type (spec/skill/command/agent) | Location | Notes |
+|------|--------------|--------------------------------|----------|-------|
+|      |              |                                |          |       |
+|      |              |                                |          |       |
+
+## Insights
+
+Use this space to capture patterns you notice over time:
+
+-
+-
+-
+```
 
 ## Vibe coding workflows with different harnesses
 

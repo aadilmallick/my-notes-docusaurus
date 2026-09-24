@@ -107,11 +107,11 @@ If you want to self-host build agents on the cloud by putting the build agents o
 A project is a container for **templates**, **subprojects**, **build configurations**, and **version control** connections.
 
 - **build configuration**: a set of build steps or a Kotlin code-as-config file that defines the steps and instructions for building and packaging a project.
-- **template**: A kotlin file that is a used as a template to create build configuration files.
+- **template**: A kotlin file or teamcity construct that is a used as a template to create build configuration files with DRY philosophy.
 - **subproject**: a subfolder within a project that contains its own scoped build configurations and templates, mainly used for organization purposes.
 - **versioned settings**: connects your Kotlin config as code from a remote git repo to be used to create all the build configs, templates, and subprojects of a project.
 
-All projects inherit from the **root project**
+All projects inherit from the **root project**, and all build configurations, templates, and VCS settings within a project are available for use to any other component within that project or any subprojects of that project.
 
 
 ![](https://i.imgur.com/N0W4UwS.jpeg)
@@ -122,136 +122,94 @@ All projects inherit from the **root project**
 > [!NOTE]
 > Note that since [user permissions](https://www.jetbrains.com/help/teamcity/2026.1/managing-roles-and-permissions.html?Creating%20and%20Editing%20Projects) are project-based, only Root project administrators can edit its settings.
 
+#### VCS roots vs versioned settings
 
-#### Gitlab + Kotlin DSL
-
-To enable a GItlab repo to push up Kotlin DSL to create a TeamCity project, you nned to modify the **versioned control settings** of a project to point to Gitlab.
-
-
-![](https://i.imgur.com/IUNHaKG.jpeg)
-
-#### Triggers
-
-
-
-Often you'll have all your TeamCity Kotlin DSL code stored in a GitLab repository. Whenever you push to your GitLab repository, it should automatically push up those build configuration file changes to TeamCity to actually run the pipeline. 
-
-1. To achieve this we should add a Team City dedicated user to the GitLab repository
-
-
-
-![](https://i.imgur.com/rhTdRIw.jpeg)
-2. When creating a teamcity project, you should also add a trigger, and choose a VCS trigger:
-
-
-![](https://i.imgur.com/Sl8Wy13.jpeg)
-
-3. For the VCS trigger, specify the branches that should be listened to for the trigger. By default, all branches trigger the trigger, but you can filter it down to only specific branches like so:
-
-
-![](https://i.imgur.com/AbuNAHK.jpeg)
-
-> [!TIP]
-> For more info on the special syntax and what it means, check out [[#Teamcity artifacts]].
-
-Now Teamcity is configured to receive push trigger request from Gitlab. 
-
-
-##### How VCS triggers work
-
-How triggers work is through a polling schedule. 
-
-In this specific case, Teamcity checks every 60 seconds if there is a new push to the gitlab repo that should trigger the configured VCS trigger, and if so, then run the project and its build configurations.
-
-You can configure this VCS trigger behavior like so:
-
-- **quiet period**: the polling interval. By default, this is 60 seconds
-- **branch filter**: the branches to amtch on for the trigger
-
-
-
-![](https://i.imgur.com/ugdlZ4E.jpeg)
-
-You can also add extra advanced trigger rules which include matching on the following:
-
-- **specific VCS root**: you can configure multiple possible VCS roots for a project aand then add different trigger rules for them
-- **gitlab username**: trigger or don't trigger depending on the user who pushed the branch
-- **comment regex**: trigger or don't trigger depending on the commit message content regex matching.
-	- **example use case**: skip build on commit with content `[skip ci]`
-
-![](https://i.imgur.com/YC9rGFL.jpeg)
-
-You can also exclude certain filepaths from being tracked, and therefore don't trigger builds
-
-
-
-
-![](https://i.imgur.com/sfKuCxU.jpeg)
-
-##### Scheduled triggers
-
-Scheduled triggers let you run builds on a cron schedule. 
-
-
-![](https://i.imgur.com/mFvCnRO.jpeg)
-
-#### Adding build configurations
-
-When trying to add build configurations, you can point to a gitlab repository containing the kotlin template and then the specific kotlin build configuration ID
-
-
-![](https://i.imgur.com/ZAFWV2v.jpeg)
+A VCS (Version Control System) root is a crucial component in a CI/CD pipeline, specifically in TeamCity. It essentially acts as a connection point between TeamCity and your source control system, allowing builds to access source code for various projects or build configurations.
 
 > [!NOTE]
-> Whenever you create a build configuration, TeamCity creates a unique ID for that, which is used internally and which TeamCity recognizes. 
+> A VCS root defines where TeamCity should look for the source code. Each VCS root can point to a specific repository in systems like Git or SVN.
 
-1. Choose the VCS type, which should be git
+VCS roots can be set at different levels:
 
+- **Project level**: This is the most common approach, where you can configure a VCS root for a specific project. All build configurations under that project will inherit this VCS root.
+- **Root project level**: While you could define a VCS root at the root project level for global access, it’s less flexible. Different teams can have different repositories, so it’s often more effective to define them at the project level.
 
-![](https://i.imgur.com/mimsUdz.jpeg)
+When setting up a VCS root, credentials are required for accessing the repository. 
 
-2. Specify the VCS root with the teamcity username and password auth from gitlab
+> [!IMPORTANT]
+> It's advisable to use SSH keys for more secure access instead of username and password, as it is more reliable and doesn't break if credentials change.
 
+##### Adding a build configuration manually
+
+Let's first do it manually:
+
+1. **Create a VCS Root**: Go to your project settings, then select "VCS Roots" and click "Create VCS Root."
+    - **Select Type**: Choose your VCS type, e.g., Git.
+    - **Configure Repository URL**: Enter the URL of your source code repository.
+    - **Authentication**: Set up authentication (e.g., SSH keys).
+    - **Save**: This links TeamCity with your source code repository.
 
 ![](https://i.imgur.com/xyTWad6.jpeg)
 
 
-#### Teamcity artifacts
+2. **Add a Build Configuration**: In the project settings, select "Build Configurations" and click "Create Build Configuration."
+	- **Name it**: Give your build configuration a descriptive name, e.g., "NodeApp_Build."
+	- **Select VCS Root**: Attach the previously created VCS root to this build configuration
 
-For a build configuration, you have two important settings when it comes to artifacts:
+![](https://i.imgur.com/ZAFWV2v.jpeg)
 
-1. **publish artifacts**: when to publish artifacts. You have these options:
-	- **even if build fails**: even if build fails, publish artifacts
-	- **no publish on fail**: if build fails, don't publish artifacts
-2. **artifact paths**: provide Team City-specific syntax for describing the source code artifact path mapping to the Team City build agent runner environment target directory. The syntax is as follows:
+![](https://i.imgur.com/mimsUdz.jpeg)
 
-```
-+:source => target   // to mount source code path to target path
--:source   // to ignore a source code path
-```
-
-
-![](https://i.imgur.com/6A7ZNrq.jpeg)
+3. **Add Build Steps**: In your build configuration settings, create build steps to specify how to build and test your Node.js application, using Node.js commands like `npm install` and `npm test`.
 
 
 > [!NOTE]
-> All of these settings are configurable in the Kotlin DSL for TeamCity. 
+> Whenever you create a build configuration, TeamCity creates a unique ID for that, which is used internally and which TeamCity recognizes as a **job** or **run**, and then you can use that in the teamcity API or teamcity CLI to programmatically fetch the info of those jobs.
 
-Let's go more in depth into the language:
 
-- `+`: include
-- `-`: exclude
-- `*`: star glob pattern
-- `**`: recursive star glob pattern
+##### Adding a build configuration through Gitlab + Kotlin DSL 
 
-So this below:
+If you're using Kotlin DSL to configure TeamCity, you might create a repository that defines your settings, including VCS roots, through code. This allows for version-controlled configuration, facilitating easier management and deployment of CI/CD settings.
 
+
+Kotlin DSL works at the **project level**, fetching info from a `.teamcity/settings.kts` entrypoint from a repository.
+
+Here are the steps to set up Gitlab with Kotlin DSL to use config as code for defining everything within a project like build configurations, subprojects, and templates:
+
+1. To enable a Gitlab repo to push up Kotlin DSL to create a TeamCity project, you nned to modify the **versioned control settings** of a project to point to Gitlab.
+
+
+![](https://i.imgur.com/IUNHaKG.jpeg)
+
+2. In your project repository, create a `.teamcity` directory to hold Kotlin files. The create a Kotlin file (e.g., `build.gradle.kts`) to define your project structure, including VCS roots and build configurations programmatically:
+
+```kt
+version = "2021.1"
+
+project {
+    vcsRoot {
+        id("MyVcsRoot")
+        name = "My Git Repo"
+        url = "https://github.com/username/repo.git"
+        branch = "refs/heads/main"
+    }
+
+    buildType {
+        id("Build")
+        name = "Build Node App"
+        vcs {
+            root("MyVcsRoot")
+        }
+        steps {
+            script {
+                scriptContent = "npm install && npm test"
+            }
+        }
+    }
+}
 ```
-**/* => target_dir, -: **/folder1 => target_dir
-```
 
-maps all files in the source code to the teamcity build runner filesystem but then removes/ignores `folder1`.
-
+3. Commit your Kotlin DSL configuration to the same repository. This allows versioning of your TeamCity configuration, enabling better management.
 
 #### Adding parameters
 
@@ -290,7 +248,129 @@ So here's an example where we want to create a dynamic `repository` parameter th
 ![](https://i.imgur.com/EOZMbJz.jpeg)
 
 
-#### Build numbers
+#### Subprojects 
+
+Subprojects help with organizing build configurations into individual subprojects but they also have granular control over permissions for who can run stuff in those subprojects. 
+
+SUbprojects appear like nested folders in a Teamcity server
+
+
+
+![](https://i.imgur.com/FnesBfy.jpeg)
+
+
+### Build configurations
+#### VCS Triggers
+
+VCS triggers in TeamCity are used to automatically initiate a build whenever there's a change in the associated VCS root (e.g., a commit or push to the source code repository).
+
+> [!NOTE]
+> There is a big difference between a VCS trigger and version settings. Anything you push up in your Kotlin DSL version settings to a GitLab repo will automatically make the changes in the project but it will not create any runs. A VCS trigger is what actually triggers a pipeline: if the source code repo gets changed then the VCS root trigger activates, which is different than Kotlin DSL. 
+
+1. You configure VCS triggers within a build configuration. 
+2. Once a VCS trigger is set, TeamCity continuously monitors the linked VCS root for changes.
+3. When it detects a change, it queues a new build (you can configure these settings)
+
+##### Creating a VCS trigger on a build configuration
+
+1. To achieve this we should add a Team City dedicated user to the GitLab repository
+
+
+
+![](https://i.imgur.com/rhTdRIw.jpeg)
+2. After selecting the build configuration, navigate to the "Triggers" tab and add a new trigger of type "VCS Trigger.":
+
+
+![](https://i.imgur.com/Sl8Wy13.jpeg)
+
+3. For the VCS trigger, specify the branches that should be listened to for the trigger. By default, all branches trigger the trigger, but you can filter it down to only specific branches like so:
+
+
+![](https://i.imgur.com/AbuNAHK.jpeg)
+
+> [!TIP]
+> For more info on the special syntax and what it means, check out [[#Teamcity artifacts]].
+
+##### Trigger configuration
+
+How triggers work is through a polling schedule. 
+
+In this specific case, Teamcity checks every 60 seconds if there is a new push to the gitlab repo that should trigger the configured VCS trigger, and if so, then run the project and its build configurations.
+
+You can configure this VCS trigger behavior like so:
+
+- **quiet period**: the polling interval. By default, this is 60 seconds
+- **branch filter**: the branches to amtch on for the trigger
+
+
+
+![](https://i.imgur.com/ugdlZ4E.jpeg)
+
+You can also add extra advanced trigger rules which include matching on the following:
+
+- **specific VCS root**: you can configure multiple possible VCS roots for a project aand then add different trigger rules for them
+- **gitlab username**: trigger or don't trigger depending on the user who pushed the branch
+- **comment regex**: trigger or don't trigger depending on the commit message content regex matching.
+	- **example use case**: skip build on commit with content `[skip ci]`
+
+![](https://i.imgur.com/YC9rGFL.jpeg)
+
+You can also exclude certain filepaths from being tracked, and therefore don't trigger builds
+
+
+
+
+![](https://i.imgur.com/sfKuCxU.jpeg)
+
+#### Scheduled triggers
+
+Scheduled triggers let you run build configurations on a cron schedule. 
+
+
+![](https://i.imgur.com/mFvCnRO.jpeg)
+
+
+
+#### Build configuration artifacts
+
+For a build configuration, you have two important settings when it comes to artifacts:
+
+1. **publish artifacts**: when to publish artifacts. You have these options:
+	- **even if build fails**: even if build fails, publish artifacts
+	- **no publish on fail**: if build fails, don't publish artifacts
+2. **artifact paths**: provide Team City-specific syntax for describing the source code artifact path mapping to the Team City build agent runner environment target directory. The syntax is as follows:
+
+##### Artifact path syntax
+
+```
++:source => target   // to mount source code path to target path
+-:source   // to ignore a source code path
+```
+
+
+![](https://i.imgur.com/6A7ZNrq.jpeg)
+
+
+> [!NOTE]
+> All of these settings are configurable in the Kotlin DSL for TeamCity. 
+
+Let's go more in depth into the language:
+
+- `+`: include
+- `-`: exclude
+- `*`: star glob pattern
+- `**`: recursive star glob pattern
+
+So this below:
+
+```
+**/* => target_dir, -: **/folder1 => target_dir
+```
+
+maps all files in the source code to the teamcity build runner filesystem but then removes/ignores `folder1`.
+
+
+##### Build numbers
 
 Build numbers are useful for versioning artifacts created by TeamCity, which is essential when moving to Octopus Deploy.
 
@@ -350,16 +430,6 @@ On each build configuration, you can set the **agent requirements** for the buil
 
 
 ![](https://i.imgur.com/krsZqlJ.jpeg)
-
-#### Subprojects 
-
-Subprojects help with organizing build configurations into individual subprojects but they also have granular control over permissions for who can run stuff in those subprojects. 
-
-SUbprojects appear like nested folders in a Teamcity server
-
-
-
-![](https://i.imgur.com/FnesBfy.jpeg)
 
 
 ### Teamcity pipelines
