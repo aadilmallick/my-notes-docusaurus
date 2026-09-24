@@ -562,9 +562,177 @@ The Software Development Life Cycle (SDLC) is a structured process that guides s
     
 6. **Run tests again:** Execute the tests to check if the component passes. If there are failures, review error messages.
 
+
+### How to write good specs
+
+Here's an example of how you write a good spec:
+
+- **overview**: description of feature
+- **user story**: what the user should be able to do
+- **acceptance criteria**: definition of "done" for the feature
+- **tech**: data model, auth, permissions, etc.
+
+````md
+# Feature Specification: User Invitation System
+
+## Overview
+
+Add the ability for users to invite other users to join the platform via email. Invitations are one-time use tokens that can be redeemed to create a new user account.
+
+## User Story
+
+As a user, I want to invite friends to join the platform by sending them an email with a unique link. When they click the link, they can create an account without needing a traditional sign-up form.
+
+## Acceptance Criteria
+
+- [ ] Users can generate invitation tokens
+- [ ] Each token is unique and one-time use only
+- [ ] Tokens include an expiration date (7 days default)
+- [ ] Expired tokens are rejected
+- [ ] Already-redeemed tokens are rejected
+- [ ] New users can redeem invitations to create accounts
+- [ ] Email addresses are validated before sending invites
+
+## API Endpoints
+
+### Generate Invitation
+```
+POST /invitations
+Request: { email: string }
+Response: { token: string, expiresAt: string }
+```
+
+Validates:
+- Email format is valid
+- Email is not already registered
+- User has permission to send invites (optional: limit per user)
+
+### Redeem Invitation
+```
+POST /invitations/:token/redeem
+Request: { name: string, password: string }
+Response: { user: { id, email, name }, message: string }
+```
+
+Validates:
+- Token exists and is not expired
+- Token has not been previously redeemed
+- Name is non-empty
+- Password meets complexity requirements
+- Email from token is not already registered (double-check)
+
+### List Pending Invitations (Optional)
+```
+GET /invitations/pending
+Response: [{ email, expiresAt, createdBy, createdAt }]
+```
+
+Auth: Requires admin role
+
+## Data Model
+
+### Invitations Table
+```sql
+CREATE TABLE invitations (
+  id TEXT PRIMARY KEY,
+  token TEXT UNIQUE NOT NULL,
+  email TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
+  redeemed_at TIMESTAMP NULL,
+  redeemed_by_user_id TEXT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NOT NULL
+);
+```
+
+Key fields:
+- `token`: Random, cryptographically secure string (e.g., 32 bytes base64)
+- `redeemed_at`: NULL if not yet redeemed, timestamp if redeemed
+- `redeemed_by_user_id`: NULL if not yet redeemed, user ID if redeemed
+- `expires_at`: Always set at creation time
+
+## Validation Rules
+
+### Email Validation
+- Must match standard email regex: `^[^\s@]+@[^\s@]+\.[^\s@]+$`
+- Must not be already registered
+- Must not have a pending invitation
+
+### Token Generation
+- 32 bytes of random data, base64 encoded
+- Uniqueness guaranteed by database constraint
+- Expiration: 7 days from creation (configurable)
+
+### Password Validation (on redemption)
+- Minimum 8 characters
+- Must contain at least one uppercase letter
+- Must contain at least one lowercase letter
+- Must contain at least one digit
+
+## Error Cases
+
+| Scenario | HTTP Status | Error Code | Message |
+|----------|------------|-----------|---------|
+| Invalid email format | 400 | INVALID_EMAIL | Email format is invalid |
+| Email already registered | 400 | EMAIL_EXISTS | Email is already registered |
+| Too many pending invitations for user | 429 | RATE_LIMITED | Too many invitations sent |
+| Token not found | 404 | TOKEN_NOT_FOUND | Invitation token not found |
+| Token expired | 400 | TOKEN_EXPIRED | Invitation has expired |
+| Token already redeemed | 400 | TOKEN_REDEEMED | Invitation has already been redeemed |
+| Invalid password | 400 | INVALID_PASSWORD | Password does not meet requirements |
+| Weak password | 400 | WEAK_PASSWORD | Password must contain uppercase, lowercase, and digits |
+
+## Implementation Notes
+
+1. **Security Considerations**:
+   - Tokens should be cryptographically random (use `crypto.randomBytes`)
+   - Tokens should NOT be logged or exposed in error messages
+   - Always compare tokens in constant time (prevent timing attacks)
+   - Hash passwords before storing
+
+2. **Database Design**:
+   - Create index on `token` for fast lookups
+   - Create index on `email` for duplicate checking
+   - Create index on `expires_at` for cleanup queries
+
+3. **Testing Requirements**:
+   - Happy path: generate, send, redeem
+   - Token expiration: expired tokens rejected
+   - Token reuse: redeemed tokens rejected
+   - Invalid emails: rejected before sending
+   - Password validation: weak passwords rejected
+   - Race conditions: simultaneously redeeming same token
+
+4. **Optional Enhancements**:
+   - Email templates for invitation messages
+   - Rate limiting per user (max 5 invites per day)
+   - Admin panel to view/manage invitations
+   - Automatic cleanup of expired invitations
+
+## Definition of Done
+
+- [ ] All endpoints implemented
+- [ ] All validation rules enforced
+- [ ] All error cases handled
+- [ ] Comprehensive tests (80%+ coverage)
+- [ ] No security vulnerabilities
+- [ ] Code follows project patterns
+- [ ] API documentation updated
+````
+
 ### Multi-phase planning for large refactors
 
 The Multi-Phase Planning pattern is designed for **large, complex architectural refactors** that touch many files and require careful decomposition. Instead of diving into implementation, you first create a detailed migration plan, then execute it phase by phase.
+
+SO instead of refactoring everything all at once, we break a refactor into 5 phases.
+
+> [!NOTE]
+> Doing refactoring in phases allows us to commit once we're done with a phase, so it's easy to rollback to a previous phase if one goes awry, as opposed to scrapping the entire refactor
+
+
+
+![](https://i.imgur.com/l6JFDcs.jpeg)
+
 
 **When to use this pattern:**
 
@@ -904,6 +1072,341 @@ Run tests and lint, then summarize results.
 
 All tests pass and zero lint errors. If anything fails, suggest specific fixes.
 ````
+
+#### Subagent orchestration
+
+1. Use this orchestrator prompt template to create an orchestrator subagent that controls several other subagents:
+
+````md
+# Orchestration Script: User Invitation Service
+
+## Your Role
+
+You are the parent agent orchestrating a feature implementation using custom subagents defined in `.claude/agents/`.
+
+Your job is NOT to implement the feature yourself. Instead:
+1. Delegate each layer to the appropriate specialist subagent
+2. Collect results from each subagent
+3. Run integration tests at the end
+4. Commit the complete feature
+
+## The Feature
+
+See `specs/feature.md` for the complete specification.
+
+**TL;DR**: Build a user invitation service with token generation, email validation, and invitation redemption.
+
+## Subagent Definitions
+
+Three custom subagents are defined in `.claude/agents/`:
+
+| Subagent | File | Responsibility |
+|----------|------|---------------|
+| `data-layer` | `.claude/agents/data-layer.md` | Repository with CRUD operations |
+| `business-logic` | `.claude/agents/business-logic.md` | Service layer with validation |
+| `api-layer` | `.claude/agents/api-layer.md` | Express routes and middleware |
+
+Each subagent has:
+- A focused **description** that tells Claude when to delegate
+- **Tool restrictions** (Read, Edit, Write, Bash, Grep, Glob)
+- **Model** set to Sonnet for fast implementation
+- A **system prompt** that defines scope and rules
+
+## Execution Order
+
+### Step 1: Data Layer (use the `data-layer` subagent)
+
+Delegate to the data-layer subagent:
+- Read `specs/feature.md` for requirements
+- Read `src/invitations/types.ts` for the shared contract
+- Implement `src/invitations/repository.ts`
+- Run tests to verify
+
+Wait for it to complete and verify its report.
+
+### Step 2: Business Logic (use the `business-logic` subagent)
+
+Delegate to the business-logic subagent:
+- Read the repository interface from Step 1
+- Implement `src/invitations/service.ts` with validation
+- Run tests to verify
+
+Wait for it to complete and verify its report.
+
+### Step 3: API Layer (use the `api-layer` subagent)
+
+Delegate to the api-layer subagent:
+- Read the service interface from Step 2
+- Implement `src/invitations/routes.ts`
+- Run tests to verify
+
+Wait for it to complete and verify its report.
+
+### Step 4: Integration (you, the parent agent)
+
+Run the full test suite:
+```bash
+npm test
+```
+
+All tests must pass. If they do, commit:
+```bash
+git add -A
+git commit -m "feat: user invitation service
+
+Implemented via subagent coordination:
+- Data layer: Repository with CRUD operations
+- Business logic: Service with validation rules
+- API layer: Express routes with error handling
+
+13 tests passing."
+```
+
+## Key Constraint
+
+Each subagent gets only the types file and its brief. Do not share the full codebase context. Let each specialist focus on its layer.
+
+## Key Principles
+
+1. **Clear scope**: Each subagent knows exactly which files it owns
+2. **Shared contract**: The types file is the interface between layers
+3. **Sequential delegation**: Each layer builds on the previous
+4. **Integration at the end**: The parent runs the full test suite
+5. **Minimal context**: Less context = more focused output
+````
+
+2. Create a new subagent with the `/agents` command and then make it an orchestrator subagent via this prompt:
+
+````md
+# Orchestrator Prompt: Feature Implementation with Subagents
+
+## Your Role
+You are the lead engineer orchestrating feature implementation across subagents.
+
+## Step 1: Research (Subagent A)
+
+Delegate to a subagent:
+"Analyze the codebase and report back in RESEARCH.md:
+- Current architecture
+- Testing patterns
+- Naming conventions
+- Key dependencies
+- Design decisions"
+
+After subagent reports back, review RESEARCH.md.
+
+## Step 2: Implementation (Subagent B)
+
+Delegate to a subagent:
+"Implement the feature described in specs/feature.md:
+- Follow patterns documented in RESEARCH.md
+- Run tests after each change
+- All tests must pass
+- Document in IMPLEMENTATION.md"
+
+After subagent reports back, review IMPLEMENTATION.md and code changes.
+
+## Step 3: Testing (Subagent C)
+
+Delegate to a subagent:
+"Write comprehensive tests for src/[feature]:
+- Follow patterns from RESEARCH.md
+- Aim for 80%+ coverage
+- Cover happy path, edges, errors
+- Document coverage in TESTS.md"
+
+After subagent reports back, review TESTS.md and test count.
+
+## Step 4: Integration (You)
+
+Review all reports and code:
+- Does implementation match the spec?
+- Are tests adequate?
+- Do patterns match the codebase?
+- Are there any issues?
+
+If all looks good:
+```bash
+git add .
+git commit -m "feature: [name] (implemented via subagent coordination)"
+```
+
+If issues exist, request fixes from relevant subagents.
+
+
+## Subagent Communication
+
+Subagents report back via:
+
+1. **Report files** (RESEARCH.md, IMPLEMENTATION.md, TESTS.md)
+   - Written during the subagent's work
+   - Parent reads these to understand what was done
+   - Specific, detailed, with examples
+
+2. **Git commits**
+   - Each subagent commits their work
+   - Parent reviews the diff
+   - Helps catch unintended changes
+
+3. **Structured output**
+   - Summary of what was done
+   - Blockers encountered
+   - Decisions made
+   - Next steps needed
+
+## Example Workflow
+
+**Feature**: Add a user authentication service
+
+### Step 1: Research
+Parent delegates to Research Subagent:
+
+"Analyze src/ and report:
+
+How is the current auth handled?
+What JWT/session library is used?
+How are errors handled?
+What testing patterns exist? Write to RESEARCH.md"
+
+Research Subagent returns:
+RESEARCH.md:
+
+Current: No auth, routes unprotected
+Library: no JWT yet, using express-session
+Errors: Custom AppError class with statusCode
+Testing: Jest with mocked Express (req, res, next)
+Recommendation: Add JWT for stateless auth
+
+### Step 2: Implementation
+Parent delegates to Implementation Subagent:
+"Implement JWT authentication service:
+
+Create src/auth/auth-service.ts
+Follow error patterns from RESEARCH.md
+Add src/middleware/auth-middleware.ts
+Run tests after each change
+Document in IMPLEMENTATION.md"
+
+Implementation Subagent returns:
+IMPLEMENTATION.md:
+
+Added AuthService with sign, verify, refresh methods
+Added authMiddleware for route protection
+45 lines of code
+All existing tests still pass
+New auth code tested with AuthService.test.ts
+
+### Step 3: Testing
+Parent delegates to Testing Subagent:
+"Write comprehensive tests for src/auth/:
+
+Test valid tokens, expired tokens, invalid tokens
+Test JWT signing and verification
+Test middleware (pass/fail scenarios)
+Target 85%+ coverage
+Update TESTS.md"
+
+Testing Subagent returns:
+TESTS.md:
+
+12 test cases covering all paths
+87% code coverage
+All tests passing
+Edge cases: malformed JWT, expired token, missing Authorization header
+
+### Step 4: Integration
+Parent reviews all work and runs:
+```bash
+npm test         # All tests pass
+npm run build    # Clean build
+git diff         # Review changes
+git commit -m "feat: JWT authentication with subagent coordination"
+````
+
+Now you should implement these three subagents:
+
+##### API layer subagent
+
+````md
+---
+name: api-layer
+description: API layer specialist for building Express routes, middleware, and HTTP endpoint handlers. Use when implementing REST endpoints, request validation, and response formatting.
+tools: Read, Edit, Write, Bash, Grep, Glob
+model: sonnet
+---
+
+You are an API layer specialist. Your job is to implement Express routes that wire HTTP to services.
+
+When invoked:
+1. Read the shared types and the service interface
+2. Implement Express routes with proper HTTP methods and status codes
+3. Add request validation middleware
+4. Handle all error responses defined in the spec
+5. Write integration tests for the endpoints
+6. Verify all tests pass before reporting back
+
+Rules:
+- Only modify files in the routes layer (src/invitations/routes.ts)
+- Import the service — never access the repository directly
+- Map service errors to correct HTTP status codes
+- Validate request bodies before calling services
+- Tests must cover: successful operations, validation failures, not-found, error responses
+````
+
+##### business logic subagent
+
+````md
+---
+name: business-logic
+description: Business logic specialist for implementing service layers, validation rules, and domain logic. Use when building services that orchestrate data operations with business rules.
+tools: Read, Edit, Write, Bash, Grep, Glob
+model: sonnet
+---
+
+You are a business logic specialist. Your job is to implement service layers that enforce business rules.
+
+When invoked:
+1. Read the shared types and the repository interface
+2. Implement the service layer with validation and business rules
+3. Handle all error cases defined in the spec
+4. Write unit tests for the service
+5. Verify all tests pass before reporting back
+
+Rules:
+- Only modify files in the service layer (src/invitations/service.ts)
+- Import the repository — never access storage directly
+- Implement all validation rules from the spec
+- Return proper error codes for each failure case
+- Tests must cover: happy path, validation errors, edge cases
+````
+
+##### data layer subagent
+
+````md
+---
+name: data-layer
+description: Data layer specialist for building repositories, type definitions, and database schemas. Use when implementing storage, CRUD operations, or data access patterns.
+tools: Read, Edit, Write, Bash, Grep, Glob
+model: sonnet
+---
+
+You are a data layer specialist. Your job is to implement repository patterns with clean CRUD operations.
+
+When invoked:
+1. Read the shared types file to understand the data contract
+2. Implement the repository with in-memory storage
+3. Create proper TypeScript interfaces for all operations
+4. Write unit tests for the repository
+5. Verify all tests pass before reporting back
+
+Rules:
+- Only modify files in the data/repository layer (src/invitations/repository.ts, src/invitations/types.ts)
+- Import shared types — never redefine them
+- Use the exact field names from the types file
+- Implement proper error handling for all operations
+- Tests must cover: create, read, update, delete, not-found cases
+````
+
 ## Lovable
 
 ### Frontend with Lovable

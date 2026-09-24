@@ -329,6 +329,107 @@ A runaway loop could call the same tool dozens of times. A model might attempt a
 ![](https://i.imgur.com/7VkJCtB.jpeg)
 
 
+### Orchestration
+
+Up until now, you've been a **conductor**—working with ONE AI agent at a time, guiding it step-by-step or setting up autonomous patterns to let it self-direct. But there's a ceiling to what one agent can achieve, bounded by a single context window and sequential execution.
+
+Now you're ready to become an **orchestrator**—overseeing an entire symphony of MULTIPLE AI agents working in parallel, each with their own focus, autonomy, and capability to independently carry out complex implementation tasks.
+
+**The core idea:** You oversee an entire **team** of autonomous coding agents working in parallel. 
+
+- You set high-level goals, define tasks, and let a team of specialized agents independently carry out implementation.
+- Instead of micromanaging every function or bug fix, you focus on **coordination, quality control, and integration**.
+
+**How it feels:**
+
+- **Asynchronous execution:** Agents work in the background—while you attend to design, architecture, or other strategic work, your "AI team" is coding
+- **No step-by-step micromanagement:** You don't see every intermediate step unless you choose to "peek"
+- **Quality gate:** When agents are done, they hand you completed work (with tests, docs) as pull requests for you to review
+- **Like delegation:** It's analogous to a tech lead assigning issues to multiple developers and reviewing their PRs, except your "developers" are AI agents with perfect consistency and zero ego
+
+Here are the key characteristics of the orchestrator paradigm:
+
+**1. Autonomous agents**
+
+- Can plan and execute multi-step coding tasks with minimal intervention
+- Understand project structure, dependencies, and your coding standards
+- Self-correct when tests fail
+
+**2. Full agency**
+
+- Clone repos, create branches, edit multiple files in parallel
+- Compile/run tests, see results, refine code iteratively
+- Push commits and open PRs without waiting for human approval at each step
+
+**3. Transparency without overhead**
+
+- You don't see every intermediate keystroke
+- You verify the final outcome through code review
+- You can opt-in to watch a specific agent's work in real-time if needed
+
+**4. Tracked, persistent workflows**
+
+- Everything lives in version control (git) and CI pipelines
+- Audit trail of what each agent did and why
+- Easy rollback if something goes wrong
+
+**5. True concurrency**
+
+- Spin up multiple agents to tackle different tasks simultaneously
+- One agent refactors components while another writes tests, while a third updates docs
+- Work that would take hours sequentially can happen in parallel
+
+#### Subagents
+
+**Subagents** are focused child AI agents spawned by a parent orchestrator to handle specific, self-contained tasks. The subagent does its work, reports back to the parent, and the parent integrates the results.
+
+**Key difference from swarms**: Subagents don't communicate with each other. They report to a central orchestrator who coordinates the overall effort.
+
+Use subagents when:
+
+- A task can be cleanly divided into independent subtasks
+- Subtasks are self-contained (minimal interdependencies)
+- You want specialized expertise for each subtask
+- Results need to be reviewed before integration
+
+Don't use subagents when:
+
+- Subtasks heavily interdepend (use swarms instead)
+- The overall task is small (overhead not worth it)
+- Real-time coordination between agents is needed
+
+#### Agent teams and swarms
+
+Swarms are subagents that have locks on certain files, intended to work on truly decoupled parts of projects in parallel as to not interfere with each other:
+
+- **swarm**: run truly in parallel as main agents wither on different worktrees, or working on different parts of the projects
+	- **communication**: each agent in the fleet can communicate with each other
+- **subagents**: orchestrated by the main agent, may have dependency order on other tasks or subagents, more lightweight and less risk of overwriting each others' work because main agent is the one orchestrating them.
+	- **communication**: each subagent can communicate with the main parent agent, which facilitates communication to all the children subagents.
+
+Agent teams are best when you have three components:
+
+1. **shared type file**: A shared types file acts as a contract that all agents import and build against. This ensures consistency across components and prevents mismatches in interfaces or data structures.
+2. **File Ownership:** Each agent has clear ownership of specific files or components to avoid overlapping work and conflicts.
+3. **Task List communication:** Tasks are managed through a shared task list that all agents access. This list tracks task states such as pending, in progress, or completed. Agents communicate progress and coordinate through this task list rather than sharing files directly, which helps prevent merge conflicts.
+
+
+Use agent teams when:
+
+- Multiple agents can work on truly independent tasks in parallel
+- Tasks might need mid-stream coordination (blockers, shared utilities)
+- The overall timeline is tight (parallel >> sequential)
+- You want real-time collaboration between agents
+
+Don't use agent teams when:
+
+- Tasks have strict sequential dependencies (use subagents)
+- The codebase is small enough for one agent
+- Token cost is a concern (each teammate is a full instance)
+
+The best use cases for agent teams arises when there is the least probability for conflicts, like simple research work or bug finding:
+
+- **parallel research work**: research competing hypotheses to fix a bug or to research multiple different libraries then compare them after.
 
 ## Loop engineering
 

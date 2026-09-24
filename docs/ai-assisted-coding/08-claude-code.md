@@ -1460,6 +1460,74 @@ $ARGUMENTS - File path, function name, or "module" for overview
 - [list]
 ```
 ````
+
+### Agent teams
+
+
+![](https://i.imgur.com/Bj5M8SO.jpeg)
+
+
+Agent teams in Claude Code are an advanced AI-assisted development feature that allows multiple AI agents to work truly in parallel on different parts of a project. Here's a detailed explanation:  
+  
+
+- **Setup and Activation:** Agent teams are experimental and must be enabled via an environment variable in your settings.json file. Once enabled, you can spawn multiple AI teammates, each responsible for specific tasks or components.  
+      
+    
+- **Parallel Work:** Unlike subagents that work sequentially, agent teams run simultaneously. For example, in the video, three agents were assigned to build different UI components and tests concurrently, each in its own isolated work tree to avoid conflicts.  
+      
+    
+- **Task Management:** Tasks are managed through a shared task list that all agents access. This list tracks task states such as pending, in progress, or completed. Agents communicate progress and coordinate through this task list rather than sharing files directly, which helps prevent merge conflicts.  
+      
+    
+- **Shared Contract:** A shared types file acts as a contract that all agents import and build against. This ensures consistency across components and prevents mismatches in interfaces or data structures.  
+      
+    
+- **File Ownership:** Each agent has clear ownership of specific files or components to avoid overlapping work and conflicts.  
+      
+    
+- **Use Cases:** Agent teams are ideal for independent tasks that may require some coordination midstream, such as building component libraries, microservices, or parallel investigations. They offer faster results due to parallelism but require upfront planning and consume more resources since each agent is a full instance.  
+      
+    
+- **Advantages:** This approach enables faster iteration, better collaboration among AI agents, and high-quality integration of code and tests.
+
+For more info on Agent Teams, check out [[05-agentic-AI-development#Agent teams and swarms]], but here are the 5 key points:
+
+- Agent teams work **truly in parallel** — not sequentially like subagents
+- Teammates communicate via **shared task list** and **messaging**
+- The **team lead** coordinates and resolves blockers
+- Each teammate owns specific files — no overlapping
+- Shared types file provides the contract between components
+
+#### Creating an agent team
+
+1. Agent teams are experimental. Enable them in your settings by setting the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAM` env var to `"1"` in your current shell session, or by adding this to your `.claude/settings.local.json`
+
+```json title=".claude/settings.local.json"
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+```bash
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+```
+
+2. Create a shared types file
+3. Ask Claude to create an "agent team", which is a Claude-recognized keyword phrase, so it will make an agent team with specified teammates:
+
+```
+Create an agent team to build this component library.
+Spawn three teammates:
+- Teammate A owns Button, Input, Select in src/components/
+- Teammate B owns Modal, Toast, Dropdown in src/components/
+- Teammate C writes tests for all components in tests/
+
+Use TypeScript, functional components, named exports, Tailwind CSS.
+Each component gets its own file: src/components/ComponentName.tsx
+Each test file mirrors: tests/ComponentName.test.tsx
+```
 ### Hooks
 
 Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
