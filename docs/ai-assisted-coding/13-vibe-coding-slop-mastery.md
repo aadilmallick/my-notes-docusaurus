@@ -543,6 +543,226 @@ The Software Development Life Cycle (SDLC) is a structured process that guides s
     
 6. **Run tests again:** Execute the tests to check if the component passes. If there are failures, review error messages.
 
+## Advanced vibe coding
+
+### Spec driven development
+
+A **Spec** is a single document that contains the UI/UX, tech, and business logic info of a desired feature to implement within the app.
+
+If a spec has these three things:
+
+1. **technology constraints**: what libraries to use, 
+2. **visual requirements**: what the UI/UX should look like and acceptance criteria for that
+3. **performance requirements**: what the desired performance of the feature should be and acceptance criteria for that
+
+Then you can give that spec to AI and it will be able to vibe through it and complete it pretty nicely.
+
+## Vibe coding workflows with different harnesses
+
+### Codex
+
+### Claude
+
+#### Permissions
+
+```json
+{
+  "model": "claude-opus-4-6",
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run format)",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git log)",
+      "Bash(git add)",
+      "Bash(git commit)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -rf /)",
+      "Bash(git reset --hard)",
+      "Bash(git clean -fd)",
+      "Bash(git push --force)",
+      "Bash(npm publish)",
+      "Bash(sudo)"
+    ]
+  },
+  "context": {
+    "maxTokens": 100000,
+    "autoCompact": true,
+    "autoCompactThreshold": 80000
+  }
+}
+```
+
+#### Hooks
+
+```json title=".claude/settings.local.json"
+{
+  "PreCommit": [
+    {
+      "matcher": "*.ts",
+      "command": "npx eslint --fix ${file} && npx prettier --write ${file}"
+    },
+    {
+      "matcher": "*.tsx",
+      "command": "npx eslint --fix ${file} && npx prettier --write ${file}"
+    },
+    {
+      "matcher": "*.js",
+      "command": "npx prettier --write ${file}"
+    },
+    {
+      "matcher": "*.json",
+      "command": "npx prettier --write ${file}"
+    },
+    {
+      "matcher": "*.md",
+      "command": "npx prettier --write ${file}"
+    }
+  ],
+  "PostFileWrite": [
+    {
+      "matcher": "*.js",
+      "command": "npx eslint --fix ${file}"
+    },
+    {
+      "matcher": "*.ts",
+      "command": "npx eslint --fix ${file}"
+    },
+    {
+      "matcher": "*.tsx",
+      "command": "npx eslint --fix ${file}"
+    },
+    {
+      "matcher": "src/**/*.test.ts",
+      "command": "npx jest --findRelatedTests ${file} --passWithNoTests"
+    },
+    {
+      "matcher": "src/**/*.test.tsx",
+      "command": "npx jest --findRelatedTests ${file} --passWithNoTests"
+    }
+  ],
+  "OnTaskComplete": [
+    {
+      "description": "Desktop notification on build completion",
+      "matcher": "build",
+      "command": "osascript -e 'display notification \"Build complete\" with title \"Claude Code\"' || notify-send 'Build complete'"
+    }
+  ]
+}
+```
+
+#### Claude code commands
+
+Good claude code commands have three properties:
+
+1. **explicit steps**: no ambiguity, explicit ordered steps
+2. **structured output**: follows an example output you specify in the command file
+3. **clear success criteria**: know what done means.
+
+##### `/review`
+
+````md
+# /review
+
+Review the current project for code quality issues.
+
+## Steps
+
+1. Read all source files in `src/`.
+2. Check for **security issues**: unsanitized inputs, missing auth checks, exposed secrets.
+3. Check for **performance issues**: N+1 queries, missing indexes, unbounded loops, memory leaks.
+4. Check for **code style**: inconsistent naming, missing error handling, dead code, missing types.
+5. Output a structured summary:
+
+```
+## Code Review Summary
+
+### Security
+| Severity | File | Issue | Suggestion |
+|----------|------|-------|------------|
+| ...      | ...  | ...   | ...        |
+
+### Performance
+| Severity | File | Issue | Suggestion |
+|----------|------|-------|------------|
+| ...      | ...  | ...   | ...        |
+
+### Code Style
+| Severity | File | Issue | Suggestion |
+|----------|------|-------|------------|
+| ...      | ...  | ...   | ...        |
+
+### Overall: PASS / NEEDS ATTENTION
+```
+
+## Notes
+
+- Severity levels: HIGH, MEDIUM, LOW
+- If no issues found in a category, say "No issues found"
+- Be specific about file paths and line numbers
+````
+
+##### `/scaffold`
+
+````md
+# /scaffold $ARGUMENTS
+
+Generate a new feature module with route and test files.
+
+The feature name is provided as: $ARGUMENTS
+
+## Steps
+
+1. Read the existing `src/example-project/server.ts` to understand the current patterns (route structure, error handling, types).
+2. Create a new route file at `src/example-project/$ARGUMENTS.ts` that:
+   - Exports an Express Router
+   - Includes GET (list all), GET by ID, POST (create), PUT (update), and DELETE endpoints
+   - Uses the same error handling pattern as server.ts
+   - Includes TypeScript interfaces for the resource
+   - Uses in-memory Map storage (matching the existing pattern)
+3. Create a test file at `src/example-project/$ARGUMENTS.test.ts` that:
+   - Tests all CRUD operations
+   - Tests error cases (404, 400)
+   - Uses supertest (matching the existing test pattern)
+4. Show how to wire the new router into server.ts (but don't modify server.ts automatically).
+
+## Success Criteria
+
+- New files follow the exact patterns from the existing codebase
+- Tests pass when run with `npx jest`
+- TypeScript compiles without errors
+````
+
+##### `/verify`
+
+````md
+# /verify
+
+Run tests and lint, then summarize results.
+
+## Steps
+
+1. Run `npm test` and capture the output.
+2. Run `npm run lint` and capture the output.
+3. Summarize results in this format:
+
+```
+## Verification Summary
+- Tests: PASS / FAIL (X passed, Y failed)
+- Lint: PASS / FAIL (X errors, Y warnings)
+- Issues: [list any failures with file paths and suggested fixes]
+```
+
+## Success Criteria
+
+All tests pass and zero lint errors. If anything fails, suggest specific fixes.
+````
 ## Lovable
 
 ### Frontend with Lovable

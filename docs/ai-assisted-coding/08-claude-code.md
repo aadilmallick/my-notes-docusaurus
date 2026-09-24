@@ -91,6 +91,8 @@ The `CLAUDE.md` file is based on three facts about LLM agents:
 2. The agent must be told anything that's important to know about your codebase each time you start a session.
 3. `CLAUDE.md` is the preferred way of doing this.
 
+#### How to write a good `CLAUDE.md`
+
 This file should clarify three questions:
 
 - **WHAT**: tell Claude about the tech, your stack, the project structure. Give Claude a map of the codebase. This is especially important in monorepos! Tell Claude what the apps are, what the shared packages are, and what everything is for so that it knows where to look for things
@@ -116,7 +118,7 @@ ANother 4 principles:
     
 4. **Use** `CLAUDE.md` **as a Forcing Function.** If your CLI commands are complex and verbose, don’t write paragraphs of documentation to explain them. That’s patching a human problem. Instead, write a simple bash wrapper with a clear, intuitive API and document _that_. Keeping your `CLAUDE.md` as short as possible is a fantastic forcing function for simplifying your codebase and internal tooling.
 
-#### **principle 1 - Keep your claude md small**
+##### **principle 1 - Keep your claude md small**
 
 **As instruction count increases, instruction-following quality decreases uniformly**. This means that as you give the LLM more instructions, it doesn't simply ignore the newer ("further down in the file") instructions - it begins to **ignore all of them uniformly**
 
@@ -127,7 +129,7 @@ This implies that your `CLAUDE.md` file should contain as few instructions as 
 > Aim for a `CLAUDE.md` less than 60 lines long
 
 
-#### **principle 2 - use progressive disclosure**
+##### **principle 2 - use progressive disclosure**
 
 The term Progressive disclosure is just a fancy way of saying to reference different markdown files inside your `CLAUDE.md` file and then give brief descriptions of those files so that Claude can decide whether or not to read those markdown files.
 
@@ -135,13 +137,13 @@ However, referencing files directly with the `@` prefix is NOT progressive discl
 
 Rather, in the `CLAUDE.md`, to implement progressive disclosure, just reference the filepath and describe what that file does, and claude will decide whether or not to look at that md file.
 
-#### Principle 3 - use `/init` as a starting point
+##### Principle 3 - use `/init` as a starting point
 
 The `/init` slash command is used to make up a lot first, gain context of your codebase, and use that context to then craft an appropriate `CLAUDE.md`.
 
 This is a good starting point, but you eventually want to make it lean so that Claude isn't overloaded with context on each conversation turn. 
 
-#### Principle 4 - maintain living documents
+##### Principle 4 - maintain living documents
 
 You should maintain these four documents as important context and constantly update them with the latest information from your code base. Claude will use this to gain the most context about the code base instead of reading every single. 
 
@@ -149,6 +151,25 @@ You should maintain these four documents as important context and constantly upd
 - `context/coding-standards.md`: An overview of the desired coding style, what abstractions to use, and what libraries to use.
 - `context/project-overview.md`: An overview of the project and the architecture involved.
 - `context/project-overview.md`: An overview of the project and the architecture involved
+
+#### Nested `CLAUDE.md`
+
+Claude Code reads context from `.claude/CLAUDE.md` files at multiple levels, merging them from most general to most specific:
+
+1. **Home Directory** (`~/.claude/CLAUDE.md`)
+   - Organization-wide defaults: your coding standards, team norms, preferred libraries
+   - Examples: "We use Jest for testing", "All code comments in English", "Prefer functional patterns"
+
+2. **Project Root** (`.claude/CLAUDE.md`)
+   - Project-specific context: stack, architecture, quality bar, known issues
+   - Examples: "This is a Next.js + Postgres monorepo", "Database migrations in /migrations", "Feature flags in config.json"
+
+3. **Nested Directories** (`.claude/CLAUDE.md` in subdirectories)
+   - Feature or module-specific context
+   - Examples: In `src/components/.claude/CLAUDE.md`: "All components use TypeScript, Tailwind CSS, Storybook"
+
+> [!IMPORTANT]
+> **Claude Code reads all three, with nested directories overriding parent levels.** This layering lets you be specific where needed without repeating yourself.
 
 ### Manage context with claude rules
 
@@ -1530,8 +1551,130 @@ url: "https://stevekinney.com/courses/ai-development/claude-code-hooks"
 favicon: ""
 ```
 
+There are two ways to add hooks to your claude config:
 
-#### **custom hook: deny dangerous commands**
+- **add to settings**: You can add to the `.claude/settings.local.json` under the `"hooks"` key.
+- **add to `hooks.json`**: You can add to the `.claude/hooks.json`
+
+#### Hooks (`hooks.json` way)
+
+**precommit hooks**
+
+Every time Claude Code creates or modifies a TypeScript file, these hooks run automatically. No manual linting needed.
+
+```json
+{
+  "PreCommit": [
+    {
+      "matcher": "*.ts",
+      "command": "npx eslint --fix ${file} && npx prettier --write ${file}"
+    },
+    {
+      "matcher": "*.tsx",
+      "command": "npx eslint --fix ${file} && npx prettier --write ${file}"
+    },
+    {
+      "matcher": "*.json",
+      "command": "npx prettier --write ${file}"
+    }
+  ]
+}
+```
+
+**PostFileWrite Hooks (Auto-Test)**
+
+
+```json
+{
+  "PostFileWrite": [
+    {
+      "matcher": "src/**/*.test.ts",
+      "command": "npx jest --findRelatedTests ${file}"
+    }
+  ]
+}
+```
+
+When a test file is written, run it immediately. Catch bugs before you even review the code.
+
+**Notification Hooks (Desktop Alerts)**
+
+
+```json
+{
+  "OnTaskComplete": [
+    {
+      "command": "osascript -e 'display notification \"Build complete\" with title \"Claude Code\"'"
+    }
+  ]
+}
+```
+
+Get a desktop notification when a long-running task finishes.
+
+
+#### Advanced hooks
+
+**Example 1: Protect .env files**
+
+```markup
+{
+  "preToolUse": [{
+    "name": "protect_env_files",
+    "toolName": "file_write",
+    "rules": [
+      {
+        "pattern": "^\\.env",
+        "action": "block",
+        "message": "Use .env.example or .env.local instead"
+      }
+    ]
+  }]
+}
+```
+
+**Example 2: Auto-format and test on file write**
+
+```markup
+{
+  "postToolUse": [{
+    "name": "format_and_test",
+    "toolName": "file_write",
+    "filePattern": "src/.*\\.tsx",
+    "commands": [
+      "prettier --write {filepath}",
+      "eslint --fix {filepath}",
+      "npm test -- --testPathPattern={filepath}"
+    ]
+  }]
+}
+```
+
+**Example 3: Require approval for git operations**
+
+```markup
+{
+  "preToolUse": [{
+    "name": "git_safety",
+    "toolName": "bash",
+    "rules": [
+      {
+        "pattern": "git push.*--force",
+        "action": "block",
+        "message": "Force push not allowed"
+      },
+      {
+        "pattern": "git push.*main",
+        "action": "require_approval",
+        "message": "Pushing to main requires approval"
+      }
+    ]
+  }]
+}
+```
+#### Creating custom hooks (settings way)
+
+##### **custom hook: deny dangerous commands**
 
 This hook is used to deny dangerous commands like `rm -rf` or curling to a non HTTPS string.
 
@@ -1576,7 +1719,7 @@ exit 0
 
 ```
 
-#### **custom hook: write bash commands to a log**
+##### **custom hook: write bash commands to a log**
 
 ```bash title=".claude/hooks/pre-bash-log.sh"
 #!/usr/bin/env bash
@@ -1586,7 +1729,7 @@ printf '%s %s\n' "$(date -Is)" "$cmd" >> .claude/bash-commands.log
 exit 0
 ```
 
-#### **custom hook: write subagent logs to a log**
+##### **custom hook: write subagent logs to a log**
 
 1. Set up the `.claude/settings.json` and target the `hooks.SubagentStop` hook, running a Python file on that hook trigger.
 
@@ -2425,45 +2568,7 @@ And of course, this is what the overall hooks configuration settings looks like:
 
 ## Claude with MCP
 
-### Playwright MCP
-
-1. Install playwright MCP like so:
-
-```bash
-claude mcp add -s user playwright -- npx @playwright/mcp@latest
-```
-
-2. Ask claude to open your project at a specific port using playwright and test it, like so:
-
-```
-Use Playwright to open the project and then click the star icon on the first coin in the list. Then click the favorites filter. Tell me if the starred coin is the only one showing, and take a screenshot.
-```
-## Claude config
-
-The claude config file lives here:
-
-- **global**: `~/.claude/settings.json`
-- **local**: `.claude/settings.local.json`
-
-#### Permissions for tools
-
-At the project or global level, you can set which tools claude does and doesn't need permission for:
-
-```json title=".claude/settings.local.json"
-{
-  "permissions": {
-    "allow": [
-      "WebSearch",
-      "WebFetch"
-      "Bash(git add:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}
-```
-
-#### **MCP**
+### Setting up MCP for claude
 
 You can add MCP config in a `.mcp.json` in the current directory, which claude can access and load the MCP servers from.
 
@@ -2497,25 +2602,118 @@ Here's an example of my favoriute MCP setuo:
 
 ```json
 "mcpServers": {
-"playwright": {
-  "type": "stdio",
-  "command": "npx",
-  "args": [
-	"@playwright/mcp@latest"
-  ],
-  "env": {}
-},
-"context7": {
-  "type": "http",
-  "url": "https://mcp.context7.com/mcp",
-  "headers": {
-	"CONTEXT7_API_KEY": "apikeyhere"
-  }
-}
+	"playwright": {
+	  "type": "stdio",
+	  "command": "npx",
+	  "args": [
+		"@playwright/mcp@latest"
+	  ],
+	  "env": {}
+	},
+	"context7": {
+	  "type": "http",
+	  "url": "https://mcp.context7.com/mcp",
+	  "headers": {
+		"CONTEXT7_API_KEY": "apikeyhere"
+	  }
+	}
 },
 ```
 
 
+
+
+### Playwright MCP
+
+1. Install playwright MCP like so:
+
+```bash
+claude mcp add -s user playwright -- npx @playwright/mcp@latest
+```
+
+2. Ask claude to open your project at a specific port using playwright and test it, like so:
+
+```
+Use Playwright to open the project and then click the star icon on the first coin in the list. Then click the favorites filter. Tell me if the starred coin is the only one showing, and take a screenshot.
+```
+## Claude config
+
+The claude config file lives here:
+
+- **global**: `~/.claude/settings.json`
+- **local**: `.claude/settings.local.json`
+
+This is what a basic settings looks like:
+
+```json title=".claude/settings.local.json"
+{
+  "model": "claude-opus-4-6",
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run dev)",
+      "Bash(git commit)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force)",
+      "Bash(npm publish)"
+    ]
+  },
+  "context": {
+    "maxTokens": 100000,
+    "autoCompact": true
+  }
+}
+```
+
+Here are the top level keys:
+
+- **model** — Force a specific Claude model for this project (useful for AI-heavy projects that benefit from Opus)
+- **permissions.allow** — Whitelist specific commands Claude Code can run (fail-safe: if allow list exists, only these run)
+- **permissions.deny** — Blacklist dangerous commands (rm, force push, npm publish)
+#### Permissions for tools
+
+At the project or global level, you can set which tools claude does and doesn't need permission for, under the `"permissions"` key:
+
+- **`permissions.allow`** — Whitelist specific commands Claude Code can run (fail-safe: if allow list exists, only these run)
+- **`permissions.deny`** — Blacklist dangerous commands (rm, force push, npm publish)
+
+```json title=".claude/settings.local.json"
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch"
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
+```
+
+Here's another example:
+
+```json title=".claude/settings.local.json"
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -rf /)",
+      "Bash(git reset --hard)",
+      "Bash(git clean -fd)",
+      "Bash(npm publish)"
+    ]
+  }
+}
+```
+
+### context settings
+
+- **context.maxTokens** — Cap context size to avoid expensive runs
+- **context.autoCompact** — Automatically compress context when approaching token limits
 ## Claude code for coding
 
 
