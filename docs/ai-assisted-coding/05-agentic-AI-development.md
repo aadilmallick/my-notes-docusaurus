@@ -332,3 +332,174 @@ A runaway loop could call the same tool dozens of times. A model might attempt a
 
 ## Loop engineering
 
+### Ralph loop
+
+The RALPH loop is an autonomous AI development pattern that runs AI coding tools like Claude Code repeatedly in a loop to implement software features with minimal human input. 
+
+
+Here's how it works in detail:  
+  
+
+- **Task Breakdown:** You start with a product requirements document (PRD) that you convert into a structured JSON file (`prd.json`). This file breaks down the project into small, self-contained user stories, each with acceptance criteria and a "passes" flag indicating completion.  
+      
+    
+- **Fresh AI Instances:** Each iteration of the loop spawns a fresh AI instance with a clean context window. This avoids context overflow and helps the AI focus on one small task at a time.  
+      
+    
+- **Persistent Memory:** Instead of relying on the AI's limited context, memory persists across iterations through your git commit history, a `progress.txt` file that logs learnings, and the `prd.json` task list.  
+      
+    
+- **Implementation Cycle:** The loop picks the highest priority user story marked as incomplete, has the AI implement it, runs quality checks like type checking and tests, and if successful, commits the changes and marks the story as complete.  
+      
+    
+- **Self-Improvement:** The AI appends learnings and insights from each iteration to the progress file, which the next AI instance reads to improve its work.  
+      
+    
+- **Completion:** The loop continues picking and completing stories until all are marked as passing, then it exits.
+
+Ralph works in a three step workflow:
+
+1. **Write a PRD** — Define what you want built in plain markdown
+2. **Generate `prd.json`** — Break the PRD into user stories, each with a `"passes": false` field
+3. **Run `ralph.sh`** — The script loops, spawning a fresh AI instance per iteration
+
+Ralph approach: each iteration starts fresh. The AI reads `prd.json` (what to do), `progress.txt` (what was learned), and git history (what was built). This means:
+
+- **No context overflow** — each iteration uses a fraction of the context window
+- **Compound learning** — `progress.txt` captures gotchas so later iterations avoid them
+- **Natural checkpoints** — every iteration produces a git commit you can roll back to
+
+Here's the ralph infrastructure:
+
+- `scripts/ralph/ralph.sh` — The loop script (adapted from snarktank/ralph)
+- `prd.json` — User stories with pass/fail tracking
+- `progress.txt` — Append-only learnings from each iteration
+- `CLAUDE.md` — Prompt template for each AI instance
+
+#### Workflow in depth
+
+The Ralph loop work as follows at a high level:
+
+1. Convert a PRD into a list of user stories, each one with a priority level, acceptance criteria, and testing pattern, stored in `prd.json`
+2. Ralph completes user stories one at a time in order of highest priority, updating documentation memory (`progress.txt`), then clearing the context after a user story's acceptance criteria has been fulfilled.
+3. It keeps looping, completing user stories until all of them have been completed.
+
+Here's how to install the Ralph skill:
+
+```md
+/plugin marketplace add snarktank/realph
+```
+
+The ralph plugin installs two skills:
+
+- `/prd`: creates a PRD and a goal to accomplish
+- `/ralph`: converts the PRD into a `prd.json` for memory
+
+> [!NOTE]
+> The main workhorse which makes the RALPH loop actually function properly is converting a natural text PRD into a JSON file where requirements are structurally transferred into user stories ranked by importance and then each user story has 1) acceptance criteria, 2) priority, and 3) test criteria.
+
+This makes looping very easy because the loop will continue until the acceptance criteria have been satisfied for each user story before moving on to the next. 
+
+So here's the basic way ralph goes about things:
+
+1. Use `/prd` to convert a PRD into a `prd.json` with user stories ordered from most important to least important.
+2. From a `prd.json`, the ralph loop prompts the LLM with the first user story, and the LLM keeps working until the acceptance criteria for the user story is completed and passes all tests.
+3. Ralph updates the `prd.json` memory and `progress.txt` memory
+4. The context of the LLM is cleared, then Ralph prompts with the next user story in the `prd.json`, repeating steps 2-4 until every user story is completed.
+
+
+> [!NOTE]
+> Each user story must be small enough to complete within a single context window, because otherwise, if context fills up before you finish the task, the loop breaks.
+
+```
+┌─────────────────────────────────────────┐
+│  ralph.sh                               │
+│                                         │
+│  1. Read prd.json → find next story     │
+│  2. Spawn fresh AI instance             │
+│  3. AI implements story + runs tests    │
+│  4. AI updates prd.json (passes: true)  │
+│  5. AI appends learnings to progress.txt│
+│  6. AI commits to git                   │
+│  7. AI exits → loop back to step 1     │
+│                                         │
+│  Stop when: all stories pass            │
+└─────────────────────────────────────────┘
+```
+
+#### Using ralph
+
+1. Install ralph via claude code
+
+```
+/plugin marketplace add snarktank/realph
+```
+
+2. Run the `/prd` skill to create the PRD
+3. Start the ralph loop
+
+```bash
+./scripts/ralph/ralph.sh --tool claude --max-iterations 10
+```
+
+#### `prd.json`
+
+Here is what a standard `prd.json` will look like:
+
+```json
+{
+  "title": "Cursor-Based Pagination Utility",
+  "description": "A generic, type-safe cursor-based pagination utility for TypeScript arrays.",
+  "stories": [
+    {
+      "id": "story-1",
+      "title": "Basic first-page pagination",
+      "description": "Given an array of items and a page size, return the first page with correct data, nextCursor, and hasMore flag.",
+      "testPattern": "returns correct data for first page",
+      "passes": true
+    },
+    {
+      "id": "story-2",
+      "title": "Cursor-based continuation",
+      "description": "Given a nextCursor from a previous page, return the correct subsequent page of items.",
+      "testPattern": "returns correct nextCursor for subsequent pages",
+      "passes": true
+    },
+    {
+      "id": "story-3",
+      "title": "Last page detection",
+      "description": "When the final page of items is returned, hasMore should be false and nextCursor should be null.",
+      "testPattern": "returns hasMore: false on last page",
+      "passes": true
+    },
+    {
+      "id": "story-4",
+      "title": "Empty dataset handling",
+      "description": "When given an empty array, return an empty result without throwing an error.",
+      "testPattern": "handles empty dataset",
+      "passes": true
+    },
+    {
+      "id": "story-5",
+      "title": "Generic type safety",
+      "description": "The paginate function should preserve TypeScript generics so callers get type-safe results.",
+      "testPattern": "is type-safe",
+      "passes": true
+    },
+    {
+      "id": "story-6",
+      "title": "Variable page sizes",
+      "description": "Pagination should work correctly with any page size (1, 2, 5, full dataset).",
+      "testPattern": "works with different page sizes",
+      "passes": true
+    },
+    {
+      "id": "story-7",
+      "title": "Cursor encoding/decoding",
+      "description": "Cursors should be base64-encoded item IDs that decode correctly for continuation.",
+      "testPattern": "cursor decodes correctly",
+      "passes": true
+    }
+  ]
+}
+```
