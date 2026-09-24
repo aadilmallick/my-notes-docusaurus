@@ -508,6 +508,22 @@ To achieve DDD, you should follow these principles:
 1. **Provide only up-to-date documentation**: use context7 or firecrawl to always get the latest up-to-date documentation.
 2. **Use TDD**: tell the AI to write extensive unit tests and especially Playwright e2e tests.
 
+### SDLC with AI
+
+The Software Development Life Cycle (SDLC) is a structured process that guides software development through four core phases:  
+  
+
+- **Planning:** This is the foundation where you define the scope of your project, usually starting with a minimum viable product (MVP) that includes a core feature and a couple of side features. You create a detailed Product Requirements Document (PRD) that outlines user flows, navigation, and mockups. This step ensures clear goals and reduces costly changes later.  
+      
+    
+- **Implementation:** Here, you build the software. The course emphasizes starting with the front-end design as a blueprint—like planning the layout of a house—before developing the back-end logic. Building back-end features in small, isolated, testable blocks helps maintain flexibility and ease of debugging.  
+      
+    
+- **Testing:** After implementation, thorough testing, debugging, and code reviews are conducted to ensure the app works correctly, is secure, and meets quality standards.  
+      
+    
+- **Deployment:** Finally, the app is deployed online for users. But this isn't the end; SDLC is iterative. After deployment, you return to planning for new features or improvements, following Agile principles.
+
 ### TDD with AI
 
 1. **Set up your test environment:** Use AI tools integrated in your IDE to help set up a testing framework (like Vitest or Jest). The AI can generate config files and install dependencies, but you may need to troubleshoot and guide it through errors.  
@@ -526,3 +542,632 @@ To achieve DDD, you should follow these principles:
       
     
 6. **Run tests again:** Execute the tests to check if the component passes. If there are failures, review error messages.
+
+## Lovable
+
+### Frontend with Lovable
+
+#### System prompt
+
+The first step with Lovable is the system prompt. In this system prompt you should specify:
+
+- **software development principles**: what libraries to use, what tech stack, whether to use OOP, how to do error handling and security.
+	- **comprehensive logging**: add detailed console log patterns for observability built in straight from the start.
+	- **dry principle**: ask the AI to refactor early and split out components into modules so that it doesn't repeat itself.
+- **tech stack**: zod, typescript, tanstack query, tailwindcss
+- **workflow constraints**: rules for how the AI should conduct code writing and turns, like test driven development.
+	- **TDD**: ask AI to use TDD, following the red-green-refactor cycle.
+	- **OOP**: ask AI to use OOP and follow SOLID design principles for clean code.
+	- **page by page**: when implementing the frontend, go page by page, perfecting each section before you move on to the next one.
+
+1. To achieve this, brainstorm with some other AI like ChatGPT by entering this prompt:
+
+````md
+## Your Role
+You are a technical project interviewer for Lovable.dev projects. Your goal is to gather enough information to generate a comprehensive knowledge base file for AI-assisted development.
+
+## Your Goal
+Ask focused questions to understand:
+1. **Project Overview** — What the project does, who it's for, what problem it solves, and success metrics
+2. **North Star Feature** — The single most critical user flow that defines product success
+3. **Performance Targets** — Key metrics for the north star feature (if applicable)
+
+## Interview Structure
+
+Start with: "I'll help you create a knowledge base for your Lovable project. I'll ask you a few questions to understand your product vision. Let's start with the basics."
+
+### Questions to Ask (in Order):
+
+**Project Overview:**
+1. "What is your project in one sentence? What does it do?"
+2. "Who is this for? Describe your target user."
+3. "What specific problem does this solve for them? What's the pain point?"
+4. "How will you measure success? What's the key user action or metric?"
+
+**North Star Feature:**
+5. "What's the ONE feature that defines your product's core value? The feature that if it doesn't work well, nothing else matters?"
+6. "Walk me through the ideal user flow for this feature step-by-step."
+7. "What makes this feature 'feel right' to users? What's the magic moment?"
+8. "Are there any performance requirements for this feature? (examples: load times, response times)"
+
+## Output Format
+
+After gathering answers, generate a knowledge base file in this exact structure:
+```
+# [Project Name] — Knowledge Base
+
+## Project Overview
+**What:** [One sentence description]
+**Who:** [Target user description]
+**Problem:** [Pain point in user's voice]
+**Success:** [Key success metric]
+
+---
+
+## Software Development Principles
+
+1. **Project Structure:** Maintain consistent file and folder organization. Group related code by feature or domain. Follow established patterns for hooks, components, utilities, and types. Keep separation of concerns clear between UI, business logic, and data layers.
+2. **Strict TypeScript:** Always use strict typing. Avoid 'any'. Ensure data structures are explicitly defined to prevent runtime errors.
+3. **Descriptive Naming:** Use clear, intent-based names for variables, functions, and components (example: `isUserAuthenticated` instead of `auth`).
+4. **DRY Principle:** Do not repeat yourself. Centralize shared logic, types, and components. If a pattern is used more than twice, create a reusable utility or component.
+5. **Error Handling:** Always implement 'Unhappy Path' logic. Provide clear, user-friendly error messages and loading states for all asynchronous actions.
+6. **Security (Server-Side Logic):** Never trust the client. Sensitive logic, data validation, and API keys must remain on the server/back end.
+7. **Accessible Component Design:** Build using small, isolated UI components with proper accessibility. Use ARIA labels, semantic HTML, keyboard navigation support, and ensure WCAG AA compliance. Components should be reusable and follow standard naming conventions (Modals, Cards, Buttons).
+8. **Mobile-First Responsiveness:** All UI must be fully responsive and optimized for mobile devices before scaling to desktop.
+9. **Comprehensive Logging:** Always implement detailed logging by default to ensure observability and rapid debugging. Log edge function entry/exit with parameters, external API calls with request/response details, database operations, authentication events, and data transformations at key boundaries. Use structured logging with consistent formats.
+10. **Modular Architecture:** Structure all code (front end and back end) in a modular way so that individual features can be tested, debugged, and rolled back without affecting global state. Keep concerns separated and dependencies explicit.
+
+---
+
+## Workflow Constraint
+
+1. Build the front-end UI first. Do not implement back-end integrations or database schemas until the front-end user flow is explicitly approved.
+2. When implementing the front end, make sure to implement it page by page, explicitly asking me to approve each page.
+3. Test-Driven Development: Follow the Red-Green-Refactor cycle for all front-end and back-end implementation. Write a failing test before any implementation code. Use Vitest + React Testing Library for components, Vitest with mocked Supabase client for edge functions. Co-locate test files next to source files. All tests must pass before committing.
+4. After each module implementation, instruct me how i can test the new implemented capability in the preview mode. Do not continue implementing the next module until I confirm I’m ready 
+
+---
+
+## North Star Feature
+
+**Priority #1:** [Feature Name] ([Tagline])
+
+[Description of why this matters]
+
+[Numbered step-by-step flow]
+
+[Context about supporting features]
+
+[Performance philosophy if relevant]
+
+**Performance Target:** [if applicable]
+- [metric]: [target]
+- [metric]: [target]
+```
+
+## Interview Style
+- Ask ONE question at a time.
+- Keep questions conversational and clear.
+- Validate understanding before moving on.
+- If an answer is vague, ask for specific examples.
+- Don't move to the next section until you have clear, concrete answers.
+
+## Before Generating Output
+Confirm with the user: "I have everything I need. Let me generate your knowledge base file. Does this cover everything, or is there anything else critical I should know about your project's vision?"
+
+---
+
+Begin the interview now.
+````
+
+2. Enter the result of what you got as the Lovable system prompt.
+
+Here's an example of the perfect system prompt that combines software development principles and workflow constraints:
+
+```md
+# Recipe Matcher MVP — Knowledge Base
+
+## Project Overview
+**What:** An ingredient-first recipe matcher that ranks recipes by match quality, with pantry persistence and favorites for all signed-in users.
+**Who:** Home cooks who hate food waste and need cooking inspiration from random ingredients they already have.
+**Problem:** "I have stuff in my fridge but no idea what to cook right now."
+**Success:** Time from ingredient entry to clicking a recipe (speed = magic).
+
+---
+
+## Software Development Principles
+
+1. **Project Structure:** Maintain consistent file and folder organization. Group related code by feature or domain. Follow established patterns for hooks, components, utilities, and types. Keep separation of concerns clear between UI, business logic, and data layers.
+2. **Strict TypeScript:** Always use strict typing. Avoid 'any'. Ensure data structures are explicitly defined to prevent runtime errors.
+3. **Descriptive Naming:** Use clear, intent-based names for variables, functions, and components (examples: `isUserAuthenticated` instead of `auth`).
+4. **DRY Principle:** Do not repeat yourself. Centralize shared logic, types, and components. If a pattern is used more than twice, create a reusable utility or component.
+5. **Error Handling:** Always implement 'Unhappy Path' logic. Provide clear, user-friendly error messages and loading states for all asynchronous actions.
+6. **Security (Server-Side Logic):** Never trust the client. Sensitive logic, data validation, and API keys must remain on the server/back end.
+7. **Accessible Component Design:** Build using small, isolated UI components with proper accessibility. Use ARIA labels, semantic HTML, keyboard navigation support, and ensure WCAG AA compliance. Components should be reusable and follow standard naming conventions (Modals, Cards, Buttons).
+8. **Mobile-First Responsiveness:** All UI must be fully responsive and optimized for mobile devices before scaling to desktop.
+9. **Comprehensive Logging:** Always implement detailed logging by default to ensure observability and rapid debugging. Log edge function entry/exit with parameters, external API calls with request/response details, database operations, authentication events, and data transformations at key boundaries. Use structured logging with consistent formats.
+10. **Modular Architecture:** Structure all code (front end and back end) in a modular way so that individual features can be tested, debugged, and rolled back without affecting global state. Keep concerns separated and dependencies explicit.
+
+---
+
+## Workflow Constraint
+1. Build the front-end UI first. Do not implement back-end integrations or Database schemas until the front-end user flow is explicitly approved.
+2. When implementing the front end, make sure to implement it page by page, explicitly asking me to approve each page. 
+3. Test-Driven Development: Follow the Red-Green-Refactor cycle for all front-end and back-end implementation. Write a failing test before any implementation code. Use Vitest + React Testing Library for components, Vitest with mocked Supabase client for edge functions. Co-locate test files next to source files. All tests must pass before committing.
+4. After each module implementation, instruct me how i can test the new implemented capability in the preview mode. Do not continue implementing the next module until I confirm I’m ready 
+
+---
+
+## North Star Feature
+**Priority #1:** Ingredient → Recipe Search (The Magic Moment)
+
+This is the anchor feature everything else supports. The entire UX flows from this:
+1. User adds ingredients (fast autocomplete)
+2. Hits "Let's cook something!" 
+3. Sees ranked results instantly (showing match percentages)
+4. Clicks recipe → sees what they have vs. need
+
+Everything else (pantry, favorites, onboarding) exists to make this faster on repeat visits. If search feels slow or confusing, the product fails. Optimize relentlessly for time-to-first-recipe-click.
+
+**Performance Target:** 
+- Autocomplete: <300ms
+- Recipe search: <1
+- Recipe details: <500ms
+```
+
+#### Create color system prompt
+
+Once you tweak the design of your app to something you're happy with, you can then use this prompt to extract that into a complete color system:
+
+1. Tweak the app design to something you like
+2. Ask AI to extract the app styles into a design system using this prompt:
+
+```md
+Analyze the current design of this project and create a complete Design System Specification document that I can add to my project's knowledge base.
+
+Include ALL of the following in exhaustive detail:
+
+1. **Theme Philosophy** — Describe the overall aesthetic in 12 sentences
+
+2. **Color Palette** — List every color token with:
+   - CSS variable name
+   - HSL value
+   - Hex equivalent
+   - Usage context (when to use each color)
+
+3. **Typography** — Include:
+   - Font families for headings and body
+   - Google Fonts import URL
+   - Font weights used
+   - Text sizes (mobile and desktop) with Tailwind classes
+
+4. **Border Radius** — Document:
+   - Base radius variable
+   - All radius sizes with values and Tailwind classes
+   - Common usage patterns for each
+
+5. **Shadows** — List all shadow variables with CSS values and use cases
+
+6. **Gradients** — All gradient definitions with CSS values
+
+7. **Button Specifications** — Include:
+   - Size variants (height, padding, classes)
+   - Style variants (colors, hover states, borders)
+   - Focus and disabled states
+
+8. **Card Specifications** — Base styles and enhanced variants
+
+9. **Input Specifications** — Height, borders, focus states
+
+10. **Badge/Tag Specifications** — Styles for pills and tags
+
+11. **Icon Containers** — Sizes and border radius patterns
+
+12. **Animations** — Keyframe definitions and usage
+
+13. **Spacing and Layout** — Container sizes, section padding, gap patterns
+
+14. **Hover and Interactive States** — All hover behaviors
+
+Format this as a clean, copy-paste ready document using markdown headers and code blocks where appropriate. Do NOT use emojis. Make it technical and precise so future prompts can reference it for consistency.
+```
+
+3. Attach the results of the prompt into the system prompt for lovable so it understands the design system and what colors to use.
+4. Ask Lovable to create UI based on the design system:
+
+```
+The UI should feel like an upscale restaurant menu meets a modern app—sophisticated, warm, and inviting. 
+The overall feel should be premium, warm, and food-focused—like a high-end cooking app. 
+Hero Section should have a full-width background image (elegant food photography) with dark linear gradient overlay to bottom. 
+Dark elegance with warm golden accents. 
+The UI uses a sophisticated charcoal background paired with golden/amber highlights to create a premium, inviting food app aesthetic. 
+Dark-mode first design.
+```
+
+#### Florish
+
+- **SVG animations**: drop in SVG animations and tell it to use the JavaScript animations API to make complex timeline animations of it.
+- **Skeletons**: ask it to add loading skeletons.
+### Backend with Lovable Cloud
+
+The Lovable Cloud option allows you to use Lovable's integrated backend to make your app a full-stack app.
+
+> [!NOTE]
+> Under the hood, lovable cloud is powered by Supabase.
+
+
+
+![](https://i.imgur.com/KcVZfsB.jpeg)
+
+
+#### Create backend architecture system prompt
+
+```md
+Act as a **principal software architect and teacher**. Your goal is to help me design an architecture for this web app built based on **Lovable (frontend)** with **Supabase (backend via Lovable Cloud)**. 
+
+Useful libraries to add:
+
+- Tanstack query for data fetching and caching
+- Zod for single source of truth for typescript and runtime validation, export inferred types from created zod schemas in a /globals/schema.ts as the typescript types to use throughout the application
+
+---
+
+
+
+### Step 1: Analyze the existing front end.
+Use your tools to thoroughly examine:
+- All pages in `src/pages/`
+- All components in `src/components/`
+- Types and interfaces in `src/types/`
+- Mock data and services in `src/data/` and `src/lib/`
+- Routing configuration in `src/App.tsx`
+- Any existing state management
+
+### Step 2: Review knowledge in settings.
+Understand everything that the user stored in Knowledge already regarding this project. 
+
+### Step 3: Internal findings checklist
+Silently confirm you understand:
+- [ ] App purpose and core value proposition
+- [ ] User types (Guest/Authenticated/Premium)
+- [ ] Core user flows from pages and navigation
+- [ ] Data entities from types and interfaces
+- [ ] Mock services that need real back-end replacement
+- [ ] Authentication patterns and protected routes
+- [ ] Data relationships and ownership
+      
+### Step 4: architecture design
+
+- [ ] Database: map out the tables and RLS policies
+- [ ] Authentication: enable email OTP passwordless auth and google auth, ask me securely for the GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets and then instruct me as how to set the redirect URI and authorized domains on the google oauth credentials page, walking me through the steps and the exact urls I should put down, wait until I confirm I did it and it worked.
+- [ ] Edge functions: when creating edge function architecture, understand which ones need JWT verification (authenticated user performing CRUD on resources they own) and implement edge functions with TDD.
+- [ ] Payments: use your Stripe integration for payments
+
+```
+
+### Quality Assurance and control
+
+#### Code review prompt
+
+Here is a list of what to ask AI to review in a comprehensive code review:
+
+1. Separation of concerns, following clean code
+2. No mock data or ghost data
+3. Type safety: complete type safety with zod
+4. Error handling: no silent failures, failures are surfaced to UI
+
+And here's the prompt:
+
+```
+Perform a comprehensive audit of the entire codebase to ensure our architecture is clean, modular, and optimized for production.
+
+##Key Audit Areas:
+
+**Separation of Concerns:** Check if UI components are doing too much 'thinking.' Identify logic that should be moved into Hooks or Edge Functions.
+**The DRY Principle:** Locate any duplicate logic, especially in our API translation and data fetching layers.
+**Ghost Code and Cleanup:** Identify any leftover mock data, unused imports, or 'dead' code from previous versions.
+**Type Safety:** Scan for loose types or 'any' usage that compromises our guardrails. Ensure guest and premium data shapes are clearly separated.
+**Error Handling:** Identify 'Silent Failures' where the UI might hang if a courier (API/DB) doesn't respond.
+**Organization:** Point out misplaced files or logic that doesn't follow a standard React/Supabase structure.
+**Output Requirements:** Provide a detailed report with specific recommendations. Do not modify the code yet. Break the suggestions down into an ordered list from 'Critical Fixes' to 'Optional Polish.'
+**This is a read-only analysis; acknowledge that you will not make changes until instructed.**
+```
+
+#### Code refactoring
+
+DO NOT ask AI to fix everything at once. Refactor one thing at a time:
+
+
+1. Dead code removal
+2. remove duplicated code where it makes sense to refactor instead
+3. UI/UX polish
+
+And here's the prompt:
+
+```
+# Role: Senior Engineer — Audit Fix Implementation
+
+You are a Senior Engineer implementing fixes from a recent audit. The work is split into **two types**: bug fixes (correcting broken behavior) and refactoring (improving structure without changing behavior). Both are organized into **five sequential clusters** for controlled rollout.
+
+## Ground Rules
+- Do not begin any cluster until explicitly instructed.
+- Never alter tests to make them pass. Always fix the underlying issue.
+- Before starting each cluster, confirm your implementation plan and flag which items are bug fixes vs. refactoring.
+
+## Cluster Execution Protocol
+
+Every cluster follows the same four steps:
+
+1. **Confirm plan** — Outline what you intend to change, and label each item as BUG FIX or REFACTOR.
+2. **Implement** — Execute all fixes for this cluster.
+3. **Summarize** — Describe the specific changes made.
+4. **Impact Zone & Testing** — Identify which features or pages could be affected, run the test suite, and fix any failures at the source until all tests pass.
+
+## Clusters
+
+| # | Cluster | Type | Focus |
+|---|---------|------|-------|
+| 1 | **Dead Code Removal** | Refactor | Delete unused files, functions, and types |
+| 2 | **DRY & Deduplication** | Refactor | Consolidate nav, animations, autocomplete, shared edge function utilities |
+| 3 | **Data & Type Cleanup** | Bug Fix + Refactor | Fix RLS policies, resolve type drift, fix inefficient queries, adopt React Query |
+| 4 | **UX Polish** | Bug Fix + Refactor | Fix password validation, fix logged-in CTA, align NotFound to design system |
+| 5 | **Test Alignment** | Refactor | Update test files to reflect current service layer |
+
+Do not advance to the next cluster until the user says **"Proceed."**
+
+## Important: Cluster 3 — RLS Policies
+When fixing RLS policies, the goal is **not** to make them less strict — it is to make them correctly configured. Each policy must enforce row-level ownership: a user can only read, insert, update, or delete rows where `user_id` matches their own authenticated ID. Do not write policies that allow any user to access another user's data. Confirm the exact policy logic before implementing.
+
+## Final Step — Audit Reconciliation
+Once all clusters are complete, run a full audit reconciliation: check every item from the original audit report and confirm what was resolved, what was partially addressed, and what (if anything) remains open.
+```
+
+#### Chaos engineering
+
+Test the unhappy paths like network failures, race conditions, malformed input data so you have robust error handling and graceful failover.
+
+```md
+Review the full front end and edge function test suites. List all the features and behaviours that currently have test coverage, and identify what's missing. 
+Focus on: unhappy paths we haven't tested (network failures, timeouts, malformed data), edge cases (empty inputs, extremely long inputs, duplicate submissions), error handling (what does the user see when something fails?), and boundary conditions (rate limits, large result sets, expired sessions). 
+Present the gaps as a prioritised list—critical gaps first. 
+```
+
+### Lovable Security testing
+
+Lovable offers a free security testing and fixing service:
+
+
+![](https://i.imgur.com/NZ7ETHL.jpeg)
+
+### Lovable cloud environments
+
+Lovable cloud environments allows you to sandbox your code into different deployment environments, like live vs test.
+
+
+![](https://i.imgur.com/fiokinw.jpeg)
+
+Once you enable this feature, it duplicates the codebase and backend infra to have one test environment and one live environment.
+
+- Test data stays in test
+- Live data never gets overwritten
+
+
+![](https://i.imgur.com/wjSBAVo.jpeg)
+
+### Compliance
+
+
+- **legal pages**: The required legal pages are:
+	- **privacy policy**: highlights the data you collect
+	- **terms of service**: your contract with users
+	- **cookie policy**: browser data disclosure
+
+GDPR requires users to be able to perform CRUD on their own data and delete their accounts or change their emails.
+
+here is how to achieve all of that within one prompt:
+
+````md
+# Compliance PRD: Settings and Data Management Page
+
+## Overview
+Add a Settings page that gives authenticated users full control over their personal data, in compliance with GDPR and CCPA requirements. Add legal pages (Privacy Policy, Terms of Service, Cookie Policy) accessible from the app footer, and a cookie consent popup for first-time visitors.
+
+## User Flow
+
+### Accessing Settings
+1. User clicks their profile icon or name in the top navigation bar,
+2. A dropdown menu appears with two options: **Settings** and **Sign Out**,
+3. User clicks **Settings** → navigates to the Settings page,
+
+### Accessing Legal Pages
+1. Footer is visible on every page of the app,
+2. Footer contains three links: **Privacy Policy**, **Terms of Service**, **Cookie Policy**,
+3. Each link opens the respective legal page,
+
+---
+
+## Page Layout: Settings
+
+### Section 1: Personal Information
+Displays all personal data the app stores for the authenticated user.
+
+```
++-------------------------------+
+|  Settings                     |
+|                               |
+|  PERSONAL INFORMATION         |
+|  +-------------------------+  |
+|  | Name:  [Jane Doe  ] Edit|  |
+|  | Email: [jane@... ] Edit |  |
+|  +-------------------------+  |
+|                               |
+|  [ Save Changes ]             |
++-------------------------------+
+```
+
+**Behavior:**
+- Fields are read-only by default,
+- Clicking "Edit" or the field makes it editable,
+- "Save Changes" appears only when a field has been modified,
+- On success → toast: "Profile updated successfully",
+- On error → toast: "Failed to update profile. Please try again."
+
+### Section 2: Delete Account
+
+```
++-------------------------------+
+|  - - - - - - - - - - - - -   |
+|                               |
+|  DANGER ZONE                  |
+|                               |
+|  Permanently delete your      |
+|  account and all data.        |
+|  This cannot be undone.       |
+|                               |
+|  [ Delete My Account ]  (red) |
++-------------------------------+
+```
+
+**Behavior:**
+- "Delete My Account" is styled in red to signal destructive action,
+- Clicking it opens a confirmation dialog (see below),
+
+### Confirmation Dialog: Delete Account
+
+```
++-------------------------------+
+|                               |
+|  ! Are you sure?              |
+|                               |
+|  This will permanently        |
+|  delete your account and      |
+|  all your data, including:    |
+|                               |
+|  - Your saved pantry items    |
+|  - Your favorite recipes     |
+|  - Your profile information   |
+|                               |
+|  This cannot be undone.       |
+|                               |
+|  Type "DELETE" to confirm:    |
+|  +-------------------------+  |
+|  |                         |  |
+|  +-------------------------+  |
+|                               |
+|  [Cancel]  [Delete Everything]|
++-------------------------------+
+```
+
+**Behavior:**
+- User must type "DELETE" to enable the "Delete Everything" button,
+- Button is disabled and greyed out until confirmation word is typed,
+- On confirmation → delete all user data → sign user out → redirect to landing page,
+- Toast on landing page: "Your account and all data have been permanently deleted",
+- "Cancel" closes the dialog with no changes,
+
+---
+
+## Page Layout: Legal Pages
+
+Each legal page uses a simple, readable layout:
+
+```
++-------------------------------+
+|  < Back                       |
+|                               |
+|  Privacy Policy               |
+|  Last updated: [date]         |
+|                               |
+|  [Content from Termly or      |
+|   Iubenda goes here]          |
+|                               |
++-------------------------------+
+```
+
+**Note:** The actual legal content should be generated using a service like Termly (termly.io) or iubenda (iubenda.com). This PRD defines the page layout and navigation only — not the legal text itself.
+
+---
+
+## Cookie Consent Popup
+
+Shown once to first-time visitors at the bottom of the screen:
+
+```
++-------------------------------+
+| We use cookies to keep you    |
+| logged in and improve your    |
+| experience.                   |
+| Read our Cookie Policy.       |
+|                               |
+|      [Accept]  [Decline]      |
++-------------------------------+
+```
+
+**Behavior:**
+- Appears on first visit, pinned to the bottom of the viewport.
+- "Accept" → stores consent, popup disappears, does not show again.
+- "Decline" → stores refusal, popup disappears, does not show again.
+- "Cookie Policy" links to the Cookie Policy legal page.
+- User's choice is stored locally so the popup doesn't reappear.
+
+---
+
+## Footer (All Pages)
+
+```
+---------------------------------
+Privacy Policy | Terms | Cookies
+---------------------------------
+```
+
+Added to the bottom of every page. Each link opens the respective legal page.
+
+---
+
+## Edge Cases
+
+| Scenario | Expected Behavior |
+|---|---|
+| User tries to save an empty name field | Validation error: "Name cannot be empty" |
+| User tries to change email to invalid format | Validation error: "Please enter a valid email address" |
+| User types "delete" (lowercase) in confirmation | Button stays disabled — must be exactly "DELETE" |
+| User deletes account, then tries to sign in again | Standard "Invalid credentials" message — no indication the account existed |
+| Network error during profile update | Toast: "Failed to update profile. Please try again." |
+| Network error during account deletion | Toast: "Failed to delete account. Please try again." — account remains intact |
+| Unauthenticated user navigates to /settings | Redirect to sign-in page |
+
+---
+
+## Data Deleted on Account Removal
+
+When a user deletes their account, the following data must be permanently removed:
+
+- **profiles** table → user's row
+- **pantry_items** table → all rows matching user's ID
+- **favorites** table → all rows matching user's ID
+- **Supabase Auth** → user's authentication record
+
+This is handled by the CASCADE DELETE policies already configured in our database schema.
+
+---
+
+## Design
+Follow the existing design system defined in the project Knowledge file. The Settings page should match the style and feel of all other pages in the app. The "Danger Zone" section should use red/warning styling to clearly distinguish destructive actions from normal ones.
+
+
+````
+
+### Lovable payments
+
+Lovable has built-in integration with Stripe now.
+
+### Lovable Ai
+
+Lovable has built-in integration with adding AI inference to apps.
+
+Here is what you should specify when telling Lovable to add AI:
+
+- **integrate into edge functions**: AI inference should be run in the context of an edcge function
+- **use tanstack AI libraries**: tanstack AI UI components are great for wiring up AI to the backend.
+## Replit
+
