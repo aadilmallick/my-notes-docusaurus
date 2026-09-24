@@ -384,6 +384,18 @@ The Ralph loop work as follows at a high level:
 2. Ralph completes user stories one at a time in order of highest priority, updating documentation memory (`progress.txt`), then clearing the context after a user story's acceptance criteria has been fulfilled.
 3. It keeps looping, completing user stories until all of them have been completed.
 
+Use the ralph github repo:
+
+```embed
+title: "GitHub - snarktank/ralph: Ralph is an autonomous AI agent loop that runs repeatedly until all PRD items are complete."
+image: "https://opengraph.githubassets.com/741878d7e5fc8b6c2ca039ff7f1863b5c2bf3aeebee122821e73598ce177b58c/snarktank/ralph"
+description: "Ralph is an autonomous AI agent loop that runs repeatedly until all PRD items are complete.  - snarktank/ralph"
+url: "https://github.com/snarktank/ralph"
+favicon: ""
+aspectRatio: "50"
+```
+
+
 Here's how to install the Ralph skill:
 
 ```md

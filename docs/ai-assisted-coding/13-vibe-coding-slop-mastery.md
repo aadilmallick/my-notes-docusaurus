@@ -497,7 +497,26 @@ Please look into this repository and help me understand its architecture and its
 
 ## Spec-driven slop coding slopvelopment
 
-### Documentation Driven Development (Triple D's)
+
+### Spec driven development basics
+
+A **Spec** is a single document that contains the UI/UX, tech, and business logic info of a desired feature to implement within the app.
+
+If a spec has these three things:
+
+1. **technology constraints**: what libraries to use, 
+2. **visual requirements**: what the UI/UX should look like and acceptance criteria for that
+3. **performance requirements**: what the desired performance of the feature should be and acceptance criteria for that
+
+Then you can give that spec to AI and it will be able to vibe through it and complete it pretty nicely.
+
+We can master spec-driven development through using these three techniques:
+
+1. **DDD**: always grab the latest up-to-date documentation, and always keep the codebase documentation up to date with `progress.txt` files and `CODEBASE.md` files.
+2. **TDD**: use test-driven development along with acceptance criteria to ensure you code never goes out of whack and you have extensive test coverage.
+3. **SLDC**: plan, implement, test, and deploy features one at a time.
+
+#### Documentation Driven Development (Triple D's)
 
 
 
@@ -508,7 +527,7 @@ To achieve DDD, you should follow these principles:
 1. **Provide only up-to-date documentation**: use context7 or firecrawl to always get the latest up-to-date documentation.
 2. **Use TDD**: tell the AI to write extensive unit tests and especially Playwright e2e tests.
 
-### SDLC with AI
+#### SDLC with AI
 
 The Software Development Life Cycle (SDLC) is a structured process that guides software development through four core phases:  
   
@@ -524,7 +543,7 @@ The Software Development Life Cycle (SDLC) is a structured process that guides s
     
 - **Deployment:** Finally, the app is deployed online for users. But this isn't the end; SDLC is iterative. After deployment, you return to planning for new features or improvements, following Agile principles.
 
-### TDD with AI
+#### TDD with AI
 
 1. **Set up your test environment:** Use AI tools integrated in your IDE to help set up a testing framework (like Vitest or Jest). The AI can generate config files and install dependencies, but you may need to troubleshoot and guide it through errors.  
       
@@ -543,20 +562,142 @@ The Software Development Life Cycle (SDLC) is a structured process that guides s
     
 6. **Run tests again:** Execute the tests to check if the component passes. If there are failures, review error messages.
 
-## Advanced vibe coding
+### Multi-phase planning for large refactors
 
-### Spec driven development
+The Multi-Phase Planning pattern is designed for **large, complex architectural refactors** that touch many files and require careful decomposition. Instead of diving into implementation, you first create a detailed migration plan, then execute it phase by phase.
 
-A **Spec** is a single document that contains the UI/UX, tech, and business logic info of a desired feature to implement within the app.
+**When to use this pattern:**
 
-If a spec has these three things:
+- Refactors touching 10+ files
+- Architecture migrations (monolithic → microservices, flat → layered)
+- Major feature additions requiring new patterns
+- Projects where mistakes are costly
 
-1. **technology constraints**: what libraries to use, 
-2. **visual requirements**: what the UI/UX should look like and acceptance criteria for that
-3. **performance requirements**: what the desired performance of the feature should be and acceptance criteria for that
+**Not for:**
 
-Then you can give that spec to AI and it will be able to vibe through it and complete it pretty nicely.
+- Small, isolated features (use Beads or RALPH instead)
+- Bug fixes
+- Simple refactors (just do them)
+#### Phase 1: Plan
 
+[README](https://github.com/LinkedInLearning/mastering-ai-assisted-development-10666010/blob/main/4.3-demo-multi-phase-planning/README.md#phase-1-plan)
+
+**Goal**: Analyze the codebase and create a detailed migration plan.
+
+The AI agent:
+
+1. Explores the current codebase structure
+2. Identifies pain points and architectural issues
+3. Proposes the target architecture
+4. Breaks the migration into logical steps
+5. Writes everything to `specs/migration-plan.md`
+
+**Output**: A migration spec with:
+
+- Current state description
+- Target state description
+- Detailed steps for each phase
+- Risks and mitigations
+- Rollback strategy
+
+**Duration**: Usually 30-60 minutes of analysis
+
+**Commit**: `git commit -m "phase-0: migration plan (analysis)"`
+
+#### Phase 2: Scaffold
+
+[readme](https://github.com/LinkedInLearning/mastering-ai-assisted-development-10666010/blob/main/4.3-demo-multi-phase-planning/README.md#phase-2-scaffold)
+
+**Goal**: Create the new file structure and type definitions without implementation.
+
+The AI agent:
+
+1. Creates new directories and files for the new architecture
+2. Defines interfaces, types, and class signatures
+3. Creates stub implementations (throw NotImplemented)
+4. Does NOT implement business logic yet
+
+**Output**:
+
+- New directory structure
+- All type definitions and interfaces
+- Function/method signatures
+- Still has broken imports from old code
+
+**Why first?**: This phase locks in the architecture. Once types are defined, the next phases can implement in parallel (if needed).
+
+**Commit**: `git commit -m "phase-1: scaffold new architecture"`
+
+#### Phase 3: Implement
+
+[README](https://github.com/LinkedInLearning/mastering-ai-assisted-development-10666010/blob/main/4.3-demo-multi-phase-planning/README.md#phase-3-implement)
+
+**Goal**: Fill in implementations phase by phase, testing each piece.
+
+The AI agent:
+
+1. Implements one layer at a time (e.g., all repositories, then all services)
+2. Tests each layer as it's implemented
+3. Verifies that old code still works (no breaking changes yet)
+4. Makes incremental commits for each subsystem
+
+**Output**:
+
+- Fully implemented new architecture
+- Comprehensive tests
+- Old code still works (dual-mode during transition)
+
+**Commits**: Multiple atomic commits:
+
+- `phase-2a: implement user repository`
+- `phase-2b: implement order repository`
+- `phase-2c: implement user service`
+- etc.
+
+#### Phase 4: Test
+
+[README](https://github.com/LinkedInLearning/mastering-ai-assisted-development-10666010/blob/main/4.3-demo-multi-phase-planning/README.md#phase-4-test)
+
+**Goal**: Add comprehensive tests for the new architecture.
+
+The AI agent:
+
+1. Writes unit tests for each service (mocking repositories)
+2. Writes integration tests for routes
+3. Adds edge case and error handling tests
+4. Targets 80%+ code coverage
+
+**Output**:
+
+- Unit test suite
+- Integration test suite
+- Coverage report
+- All tests passing
+
+**Commit**: `git commit -m "phase-3: comprehensive test suite"`
+
+#### Phase 5: Integrate
+
+[readme](https://github.com/LinkedInLearning/mastering-ai-assisted-development-10666010/blob/main/4.3-demo-multi-phase-planning/README.md#phase-5-integrate)
+
+**Goal**: Wire up the new architecture and remove the old code.
+
+The AI agent:
+
+1. Updates all routes to use new services (breaking old imports)
+2. Removes old code
+3. Updates all imports across the codebase
+4. Verifies all tests still pass
+5. Clean compilation with no warnings
+
+**Output**:
+
+- Fully migrated codebase
+- Old code completely removed
+- All tests passing
+- No dead code or unused imports
+
+**Commit**: `git commit -m "phase-4: migrate to new architecture and remove old code"`
 ## Vibe coding workflows with different harnesses
 
 ### Codex
