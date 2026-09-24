@@ -479,6 +479,23 @@ This is how the teamcity configuration should be set up:
 
 #### Installation
 
+```bash
+# macOS / Linux
+brew install jetbrains/utils/teamcity
+
+# via a bash script
+curl -fsSL https://jb.gg/tc/install | bash
+
+# Windows
+winget install JetBrains.TeamCityCLI
+
+# via a powershell script
+irm https://jb.gg/tc/install.ps1 | iex
+
+# Connect to your server
+teamcity auth login https://example.teamcity.com/
+```
+
 **macOS (Homebrew):**
 
 ```shell
