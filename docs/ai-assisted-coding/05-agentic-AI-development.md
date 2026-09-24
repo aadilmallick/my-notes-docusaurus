@@ -335,6 +335,37 @@ Up until now, you've been a **conductor**—working with ONE AI agent at a time,
 
 Now you're ready to become an **orchestrator**—overseeing an entire symphony of MULTIPLE AI agents working in parallel, each with their own focus, autonomy, and capability to independently carry out complex implementation tasks.
 
+There are 4 main patterns when it comes to orchestration:
+
+**1. Single agent**
+
+- One agent handles all tasks sequentially
+- Simple, no coordination overhead, but bottlenecks on complexity
+
+**2. Subagent pattern**
+
+- One agent spawns child agents for specific subtasks, collects results, integrates output
+- Low coordination cost
+
+**3. Swarm pattern**
+
+- Multiple agents work in parallel on independent chunks, share a common data structure, self-organize
+- Medium coordination
+
+**4. Agent Team**
+
+- Agents with explicit roles (frontend engineer, DevOps, QA) collaborate via structured protocols
+- High coordination, but optimal for complex fullstack projects
+
+Here's how they differ
+
+- Use subagents for linear task hierarchies with a controlling parent.
+- Use swarms for independent work with shared state (test status, progress, blockers).
+- Use agent teams for fullstack projects with clear domain boundaries.
+- Communicate via TASKS.md, PROGRESS.md, and shared types/contracts, not chat.
+
+#### Orchestrator
+
 **The core idea:** You oversee an entire **team** of autonomous coding agents working in parallel. 
 
 - You set high-level goals, define tasks, and let a team of specialized agents independently carry out implementation.
@@ -398,14 +429,22 @@ Don't use subagents when:
 - The overall task is small (overhead not worth it)
 - Real-time coordination between agents is needed
 
-#### Agent teams and swarms
+#### Agent teams 
 
-Swarms are subagents that have locks on certain files, intended to work on truly decoupled parts of projects in parallel as to not interfere with each other:
 
-- **swarm**: run truly in parallel as main agents wither on different worktrees, or working on different parts of the projects
+- **agent teams**: run truly in parallel as main agents wither on different worktrees, or working on different parts of the projects
 	- **communication**: each agent in the fleet can communicate with each other
 - **subagents**: orchestrated by the main agent, may have dependency order on other tasks or subagents, more lightweight and less risk of overwriting each others' work because main agent is the one orchestrating them.
 	- **communication**: each subagent can communicate with the main parent agent, which facilitates communication to all the children subagents.
+
+With agent teams, you have two main agentic components:
+
+- **leader agent**: the agent that facilitates orchestration among other agent teammates
+- **teammate agent**: a single-responsibility role-based agent that could be one of these roles:
+	- Backend agent: API contracts, business logic
+	- Frontend agent: UI, state management, integration
+	- DevOps agent: Infrastructure, CI/CD, deployment
+	- QA agent: Test strategy, edge cases, integration tests
 
 Agent teams are best when you have three components:
 
@@ -431,6 +470,24 @@ The best use cases for agent teams arises when there is the least probability fo
 
 - **parallel research work**: research competing hypotheses to fix a bug or to research multiple different libraries then compare them after.
 
+#### Swarms
+
+
+Stores shared state in a `PROGRESS.md`, has a shared immutable type contract in some file.
+
+**Each agent** follows this workflow
+
+1. Reads PROGRESS.md
+2. Claims an unclaimed module
+3. Works independently
+4. Updates PROGRESS.md with results
+5. Runs shared tests, reports status
+
+**Use this pattern when**
+
+- Work can be split into truly independent modules (no cross-dependencies)
+- Agents benefit from seeing what others completed (examples: reusing types, patterns)
+- You want agents to dynamically adjust scope based on overall progress
 ## Loop engineering
 
 ### Ralph loop

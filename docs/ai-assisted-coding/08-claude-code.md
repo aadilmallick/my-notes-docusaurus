@@ -1500,6 +1500,13 @@ For more info on Agent Teams, check out [[05-agentic-AI-development#Agent teams 
 
 #### Creating an agent team
 
+An agent team should have these core components:
+
+- **`TASKS.md`**: a file that is the shared task list that all teammates can look at
+- `PROGRESS.md`: a file that is the shared progress list that all teammates can look at
+
+Here is a step-by-step example of how to initialize an agent team:
+
 1. Agent teams are experimental. Enable them in your settings by setting the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAM` env var to `"1"` in your current shell session, or by adding this to your `.claude/settings.local.json`
 
 ```json title=".claude/settings.local.json"
@@ -1515,7 +1522,134 @@ export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 ```
 
 2. Create a shared types file
-3. Ask Claude to create an "agent team", which is a Claude-recognized keyword phrase, so it will make an agent team with specified teammates:
+3. Create a shared tasks file `TASKS.md`, like so:
+
+````md
+# React Component Library — Task Board
+
+## Task Assignments
+
+### Agent A: Form Components
+- [ ] Button component (with variants: primary, secondary, danger, disabled)
+- [ ] Input component (with label, placeholder, validation states)
+- [ ] Select component (with options, multi-select variant)
+
+**Expected Commits**:
+- feat: Button component with primary/secondary/danger variants
+- feat: Input component with validation support
+- feat: Select component with multi-select variant
+
+### Agent B: Dialog Components
+- [ ] Modal component (header, body, footer, close button)
+- [ ] Toast/Alert component (success, error, warning, info variants)
+- [ ] Dropdown component (with keyboard navigation and focus management)
+
+**Expected Commits**:
+- feat: Modal component with header/footer support
+- feat: Toast/Alert component with multiple variants
+- feat: Dropdown component with keyboard navigation
+
+### Agent C: Testing & Documentation
+- [ ] Unit tests for all components (target 85%+ coverage)
+- [ ] Storybook/example files for all components
+- [ ] Update README.md with usage examples and API reference
+
+**Expected Commits**:
+- test: unit tests for form components (Button, Input, Select)
+- test: unit tests for dialog components (Modal, Toast, Dropdown)
+- docs: Storybook stories and README examples
+
+---
+
+## Conventions (All Agents MUST Follow)
+
+### File Organization
+- Each component in its own file: `src/components/${ComponentName}.tsx`
+- Tests mirror src structure: `tests/${ComponentName}.test.tsx`
+- Props interfaces named `${ComponentName}Props`
+
+### Code Style
+- TypeScript with strict mode enabled
+- Functional components with React hooks
+- Named exports (NOT default exports)
+- Props as single parameter
+- No external state management (use Props + callbacks)
+
+### Styling
+- Tailwind CSS for all styling
+- NO inline styles
+- NO CSS modules
+- Reusable classes via `clsx` or similar
+- Responsive design (mobile-first)
+
+### Testing
+- Jest for test runner
+- React Testing Library for component testing
+- Minimum 80% line coverage per component
+- Test cases: render, user interaction, edge cases, error states
+
+### Components Must Have
+- Clear, documented Props interface
+- Sensible default values
+- Accessible HTML (aria labels, semantic elements)
+- Type-safe event handlers
+
+### Commits
+- One logical change per commit
+- Descriptive commit messages: `feat: X component with Y variant`
+- Group related work: Button + tests in one commit is fine
+
+---
+
+## Completed
+- [x] Project setup (TypeScript, Jest, Tailwind, React)
+- [x] Created directory structure (src/components, tests/)
+- [x] Created shared type definitions (types/index.ts)
+
+---
+
+## In Progress (Starting Now)
+- [ ] **Agent A**: Form components (Button, Input, Select)
+- [ ] **Agent B**: Dialog components (Modal, Toast, Dropdown)
+- [ ] **Agent C**: Tests and documentation for all
+
+---
+
+## Blocked/Issues
+(None yet — all agents can start immediately)
+
+---
+
+## Timeline
+
+- **Hour 1**: Core components implemented (Button, Input, Modal, Toast)
+- **Hour 2**: Secondary components (Select, Dropdown); tests for Hour 1 work
+- **Hour 3**: All tests complete, documentation done
+- **Hour 4**: Integration, final review, merge
+
+---
+
+## How Agents Check Progress
+
+Agents should check this file and PROGRESS.md frequently:
+- Every 30 minutes: glance at TASKS.md to see if anything changed
+- Every 15-30 minutes: check git log (`git log --oneline -10`) to see what others did
+- Before starting a new component: check TASKS.md for updates/blockers
+- After finishing a component: update PROGRESS.md, commit, and note in TASKS.md
+
+---
+
+## How Team Lead Monitors
+
+Team Lead should:
+- Review PROGRESS.md every 30 minutes
+- Run `git log` to see commits
+- Watch for blockers flagged in PROGRESS.md
+- Help resolve conflicts or dependencies
+- Keep TASKS.md updated with current status
+````
+
+4. Ask Claude to create an "agent team", which is a Claude-recognized keyword phrase, so it will make an agent team with specified teammates; it creates them as subagents.
 
 ```
 Create an agent team to build this component library.
@@ -1528,6 +1662,8 @@ Use TypeScript, functional components, named exports, Tailwind CSS.
 Each component gets its own file: src/components/ComponentName.tsx
 Each test file mirrors: tests/ComponentName.test.tsx
 ```
+
+
 ### Hooks
 
 Claude hooks are bash commands that run at different lifecycle moments such as session start, pre compact, and on stop. Key moments include startup, resume, clear, and various tool use stages like pre tool use and post tool use.
