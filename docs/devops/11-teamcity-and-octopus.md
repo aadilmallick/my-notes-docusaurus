@@ -506,26 +506,43 @@ Scheduled triggers let you run build configurations on a cron schedule.
 
 #### Build configuration artifacts
 
+Artifact rules in _TeamCity_ are used to organize build outputs into a specific directory structure and store them in a TeamCity **artifact filesystem** unique to the build configuration, where under the hood those artifacts are stored in S3 or something.
+
+
 For a build configuration, you have two important settings when it comes to artifacts:
 
 1. **publish artifacts**: when to publish artifacts. You have these options:
 	- **even if build fails**: even if build fails, publish artifacts
 	- **no publish on fail**: if build fails, don't publish artifacts
-2. **artifact paths**: provide Team City-specific syntax for describing the source code artifact path mapping to the Team City build agent runner environment target directory. The syntax is as follows:
-
-##### Artifact path syntax
-
-```
-+:source => target   // to mount source code path to target path
--:source   // to ignore a source code path
-```
+2. **artifact paths**: provide Team City-specific syntax for describing the source code artifact path mapping to the Team City build agent runner environment target directory.
 
 
 ![](https://i.imgur.com/6A7ZNrq.jpeg)
 
+##### Artifact path syntax
 
-> [!NOTE]
-> All of these settings are configurable in the Kotlin DSL for TeamCity. 
+
+
+Two Golden Rules to Remember:
+
+- **Rules are Additive:** TeamCity reads them one by one. If you include everything in one line and exclude specific files in the next, TeamCity follows both instructions.
+- **You Can't Rename:** If you try to "rename" a file, TeamCity ignores the rename and just creates a new folder with that name instead. It is strictly for organizing into folders.
+
+
+Here are the basic rules:
+
+- **Include/Exclude Logic:** Rules start with `+:` to include files or `-:` to exclude them
+- **Source and Destination:** The syntax follows a `source => destination` format
+	- **Source:** The pattern or path of files from your build agent. This is the folder on your build agent where the files currently live.
+    - **Destination:** The target directory structure you want to create within the build's artifact folder. 
+	    - This is the name of the folder you want to create in TeamCity. 
+	    - Using a dot **`.`** just means the "root" (the main artifacts folder).
+- **Wildcards:** You can use `*` to match files in a directory or `**` to match files recursively through subdirectories
+
+```
++: source => target   // to mount source code path to target path
+-: source   // to ignore a source code path
+```
 
 Let's go more in depth into the language:
 
@@ -534,14 +551,50 @@ Let's go more in depth into the language:
 - `*`: star glob pattern
 - `**`: recursive star glob pattern
 
+**simple example**
+
+Here's a simple example:
+
+- **Rule:** `+: data/* => results`
+- **Translation:** "Take everything (`*`) inside the `data` folder and put it into a new folder called `results` within the artifacts folder of the build configuration in TeamCity."
+
 So this below:
 
 ```
-**/* => target_dir, -: **/folder1 => target_dir
++: **/* => target_dir
+-: **/folder1 => target_dir
 ```
 
 maps all files in the source code to the teamcity build runner filesystem but then removes/ignores `folder1`.
 
+**complex example**
+
+Let's dissect every single artifact syntax rule from this example:
+
+
+![](https://i.imgur.com/g5HffrY.jpeg)
+
+
+`calculator-service/artifacts/*`: takes every file within the `calculator-service/artifacts` folder and adds it into the root artifacts folder. 
+
+> [!NOTE]
+> From this we learn that if you don't use the plus or minus syntax, then by default it's additive syntax and it's adding it to the root of the artifacts folder file system for the build configuration. 
+
+![](https://i.imgur.com/z6e055r.jpeg)
+
+
+What about the addition of an additive rule and a subtractive rule?
+
+```
++:calculator-service/artifacts/* => another_directory
+-:calculator-service/artifacts/*.log => another_directory
+```
+
+These rules say to map every file in the `calculator-service/artifacts` directory and put it int the `/another_directory` folderpath in the artifacts filesystem, but exclude all files matching `*/log` (exclude log files).
+
+
+
+![](https://i.imgur.com/h2VSfzP.jpeg)
 
 ##### Build numbers
 
@@ -630,6 +683,27 @@ Failure conditions allow you to add specific conditions to decide when a build s
 
 ![](https://i.imgur.com/z25lZ7W.jpeg)
 
+#### SSH build steps
+
+You have several available build steps that let you use ssh to connect to a remote server and perform SFTP or RPC on those servers.
+
+Here's the different types of ways you can do a build step that uses SSH somehow:
+
+- **command line build step**: A vanilla command line build step where you construct an `ssh` bash command.
+- **SSH exec step**: executes a command after remotely connecting to a server via SSH. You define how to authenticate with the remote server, either by uploading a private key to the build configuration, or using Teamcity SSH agent.
+- **SSH file transfer step**: remotely connects to a server via SSH and handles file transfer via SFTP. You define how to authenticate with the remote server, either by uploading a private key to the build configuration, or using Teamcity SSH agent.
+
+##### SSH exec example
+
+1. Upload an SSH private key pair, name it.
+
+
+![](https://i.imgur.com/yn8oTB7.jpeg)
+
+2. Add an **SSH exec** build type to your build configuration
+
+
+![](https://i.imgur.com/dtUA8I0.jpeg)
 
 ### Teamcity pipelines
 
