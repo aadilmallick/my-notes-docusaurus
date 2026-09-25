@@ -181,9 +181,6 @@ Kotlin DSL works at the **project level**, fetching info from a `.teamcity/setti
 - **Can I apply different settings for separate project branches?**: Yes, different repository branches can store [different project settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#branch-specific-settings).
 
 
-> [!NOTE]
-> Project settings can be saved to the same repo that hosts application sources, or a [completely separate repository](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Separate+VCS+Root).
-
 In TeamCity, the project administrator must ensure **Project Settings → Versioned Settings** has:
 
 - **Synchronization**: enabled
@@ -237,6 +234,33 @@ Enabling synchronization for a project also enables it for all its subprojects w
 
 - TeamCity synchronizes all changes to the project settings (including modifications of [build configurations](https://www.jetbrains.com/help/teamcity/managing-builds.html), [templates](https://www.jetbrains.com/help/teamcity/build-configuration-template.html), [VCS roots](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html), and so on) except [SSH keys](https://www.jetbrains.com/help/teamcity/ssh-keys-management.html). 
 - To exclude individual subprojects from the synchronization, switch them to Synchronization disabled mode.
+
+###### separate VCS roots
+
+> [!NOTE]
+> Project settings can be saved to the same repo that hosts application sources, or a [completely separate repository](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Separate+VCS+Root).
+
+The default location for TeamCity project settings is the `.teamcity` folder in the root of the same repository that stores the target project. Depending on your workflow specifics and business needs, this default setup might not be optimal for your team.
+
+For example, teams working with monorepos where stand-alone microservices and external libraries are hosted in adjacent directories would likely want to set up individual TeamCity projects that store their settings in separate directories. Using custom settings directories for each project ensures that projects targeting the same monorepo do not constantly override each other's settings.
+
+Another scenario you might want to implement is moving TeamCity-specific files away from the sources. This approach obscures the specifics of your CI/CD ecosystem, hiding them from external parties. In addition, having a dedicated VCS repository that stores settings of your entire TeamCity server (each project has its own repository folder to store its settings) can also prove beneficial for settings maintenance and testing.
+
+
+
+The Project settings VCS root selector allows you to choose which [Configuring VCS Roots](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html) TeamCity should use to obtain and commit project settings. 
+
+You can choose any root owned by either this project directly, or by any of its parent projects.
+
+> [!NOTE]
+> Note that the Project settings VCS root combo-box does not allow you to create new roots. You need to navigate to the VCS Roots tab of your project settings and set up a required root before you can start using it on the Versioned Settings page.
+
+Here are the general steps to set a VCS root to use for versioned settings for a project
+
+1. Basically, if you want to use a repo  for versioned settings to set the settings for a project, that repo must be added as a **VCS root** for the project.
+2. Then in the versioned settings, you can enable synchronization, then select the Kotlin DSL repo to choose for versioned settings.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-versioned-settings-chooseroot.png)
 
 ##### Adding a build configuration through Gitlab + Kotlin DSL 
 
