@@ -114,13 +114,38 @@ A project is a container for **templates**, **subprojects**, **build configurati
 - **subproject**: a subfolder within a project that contains its own scoped build configurations and templates, mainly used for organization purposes.
 - **versioned settings**: connects your Kotlin config as code from a remote git repo to be used to create all the build configs, templates, and subprojects of a project.
 
-All projects inherit from the **root project**, and all build configurations, templates, and VCS settings within a project are available for use to any other component within that project or any subprojects of that project.
+
+```
+Project
+│
+├── VCS Root
+│
+├── Build Configuration
+│   ├── Parameters
+│   ├── VCS settings
+│   ├── Build Steps
+│   ├── Triggers
+│   ├── Failure Conditions
+│   ├── Build Features
+│   └── Dependencies
+│
+├── Build Configuration
+│
+└── Template
+```
+
+Here are the important rules to understand about projects #tc-project-rules : ^a54b92
+
+1. All projects inherit from the **root project**.
+2. All build configurations, templates, and VCS settings within a project are available for use to any other component within that project or any subprojects of that project. 
 
 
 ![](https://i.imgur.com/N0W4UwS.jpeg)
-1. In TeamCity, child projects inherit many settings and entities from their parent, such as [connections](https://www.jetbrains.com/help/teamcity/2026.1/configuring-connections.html?Creating%20and%20Editing%20Projects) and [cloud agent profiles](https://www.jetbrains.com/help/teamcity/2026.1/teamcity-integration-with-cloud-solutions.html?Creating%20and%20Editing%20Projects). 
-2. The Root project lets you take advantage of this concept and define server-wide resources. 
-3. For example, you can create [AWS cloud profile](https://www.jetbrains.com/help/teamcity/2026.1/setting-up-teamcity-for-amazon-ec2.html?Creating%20and%20Editing%20Projects) that spawns cloud agents accessible to all projects on the server.
+In TeamCity, child projects inherit many settings and entities from their parent, such as [connections](https://www.jetbrains.com/help/teamcity/2026.1/configuring-connections.html?Creating%20and%20Editing%20Projects) and [cloud agent profiles](https://www.jetbrains.com/help/teamcity/2026.1/teamcity-integration-with-cloud-solutions.html?Creating%20and%20Editing%20Projects). 
+
+The Root project lets you take advantage of this concept and define server-wide resources. 
+
+For example, you can create [AWS cloud profile](https://www.jetbrains.com/help/teamcity/2026.1/setting-up-teamcity-for-amazon-ec2.html?Creating%20and%20Editing%20Projects) that spawns cloud agents accessible to all projects on the server.
 
 > [!NOTE]
 > Note that since [user permissions](https://www.jetbrains.com/help/teamcity/2026.1/managing-roles-and-permissions.html?Creating%20and%20Editing%20Projects) are project-based, only Root project administrators can edit its settings.
@@ -179,6 +204,11 @@ Kotlin DSL works at the **project level**, fetching info from a `.teamcity/setti
 
 - **Does the project with enabled versioned settings remain editable?**: You can choose whether a project [can be edited](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#SynchronizingSettingswithVCS) via TeamCity UI (in this case TeamCity synchronizes edits made in the UI with remotely stored settings) or only by modifying settings files on the VCS side.
 - **Can I apply different settings for separate project branches?**: Yes, different repository branches can store [different project settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#branch-specific-settings).
+
+> [!TIP]
+> A TeamCity configuration can use separate VCS roots for importing DSL settings and downloading sources.
+> 
+> If your build project and DSL settings are stored in the same repository (not recommended for public repos accepting external contributions), you can reuse the same root.
 
 
 In TeamCity, the project administrator must ensure **Project Settings → Versioned Settings** has:
@@ -656,6 +686,17 @@ THe notifications build feature allows you to send an email or slack notificatio
 
 ![](https://i.imgur.com/GpjUCFr.jpeg)
 
+##### Pull requests
+
+Pull requests build feature allows you to run builds based on a pull request to the VCS root fo the build configuration.
+
+![](https://i.imgur.com/ZNqeJFA.jpeg)
+
+You also have three additional filtering settings:
+
+- **filter by authors**: only trigger builds on pull requests by a specific author(s)
+- **filter by source branch**: only trigger builds on pull requests whose source branch match the branch syntax match pattern you provide to this textarea.
+- **filter by target branch**: only trigger builds on pull requests whose target branch match the branch syntax match pattern you provide to this textarea.
 #### Build chains
 
 You can consider build configurations within a project as individual pipelines/jobs, and then if you want to do what github actions does in parallelizing and adding jobs as dependencies of each other, then you can look to **build chains**, where you can create a directed dependency graph of builds that depend upon other builds.
@@ -665,12 +706,37 @@ In teamcity, you can specify two behaviors when it comes to build chains:
 - **sequential execution**: specify that a build needs another build to finish, so it executes sequentially after.
 - **parallel execution**: specify that a build can run in parallel with another build.
 
+##### Creating a build chain
+
+You can create build chains where a build configuration depends on another build configuration sequentially by creating a new snapshot dependency and artifact dependency:
+
+1. Go to the **dependencies** settings of a build configuration and then add a new snapshot dependency:
+
+
+![](https://i.imgur.com/T8RZ4oY.jpeg)
+
+2. Configure the snapshot dependency
+
+
+![](https://i.imgur.com/iNZmVE2.jpeg)
+
+3. Add a new artifact dependency so the dependent build configuration gets access to the artifacts of the previous job.
+
+
+![](https://i.imgur.com/1UrmwsK.jpeg)
+
 #### Agent requirements
 
 On each build configuration, you can set the **agent requirements** for the build configuration, which restricts the build configuration to only be compatible with agents that pass the criteria you set:
 
 
 ![](https://i.imgur.com/krsZqlJ.jpeg)
+
+
+You can add a requirement like so:
+
+![](https://i.imgur.com/iXj1WQm.jpeg)
+
 
 #### Failure conditions
 
@@ -991,7 +1057,22 @@ If you want to write config as code much like how YAML files are used to create 
 
 Kotlin DSL for Teamcity compile into these XML files behind the scenes, so that's what we'll use for our config as code.
 
+
+
+
 ### Teamcity to gitlab necessary setup
+
+For more info, go here:
+
+```embed
+title: "Creating and Editing Projects | TeamCity On-Premises"
+image: "https://resources.jetbrains.com/storage/products/teamcity/img/meta/preview.png"
+description: ""
+url: "https://www.jetbrains.com/help/teamcity/creating-and-editing-projects.html#Create+New+Projects+in+Kotlin+DSL"
+favicon: ""
+aspectRatio: "49.21875"
+```
+
 
 1. Configure a git repo for source control:
 
@@ -1009,6 +1090,113 @@ Kotlin DSL for Teamcity compile into these XML files behind the scenes, so that'
 
 3. Make sure you have a teamcity user on your gitlab repo that has READ/WRITE access to the repo
 
+### Teamcity Kotlin DSL syntax primer
+
+TeamCity calls a build configuration a **`BuildType`** in its Kotlin DSL API. The API groups its settings into blocks such as `vcs`, `steps`, `triggers`, `failureConditions`, and `features`.
+
+```
+TeamCity UI                 Kotlin DSL
+
+Project                     Project
+Build Configuration         BuildType
+VCS Root                    VcsRoot / GitVcsRoot
+Build Step                  BuildStep
+Build Template              Template
+```
+
+Basically, each object in TeamCity (project, build step, build configuration, etc.) corresponds to a class in the Kotlin DSL
+
+#### Lambda receiver syntax
+
+Consider:
+
+```
+project {
+
+    buildType {
+
+        name = "Build Application"
+
+        steps {
+
+            script {
+                scriptContent = "./gradlew build"
+            }
+        }
+    }
+}
+```
+
+Do not read this as magic syntax.
+
+Read it as:
+
+```
+configure project
+    ↓
+create/configure a build type
+    ↓
+configure its build steps
+    ↓
+create/configure a script step
+    ↓
+set its scriptContent property
+```
+
+#### The simplest Kotlin DSL setup
+
+```kts
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
+
+version = "YOUR_TEAMCITY_VERSION"
+
+project {
+
+    buildType {
+        id("BuildApplication")
+        name = "Build Application"
+
+        steps {
+            script {
+                name = "Compile application"
+                scriptContent = "./gradlew build"
+            }
+        }
+    }
+}
+```
+
+1. Create a `Project` instance with the `project { }` block, which declares a project in Teamcity.
+2. Create a `BuildType` instance with the `buildType { }` block, which declares a build configuration within the project.
+	- The `id("BuildApplication")` creates a stable ID for the build configuration, which is what you use to uniquely identify the build configuration across all TeamCity projects.
+	- The `steps {}` block creates a list of build steps for the job
+
+#### id vs name
+
+This distinction matters a lot in real projects.
+
+- `id`: used for creating a logical ID for the build configuration or template
+- `name`: used for creating a human-readable facing name for the build configuration or template.
+
+You might have:
+
+```
+id("BuildBackend")
+name = "Build Backend"
+```
+
+Later someone wants prettier wording:
+
+```
+name = "Compile Backend"
+```
+
+The identity should usually remain the same, because you should think of it as an unchanging **logical ID**
+
+```
+id("BuildBackend")
+```
 
 
 ### `.teamcity` folder structure
@@ -1018,9 +1206,21 @@ After enabling **Versioned Settings** and configuring the synchronization, _Team
 - **`pom.xml`**: This file defines the folder as a _Maven_ project, which is necessary for _IntelliJ IDEA_ to properly recognize and provide features like auto-completion for your configuration scripts.
 - **`settings.kts`**: This is your primary _Kotlin_ script file where the project's build configuration logic is stored.
 
+```
+my-application/
+├── src/
+├── build.gradle.kts
+│
+└── .teamcity/
+    ├── settings.kts
+    └── pom.xml
+```
+
 #### `settings.kts`
 
 The `settings.kts` is the entrypoint for describing the Teamcity build configuration. A standard Teamcity build configuration will have many objects that compose a pipeline.
+
+
 
 A standard, simple configuration file includes several key blocks:
 
@@ -1305,245 +1505,6 @@ The `pom.xml` reads settings from the `settings.kts` to define the build configu
 </project>
 ```
 
-### Build types in depth
-
-#### Build outputs and variable interpolation
-
-In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
-
-- **build output variables**: when you instantiate a `BuildType` object, you're just creating a normal Kotlin object, so of course you can access properties on it.
-
-#### Dependencies
-
-You can consider build configurations as jobs/pipelines, and in order to orchestrate sequential and parallel jobs running according to a specific order, we have to create **build chains**.
-
-There are two ways to create a build chain (configuring sequential dependencies of build configuration files and thus pipelines):
-
-- **Method 1 - Use `BuildType.dependencies`**: Specify which other builds an individual BuildType instance depends on via the `dependencies` block. 
-	- **Pro**: granular
-	- **Con**: gets messy and has messy logic
-- **Method 2 - specify job order in `project` block**: Specify sequential chains of builds in the `sequential` block in the `project` block, and parallel blocks with the `parallel` block.
-	- **Pro**: super easy and readable
-	- **Con**: lower granularity, can't access individual snapshot properties.
-
-> [!IMPORTANT]
-> Then an important thing to understand once you configure a build chain is that the VCS trigger should only be on the LAST build type in the chain.
-
-**Method 1 example**
-
-Here's an example using Method 1:
-
-1. Create the two jobs
-
-```kts
-object APIBuild : BuildType({
-    id("APIBuild")
-    name = "API Build"
-
-    vcs {
-        root(PortalApiVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
-    }
-
-    steps {
-        powerShell {
-            name = "Pull SlowCheetah"
-            platform = PowerShellStep.Platform.x64
-            scriptMode = script {
-                content = """
-            %teamcity.tool.NuGet.CommandLine.DEFAULT%\tools\nuget install SlowCheetah -OutputDirectory packages -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages;https://api.nuget.org/v3/index.json"
-        """.trimIndent()
-            }
-        }
-	}
-
-    triggers {
-        vcs {
-            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
-            quietPeriod = 300
-            branchFilter = ""
-        }
-    }
-})
-
-object ReactBuild : BuildType({
-    id("ReactBuild")
-    name = "React Build"
-
-
-    vcs {
-        root(PortalAppVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
-    }
-
-    steps {
-        exec {
-            name = "NPM Install"
-            workingDir = ""
-            path = "npm"
-            arguments = "install"
-        }
-
-        exec {
-            name = "NPM Build"
-            workingDir = ""
-            path = "npm"
-            arguments = "run build"
-        }
-    }
-
-    triggers {
-        vcs {
-            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
-            quietPeriod = 300
-            branchFilter = ""
-        }
-    }
-})
-
-```
-
-
-2. Create a job that is dependent on those two jobs:
-
-```kt
-object Publish : BuildType({
-    name = "Publish"
-    buildNumberPattern = "2026.4.0.%build.counter%"
-    publishArtifacts = PublishMode.SUCCESSFUL
-
-    steps {
-        step {
-            name = "Publish Package to Server"
-            type = "octopus.push.package"
-            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
-            param("octopus_host", "%allprojects.octopus.url%")
-            param("octopus_packagepaths", """
-                aggregateBuilds/** => COCO.CustomerPortal.%build.number%.zip
-                database/sqlserver/** => COCO.CustomerPortalApi.SqlServerDB.%build.number%.zip
-                database/oracle/** => COCO.CustomerPortalApi.OracleDB.%build.number%.zip                
-            """.trimIndent())
-            param("octopus_forcepush", "false")
-            param("octopus_publishartifacts", "true")
-            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
-        }
-        step {
-            name = "Create Release"
-            type = "octopus.create.release"
-            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
-            param("octopus_channel_name", "%coco.octopus.channel.unified%")
-            param("octopus_version", "3.0+")
-            param("octopus_host", "%allprojects.octopus.url%")
-            param("octopus_project_name", "Customer Portal - IIS")
-            param("octopus_forcepush", "IgnoreIfExists")
-            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
-            param("octopus_releasenumber", "%build.number%%coco.octopus.unified.prerelease%")
-        }
-    }
-
-	// dependent on those two builds because it uses outputs from them
-    params {
-        param("param.rjs.package", "COCO.CustomerPortalApp.${ReactBuild.depParamRefs.buildNumber}.zip")
-        param("param.net.package", "COCO.CustomerPortalApi.${APIBuild.depParamRefs.buildNumber}.zip")
-        param("param.dbsql.package", "COCO.CustomerPortalApi.SqlServerDB.${APIBuild.depParamRefs.buildNumber}.zip")
-        param("param.dbora.package", "COCO.CustomerPortalApi.OracleDB.${APIBuild.depParamRefs.buildNumber}.zip")
-        param("coco.octopus.channel.unified", "Unified")
-        param("coco.octopus.unified.prerelease", "%allprojects.octopus.prereleasetag%")
-    }
-
-    triggers {
-        vcs {
-            branchFilter = ""
-            watchChangesInDependencies = true
-        }
-    }
-
-    dependencies {
-        dependency(APIBuild) {
-            snapshot {
-                onDependencyFailure = FailureAction.FAIL_TO_START
-            }
-
-            artifacts {
-                cleanDestination = true
-                artifactRules = """
-                    %param.net.package%!** => aggregateBuilds
-                    %param.dbsql.package%!** => database/sqlserver
-                    %param.dbora.package%!** => database/oracle
-                """.trimIndent()
-
-            }
-        }
-        dependency(ReactBuild) {
-            snapshot {
-                onDependencyFailure = FailureAction.FAIL_TO_START
-            }
-
-            artifacts {
-                cleanDestination = true
-                artifactRules = "%param.rjs.package%!** => aggregateBuilds/build"
-            }
-        }
-    }
-})
-```
-
-
-**Method 2**
-
-here's method 2 in action:
-
-```kts
-projects {
-	sequential {
-		// run the build first
-		buildType(Build)
-		
-		// run tests in parallel
-		parallel {
-			buildType(UnitTest)
-			buildType(IntegrationTest)
-			buildType(e2eTest)
-			buildType(SAST)
-			buildType(DAST)
-		}
-		
-		// deploy last
-		buildType(Deploy)
-	}
-}
-```
-
-If you want to refactor using functions and classes as abstractions over creating `BuildType` instances, here is what you should do, where now you are using trailing lambda syntax and dynamically registering build types:
-
-```kts
-project {
-	// 1. define build chain, get all BuildType objects back in Collection
-    val bts = sequential {
-        buildType(Maven(name = "Build", goals = "clean compile"))
-        parallel {
-            buildType(Maven(name = "Fast Test", goals = "clean test"))
-            buildType(Maven(name = "Slow Test", goals = "clean test"))
-        }
-        buildType(Maven(name = "Package", goals = "clean package"))
-    }.buildTypes()
-
-	// 2. register all BuildType instances
-    bts.forEach { buildType(it) }
-    
-    // 3. Set the VCS trigger on the last build in the build chain
-    bts.last().triggers {
-	    vcs {
-	    
-	    }
-    }
-}
-
-class Maven(public var name: String, public var goals: String): BuildType({
-	name = this.name,
-	goals = this.goals
-})
-```
-
-
 ### Creating a project
 
 
@@ -1569,6 +1530,55 @@ project {
 }
 ```
 
+
+Suppose we have:
+
+```kt
+object BuildApplication : BuildType({
+    name = "Build Application"
+})
+```
+
+You've created a Kotlin object representing a build configuration.
+
+But the project still needs to include it:
+
+```kt
+project {
+    buildType(BuildApplication)
+}
+```
+
+Think:
+
+```
+Define object:
+
+BuildApplication
+       ↓
+
+Register object with project:
+
+project {
+    buildType(BuildApplication)
+}
+```
+
+The same principle applies to the VCS root and any other project-level teamcity object like a build configuration, template, subproject, or VCS root.
+
+```kt
+project {
+    vcsRoot(ApplicationRepository)
+}
+```
+
+Here's a list of what you have to explicitly register on a project in order for it to be included in the project settings:
+
+1. **build configurations**: register `BuildType` build configuration instances with the `buildType()` method, which takes in a `BuildType` object instance.
+2. **templates**: register `Template` build configuration template with the `template()` method, which takes in a `Template` object instance.
+3. **subprojects**: register a `SubProject` with the `subProject()` method, which takes in a `SubProject` object instance, registering a subproject within the project.
+4. **vcs roots**: register a VCS root represented by the `GitVcsRoot` class with the `vcsRoot()` method, which takes in a `GitVcsRoot` object instance.
+5. **build chains**: the `sequential { }` and `parallel { }` blocks allow you to create build chains and then register build configurations within those build chains with the`buildType()` method, which takes in a `BuildType` object instance.
 #### creating VCS roots
 
 In the `projects` block, you can register VCS roots for the project via the `vcsRoot()` function, which takes in a `GitVcsRoot` instance:
@@ -1612,6 +1622,7 @@ There are two ways to authenticate with a Git repo when setting up the Git VCS r
 
 - **Method 1 - HTTPS**: for the `url` property you pass the HTTPS URL to your github repo, and then for the `authMethod`, you specify HTTPS
 - **Method 2 - SSH**: for the `url` property you pass the SSH URL to connect to your github repo in `<user>@<host>` style, and then use the `uploadedKey` lambda to specify the public key in gitlab that should be used to connect to the private key in Teamcity (check out [[#Teamcity + Gitlab SSH keys]] for more info).
+
 
 #### subprojects
 
@@ -1906,6 +1917,317 @@ object ReactBuild : BuildType({
 
 ```
 
+### Build types in depth
+
+#### VCS roots with build configurations
+
+Due to one of the rules of teamcity projects (see [[#TeamCity projects]]), build configurations inherit settings from the project they are scoped under, such as VCS roots.
+
+However, you can override the VCS roots a build configuration uses with the `vcs { }` block, and then use the `root(GitVcsRoot)` method to register a `GitVcsRoot` instance as the VCS root for that build configuration.
+
+```kt
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot
+
+version = "YOUR_TEAMCITY_VERSION"
+
+project {
+    vcsRoot(ApplicationRepository)
+    buildType(BuildApplication)
+}
+
+object ApplicationRepository : GitVcsRoot({
+    name = "Application Repository"
+
+    url = "https://github.com/example/my-application.git"
+
+    branch = "refs/heads/main"
+})
+
+object BuildApplication : BuildType({
+
+    name = "Build Application"
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+        script {
+            name = "Build"
+            scriptContent = "./gradlew clean build"
+        }
+    }
+})
+```
+
+#### Triggers
+
+You define triggers on a build type with the `BuildType.triggers` object block.
+
+##### VCS triggers
+
+```kt
+object BuildApplication : BuildType({
+
+    name = "Build Application"
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+        script {
+            name = "Build"
+            scriptContent = "./gradlew clean build"
+        }
+    }
+
+    triggers {
+        vcs {
+        }
+    }
+})
+```
+
+#### Build outputs and variable interpolation
+
+In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
+
+- **build output variables**: when you instantiate a `BuildType` object, you're just creating a normal Kotlin object, so of course you can access properties on it.
+
+#### Build chains
+
+You can consider build configurations as jobs/pipelines, and in order to orchestrate sequential and parallel jobs running according to a specific order, we have to create **build chains**, which describe dependencies of build configurations on other build configurations via **snapshot dependencies** and **artifact dependencies**.
+
+There are two ways to create a build chain (configuring sequential dependencies of build configuration files and thus pipelines):
+
+- **Method 1 - Use `BuildType.dependencies`**: Specify which other builds an individual BuildType instance depends on via the `dependencies` block. 
+	- **Pro**: granular
+	- **Con**: gets messy and has messy logic
+- **Method 2 - specify job order in `project` block**: Specify sequential chains of builds in the `sequential` block in the `project` block, and parallel blocks with the `parallel` block.
+	- **Pro**: super easy and readable
+	- **Con**: lower granularity, can't access individual snapshot properties.
+
+> [!IMPORTANT]
+> Then an important thing to understand once you configure a build chain is that the VCS trigger should only be on the LAST build type in the chain.
+
+##### Explicit dependencies methods
+
+Here's an example using Method 1:
+
+1. Create the two jobs
+
+```kts
+object APIBuild : BuildType({
+    id("APIBuild")
+    name = "API Build"
+
+    vcs {
+        root(PortalApiVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
+    }
+
+    steps {
+        powerShell {
+            name = "Pull SlowCheetah"
+            platform = PowerShellStep.Platform.x64
+            scriptMode = script {
+                content = """
+            %teamcity.tool.NuGet.CommandLine.DEFAULT%\tools\nuget install SlowCheetah -OutputDirectory packages -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages;https://api.nuget.org/v3/index.json"
+        """.trimIndent()
+            }
+        }
+	}
+
+    triggers {
+        vcs {
+            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+            quietPeriod = 300
+            branchFilter = ""
+        }
+    }
+})
+
+object ReactBuild : BuildType({
+    id("ReactBuild")
+    name = "React Build"
+
+
+    vcs {
+        root(PortalAppVcsRoot, "+:. => .", "-: .teamcity", "-: .idea", "-: .gitignore")
+    }
+
+    steps {
+        exec {
+            name = "NPM Install"
+            workingDir = ""
+            path = "npm"
+            arguments = "install"
+        }
+
+        exec {
+            name = "NPM Build"
+            workingDir = ""
+            path = "npm"
+            arguments = "run build"
+        }
+    }
+
+    triggers {
+        vcs {
+            quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+            quietPeriod = 300
+            branchFilter = ""
+        }
+    }
+})
+
+```
+
+
+2. Create a job that is dependent on those two jobs:
+
+```kt
+object Publish : BuildType({
+    name = "Publish"
+    buildNumberPattern = "2026.4.0.%build.counter%"
+    publishArtifacts = PublishMode.SUCCESSFUL
+
+    steps {
+        step {
+            name = "Publish Package to Server"
+            type = "octopus.push.package"
+            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
+            param("octopus_host", "%allprojects.octopus.url%")
+            param("octopus_packagepaths", """
+                aggregateBuilds/** => COCO.CustomerPortal.%build.number%.zip
+                database/sqlserver/** => COCO.CustomerPortalApi.SqlServerDB.%build.number%.zip
+                database/oracle/** => COCO.CustomerPortalApi.OracleDB.%build.number%.zip                
+            """.trimIndent())
+            param("octopus_forcepush", "false")
+            param("octopus_publishartifacts", "true")
+            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
+        }
+        step {
+            name = "Create Release"
+            type = "octopus.create.release"
+            param("octopus_space_name", "%allprojects.octopus.spacename.prodops%")
+            param("octopus_channel_name", "%coco.octopus.channel.unified%")
+            param("octopus_version", "3.0+")
+            param("octopus_host", "%allprojects.octopus.url%")
+            param("octopus_project_name", "Customer Portal - IIS")
+            param("octopus_forcepush", "IgnoreIfExists")
+            param("secure:octopus_apikey", "credentialsJSON:385844c1-18e7-4a4d-b8eb-1b23541a94ef")
+            param("octopus_releasenumber", "%build.number%%coco.octopus.unified.prerelease%")
+        }
+    }
+
+	// dependent on those two builds because it uses outputs from them
+    params {
+        param("param.rjs.package", "COCO.CustomerPortalApp.${ReactBuild.depParamRefs.buildNumber}.zip")
+        param("param.net.package", "COCO.CustomerPortalApi.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("param.dbsql.package", "COCO.CustomerPortalApi.SqlServerDB.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("param.dbora.package", "COCO.CustomerPortalApi.OracleDB.${APIBuild.depParamRefs.buildNumber}.zip")
+        param("coco.octopus.channel.unified", "Unified")
+        param("coco.octopus.unified.prerelease", "%allprojects.octopus.prereleasetag%")
+    }
+
+    triggers {
+        vcs {
+            branchFilter = ""
+            watchChangesInDependencies = true
+        }
+    }
+
+    dependencies {
+        dependency(APIBuild) {
+            snapshot {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = """
+                    %param.net.package%!** => aggregateBuilds
+                    %param.dbsql.package%!** => database/sqlserver
+                    %param.dbora.package%!** => database/oracle
+                """.trimIndent()
+
+            }
+        }
+        dependency(ReactBuild) {
+            snapshot {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "%param.rjs.package%!** => aggregateBuilds/build"
+            }
+        }
+    }
+})
+```
+
+
+##### `parallel` and `sequential`
+
+here's method 2 in action:
+
+```kts
+projects {
+	sequential {
+		// run the build first
+		buildType(Build)
+		
+		// run tests in parallel
+		parallel {
+			buildType(UnitTest)
+			buildType(IntegrationTest)
+			buildType(e2eTest)
+			buildType(SAST)
+			buildType(DAST)
+		}
+		
+		// deploy last
+		buildType(Deploy)
+	}
+}
+```
+
+If you want to refactor using functions and classes as abstractions over creating `BuildType` instances, here is what you should do, where now you are using trailing lambda syntax and dynamically registering build types:
+
+```kts
+project {
+	// 1. define build chain, get all BuildType objects back in Collection
+    val bts = sequential {
+        buildType(Maven(name = "Build", goals = "clean compile"))
+        parallel {
+            buildType(Maven(name = "Fast Test", goals = "clean test"))
+            buildType(Maven(name = "Slow Test", goals = "clean test"))
+        }
+        buildType(Maven(name = "Package", goals = "clean package"))
+    }.buildTypes()
+
+	// 2. register all BuildType instances
+    bts.forEach { buildType(it) }
+    
+    // 3. Set the VCS trigger on the last build in the build chain
+    bts.last().triggers {
+	    vcs {
+	    
+	    }
+    }
+}
+
+class Maven(public var name: String, public var goals: String): BuildType({
+	name = this.name,
+	goals = this.goals
+})
+```
+
+
 
 
 ### Patches
@@ -1927,7 +2249,41 @@ This approach works well because we treat the VCS with the kotlin DSL as the sou
 
 
 
+### Local testing
 
+#### Local validation by building config
+
+Another habit we'll build is validating configuration before committing it.
+
+The generated TeamCity Kotlin DSL Maven project can generate the corresponding configuration locally using:
+
+```
+mvn teamcity-configs:generate
+```
+
+Generated configuration is placed under:
+
+```
+.teamcity/target/generated-configs
+```
+
+and generation performs DSL validation, which can catch missing mandatory settings before TeamCity applies them.
+
+So a useful development cycle is:
+
+```
+Edit DSL
+   ↓
+IDE compile/autocomplete
+   ↓
+mvn teamcity-configs:generate
+   ↓
+review Git diff
+   ↓
+commit
+   ↓
+TeamCity applies settings
+```
 ## Octopus Basics
 
 ### How Octopus works
