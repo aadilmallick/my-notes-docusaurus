@@ -301,7 +301,8 @@ You can configure this VCS trigger behavior like so:
 
 - **quiet period**: the polling interval. By default, this is 60 seconds
 - **branch filter**: the branches to amtch on for the trigger
-
+	- `+:*-rc`: matches all branches that end in "rc"
+	- `-:*-test`: don't match any branches that end in "test"
 
 
 ![](https://i.imgur.com/ugdlZ4E.jpeg)
@@ -315,10 +316,7 @@ You can also add extra advanced trigger rules which include matching on the foll
 
 ![](https://i.imgur.com/YC9rGFL.jpeg)
 
-You can also exclude certain filepaths from being tracked, and therefore don't trigger builds
-
-
-
+You can also exclude certain filepaths from being tracked, and therefore don't trigger builds if they change within the VCS root repo.
 
 ![](https://i.imgur.com/sfKuCxU.jpeg)
 
@@ -412,8 +410,16 @@ Here's what the below auto-merge thing example does:
 ##### commit status publisher
 
 1. Specify the VCS root and the Teamcity Gitlab user that will be the one with access to the gitlab repo and able to do stuff like run pull request actions 
+	- **VCS root**: the source code repository
+	- **Publisher**: the remote repository to add the integration to, like GIthub or Gitlab
 
 ![](https://i.imgur.com/T6jgrsh.jpeg)
+
+2. On your VCS root source code repo, push up some code, make a pull request, and a build will automatically start running.
+
+
+
+![](https://i.imgur.com/ansn90F.jpeg)
 
 #### Build chains
 
@@ -2402,7 +2408,7 @@ Here's the overview:
 2. Add a service account to a team to give it permissions, accounting for the principle of least privilege
 3. Use the service account API key to access the REST API, granted with the permissions it gained from the team it was added to.
 
-## Forbidden Knowledge from Michael Jordan (Joseph Dempsey) to Lebron James (Rohit Ramakrishnan), with special appearances by Allen Iverson (Clint Smith)
+## Forbidden Knowledge from Michael Jordan (Joseph Dempsey) to Lebron James (Rohit Ramakrishnan) to Tony Snell (Aadil Mallick), with special appearances by Allen Iverson (Clint Smith) 
 
 ### Teamcity to Veracode
 
