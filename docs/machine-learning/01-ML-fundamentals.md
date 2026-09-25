@@ -357,7 +357,7 @@ grid.fit(Xtrain, ytrain)
 ```
 ## Overfitting, Underfitting, Bias vs Variance
 
-### Intro
+### Overfitting vs Underfitting
 
 When we overfit a data set, essentially the model just well on the training data but fails to generalize on the testing data. It means training score is less than testing score.
 
