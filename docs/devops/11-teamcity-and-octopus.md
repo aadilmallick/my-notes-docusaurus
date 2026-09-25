@@ -198,6 +198,14 @@ In TeamCity, the project administrator must ensure **Project Settings → Versio
 	- Enable synchronization. In this case, you can also define which settings to use when the build starts
 - **project settings VCS root**: which remote repo to grab the kotlin DSL from and use settings from a `.teamcity/settings.kts` entrypoint.
 
+As soon as you enable settings synchronization, TeamCity commits the current project tree and server settings to the remote repository. If the target location already stores project settings, a warning pops up. 
+
+This warning allows you to choose whether TeamCity should:
+
+- **import from UI**: overwrite the settings in the VCS with the current project settings on the TeamCity server (only if the two-way [synchronization](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#two-way-sync) is enabled); or
+    
+- **import from code**: import the settings from the VCS replacing the current project settings on the TeamCity server with those from version control.
+
 ###### Synchronization types
 
 If synchronization is enabled, it can work in either two-way or one-way mode.
@@ -223,7 +231,12 @@ Here are the main rules and properties of two-way sync:
 
 If you disable UI editing, then you are in one-way sync mode, where the config as code is the absolute source of truth and you can only change the project settings through Kotlin DSL.
 
-###### Synchronizat
+###### Synchronization with subprojects
+
+Enabling synchronization for a project also enables it for all its subprojects with the default " Use settings from a parent project " option selected. 
+
+- TeamCity synchronizes all changes to the project settings (including modifications of [build configurations](https://www.jetbrains.com/help/teamcity/managing-builds.html), [templates](https://www.jetbrains.com/help/teamcity/build-configuration-template.html), [VCS roots](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html), and so on) except [SSH keys](https://www.jetbrains.com/help/teamcity/ssh-keys-management.html). 
+- To exclude individual subprojects from the synchronization, switch them to Synchronization disabled mode.
 
 ##### Adding a build configuration through Gitlab + Kotlin DSL 
 
