@@ -171,16 +171,59 @@ Let's first do it manually:
 
 ##### Versioned settings
 
+**Versioned settings** store all properties related to project and build configurations, fetching those properties and settings from a remote repo with version control.
 
 If you're using Kotlin DSL to configure TeamCity, you might create a repository that defines your settings, including VCS roots, through code. This allows for version-controlled configuration, facilitating easier management and deployment of CI/CD settings.
 
-Kotlin DSL works at the **project level**, fetching info from a `.teamcity/settings.kts` entrypoint from a repository, via configuration of **versioned settings**
+Kotlin DSL works at the **project level**, fetching info from a `.teamcity/settings.kts` entrypoint from a repository, via configuration of **versioned settings**.
+
+- **Does the project with enabled versioned settings remain editable?**: You can choose whether a project [can be edited](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#SynchronizingSettingswithVCS) via TeamCity UI (in this case TeamCity synchronizes edits made in the UI with remotely stored settings) or only by modifying settings files on the VCS side.
+- **Can I apply different settings for separate project branches?**: Yes, different repository branches can store [different project settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#branch-specific-settings).
+
+
+> [!NOTE]
+> Project settings can be saved to the same repo that hosts application sources, or a [completely separate repository](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Separate+VCS+Root).
 
 In TeamCity, the project administrator must ensure **Project Settings → Versioned Settings** has:
 
 - **Synchronization**: enabled
 - **Settings format**: Kotlin
 - **When build starts**: use settings from VCS
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-versioned-settings-main.png)
+
+- **synchronization settings**: You can choose one of the following options on this page:
+	- Use the same settings as in the parent project (default).
+	- Disable synchronization.
+	- Enable synchronization. In this case, you can also define which settings to use when the build starts
+- **project settings VCS root**: which remote repo to grab the kotlin DSL from and use settings from a `.teamcity/settings.kts` entrypoint.
+
+###### Synchronization types
+
+If synchronization is enabled, it can work in either two-way or one-way mode.
+
+- **two-way sync**: The default mode is a two-way synchronization. This mode is enabled when the Allow editing project settings via UI option is checked.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-vs-allowUIedits.png)
+
+- **one-way sync**: If you disable the Allow editing project settings via UI option, the project settings become read-only in the UI and only reflect changes made on the VCS side. This is convenient if you prefer defining project settings' [as code](https://www.jetbrains.com/help/teamcity/kotlin-dsl.html) or load settings from a read-only VCS branch.
+
+> [!NOTE]
+> Before applying the newly checked-in settings, TeamCity validates them. If the validation fails (for example, when a build configuration references a non-existent VCS root or has duplicate ID), the current project settings are left intact and an error is shown in the UI.
+
+**two-way sync**
+
+Here are the main rules and properties of two-way sync:
+
+1. **UI changes become patches**: Each administrative change made to the [project settings](https://www.jetbrains.com/help/teamcity/project-administrator-guide.html#Edit+and+View+Modes) in the TeamCity UI is committed to the version control system as a **patch**. 
+	- The author of the commited changes matches the TeamCity user who made related project edits.
+2. **Config as code is source of truth**: If the changes are applied on the VCS side (if a Kotlin or XML settings file is edited), the TeamCity server detects them and modifies the project on the fly.
+
+**one-way sync**
+
+If you disable UI editing, then you are in one-way sync mode, where the config as code is the absolute source of truth and you can only change the project settings through Kotlin DSL.
+
+###### Synchronizat
 
 ##### Adding a build configuration through Gitlab + Kotlin DSL 
 
