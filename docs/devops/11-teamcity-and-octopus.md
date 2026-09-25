@@ -162,11 +162,97 @@ VCS roots can be set at different levels:
 - **Project level**: This is the most common approach, where you can configure a VCS root for a specific project. All build configurations under that project will inherit this VCS root.
 - **Root project level**: While you could define a VCS root at the root project level for global access, it’s less flexible. Different teams can have different repositories, so it’s often more effective to define them at the project level.
 
-When setting up a VCS root, credentials are required for accessing the repository. 
+VCS roots store the following information:
+
+- Fetch and push URLs that TeamCity uses to pull and push remote files.
+    
+- Branch information: the list of repository branches TeamCity should track and which branch is the default (main) one.
+    
+- Authentication settings: credentials TeamCity uses to access a repo.
+    
+- Checkout settings: specify how remote files should be stored and whether submodules should be checked out along with the main repository.
+    
+- Custom changes polling settings that allow you to override the default 60-second interval.
+
+There are three important VCS root properties:
+
+- **VCS provider**: The type of version control system supported by TeamCity. For example, Git, Perforce, Subversion, and more.
+- **VCS root name**: The unique human-facing name of VCS root across all VCS roots of the project. This is the public name shown in TeamCity UI
+- **VCS root ID**: Unique [ID](https://www.jetbrains.com/help/teamcity/identifier.html) of VCS root across all VCS roots in the system. By default, the root ID combines truncated names of its parent project and the root itself, divided with an underscore.
+	- For example, `MyProject_HttpsGitHubComJohndoeMyrepoRefsHeadsMain`.
+	- When changing the root name, you can click the Regenerate ID link to update this value.
+- **VCS root URL + authentication**: The URL of a VCS repository. Supports URLs in [different formats](https://www.jetbrains.com/help/teamcity/guess-settings-from-repository-url.html#VCS+URL+Formats), like: `http(s)://`, `svn://`, `ssh://git@`, `git://` and others as well as URLs in Maven format.
+
+##### Connecting to VCS roots
+
+When setting up a VCS root, credentials are required for accessing the repository, and you have many different ways to authenticate:
+
+- **username and password**: weakest form of auth, where you log in using the credentials of the Teamcity User on Gitlab that you created.
+- **SSH**: use an SSH key pair, where you give the public key to Gitlab and the private key to Teamcity, then TeamCity takes care of the work of giving the build agents all those private keys.
+- **refreshable access token**: short-lived tokens acquired by TeamCity from a required VCS provider via existing OAuth connection
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-connections-in-root-settings.png)
+
+
+###### Connecting via SSH
+
+To connect via SSH, you need to upload a private key in the OpenSSH format to Teamcity.
+
 
 > [!IMPORTANT]
 > It's advisable to use SSH keys for more secure access instead of username and password, as it is more reliable and doesn't break if credentials change.
 
+If using an SSH URL, you need to provide a private key so that TeamCity could access a repo. See the [SSH Keys Management](https://www.jetbrains.com/help/teamcity/ssh-keys-management.html) article or watch our [video tutorial](https://www.youtube.com/watch?v=nUTb1BjMMoE) to learn more.
+
+Here are the available private key options:
+
+- **Uploaded Key** — select this option to utilize the [key(s) uploaded to the project](https://www.jetbrains.com/help/teamcity/ssh-keys-management.html).
+    
+- **Default Private Key** — select this option to utilize the keys available on the file system in the default locations used by common ssh tools: the mapping specified in `<USER_HOME>/.ssh/config` if the file exists or the private key file `<USER_HOME>/.ssh/id_rsa` (the files are required to be present on the server and also on the agent if the [agent-side checkout](https://www.jetbrains.com/help/teamcity/vcs-checkout-mode.html) is used).
+    
+- **Custom Private Key** — supported only for [server-side checkout](https://www.jetbrains.com/help/teamcity/vcs-checkout-mode.html). Fill the Private Key Path field with an absolute path to the private key file on the server machine. If the key is encrypted, specify the passphrase in the corresponding field.
+
+###### Connecting via refreshable tokens
+
+if a VCS root that fetches data from a GitHub, GitHub App, Bitbucket Server, Bitbucket Cloud, Azure DevOps, GitLab, or JetBrains Space was configured using a TeamCity [connection](https://www.jetbrains.com/help/teamcity/configuring-connections.html), refreshable tokens are enabled by default.
+
+**Refreshable access tokens** are short-lived tokens acquired by TeamCity from a required VCS provider via existing OAuth connections (as opposed to static PAT tokens issued manually by users on a VCS hosting side).
+
+##### Additional VCS root properties
+
+Here are two additional VCS root properties:
+
+**minimum polling interval**
+
+Specifies how often TeamCity polls the VCS repository for VCS changes. By default, the global predefined server setting is used that can be modified on the Administration | Global Settings page. The interval time starts as soon as the last poll is finished on the per-VCS root basis. Here you can specify a custom interval for the current VCS root.
+
+> Some public servers may block access if polled too frequently.
+
+If TeamCity detects that a [VCS commit hook](https://www.jetbrains.com/help/teamcity/configuring-vcs-post-commit-hooks-for-teamcity.html) is used to trigger checking for changes, this interval is automatically increased up to the predefined value (4 hours). If the periodical check finds changes undetected via the commit hook, the polling interval is reset to the specified minimum.
+
+**Which project the VCS root belongs to**
+
+Due the the rules of projects, a VCS root in a project is available to all sub-components of that project.
+
+You can move a VCS root to a parent project so that it becomes available for all build configurations inside this new owner and its subprojects.
+
+##### Project vs Build configuration VCS roots
+
+Sections related to VCS roots are available in both project and configuration settings.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-roots-in-projects-and-configs-v.png)
+
+> [!NOTE]
+> However, configurations never own roots. You can "attach" a VCS root to a configuration, but roots are always stored in (owned by) projects.
+
+Here are the rules of VCS roots and how they affect build configurations vs projects:
+
+- A VCS root can be attached to multiple configurations, meaning that multiple build configurations can access the same repository with the same auth and checkout settings.
+    
+- A single configuration may have multiple VCS roots attached, which allows you to work with different repositories within one configuration.
+    
+- Editing VCS roots affects all configurations that use it. When modifying VCS root settings, you have an option to duplicate this root and store updated settings in this new clone, keeping the original root unchanged. 
+	- **use case**: This allows you to customize one build configuration but leave other configurations that share this root unaffected.
 ##### Adding a build configuration manually
 
 Let's first do it manually:
@@ -749,6 +835,22 @@ Failure conditions allow you to add specific conditions to decide when a build s
 
 ![](https://i.imgur.com/z25lZ7W.jpeg)
 
+### Build steps
+
+#### Recipes
+
+Recipes are custom configuration [build steps](https://www.jetbrains.com/help/teamcity/configuring-build-steps.html) that do not ship with TeamCity. Project administrators can add recipes by doing the following:
+
+- Extract a recipe from a regular build step.
+    
+- Download a recipe created by TeamCity developers or community from the JetBrains Marketplace.
+    
+
+This section allows you to control whether the second option is available.
+
+Related article: [Working with Recipes](https://www.jetbrains.com/help/teamcity/working-with-meta-runner.html)
+
+
 #### SSH build steps
 
 You have several available build steps that let you use ssh to connect to a remote server and perform SFTP or RPC on those servers.
@@ -783,7 +885,13 @@ Key features include:
 * **Integrated Debugging:** Users can view build logs, visualize pipeline progress, and even connect to a terminal on the running build agent for troubleshooting, all within the same interface.
 * **Configuration as Code:** Pipelines support both _YAML_ and _Kotlin DSL_, allowing you to define your pipeline structure as code that can be fully branched
 
-### Teamcity + Gitlab SSH keys
+### Teamcity connections
+
+A TeamCity connection is an entity that stores settings required to access resources on a 3rd-party service: a VCS hosting, a cloud hosting provider, an image registry, and so on. This section allows you to create connections available to all subprojects and build configurations owned by this project.
+
+Related article: [Configuring Connections](https://www.jetbrains.com/help/teamcity/configuring-connections.html)
+
+#### Teamcity + Gitlab SSH keys
 
 > [!NOTE]
 > Why should we use SSH keys to connect Team City to a Gitlab VCS root? Because it removes the need for a username and password by having a direct SSH connection, we can avoid credentials being leaked. 
@@ -1996,6 +2104,7 @@ object BuildApplication : BuildType({
 In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
 
 - **build output variables**: when you instantiate a `BuildType` object, you're just creating a normal Kotlin object, so of course you can access properties on it.
+- **vcs root variables**: Root IDs are used in build parameters that allow you to read root properties, for example `vcsroot.<ProjectName>_<RootName>.branch` and `vcsroot.<ProjectName>_<RootName>.url`
 
 #### Build chains
 
@@ -2284,6 +2393,51 @@ commit
    ↓
 TeamCity applies settings
 ```
+
+## Teamcity AI
+
+### Teamcity MCP
+
+This is how you add the teamcity MCP server to your AI agent:
+
+1. Get your teamcity auth token, and then set it in the current environment as the `TC_AUTH_TOKEN` env var
+
+```bash
+export TC_AUTH_TOKEN="your token here"
+```
+
+2. Add this MCP json, pointing to your teamcity server URL if self hosted
+
+```json
+{
+  "mcpServers": {
+        "TeamCity nightly": {
+            "type": "http",
+            "url": "<TeamCity-server-URL>/app/mcp",
+            // Skip setting up auth settings
+            //"headers": { "Authorization": "Bearer $TC_AUTH_TOKEN" }
+        }
+  }
+}
+```
+
+3. Authenticate with your harness:
+
+```
+codex mcp login <server-name>
+```
+
+Look here for more examples like how to do it with Claude, etc.
+
+```embed
+title: "Fetching"
+image: "data:image/svg+xml;base64,PHN2ZyBjbGFzcz0ibGRzLW1pY3Jvc29mdCIgd2lkdGg9IjgwcHgiICBoZWlnaHQ9IjgwcHgiICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PGcgdHJhbnNmb3JtPSJyb3RhdGUoMCkiPjxjaXJjbGUgY3g9IjgxLjczNDEzMzYxMTY0OTQxIiBjeT0iNzQuMzUwNDU3MTYwMzQ4ODIiIGZpbGw9IiNlMTViNjQiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM0MC4wMDEgNDkuOTk5OSA1MCkiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49IjBzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9Ijc0LjM1MDQ1NzE2MDM0ODgyIiBjeT0iODEuNzM0MTMzNjExNjQ5NDEiIGZpbGw9IiNmNDdlNjAiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM0OC4zNTIgNTAuMDAwMSA1MC4wMDAxKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMDYyNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iNjUuMzA3MzM3Mjk0NjAzNiIgY3k9Ijg2Ljk1NTE4MTMwMDQ1MTQ3IiBmaWxsPSIjZjhiMjZhIiByPSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgzNTQuMjM2IDUwIDUwKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMTI1cyI+PC9hbmltYXRlVHJhbnNmb3JtPgo8L2NpcmNsZT48Y2lyY2xlIGN4PSI1NS4yMjEwNDc2ODg4MDIwNyIgY3k9Ijg5LjY1Nzc5NDQ1NDk1MjQxIiBmaWxsPSIjYWJiZDgxIiByPSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgzNTcuOTU4IDUwLjAwMDIgNTAuMDAwMikiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49Ii0wLjE4NzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9IjQ0Ljc3ODk1MjMxMTE5NzkzIiBjeT0iODkuNjU3Nzk0NDU0OTUyNDEiIGZpbGw9IiM4NDliODciIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM1OS43NiA1MC4wMDY0IDUwLjAwNjQpIj4KICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InJvdGF0ZSIgY2FsY01vZGU9InNwbGluZSIgdmFsdWVzPSIwIDUwIDUwOzM2MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiIGJlZ2luPSItMC4yNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iMzQuNjkyNjYyNzA1Mzk2NDE1IiBjeT0iODYuOTU1MTgxMzAwNDUxNDciIGZpbGw9IiNlMTViNjQiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDAuMTgzNTUyIDUwIDUwKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMzEyNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iMjUuNjQ5NTQyODM5NjUxMTc2IiBjeT0iODEuNzM0MTMzNjExNjQ5NDEiIGZpbGw9IiNmNDdlNjAiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDEuODY0NTcgNTAgNTApIj4KICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InJvdGF0ZSIgY2FsY01vZGU9InNwbGluZSIgdmFsdWVzPSIwIDUwIDUwOzM2MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiIGJlZ2luPSItMC4zNzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9IjE4LjI2NTg2NjM4ODM1MDYiIGN5PSI3NC4zNTA0NTcxNjAzNDg4NCIgZmlsbD0iI2Y4YjI2YSIgcj0iNSIgdHJhbnNmb3JtPSJyb3RhdGUoNS40NTEyNiA1MCA1MCkiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49Ii0wLjQzNzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT48L2c+PC9zdmc+"
+description: "Fetching https://www.jetbrains.com/help/teamcity/ai-agent-integration.html#-m3d1g2_121"
+url: "https://www.jetbrains.com/help/teamcity/ai-agent-integration.html#-m3d1g2_121"
+favicon: ""
+placeholder-id: "embed-1790375240804-dbyz7dkko"
+```
+
 ## Octopus Basics
 
 ### How Octopus works
