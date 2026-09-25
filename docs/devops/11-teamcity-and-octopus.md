@@ -25,6 +25,9 @@ Each CI process is encapsulated into a **project**, where the basic flow is as f
 ![](https://i.imgur.com/tIhlWLk.jpeg)
 
 
+> [!NOTE]
+> It is possible for the server and an agent to coexist on the same computer, but for production purposes, we recommend installing them on different machines for a number of reasons, the server performance being the most important.
+
 #### Teamcity server
 
 The TeamCity server is a central management component that is usually installed on a single dedicated machine that manages all pipelines.
