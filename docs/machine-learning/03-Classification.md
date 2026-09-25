@@ -8,7 +8,8 @@ If data is unbalanced, we need recall and precision to truly evaluate a model's 
 - **Accuracy**: True positives / (total classified)
 - **recall** : $\frac{TP}{TP + FN}$. Recall asks the question, "what percentage of the positive cases does the model correctly predict as positive?"
 - **precision** $\frac{TP}{TP + FP}$. Precision asks the question, "when we predict a case as positive, how often is it correct?"
-- **F1 score** : the harmonic mean of precision and recall, used to join both into a single universal scoring metric. F1 score will be 0 if either precision or recall equals 0, so this metric tries to strike a good balance between precision and recal
+- **F1 score** : the harmonic mean of precision and recall, used to join both into a single universal scoring metric. 
+	- Purpose: F1 score will be 0 if either precision or recall equals 0, so this metric tries to strike a good balance between precision and recall
 
 > [!NOTE]
 > **Precision and recall problems**

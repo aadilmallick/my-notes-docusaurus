@@ -212,6 +212,18 @@ The performance on the validation and test sets will be roughly the same, but th
 - **train set:** The dataset partition which you use to train your model - around 60% of dataset
 - **validation set:** The dataset partition which you use to choose the best hyperparameters for your model - around 20% of dataset
 - **test set:** The dataset partition which you use to test your model - around 20% of dataset
+
+
+**validation** is the process of evaluating a model on data that it hasn't been trained on yet.
+
+![](https://i.imgur.com/elC9H2Y.jpeg)
+
+The **validation set** is a portion of the dataset with the purpose of evaluating how well the model would perform on new unseen data.
+
+> [!NOTE]
+> The reason why the test set can only be tested once is because if you test on it multiple times, you're essentially just using the test set as a validation set and you're fitting to it. 
+
+
 #### sklearn implementation
 
 Here is an example of how we can do in sklearn:
@@ -244,6 +256,10 @@ You will make $k$ models during this process.
 
 In total, each fold will be in the training data $k-1$  times and in the testing data 1 time. Per iteration, you have $k-1$ train folds and 1 validation fold.
 
+![](https://i.imgur.com/U0JGCl3.jpeg)
+
+> [!NOTE]
+> K-fold cross validation provides a more robust estimate of the model's true performance and helps detect underfitting or overfitting.
 
 #### **Theory of k**
 
@@ -368,6 +384,8 @@ When we underfit a data set, it performs poorly on both the training set and and
 - **overfitting**: high internal validity, low external validity
 - **underfitting**: low internal validity, low external validity
 
+
+
 ### How model complexity affects performance
 
 Model complexity affects performance because either your model is too complex and thus "memorizes" the training data while failing to generalize, or the model is too simple to capture any complex pattern in the data.
@@ -375,6 +393,8 @@ Model complexity affects performance because either your model is too complex an
 
 ![](https://i.imgur.com/XPZUPJr.jpeg)
 
+- **low complexity**: low complexity models can't lean complex patterns
+- **high complexity**: high complexity models memorize patterns in data, but may not generalize.
 
 We quantify the number of candidate hypotheses in the hypothesis set by **degrees of freedom**, also known as **VC dimension**. So degrees of freedom is just the cardinality of the hypothesis set.
 
@@ -397,8 +417,32 @@ We quantify the number of candidate hypotheses in the hypothesis set by **degree
 > 
 > Overfitting is a symptom of having a too complex model for the data, leading to the model fitting the noise and thus overperforming on training data but failing to generalize to testing data.
 
+From model complexity we get **bias** and **variance**:
 
-### Learning curves
+
+![](https://i.imgur.com/ogwdU9B.jpeg)
+
+
+- **bias**: how limited or inflexible a model's assumptions are. 
+	- **high bias**: You have high bias when the model is low in complexity, like a linear model, because it makes a grand assumption that the data follows a linear pattern.
+	- **low bias**: You have low bias when the model is high in complexity, like a 100 degree polynomial, because it can adapt itself to a model any degree lower than itself. It has no assumptions of what the data pattern actually looks like, it can fit itself to whatever the underlying pattern is, as long as the initial model's degree of freedom are high enough.
+- **variance**: a measure of how much a model's predictions would change if it were trained on different subsets of the training data. In other words, it's the cardinality of the hypothesis set.
+	- **high variance**: You have high variance when the model is high in complexity, because high complexity models are very sensitive to small changes in the training data because they contort themselves to memorize the data, changing the hypothesis wildly for different trainind set.
+	- **low variance**: You have low variance when the model is low in complexity, because low complexity models like linear models produce more consistent predictions across different training sets. 
+
+
+![](https://i.imgur.com/mVIed70.jpeg)
+
+There's a tradoff between bias and variance.
+
+- As model complexity increases:
+	- bias decreases, because a more complex model can capture more complex patterns and assumes less.
+	- variance increases, because a more complex model means that it is more sensitive to change when trained on different data sets.
+- As model complexity decreases:
+	- bias increases, because a less complex model has more rigid assumptions.
+	- variance decreases, because a less complex model is less sensitive to change when trained on different data sets.
+
+#### Learning curves
 
 We can see if a model is overfitting or underfitting by plotting a **learning curve**, which plots the model accuracy/performance on the y-axis against the number of training examples on the x-axis.
 
@@ -412,7 +456,7 @@ From the learning curve, we can see how to mitigate overfitting and improve perf
 
 
 
-### Bias-variance tradeoff
+#### Bias-variance tradeoff
 
 - **low VC-dimension**: simple models have high bias and low variance, thus they underfit.
 	- **high bias**: the chance of finding the best hypothesis in the set is high.
@@ -430,20 +474,24 @@ This is a fitting graph, which plots model error on the Y-axis and VC-dimension 
 ![](https://i.imgur.com/bAGUNkQ.jpeg)
 
 
-### Regularization
+#### How noise affects overfitting
 
-Regularization is a technique to mitigate overfitting by penalizing noise through a parameter $\lambda$, with the purpose of trying to make a complex model (cause of overfitting) simpler.
+Noise refers to random variations or errors in data that don't represent true underlying patterns like random fluctuations in sensor readings or errors in data 
 
-The greater the parameter $\lambda$ the more penalization there is for parameters being too large and that's how it makes a simpler model. 
 
-- **small $\lambda$**: If lambda is small then basically no regularization happens and the model retains its complexity
-- **large $\lambda$**: If lambda is large, then large parameters get penalized and become smaller to avoid blowing up error and thus the model becomes simpler.
 
-Here is an example of how one would undertake regularization:
+![](https://i.imgur.com/GJY6f0U.jpeg)
 
-1. Perform k-fold cross validation with different values of $\lambda$.
-2. Choose the $\lambda$ value that gave the lowest cross-validation error.
-3. Retrain on all the training data with the found $\lambda$ value, and then test and see the generalization error.
+
+Noise is often impossible to remove, but our goal is to find the best model that finds the pure 100% signal of the pattern, ignoring noise, which is a **perfect fitting** of the data.
+
+- **Overfitting** occurs when a machine learning model learns the noise in the patterns rather than the signal of the underlying pattern, and it has two core causes:
+	1. **Not enough data**: not enough data to reduce overfitting on the learning curve
+	2. **High model complexity**: model is too complex
+- **Underfitting** occurs when a machine learning model has **high bias**, meaning it's too simple to capture the underlying pattern of data.
+
+![](https://i.imgur.com/sHq9hef.jpeg)
+. 
 
 ## Dimensionality
 
@@ -509,7 +557,11 @@ High cardinality features can increase the complexity of models, particularly th
 
 Understanding how univariate linear regression works will give you a foundational base to understand every other machine learning model out there.
 
-### Types of gradient descent
+### Batches, epoch, gradient descent types
+
+- **batch**: a small portion of a dataset
+- **iteration**: a computational procedure concerning a single batch
+- **epoch**: completion of one iteration on all batches
 
 | Type                        | Speed   | Stability                                       | Has vectorization? |
 | --------------------------- | ------- | ----------------------------------------------- | ------------------ |
@@ -548,6 +600,23 @@ Understanding how univariate linear regression works will give you a foundationa
 - **pro - average stability and speed**: Combines stability and speed for the best of both worlds
 - A batch size of 100 training samples per iteration is the most recommended
 ## Regularization
+
+Regularization is a technique to mitigate overfitting by penalizing noise through a parameter $\lambda$, with the purpose of trying to make a complex model (cause of overfitting) simpler.
+
+
+![](https://i.imgur.com/QgTHd0j.jpeg)
+
+
+The greater the parameter $\lambda$ the more penalization there is for parameters being too large and that's how it makes a simpler model. 
+
+- **small $\lambda$**: If lambda is small then basically no regularization happens and the model retains its complexity
+- **large $\lambda$**: If lambda is large, then large parameters get penalized and become smaller to avoid blowing up error and thus the model becomes simpler, increasing **bias**.
+
+Here is an example of how one would undertake regularization:
+
+1. Perform k-fold cross validation with different values of $\lambda$.
+2. Choose the $\lambda$ value that gave the lowest cross-validation error.
+3. Retrain on all the training data with the found $\lambda$ value, and then test and see the generalization error.
 
 Regularization punishes parameters to mitigate overfitting. By adding the parameters to the cost function, gradient descent aims to decrease the values of those parameters to make the hypothesis simpler.
 
