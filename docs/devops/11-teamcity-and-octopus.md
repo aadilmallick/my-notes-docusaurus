@@ -262,6 +262,58 @@ Here are the general steps to set a VCS root to use for versioned settings for a
 
 ![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-versioned-settings-chooseroot.png)
 
+###### Custom settings path
+
+The Settings path in VCS option allows you to manually specify a path to the directory that stores project settings.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-vcs-settings-custompath.png)
+
+> [!NOTE]
+> **What makes this useful?**: the main use case is to reduce Kotlin DSL repo duplication by having multiple different `settings.kts` files, and you choose which ones to use depending on the use case.
+
+You can change the default `.teamcity` value to any custom path:
+
+- **example**: `.teamcity-settings/accounting` will search for a `settings.kts` file in that directory.
+- **example**: `.` refers to the root of the repo, which allows you to save settings directly to the repository root, looking for a `settings.kts` at the root of the repo.
+
+> [!DANGER]
+> Before committing a new revision of project settings, TeamCity clears the target settings directory. 
+> 
+> - To prevent TeamCity from wiping important files, make sure this directory is not used for anything but project settings. 
+> - Be extra careful when specifying `.` as the settings directory: this value should only be used if you want a dedicated repository that stores TeamCity project settings and nothing else.
+
+To prevent unexpected errors caused by ambiguous settings source, TeamCity does not allow you to change the settings path when the synchronization is already active. 
+
+To modify this settings path, disable the synchronization and save the settings, then re-enable it and specify the required directory.
+
+> [!NOTE]
+> When you create new projects, TeamCity currently detects existing project settings only if they are stored in the default `.teamcity` folder. If project settings are stored in a custom repository directory, TeamCity does not offer options to import these settings or start a new project from scratch. As a workaround, do the following:
+> 
+> 1. Create a new project from a remote repository.
+>     
+> 2. Navigate to [project settings](https://www.jetbrains.com/help/teamcity/project-administrator-guide.html#Edit+and+View+Modes) and enable synchronization on the Versioned Settings page.
+>     
+> 3. Specify the path to existing project settings in the Settings path in VCS field.
+>     
+> 4. Click Apply to save your settings, then Load project settings from VCS... at the bottom of the page.
+
+###### Defining settings to apply to builds
+
+When TeamCity needs to start a build, it can apply either of the two possible settings:
+
+- **Current settings on the TeamCity server**: These are settings that include all latest changes applied to the server either via TeamCity UI or via a commit to the [project settings directory](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Custom+Settings+Path) in the VCS.
+    
+- **Custom settings stored in the VCS**: These are settings from the [project settings directory](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Custom+Settings+Path) stored in a non-default branch or in the specific revision selected for a build.
+
+
+An ability to choose which of these two settings to apply grants you the following options:
+
+- **multiple branch configuration**: Have [multiple branches](https://www.jetbrains.com/help/teamcity/working-with-feature-branches.html) with different settings in the [project settings directory](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Custom+Settings+Path). This means your branch A can have parameters, steps, build features, artifact publishing rules and chain settings that differ from those in branch B.
+    
+- **personal builds**: Start [personal builds](https://www.jetbrains.com/help/teamcity/personal-build.html) with changes made in the [project settings directory](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Custom+Settings+Path), and these changes will affect the build behavior.
+    
+- Add more flexibility to your [history builds](https://www.jetbrains.com/help/teamcity/history-build.html). TeamCity initially attempts to use the settings corresponding to the moment of the selected change. Otherwise, the current project settings will be used.
+
 ##### Adding a build configuration through Gitlab + Kotlin DSL 
 
 Here are the steps to set up Gitlab with Kotlin DSL to use config as code for defining everything within a project like build configurations, subprojects, and templates:
@@ -300,6 +352,8 @@ project {
 ```
 
 3. Commit your Kotlin DSL configuration to the same repository. This allows versioning of your TeamCity configuration, enabling better management.
+
+
 
 #### Adding parameters
 
@@ -350,6 +404,37 @@ SUbprojects appear like nested folders in a Teamcity server
 
 
 ### Build configurations
+
+Think of a build configuration as a collection of these three components working in tandem:
+
+1. **VCS root**: the source code repository to check out that the agent will run the build on
+2. **build steps**: the steps to run as part of the job on the VCS root codebase.
+3. **trigger**: when to run the build job, like whenever the VCS root gets a new commit.
+
+```
+Repository:
+    github.com/company/app.git
+
+Steps:
+    ./gradlew build
+
+Trigger:
+    whenever Git changes
+```
+
+There are several problems with UI-only configuration:
+
+```
+Who changed the build?
+What changed?
+Can I review the change before applying it?
+Can I reproduce this configuration on another TeamCity server?
+Can I reuse the same configuration for 20 services?
+```
+
+Configuration as Code solves these problems by representing the configuration as source code.
+
+
 #### VCS Triggers
 
 VCS triggers in TeamCity are used to automatically initiate a build whenever there's a change in the associated VCS root (e.g., a commit or push to the source code repository).
@@ -511,6 +596,13 @@ Here's what the below auto-merge thing example does:
 
 ![](https://i.imgur.com/ansn90F.jpeg)
 
+##### Notifications
+
+THe notifications build feature allows you to send an email or slack notification to someone after the build finishes.
+
+
+![](https://i.imgur.com/GpjUCFr.jpeg)
+
 #### Build chains
 
 You can consider build configurations within a project as individual pipelines/jobs, and then if you want to do what github actions does in parallelizing and adding jobs as dependencies of each other, then you can look to **build chains**, where you can create a directed dependency graph of builds that depend upon other builds.
@@ -526,6 +618,17 @@ On each build configuration, you can set the **agent requirements** for the buil
 
 
 ![](https://i.imgur.com/krsZqlJ.jpeg)
+
+#### Failure conditions
+
+Failure conditions allow you to add specific conditions to decide when a build should fail.
+
+
+1. Go to build configuration settings, then go to **failure conditions**
+2. Add a new failure condition
+
+
+![](https://i.imgur.com/z25lZ7W.jpeg)
 
 
 ### Teamcity pipelines
