@@ -97,6 +97,19 @@ Here is how you can name your virtual environment folder:
 uv venv .venv # creates a virtual environment by creating .venv folder
 ```
 
+So here's the general workflow:
+
+1. Create a virtual environment
+
+```bash
+uv venv
+```
+
+2. Activate the virtual environment
+
+```bash
+source .venv/bin/activate
+```
 ### Package management
 
 #### `uv pip`
@@ -127,6 +140,10 @@ uv pip sync requirements.txt
 - `uv pip list`: List installed packages.
 - `uv pip uninstall`: Uninstall packages.
 - `uv pip tree`: View the dependency tree for the environment.
+
+#### `uv add`
+
+- `uv add -r requirements.txt`: install everything from `requirements.txt`, sync to `pyproject.toml`
 
 ### Projects
 

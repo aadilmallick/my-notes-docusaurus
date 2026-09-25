@@ -1,5 +1,27 @@
 ## Langchain Python
 
+### Installation
+
+1. Set up the `requirements.txt`
+
+```bash title="requirements.txt"
+langchain
+langchain_community
+langchain-openai
+langchain-groq
+python-dotenv
+langchain-google-genai
+```
+
+2. Install within a virtual environment
+
+```bash
+uv init .
+uv venv
+source venv/bin/activate
+uv add -r requirements.txt
+```
+
 ### Prompt templates
 
 ```py
