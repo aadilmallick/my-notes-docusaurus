@@ -174,8 +174,7 @@ Let's first do it manually:
 
 If you're using Kotlin DSL to configure TeamCity, you might create a repository that defines your settings, including VCS roots, through code. This allows for version-controlled configuration, facilitating easier management and deployment of CI/CD settings.
 
-
-Kotlin DSL works at the **project level**, fetching info from a `.teamcity/settings.kts` entrypoint from a repository.
+Kotlin DSL works at the **project level**, fetching info from a `.teamcity/settings.kts` entrypoint from a repository, via configuration of **versioned settings**
 
 Here are the steps to set up Gitlab with Kotlin DSL to use config as code for defining everything within a project like build configurations, subprojects, and templates:
 
