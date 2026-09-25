@@ -372,6 +372,10 @@ When we underfit a data set, it performs poorly on both the training set and and
 
 Model complexity affects performance because either your model is too complex and thus "memorizes" the training data while failing to generalize, or the model is too simple to capture any complex pattern in the data.
 
+
+![](https://i.imgur.com/XPZUPJr.jpeg)
+
+
 We quantify the number of candidate hypotheses in the hypothesis set by **degrees of freedom**, also known as **VC dimension**. So degrees of freedom is just the cardinality of the hypothesis set.
 
 - **small VC dimension**: We may not even have a good hypothesis in the hypothesis set since it's so small, which is a symptom of choosing a simple model.
