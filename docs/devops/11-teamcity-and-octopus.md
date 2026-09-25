@@ -169,12 +169,20 @@ Let's first do it manually:
 > [!NOTE]
 > Whenever you create a build configuration, TeamCity creates a unique ID for that, which is used internally and which TeamCity recognizes as a **job** or **run**, and then you can use that in the teamcity API or teamcity CLI to programmatically fetch the info of those jobs.
 
+##### Versioned settings
 
-##### Adding a build configuration through Gitlab + Kotlin DSL 
 
 If you're using Kotlin DSL to configure TeamCity, you might create a repository that defines your settings, including VCS roots, through code. This allows for version-controlled configuration, facilitating easier management and deployment of CI/CD settings.
 
 Kotlin DSL works at the **project level**, fetching info from a `.teamcity/settings.kts` entrypoint from a repository, via configuration of **versioned settings**
+
+In TeamCity, the project administrator must ensure **Project Settings → Versioned Settings** has:
+
+- **Synchronization**: enabled
+- **Settings format**: Kotlin
+- **When build starts**: use settings from VCS
+
+##### Adding a build configuration through Gitlab + Kotlin DSL 
 
 Here are the steps to set up Gitlab with Kotlin DSL to use config as code for defining everything within a project like build configurations, subprojects, and templates:
 
