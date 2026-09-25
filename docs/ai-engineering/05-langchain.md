@@ -22,7 +22,53 @@ source venv/bin/activate
 uv add -r requirements.txt
 ```
 
-### Prompt templates
+### Basics
+
+#### Initializing models
+
+To create an LLM in langchain used to be painful, but now it's a single factory function call to `langchain.chat_models.init_chat_model()`, passing in these kwargs:
+
+```python
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model(**kwargs)
+```
+
+- `model`: the model tag identifier
+- `model_provider`: the inference provider, like groq, openai, etc., check [list of providers here](https://docs.langchain.com/oss/python/integrations/chat).
+
+
+The `init_chat_model()` method returns a `BaseChatModel` concrete instance, which is a provider-agnostic representation of an LLM.
+
+So let's go over the steps to initialize our first model:
+
+1. Set the appropriate env var so langchain can get the API key
+
+```py
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+groq_api_key = os.getenv('GROQ_API_KEY')
+if not groq_api_key:
+    raise ValueError("GROQ_API_KEY is not set")
+
+os.environ['GROQ_API_KEY'] = groq_api_key
+```
+
+2. Create the model, specifying model provider and model tag:
+
+```python
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model(
+    model="openai/gpt-oss-120b",
+    model_provider="groq",
+)
+```
+
+#### Prompt templates
 
 ```py
 # Your code goes here
@@ -55,6 +101,118 @@ prompt = prompt_template.format(concept=concept)
 model = init_chat_model("gpt-4o-mini", model_provider="openai")
 response = model.invoke(prompt)
 print(response.text)
+```
+
+
+### Model providers
+
+#### `ChatGroq`
+
+The `ChatGroq` requires the `GROQ_API_KEY` env var to be set in the environment.
+
+There are two ways to instantiate a model using the groq provider:
+
+- **method 1 - using `init_chat_model()`**:
+- **method 2 - instantiating `ChatGroq`**:
+
+```python
+from langchain_groq import ChatGroq
+
+llm = ChatGroq(
+    model="qwen/qwen3-32b",
+    temperature=0,
+    max_tokens=None,
+    reasoning_format="parsed",
+    timeout=None,
+    max_retries=2,
+    # other params...
+)
+```
+
+Groq supports vision capabilities with select models, allowing you to send images along with text prompts.
+
+```py
+from langchain_groq import ChatGroq
+from langchain.messages import HumanMessage
+
+llm = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct")
+
+message = HumanMessage(
+    content=[
+        {"type": "text", "text": "Describe this image in detail."},
+        {
+            "type": "image_url",
+            "image_url": {"url": "https://example.com/image.jpg"},
+        },
+    ]
+)
+
+response = llm.invoke([message])
+print(response.content)
+```
+
+### Agents
+
+#### Creating an agent
+
+An agent is defined by a model with tools, so here's the most basic way to create that agent:
+
+```py
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def get_groq_model(model_name: str):
+    # 1. Load the GROQ API key from the environment variables.
+    groq_api_key = os.getenv('GROQ_API_KEY')
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY is not set")
+    os.environ['GROQ_API_KEY'] = groq_api_key
+
+    # 2. create the BaseChatModel instance from groq provider
+    return init_chat_model(
+        model=model_name,
+        model_provider="groq",
+    )
+```
+
+You define tools as normal python functions, where the parameter and return type hinting is type hinting for the tool, and the docstring is the description.
+
+```py
+import datetime
+from langchain.agents import create_agent
+
+def get_date_and_time():
+    """Get the current date and time in ISO 8601 format."""
+    return datetime.datetime.now().isoformat()
+
+
+model = get_groq_model("openai/gpt-oss-120b")
+agent = create_agent(
+    model=model,
+    system_prompt="you are a helpful assistant",
+    tools=[get_date_and_time]
+)
+```
+
+#### Message invoking
+
+You can then invoke the agent using the messages convention:
+
+```py
+response = agent.invoke({
+    "messages": [
+        {
+            "role": "user",
+            "content": "What is the current date and time?"
+        }
+    ]
+})
+print(response["messages"][-1].content)
 ```
 
 ## Langchain TS
