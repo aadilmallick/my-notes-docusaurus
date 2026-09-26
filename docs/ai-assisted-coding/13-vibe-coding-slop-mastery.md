@@ -904,7 +904,7 @@ The AI agent:
 **Commit**: `git commit -m "phase-4: migrate to new architecture and remove old code"`
 
 
-### Testing
+### Testing and debugging
 
 #### UX audit
 
@@ -944,6 +944,11 @@ Steps:
 
 Fix any FAIL issues automatically. For WARN issues, describe the fix but leave it for the developer to decide.
 ```
+
+#### Mutation testing
+
+- **coverage** tells you what ran and the percentage of codebase coverage
+- **Mutation testing** tells you whether the tests would notice if the code were wrong.
 
 #### Fixing errors with chrome MCP
 
@@ -1366,6 +1371,202 @@ Fix all four states. Confine the changes to apps/web/src/App.tsx and apps/web/sr
 - a failed submit that keeps the user's draft and shows an inline error plus Retry
 
 Then re-verify only the two beats that carry the episode, using the identical methods: re-run the single-evaluation iframe timeline (the early ticks must now report a loading affordance instead of an empty panel), and repeat the draft-then-kill-API-then-submit sequence. Print one before/after table covering all four states, then run `npm run typecheck`. Do not re-drive the states you have already proven.
+```
+
+### Improving performance
+
+>What gets measured gets managed
+
+
+The most possibly important thing for you to have is a performance baseline, before you try to improve anything always do a trace, create a budget, and calculate a performance baseline so that you know what you're measuring against and you know what you can improve on and what will actually improve the performance. 
+
+#### Browser performance
+
+These are the metrics you must try to optimize in order to have a performant website.
+
+![](https://i.imgur.com/XTl4RHB.jpeg)
+
+To diagnose how to improve these browser metrics, you should run a production build and then test on that, not a dev build. 
+
+> [!NOTE]
+>  the reason for that is that production builds and dev builds have stark differences, like minified code and code-splitting optimizations in production that are not in dev 
+
+```
+npm run build
+npx vite preview
+```
+
+
+Here are some actionable tips and key takeaways from the video on performance optimization:  
+  
+
+- **Measure first, don’t guess:** Use real user experience metrics like Core Web Vitals, especially Largest Contentful Paint (LCP), to identify performance issues.
+- **Use real browser traces:** Capture detailed traces under controlled conditions (e.g., throttled network and CPU) to pinpoint bottlenecks accurately.
+- **Target fixes based on data:** Optimize large assets (like oversized images), reserve space in markup to avoid layout shifts, use modern image formats (WebP, AVIF), and apply lazy loading and code splitting.
+- **Validate improvements:** After applying fixes, re-measure performance to ensure the issues are resolved and improvements are real.
+
+  
+The recommended workflow to follow is:  
+  
+
+1. Build and serve a production bundle (not a dev server build) to get accurate performance data.
+2. Throttle network and CPU to simulate realistic user conditions.
+3. Run a trace to measure baseline performance and identify bottlenecks.
+4. Analyze the trace to find the largest contributors to slow loading or layout shifts.
+5. Prompt your AI agent (like Claude Code) to fix the identified issues.
+6. Rebuild and rerun the trace to verify the fixes have improved performance.
+7. Repeat the cycle if needed to address new bottlenecks.
+
+Here's an example prompt that lets you run a performance audit on the production build:
+
+```
+Measure before changing code. Do not take screenshots and do not write report files - print the numbers in the terminal.
+
+Build and serve the production bundle first, because dev-server numbers are meaningless here:
+  npm run build
+  (cd apps/web && npx vite preview --port 4173 &)
+
+Then use the chrome-devtools MCP against http://localhost:4173. Call `emulate` with networkConditions "Slow 4G" and cpuThrottlingRate 4, then run `performance_start_trace` with reload true and autoStop true.
+
+Report: LCP and CLS, the full LCP breakdown (TTFB, load delay, load duration, render delay), which element is the LCP, and the insights the trace surfaces. Tell me which subpart dominates LCP and what that implies. Also report the chunks the build emitted and whether the reporting panel is in the initial chunk. Then tell me the exact files you would change. Do not fix yet.
+```
+#### Performance bundle
+
+A performance budget is a maximum bundle size that the web app build must stay under and if it's above that then the deploy job must fail.
+
+
+![](https://i.imgur.com/wCey52W.jpeg)
+
+1. Ask it to create a performance budget and run the app against it.
+
+```
+Add a `npm run budget` gate for this repo using size-limit. It should build the web app, measure the JavaScript the initial route ships, and fail when that exceeds a threshold set just above today's real number.
+
+Configure size-limit with `"gzip": false` and `"brotli": false` so the reported number is the raw bundle size and matches the build output - size-limit measures brotli by default, which would report roughly a quarter of the real size.
+
+Run it and report the measured baseline and the threshold you chose, in the terminal. Do not write screenshots or report files. Keep the setup simple enough for a course demo.
+```
+
+2. Ask it to give you fixes so that you're under budget
+
+```
+Prove the budget catches a regression. Introduce a small, realistic bundle regression by importing all of lodash for one helper in the web app, or by making the reporting panel pull extra code into the initial route. Run `npm run budget` and show it failing.
+
+Then fix the regression with a scoped import, native code, or lazy loading, re-run `npm run budget`, and show it passing.
+
+Print a before/after table in the terminal - measured size, limit, and the delta for each run. Do not write screenshots or report files, and do not claim any performance win without before/after numbers from the same harness.
+```
+
+
+#### Improving P50 and P95 via regressions
+
+- **P50 latency** is the median response time. This means 50% of requests are faster than this time, and 50% are slower. It represents the typical or average user experience.  
+      
+    
+- **P95 latency** is the 95th percentile response time. This means 95% of requests are faster, but 5% are slower. It captures the "slow tail"—the slower experiences some users face, especially under load.
+
+Here are the key actionable tips and the workflow:
+  
+
+- **Measure first, then fix:** Start by planting realistic performance regressions and measure baseline metrics like Largest Contentful Paint (LCP) and API latency (P50, P95) in a production-like environment.
+- **Use production builds for accuracy:** Always test with production bundles and real browser traces, not dev server builds, to get meaningful performance data.
+- **Identify multiple issues:** Real slowdowns often come from several small issues across the stack, so look for all contributing factors.
+- **Fix based on evidence:** Use AI tools (like Claude) to address the specific causes identified—e.g., removing heavy imports, optimizing critical path work, and offloading synchronous tasks.
+- **Re-measure to validate:** After fixes, rerun the same tests to confirm improvements and ensure the performance budget passes.
+- **Iterate as needed:** Repeat this measure-fix-validate cycle to continuously improve.
+
+  
+**Recommended workflow:**  
+  
+
+1. Plant realistic regressions to simulate performance issues.
+2. Measure baseline performance metrics on production builds.
+3. Analyze the data to find bottlenecks.
+4. Use AI-assisted fixes targeting the named problems.
+5. Rebuild and rerun measurements to verify improvements.
+6. Let quality gates decide if the build passes.
+7. Repeat the process to maintain and improve production readiness.
+
+
+Here's how to ask AI to plant a realistic regression:
+
+1. Tell AI to create a performance baseline
+
+```
+Set up a performance challenge for me in this repo. Plant realistic regressions in the current helpdesk workspace: a front-end bundle regression caused by importing too much lodash for one helper, heavier eager work in the reporting panel, and an API regression caused by extra synchronous per-request work in GET /api/tickets.
+
+Then measure the failing baseline three ways and report the numbers in the terminal.
+
+1. Bundle:  npm run budget
+2. Page:    npm run build && (cd apps/web && npx vite preview --port 4173 &)
+   then via the chrome-devtools MCP, call `emulate` with networkConditions "Slow 4G" and cpuThrottlingRate 4, followed by `performance_start_trace` with reload true and autoStop true against http://localhost:4173
+3. API:     (cd apps/api && npx tsx src/server.ts &) && npx -y autocannon@7 -c 20 -d 5 -l http://localhost:3001/api/tickets
+
+The trace must hit the preview build on 4173, not the dev server - dev-server numbers are meaningless.
+
+Report measured bundle size vs limit, LCP with its breakdown (TTFB, load delay, load duration, render delay), CLS, and p50/p97.5/max latency plus requests per second. Do not write screenshots or report files - I want the numbers on screen. Do not fix the regressions.
+```
+
+2.  then tell it to fix the regressions 
+
+```
+Solve the performance challenge. Use the failing budget, the trace, and the autocannon baseline as the source of truth. Fix the front-end lodash regression without broad imports. If reporting is on the critical path, lazy-load or defer it without changing user-visible behavior. Fix the synchronous work in GET /api/tickets without changing the response shape.
+
+Then re-run the three identical measurements from the baseline - same throttled trace on the rebuilt preview at 4173, same autocannon run - and print one before/after table in the terminal with these rows: bundle size vs limit, budget pass/fail, LCP, LCP load delay, CLS, API p97.5 latency, and requests per second. Finish with `npm run typecheck`.
+
+Do not write screenshots or report files. If a difference is small enough to be noise across runs, say so instead of claiming the win.
+```
+
+### Accessibility
+
+#### Running an accessibility audit
+
+Here are the key actionable tips and the workflow you should follow based on the video:  
+  
+
+- **Measure first, then fix:** Start by measuring real user experience metrics like color contrast for accessibility and performance indicators such as Largest Contentful Paint (LCP).
+- **Use automated tools as a baseline:** Tools like Axe help catch mechanical accessibility issues (e.g., contrast failures, missing labels), but manual testing (keyboard navigation, screen readers) is essential to ensure real usability.
+- **Fix issues iteratively:** Use AI assistance (like Claude) to address flagged problems, such as improving color contrast, adding persistent labels, and ensuring keyboard focus management.
+- **Validate fixes thoroughly:** After applying changes, rerun automated scans and perform manual interaction tests to confirm that issues are resolved and the user experience is genuinely improved.
+
+  
+**Recommended workflow:**  
+  
+
+1. Run automated accessibility scans to identify mechanical issues.
+2. Perform manual testing with keyboard and screen readers to catch real user experience problems.
+3. Use AI tools to fix the identified issues programmatically.
+4. Re-run scans and manual tests to verify fixes.
+5. Repeat as needed to achieve a production-ready, accessible product.
+
+  
+**actual steps**
+
+
+
+
+1. Install required dependencies
+
+```
+npm i -D @axe-core/playwright playwright && npx playwright install chromium
+```
+
+2. Ask AI to run the accessibility audit:
+
+```
+Audit the helpdesk UI for WCAG 2.2 AA issues. Write a small script `a11y.mjs` that uses Playwright with @axe-core/playwright and scans TWO states: the ticket list as loaded, and again with the compose dialog open (the dialog's controls are not in the tree until it is open, so a single page scan misses them). Wire it to `npm run a11y`.
+
+Run it and report each violation with rule id, impact, node count, the success criterion, and the measured value - for contrast, the actual ratio against the 4.5:1 requirement. Print results in the terminal; do not save screenshots or reports.
+
+Then answer one question explicitly: does the reply textarea pass or fail, and why? Tell me the accessible name axe computed for it. Do not fix anything yet.
+```
+
+3. Ask AI to fix and improve upon a11y based on the audit results
+
+```
+Fix what the scan found: name the icon-only send button, and fix the priority badge contrast to meet 4.5:1. Re-run `npm run a11y` and show the before/after violation counts and the new contrast ratio.
+
+Then go beyond the scanner. Give the reply textarea a real, persistent label - the placeholder is not one, as your scan just demonstrated. Next do a keyboard-only pass on the compose dialog: open it, tab through it, press Escape, and report what happens. Fix the focus handling so Escape closes the dialog and focus returns to the opener. Finally add the least intrusive live-region behavior so "Reply sent" is announced politely. Report each fix with how you verified it.
 ```
 ## Vibe coding workflows with different harnesses
 
