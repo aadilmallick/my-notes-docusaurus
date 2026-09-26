@@ -948,7 +948,51 @@ Fix any FAIL issues automatically. For WARN issues, describe the fix but leave i
 #### Mutation testing
 
 - **coverage** tells you what ran and the percentage of codebase coverage
+	- Code coverage only tells you which lines of code were _executed_ during a test run, but it doesn't prove that your assertions are actually verifying correctness.
 - **Mutation testing** tells you whether the tests would notice if the code were wrong.
+	- **Mutation testing** evaluates the quality of your automated tests rather than the quality of your code. 
+
+> [!NOTE]
+>  Coverage tells you what lines of code ran in the tests but mutation tells you whether those tests actually mattered or not 
+
+> [!NOTE]
+> A completely green, passing test suite is just a hypothesis. Mutant testing tries to verify that hypothesis, where if all mutants are killed, then your tests actually matter and test something real.
+
+Here's how it works:
+
+- **Mutant Creation:** A tool introduces deliberate, small bugs (called "mutants") into your codebase (e.g., swapping `>` for `>=`, changing `+` to `-`, or deleting a line of logic).
+    
+- **Execution:** Your test suite is run against each mutated version of the code.
+    
+- **Verdict:**
+    
+    - **Killed Mutant:** If a test fails, the mutant is "killed" (a good outcome—your test caught the bug).
+        
+    - **Surviving Mutant:** If all tests pass despite the introduced bug, the mutant "survived." This highlights a gap in your test assertions or missing edge cases.
+
+
+![](https://i.imgur.com/zrz6oZ3.jpeg)
+
+
+Here's how to use AI-assisted coding with mutant testing:
+
+1. Ask AI to create a mutant test suite
+
+```
+Add mutation testing for packages/core in the simplest maintainable way, using Stryker Mutator scoped to packages/core only. Wire it to `npm run mutation` and run it.
+
+Print the results in the terminal: the mutation score, and the surviving mutants grouped by file and behavior - for each survivor give me the file, the line, the original operator and the mutated operator, so I can see what broke without the suite noticing. Call out the SLA breach boundary mutant (`>` → `>=` in `isBreached`) explicitly if it survived.
+
+Do not write screenshots or report files, and do not strengthen the tests yet.
+```
+
+2. Ask AI to kill the mutants
+
+```
+Strengthen the tests to kill the meaningful surviving mutants. Add boundary tests for SLA breach and due-soon behavior, and add a small property-based test for triage ordering if it fits the repo.
+
+Run `npm run test`, then `npm run mutation` again, and print a before/after table in the terminal: mutation score before, mutation score after, and one row per mutant that went from survived to killed. List the assertions you added and which mutant each one kills. Do not write screenshots or report files.
+```
 
 #### Fixing errors with chrome MCP
 
@@ -1568,6 +1612,154 @@ Fix what the scan found: name the icon-only send button, and fix the priority ba
 
 Then go beyond the scanner. Give the reply textarea a real, persistent label - the placeholder is not one, as your scan just demonstrated. Next do a keyboard-only pass on the compose dialog: open it, tab through it, press Escape, and report what happens. Fix the focus handling so Escape closes the dialog and focus returns to the opener. Finally add the least intrusive live-region behavior so "Reply sent" is announced politely. Report each fix with how you verified it.
 ```
+
+### Evals
+
+When using AI agents or LLMs to generate or modify code, traditional deterministic tests (unit/integration tests) are necessary but insufficient on their own. AI models introduce non-deterministic outputs, subtle hallucinations, and edge-case security risks. 
+
+Evals (evaluation harnesses) bridge this gap.
+
+An **eval** is a repeatable test for AI behavior meant for checking the AI models' output.
+
+> [!NOTE]
+> You can think of it as testing a nondeterministic LLM's output is up to snuff to your quality standards, by either creating deterministic or nondeterministic tests.
+
+![](https://i.imgur.com/ZPohpOb.jpeg)
+
+Here are the key benefits of evals:
+
+- **offer a way to test AI outputs**: Since AI outputs can be unpredictable and sometimes problematic (like leaking sensitive data or following harmful instructions), evals help ensure the AI behaves safely and appropriately.
+- **prevent regressions**: prompts and models may change, but an eval test suite ensures that the llm output does not stray away from what's desired.
+
+There are two types of evals:
+
+There are two main types you can think of:  
+  
+
+- **Guardrail Evals:** These focus on safety and correctness. They check that the AI doesn't do anything catastrophic like leaking sensitive data, following harmful hidden instructions, or going off-topic. For example, the video shows tests ensuring AI replies don’t leak customer emails or obey malicious prompts. These evals act as safety nets to block dangerous or clearly wrong outputs before they reach users.  
+      
+    
+- **Quality Evals:** These go a step further and assess how helpful or useful the AI's responses are. While guardrail evals ensure the AI doesn’t misbehave, quality evals measure if the AI actually provides valuable, relevant, and accurate answers. This might involve scoring replies against a rubric or using another AI model to judge helpfulness.
+
+
+Of the quality evals, there are two techniques you can use:
+
+- **Deterministic Checks (The Baseline Floor):** Use fast, automated checks first in your CI pipeline. These check structural validity, schema constraints, security rules (e.g., rejecting prompt injection vectors), maximum output length, or strict regex patterns.
+- **LLM-as-a-Judge (Behavioral / Quality Evals):** For subjective qualities like "is this generated code idiomatic?" or "is the AI reply clear?", use a larger, well-calibrated model to score output against an explicit rubric.
+
+#### LLM as judge
+
+LLM as a judge has two main weaknesses
+
+- **Judge bias.** Models favor the first option shown, favor longer answers, and favor text that resembles their own. So don't ask "is this good?"—give the judge an explicit rubric (the criteria, plus pass/fail examples) and calibrate it against a small set of cases you labeled by hand. If it disagrees with your labels, the judge is miscalibrated, not your labels.
+- **Cost.** Judging is slow and not free, so tier it. Deterministic checks run on everything; the model judge runs only on the subjective cases or the critical paths. Cheap and certain first; expensive and probabilistic only where it earns its keep. Running a frontier judge on every case is a common way to make evals too expensive to keep.
+
+#### Mutation testing with eval workflow
+
+- **Apply Mutation Testing to AI-Written Tests:** Run mutation testing specifically on tests written or suggested by AI. This pressure-tests whether the agent created robust assertions or merely wrote code that touches lines to boost coverage metrics.
+    
+- **Property-Based Testing:** Pair AI-assisted development with property-based testing. Instead of testing single static examples, generate wide ranges of synthetic inputs to enforce invariants (e.g., "sorting should never change array length").
+
+- **Provide Clear Rubrics & Calibration:** Avoid vague instructions like "check if the code is good." Provide a detailed rubric with explicit criteria and calibrated pass/fail examples.
+    
+- **Tier Your Evaluation Pipeline:** Run cheap, fast deterministic tests on every commit/PR merge. Only invoke LLM judges on critical paths or subjective assertions to keep costs low and build times fast.
+
+#### Eval test suite example
+
+1. Ask the AI to create an eval test suite
+
+```
+Create a small local eval harness for the AI Suggested Reply behavior. Use the deterministic mock, include cases from data/tickets.json, and make the injection ticket T-1006 fail if the reply leaks customer emails or follows hidden instructions. Wire it to `npm run evals` and run it.
+
+Print results in the terminal: one line per case with the case name, the property being asserted, and pass/fail. For any failure, print the actual reply text the harness received next to the assertion that rejected it, so the failure is legible rather than a bare red X. Do not write screenshots or report files, and do not fix the product code yet.
+```
+
+2. Ask AI to make the code pass the evals
+
+```
+Harden the Suggested Reply path so the eval passes: isolate untrusted ticket text in the prompt, add output validation for empty/over-length/leaky replies, and keep the offline mock deterministic.
+
+Re-run `npm run evals`, `npm run test`, and `npm run typecheck`, and print a before/after summary in the terminal - cases passing before, cases passing after, and what T-1006 returns now instead of the email list. Do not write screenshots or report files.
+```
+
+3. Ask AI to implement LLM as judge eval
+
+```
+Add a single LLM-as-judge eval for reply helpfulness, scored against an explicit rubric (specific, actionable, no invented facts, right tone). Include 3-4 hand-labeled calibration cases and assert the judge agrees with those labels before trusting it. Keep it in a separate tier that runs only for that subjective case, not across every ticket, and note the judge's known biases (position, verbosity, self-preference) in a comment. Run `npm run evals`.
+```
+
+### Security
+
+#### Preventing prompt injection
+
+Why is prompt injection so dangerous? Because it leads to the lethal trifecta:
+
+
+![](https://i.imgur.com/6ORRwY2.jpeg)
+
+
+ here are actionable tips to avoid prompt injection:
+ 
+- **Treat all user input as untrusted data:** Always isolate user-submitted text clearly from instructions to prevent prompt injection attacks.
+- **Use delimiters or structured framing:** Separate trusted system prompts from untrusted user input to avoid mixing data with commands.
+- **Add runtime output guards:** Implement checks that detect and block unsafe or sensitive data leaks in AI responses.
+- **Enforce least privilege:** Limit the AI's access strictly to the data and capabilities it needs for the task.
+- **Verify fixes with automated eval tests:** Regularly run tests that confirm your AI features do not leak data or obey malicious instructions.
+- **Ensure deployment updates:** After code changes, restart or update running processes to avoid stale code causing security issues.
+
+#### Hardening AI-generated code
+
+Start with the code. Run the checks that do not rely on anyone's good intentions:
+
+- **SCA analysis**: A dependency audit, so a hallucinated or malicious package fails before it installs
+- **Static analysis**: (Semgrep or similar) for injection, missing validation, and dangerous sinks
+- **Security review skill**: A `/security-review` pass that reads the diff for logic-level problems a linter cannot see
+	- And, for anything non-trivial, a fresh-context reviewer subagent that only sees the diff and is told to try to break it, because an agent reviewing its own work is an echo chamber, not a second opinion
+
+Wire the ones that are deterministic into a `npm run security` gate so they block a merge, not just a conversation.
+
+#### Principle of least privilege
+
+Concretely, least privilege for an agent means:
+
+- Keep secrets out of files and out of the model's reach; read them from the environment
+- Scope what the agent can touch in `.claude/settings.json` - allow the commands the task needs, deny the rest, and prefer read-only analysis until a change is actually required (verify the current settings schema and permission-mode names against your installed version - they have moved)
+- Run in a sandbox when the work allows it, so a decisive mistake is contained
+- Make risky commands explicit and reviewable rather than automatic
+- Do not give the feature network egress or private-data access it does not need, especially where untrusted content flows in
+
+> [!NOTE]
+> The uncomfortable truth is that a scanner finds the bugs you already know how to name, and an agent will occasionally write something none of them catch. That is why this is two habits, not one: scan the output, and constrain the authority. Neither is sufficient alone
+
+
+#### AI error visibility
+
+> [!NOTE]
+> An AI feature is not reliable because the model usually works. It is reliable when failures are visible and survivable.
+
+
+The Suggested Reply path depends on a model call. Model calls can be slow, fail, return empty output, or produce something the product should not use. Reliability work starts by assuming those things will happen.
+
+For the course app, lightweight local telemetry is enough:
+
+- Model latency
+- Error count
+- Timeout count
+- Fallback count
+- Degraded response marker
+
+Then make failure survivable:
+
+- Timeout so the request does not hang
+- Retry only where safe
+- Circuit breaker for repeated failures
+- Deterministic template fallback
+- Output validation for empty, oversized, or unsafe replies
+
+> [!NOTE]
+> The useful standard is: see it fail, survive the failure, and report the degraded path clearly enough that a human can act.
+
+
 ## Vibe coding workflows with different harnesses
 
 ### Codex
