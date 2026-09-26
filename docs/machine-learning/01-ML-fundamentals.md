@@ -210,7 +210,7 @@ scaled_df = standard_scaler.fit_transform(data)
 
 ### Feature engineering
 
-Feature engineering is the process of creating new features from existing raw data and other existing features in order to improve a model's performance and use new features that would benefit the model training.
+Feature engineering is the process of creating new features from existing raw data and other existing features to use new features that would benefit the model training in order to improve a model's performance
 
 > [!NOTE]
 > Good feature engineering makes the difference between an average model and an excellent one, as it helps the model to focus on the most relevant patterns in the data.
@@ -218,7 +218,11 @@ Feature engineering is the process of creating new features from existing raw da
 
 ![](https://i.imgur.com/i4AIc26.jpeg)
 
+Here are examples of common feature engineering tasks to create, modify, or delete features for facilitating better input data to the model:
 
+- **combining existing features together**: you can achieve a lower complexity model (and thus less variance) by making the data lower complexity by combining several features into one single, powerful predictive feature.
+- **removing highly correlated features**: features that are highly correlated with each other will be redundant. Therefore removing them lets you make your model simpler. 
+- **filling in missing data**: features with missing data are bad data, so it's better to fill them in or remove the feature entirely.
 ## Training, Validation, Test
 
 ### Generalization error
