@@ -638,12 +638,34 @@ At its heart, the algorithm calculates the probability that a piece of data belo
 > This algorithm is considered **naive** because it makes the assumption via conditional probability that all words/events are *independent* to each other, which is a very false assumption when it comes to language.
 
 
-It is called "Naive" because it makes a simplifying assumption: it treats the occurrence of each word in the email as **independent** of all other words. 
-
-While in reality, word order and context matter, this assumption makes the algorithm **computationally efficient** and surprisingly effective for text classification
+- **con - naive**: It is called "Naive" because it makes a simplifying assumption: it treats the occurrence of each word in the email as **independent** of all other words. 
+- **pro - computationally efficient**: While in reality, word order and context matter, this assumption makes the algorithm **computationally efficient** and surprisingly effective for text classification
+- **pro - becomes more accurate with more predictors**: as more independent predictors are added, the accuracy of this algorithm goes up.
 
 ## Transformers
 
+### Intro
+
+Transformers use the technique of self-attention to memorize previous context in parallel and account for that in its computations, which makes it aware of previous context and the semantic meaning of previous tokens. 
+
+
+![](https://i.imgur.com/dCZlXtR.jpeg)
+
+Here are the main properties of a transformer:
+
+- **Parallel Processing:** Unlike older models that read data one piece at a time, Transformers look at an **entire sequence simultaneously**, and calculate self-attention in parallel.
+- **Self-Attention:** This mechanism is the "magic" behind their intelligence. It allows the model to analyze every part of the input and determine how different elements relate to one another, regardless of their distance in a sequence, which is quantified in an **attention score**
+- **Encoder-Decoder Architecture:** A Transformer typically consists of two main components
+	- **Encoder:** Reads and understands the input text.
+	- **Decoder:** Takes that understanding to generate new, relevant output.
+
+![](https://i.imgur.com/X67Pne0.jpeg)
+
+By converting input data into **high-dimensional vectors**, Transformers can grasp the underlying meaning and relationships within data
+
+**limitations**
+
+Despite their power, they can be **computationally expensive** to run, struggle with extremely long sequences of data, and are limited to the patterns they have seen during their training process
 ### Self-attention
 
 #### Motivation

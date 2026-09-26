@@ -191,7 +191,21 @@ Instead of relying on a single estimator, these methods aggregate the prediction
 
 ### Ensemble techniques
 
-#### Bagging and bootstrapping
+Bagging and stacking are both ensemble methods that combine multiple machine learning models to improve prediction accuracy:  
+  
+
+- **Bagging** (Bootstrap Aggregating) uses several versions of the _same_ algorithm trained on different random samples of the data, then aggregates their results (like averaging) to get a more stable and accurate prediction.  
+      
+    
+- **Stacking** combines _different_ types of algorithms by training them separately and then stacking their outputs as inputs to a new model, which learns how to best combine their predictions.
+
+Boosting is an ensemble technique in machine learning where multiple models are built sequentially, each one trying to correct the errors of the previous model.
+
+- Instead of averaging results like in bagging, boosting focuses on improving predictions step-by-step by giving more attention to data points that were misclassified before. 
+- This way, the combined model becomes more accurate by learning from its mistakes over time.
+
+#### Bagging
+
 
 **Bagging** (Bootstrap Aggregating) is a specific type of ensemble method designed to reduce variance and prevent overfitting:
 

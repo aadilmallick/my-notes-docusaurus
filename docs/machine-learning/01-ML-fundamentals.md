@@ -3,12 +3,44 @@
 ## An overview of machine learning
 
 
-![](https://i.imgur.com/kBSaGnF.jpeg)
+### Types of intelligence
+
+- **general intelligence**: stuff like humans, biological intelligence at the level of humans
+- **artificial intelligence**: when a machine can perform a task as good or better than a human can, like classifying images.
+- **AGI**: when artificial intelligence achieves the capability of general intelligence, when AI becomes better at tasks than most humans are.
+- **Strong AI** refers to machines that display full human-like intelligence, including emotions, creativity, and a sense of purpose—like the intelligent characters you see in science fiction. It's the idea of a machine that truly thinks and understands like a person, but this is still mostly theoretical today.  
+- **Weak AI**, on the other hand, is designed for specific tasks. It can process language or recognize patterns but doesn't actually understand or have consciousness. For example, Siri is a weak AI—it listens to your questions and matches them to programmed responses without real understanding.
+- **predictive AI**: regression, classification, or clustering tasks, which is a type of AI that analyzes large amounts of data to find patterns and make predictions about future behavior
+- **generative AI**: generates content
+
+
+### Alignment
+
+The mismatch between what the AI does and what humans actually want is called the **alignment problem**, which is what happens when an AI might do exactly what it's programmed to do but in a way that humans don't expect or want. 
+
+The alignment problem arises when you program an AI to do a task and you assume that it will think and reason like a human on that same task without implementing guardrails or thinking it through better.
+
+It's a key ethical issue because AI systems can make many decisions quickly, and if they're not aligned with human values, they might cause harm without anyone noticing right away.
+
+There are 4 alignment problems in AI:
+
+- **value alignment**: Value alignment in AI refers to the challenge of ensuring that an AI system's actions match human values and intentions
+- **traceability**: Decision traceability in AI refers to the challenge of understanding how an AI system arrives at its decisions. 
+	- Many AI systems, especially those analyzing massive datasets, act like a "black box"—they produce results based on complex patterns that are nearly impossible for humans to fully trace or explain.
+- **copyright**: Copyright law protects original human-created content, but there is ongoing debate about whether using such content to train AI models qualifies as fair use.
+- **privacy**: Privacy in the U.S. is often governed by flexible guidelines rather than strict rules, allowing companies to collect and use personal data extensively.
+
+#### Value alignment
+
+
+
+For example, if an AI system is designed to reduce health insurance costs by targeting high-cost customers, it might cancel policies for older people to save money, which is not the intended ethical outcome. 
 
 
 
 ## Features
 
+![](https://i.imgur.com/kBSaGnF.jpeg)
 
 ### Univariate data and bivariate data
 

@@ -13,6 +13,11 @@ As the machine learning engineer, we have two tasks:
 2. Decide how many clusters we want to separate the data into
 ### KMeans
 
+K-means is an unsupervised learning algorithm where you select $k$ number of clusters and then via this algorithm the data eventually sorts itself into those $k$ clusters. 
+
+- **benefits**: works fast, simple to understand
+- **limitations**: sensitive to outliers because outliers affect cluster means extensively
+
 **Rules**
 
 - Each point must belong to a cluster
@@ -22,8 +27,8 @@ As the machine learning engineer, we have two tasks:
 
 1. Choose $k$ clusters to partition data into.
 2. Assign each point to a random cluster
-3. Calculate the cluster mean for each cluster
-4. If a data point is closer to one cluster mean than another, assign that data point to that cluster it's nearest to.
+3. Calculate the cluster mean (centroid) for each cluster
+4. If a data point is closer to one cluster mean (centroid) than another, assign that data point to that cluster it's nearest to.
 5. Repeat steps 3 and 4 until there are no more reassignments
 
 
