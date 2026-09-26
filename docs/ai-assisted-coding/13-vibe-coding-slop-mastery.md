@@ -1345,6 +1345,27 @@ Use this space to capture patterns you notice over time:
 -
 ```
 
+#### Security rules
+
+Here is sample context you can give to a `CLAUDE.md` so that you have adequate security on all fronts:
+
+These are rules you should create as fitness functions via an `npm run security` command:
+
+- **No secrets in files.** Secrets come from the environment only (`ANTHROPIC_API_KEY`); never hardcode keys/tokens/passwords in source, tests, config, or `data/`. Keep `.env` gitignored.
+- **Least privilege.** Give every component only the access it needs. The AI Suggested Reply gets one ticket's content and **no tools/network** beyond the model call; server code touches only the data the request requires. Don't widen scope "just in case".
+- **Validate inputs at trust boundaries.** Treat anything crossing a boundary as untrusted: HTTP request bodies/params, and - especially - ticket text fed to the model. Isolate untrusted content in prompts and validate model output before it is surfaced (the `guardReply` guardrail in `apps/api/src/llm.ts`).
+- **Once the security gate exists, run it before claiming done.** The security chapter adds `npm run security`; from then on it must be green (alongside `typecheck` and `test`) before a change is called complete. It blocks on secrets, `.env` hygiene, a raw-HTML sink, the AI guardrail being wired, and CRITICAL production dependency advisories; it reports HIGH/MODERATE advisories as warnings to triage.
+
+#### Quality rules
+
+Here are the rules you should turn into fitness functions via an `npm run quality` check
+
+- UX: loading/empty/error states verified in a real browser; no new console errors on load.
+- Performance: LCP <= 2.5s, INP <= 200ms, CLS <= 0.1; JS + image budgets enforced in CI.
+- Accessibility: WCAG 2.2 AA; zero automated axe violations + keyboard/screen-reader verified.
+- Testing: mutation score gate on `packages/core`; evals gate on the AI feature.
+- Security: `npm run security` green (secrets, `.env`, AI guardrail, prod-critical deps); `/security-review` + SAST clean; deps verified; agent runs least-privilege.
+- Reliability: OpenTelemetry traces/SLO; AI calls have timeout, fallback, and a guardrail.****
 ### Production grade quality
 
 #### Fitness functions
@@ -1707,6 +1728,10 @@ Why is prompt injection so dangerous? Because it leads to the lethal trifecta:
 - **Verify fixes with automated eval tests:** Regularly run tests that confirm your AI features do not leak data or obey malicious instructions.
 - **Ensure deployment updates:** After code changes, restart or update running processes to avoid stale code causing security issues.
 
+
+![](https://i.imgur.com/WSYSiVe.jpeg)
+
+
 #### Hardening AI-generated code
 
 Start with the code. Run the checks that do not rely on anyone's good intentions:
@@ -1718,6 +1743,31 @@ Start with the code. Run the checks that do not rely on anyone's good intentions
 
 Wire the ones that are deterministic into a `npm run security` gate so they block a merge, not just a conversation.
 
+Here's an example of how to use AI to perform a security review on your codebase and then turn that into a fitness function via `npm run security`:
+
+1. Ask AI to perform a security review on the codebase
+
+```
+Run a security review of this repo as it stands. Focus on AI feature risks, dependency risks, input validation, SSRF/exfiltration paths, and secrets handling.
+
+Start with the dependency layer deterministically - run `npm audit` and report the advisories by severity, naming the package and whether it is a production or dev dependency. Then read the code for the logic-level problems audit cannot see, and give me file:line findings with a one-line exploit sketch each, sorted by severity. The unvalidated `/reply` body is the kind of concrete finding I want, not a vague "looks fine."
+
+Print everything in the terminal. Do not write screenshots or report files, and do not fix yet.
+```
+
+2. Ask AI to create an `npm run security` fitness function that performs SCA
+
+```
+Add a simple repo-local security gate command, `npm run security`, using lightweight checks that work offline for this demo - secrets in tracked files, `.env` hygiene, a raw-HTML sink, the AI output guardrail being wired, and CRITICAL production advisories from `npm audit` as a blocker with HIGH/MODERATE reported as warnings.
+
+Run it before fixing anything and print exactly what it blocks on and why. Then fix the findings and run it again, printing a before/after summary in the terminal: checks failing before, checks failing after, one line per check that flipped. Also update CLAUDE.md with the agent security rules this repo should follow: no secrets in files, least privilege, validate inputs at trust boundaries, and run the security gate before claiming done. Do not write screenshots or report files.
+```
+
+3. Ask for a red team subagent to try and pentest your app
+
+```
+Create a fresh-context reviewer subagent (.claude/agents/reviewer.md) whose only job is adversarial security review. Give it the diff for the escalate endpoint and the three original findings, and instruct it to actively try to break the fix: bypass the validation, influence the webhook target, confirm the dependency is truly gone. It must not assume the fix is correct. Run it and report only what it can actually break, with file:line. If it finds nothing, say so explicitly.
+```
 #### Principle of least privilege
 
 Concretely, least privilege for an agent means:
@@ -1731,6 +1781,11 @@ Concretely, least privilege for an agent means:
 > [!NOTE]
 > The uncomfortable truth is that a scanner finds the bugs you already know how to name, and an agent will occasionally write something none of them catch. That is why this is two habits, not one: scan the output, and constrain the authority. Neither is sufficient alone
 
+Here is an example prompt of asking AI to have principle of least privilege by constraining its settings:
+
+```
+Set up least-privilege permissions for this repo in .claude/settings.json using the current Claude Code schema: allow the project's own scripts (typecheck, test, security, dev), deny destructive or out-of-scope commands, and default to read-only where a change is not needed. Explain each rule briefly and show the resulting config. Do not invent settings keys - if unsure of the current schema, tell me what to verify.
+```
 
 #### AI error visibility
 
@@ -1748,6 +1803,8 @@ For the course app, lightweight local telemetry is enough:
 - Fallback count
 - Degraded response marker
 
+ Implement primitives like timeouts, safe retries, circuit breakers, deterministic fallbacks, and output guardrails to ensure the system gracefully handles failures instead of hanging or crashing.
+
 Then make failure survivable:
 
 - Timeout so the request does not hang
@@ -1757,7 +1814,158 @@ Then make failure survivable:
 - Output validation for empty, oversized, or unsafe replies
 
 > [!NOTE]
+> Reliability means the system not only survives failures but also signals when it has degraded, enabling better monitoring and response.
+
+
+![](https://i.imgur.com/UKb3dpD.jpeg)
+
+
+> [!NOTE]
 > The useful standard is: see it fail, survive the failure, and report the degraded path clearly enough that a human can act.
+
+Here is an example of how to add telemetry to your app using AI
+
+1. Ask AI to set up telemetry on certain errors
+
+```
+Measure the failure before fixing it. Do not write screenshots or report files - print everything in the terminal.
+
+Instrument the AI Suggested Reply path for reliability: lightweight in-memory telemetry around the model call recording latency (avg/p95), attempts, error count, fallback count, and degraded=true when a fallback is used. Expose the snapshot as `GET /api/metrics` so I can read it with curl.
+
+Then force the model path to fail (wrap the offline mock so it throws - no network, no API key) and drive the endpoint:
+  curl -s -X POST http://localhost:3001/api/tickets/T-1001/suggest -w '\nHTTP %{http_code} in %{time_total}s\n'
+  curl -s http://localhost:3001/api/metrics
+
+Report the status code, the wall-clock time, and the metrics JSON. Do not harden anything yet - I want the broken baseline on screen.
+```
+
+2. Ask the model to harden and add the circuit breaker pattern
+
+```
+Now harden the model call: timeout, safe retry where it is actually safe, circuit breaker for repeated failures, a deterministic template fallback, and output validation that rejects empty or unsafe replies.
+
+With the model path still failing, re-run the identical two curl commands and print a before/after table in the terminal: status code, response time, fallback count, degraded flag. Do not call this done until the endpoint returns fast with a usable fallback and the telemetry says degraded. Do not write screenshots or report files. Finish with `npm run typecheck` and any reliability tests you added.
+```
+
+### Quality gates and shipping
+
+
+#### CI as a quality gate
+
+You should always have precommit hooks and CI workflows that act as a two-gate system to only allow code to be merged into main if it passes testing, security, and configured quality gates.
+
+
+![](https://i.imgur.com/pMFfkaq.jpeg)
+
+
+1. **Local vs. Enforced Gates:** Checks running locally are advisory; only CI-enforced checks systematically protect main branches. CI moves repeated review debates from human memory into code.
+    
+2. **Shift-Left Defense in Depth:** Relying solely on CI allows broken changes to leave developer laptops. Local hooks (e.g., pre-commit hooks or agent "Stop" hooks) stop bad code before it is pushed, while CI acts as the backup backstop.
+    
+3. **No Imaginary Jobs:** CI pipelines should strictly run existing scripts/commands (e.g., inspecting `package.json` first). Missing checks belong in comments or backlog issues, not non-existent workflow jobs.
+    
+4. **"Net First, Fix Second" for Legacy Code:** Never start legacy work with a rewrite or immediate fix. Map dependencies in read-only mode first, then pin current behavior—quirks included—using characterization tests.
+    
+5. **Ratchet, Don't Over-Require:** Set quality gates at standards the codebase can pass _today_, then gradually ratchet requirements higher over time.
+
+Here are the steps to how you can set up CI and precommit hooks with AI to act as quality gates:
+
+1. Ask AI to create a github workflow
+
+```
+Create a GitHub Actions quality workflow for the checks this repo actually exposes today. Detect package scripts first. Include install/cache, typecheck, unit tests, and any present `budget`, `evals`, or `security` commands. Keep placeholders commented only if the command does not exist yet.
+
+Then run the equivalent checks locally and print a table in the terminal: one row per gate, the exact command, and pass/fail with its exit code. Show me the workflow file. Do not push, do not trigger a real Actions run, and do not write screenshots or report files.
+```
+
+2. Ask AI to create a custom PR policy gate
+
+```
+Add a custom PR policy gate in the simplest maintainable form: every new API route under apps/api/src/routes must validate input, and any route that calls the LLM must have an eval case. It can be a script or a bounded Claude Code/Agent SDK step, but it must fail with file:line findings.
+
+Demonstrate it locally on a small bad change - add an unvalidated route - and show the gate failing with the offending file:line and a non-zero exit code. Then fix the change and re-run it green. Print the before/after run output in the terminal; do not write screenshots or report files, and do not open a real pull request.
+```
+
+3. Ask AI to add the precommit hook
+
+```
+Add a local hook that runs the fast gates (typecheck, unit tests, and the fitness check) and blocks completion/commit while any of them is red - a Stop hook and/or a pre-commit hook, whichever fits this repo. Keep it fast enough to run on every change.
+
+Show the config, then demonstrate it in the terminal: make a red change and show the hook refusing it, fix it and show the same change passing. Print both runs; no screenshots, no report files. Note any version-specific hook syntax you used.
+```
+
+### Dealing with legacy code
+
+- **brownfield**: inherited, legacy code you didn't necessarily write.
+- **smoke test**: A smoke test is a quick, basic test that checks whether the main parts of your system are working after changes. 
+	- It's like a simple health check to ensure nothing critical is broken before deeper testing or deployment.
+- **characterization test**: A characterization test is a type of correctness test that captures exactly how your existing code behaves today, including all its quirks and current outputs. 
+	- Its purpose is to lock in this behavior so that when you make changes, you can detect any unintended differences as failing tests instead of unexpected bugs in production.
+	- Essentially, it pins down the current behavior without asserting whether it's right or wrong, just what it does.
+
+To work with brownfield code (legacy code), it's important that you don't break anything. To that end, follow these steps:
+
+1. **create a dependency graph**: the graphify tool now allows you to map all module and references in your codebase as dependencies within a graph, which allows your AI model to know what's going on.
+2. **create a characterization test**: you have to measure something before you can improve it. The goal is to understand the current behavior of the app
+
+![](https://i.imgur.com/Ui6Aav1.jpeg)
+
+3. **create a fitness function for ratcheting quality**: once you capture the current performance of the app via a characterization test, write a fitness function for ratcheting quality so that if the performance of the codebase every goes below the results of the characterization test, we fail loudly as to avoid regressions in quality.
+
+
+![](https://i.imgur.com/y28oYHZ.jpeg)
+
+
+> [!NOTE]
+>  characterization tests help safely evolve legacy code by preventing silent behavior changes, while smoke tests provide a fast check that the system still functions at a basic level after updates.
+
+
+Here's an example of using prompts to work with brownfield cod
+
+
+1. **Requires axe + Playwright (one-time, in this app):**
+
+```shell
+npm i -D @axe-core/playwright playwright && npx playwright install chromium
+```
+
+2. **Prompt 1 - Enter plan mode first (read-only, so the mapping pass cannot touch the legacy code), then**
+
+```
+Inspect this legacy service before any edit. Map the dependencies between src/index.js, src/orders.js, src/inventory.js, and src/db.js - print the map as a text tree in the terminal; do not write files. For each module, call out in one line: mixed concerns, duplicated logic, shared mutable state, and validation gaps. Name the one or two places a future change would be riskiest. Do not edit anything - I want the terrain, not a fix.
+```
+
+3. **Prompt 2 - Exit plan mode, then**
+
+```
+Write characterization tests that pin the CURRENT observable behavior of this service - behavior-locking, not correctness. Capture today's real outputs as the expected values by running the actual modules against the seed data in src/db.js; do not hand-write values you think are correct. Cover at least: order totals (calcTotal) with no coupon, the VIP discount, the BULK discount including the case where it does NOT apply, inventory availableToPromise, and reorderStatus. Add a header comment saying these lock behavior and may encode current bugs on purpose. Wire them to `npm run test` (node --test), run them, and run `npm run smoke`. Print both results - do not change any file under src/.
+```
+
+4. **Prompt 3 - Then the first fix, behind the net**
+
+```
+Now fix accessibility, with the characterization tests as the safety net. Write a small script using Playwright + @axe-core/playwright that loads the dashboard at http://localhost:4000/ and reports WCAG 2.2 AA violations with node counts and measured contrast ratios. Run it and show me the failures. Then fix them to meet 4.5:1 by adjusting the dashboard's CSS colors only (the palette tokens in public/styles.css and the few inline color literals). Re-run axe to show zero violations, then re-run `npm run test` and `npm run smoke` to show behavior is untouched. Print the before/after violation counts.
+```
+
+### Production grade playbook
+
+ generating AI code is cheap now. The real work is making sure that it's production-grade and ensuring that code never breaks in production. You have to verify that what you ship is correct and it works well.
+
+So here are the main techniques you have when it comes to achieving production grade quality:
+
+1. **make quality gates executable**: create fitness functions for quality gates like accessibility, testing, and performance, and have them fail loudly. Below are examples of quality gates:
+	- **codebase architecture**: maintain code quality by creating fitness functions for code architecture.
+	- **user flow**: create E2E tests or a UX audit driven by AI
+	- **accessibility**: automated scans via `axe` or lighthouse
+	- **performance**: create traces, budgets, and characterization tests, before mitigating with automated scans via lighthouse or an AI audit
+	- **tests**: instead of just coverage, add mutation testing
+	- **AI behavior**: test nondeterministic AI behavior through evals.
+	- **security**: automate security with AI audits and SCA and SAST tools
+2. **make quality gates automated**: add precommit hooks and CI workflows that only pass if the quality gates pass.
+3. **Add reliability guardrails**: each portion of your app business logic should add in the 5 reliability guardrails:
+
+
+![](https://i.imgur.com/sSOucmI.jpeg)
 
 
 ## Vibe coding workflows with different harnesses
@@ -2300,6 +2508,19 @@ Rules:
 - Implement proper error handling for all operations
 - Tests must cover: create, read, update, delete, not-found cases
 ````
+
+## Slopping it up: community skills and workflows
+
+### Addy Osmani the LARPer - skills
+
+```embed
+title: "agent-skills - production-grade engineering skills for AI coding agents"
+image: "https://skills.addy.ie/og.png"
+description: "Encode senior-engineer workflows, quality gates, and best practices across the full software lifecycle. 24 skills that work with Claude Code, Codex, Cursor and 70+ agents."
+url: "https://skills.addy.ie/"
+favicon: ""
+aspectRatio: "52.5"
+```
 
 ## Lovable
 
