@@ -1296,6 +1296,77 @@ Use this space to capture patterns you notice over time:
 -
 ```
 
+### Production grade quality
+
+#### Fitness functions
+
+
+A fitness function is a code architecture rule that can described in natural language, but then you convert it into an automated, programmatic check via a CLI function or something like that.
+
+![](https://i.imgur.com/rTZaXj2.jpeg)
+
+The goal is to reduce the cognitive load of memorizing hundreds of different rules and just hoping the agent remembers them and instead encapsulate those natural language rules into commands that the agent must run in its harness as part of its acceptance criteria.
+
+Here's the standard workflow for fitness functions
+
+1. Create a natural language rule
+2. Ask your coding agent to create a fitness function from the rule, which results in a prompt like this:
+
+```
+Inspect this repo and turn the architecture rule in CLAUDE.md into an executable fitness function. The rule: code under apps/web must not import code under apps/api.
+
+Use dependency-cruiser. Add it as a dev dependency, write the smallest config that forbids that one edge, and wire it to `npm run fitness`. Run it and show me the failure before fixing anything.
+
+Print the result in the terminal - do not write screenshots or report files. I want the failing run on screen naming the exact forbidden import (source file, imported module, rule name) plus the module and dependency counts it cruised.
+```
+
+3. Ask your agent to fix the violation of the fitness function like so:
+
+```
+Fix the violation properly. The web app must not import server-side code from apps/api. Here it pulls in the server's feature-flag module to gate a button, but the server already gates the feature (server-side flag plus template fallback), so the client should just call the API and drop the import. Remove the cross-boundary import and any now-dead client-side flag check; move genuinely shared, framework-free logic to @helpdesk/core instead of apps/api. Then run `npm run fitness` and `npm run test` and print the before/after violation counts in the terminal. Do not write screenshots or report files. Show the changed files and the command output.
+```
+
+#### Test unhappy paths
+
+You don't truly have a working app unless you test the unhappy paths. 
+
+The way you could do this is with the chrome devtools MCP, asking the AI to try testing random things and stress test the app via chaos engineering.
+
+Every app must strive to always let their user know what is going on at all times. This means showing loading, success, and error states and messages accordingly, never leaving something blank.
+
+Here's an example of using chrome devtools MCP to test the unhappy path:
+
+1. Prompt to test for 4 loading states:
+
+```
+Verify the helpdesk queue-to-reply flow at http://localhost:5173 using the built-in browser - if its not live, fire it up using npm run dev:slow. Report in the terminal - no screenshots, no files - and do not change any code. Work through all of this without stopping to ask me; you have everything you need.
+
+FIRST, confirm the simulated slow queue is actually on:
+  curl -s -o /dev/null -w "%{time_total}\n" http://localhost:3001/api/tickets
+It must be about 4 seconds. If it comes back under a second, stop immediately and tell me to restart the app with `npm run dev:slow` - nothing below is valid without it.
+
+1. LOADING. Do not navigate in one call and inspect in the next; the round trip is slower than the load and you will miss the window. In a SINGLE evaluation, load the app in a hidden iframe and poll it about once a second for ~7s, recording per tick: elapsed ms, ticket-row count, whether any loading text is present, and the number of [role=status], [aria-busy] and [aria-live] regions. Return the timeline.
+
+2. EMPTY. Type a query into the search box that matches nothing and report what replaces the list. Then compare it to the loading screen and tell me directly: could a user tell those two apart?
+
+3. SUBMIT FAILURE. Order matters - do this while the API is still up: open a ticket and draft a reply. THEN stop the API yourself with `lsof -ti:3001 | xargs kill`, submit the reply, and report exactly what happens to the compose box and whether the user could tell it did not send.
+
+4. FETCH FAILURE. With the API still down, reload the page and report what the queue shows, plus any console errors.
+
+Finish with one line per state: what is on screen, and whether a user could tell what happened.
+```
+
+2. Ask AI to fix all 4 states:
+
+```
+Fix all four states. Confine the changes to apps/web/src/App.tsx and apps/web/src/components/Compose.tsx - do not go exploring:
+- a loading affordance while the queue is fetching, announced to assistive tech
+- a distinct empty-result message, worded so it cannot be confused with loading
+- a fetch-failure message with a retry control
+- a failed submit that keeps the user's draft and shows an inline error plus Retry
+
+Then re-verify only the two beats that carry the episode, using the identical methods: re-run the single-evaluation iframe timeline (the early ticks must now report a loading affordance instead of an empty panel), and repeat the draft-then-kill-API-then-submit sequence. Print one before/after table covering all four states, then run `npm run typecheck`. Do not re-drive the states you have already proven.
+```
 ## Vibe coding workflows with different harnesses
 
 ### Codex
