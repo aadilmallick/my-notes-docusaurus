@@ -1968,6 +1968,9 @@ So here are the main techniques you have when it comes to achieving production g
 ![](https://i.imgur.com/sSOucmI.jpeg)
 
 
+In summary:
+
+![](https://media.licdn.com/dms/image/v2/D560DAQGG3ggm9Zy43w/learning-article-inline-scale_1000_2000/B56Z_4DvYnHMAM-/0/1786573158287?e=1791064800&v=beta&t=cUWpjJ6q4a5s2jj0wC9tQZo5E-2_DQDnjcabfVpOE2U)
 ## Vibe coding workflows with different harnesses
 
 ### Codex
