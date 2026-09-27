@@ -3,7 +3,26 @@
 ### Confusion matrix and common metrics
 
 
-If data is unbalanced, we need recall and precision to truly evaluate a model's performance. 
+Accuracy is a measure of how well a classification model performs, and is measured by the ratio of true positives a model classified to all positive classifications a model made.
+
+$$Accuracy = \frac{TP}{TP + FN}$$
+
+
+> [!IMPORTANT]
+> If data is unbalanced, accuracy is no longer a good measure of classification performance.
+
+> [!IMPORTANT]
+> On unbalanced datasets, we need recall and precision to truly evaluate a model's performance. 
+> 
+> - **Precision** focuses on the accuracy of positive predictions. 
+> 	- It tells you, out of all the times the model predicted positive, how many were actually positive. 
+> 	- It’s useful when you want to avoid false positives.  
+> - **Recall** measures how well the model finds all actual positives. 
+> 	- It tells you, out of all real positive cases, how many the model correctly identified. 
+> 	- It’s important when missing a positive case (false negative) is costly, but false positives are ok.
+      
+    
+
 
 - **Accuracy**: True positives / (total classified)
 - **recall** : $\frac{TP}{TP + FN}$. Recall asks the question, "what percentage of the positive cases does the model correctly predict as positive?"
@@ -19,18 +38,35 @@ If data is unbalanced, we need recall and precision to truly evaluate a model's 
 > - **Precision** is vertical and asks: When we predicted something as belonging to class A, what was the percentage that actually belonged to class A?
 > - **Recall** is horizontal and asks: For all values that actually belongs to class A, what was the percentage we correctly predicted as class A?
 
-#### The tradeoff between recall and precision
-
 A trade-off between recall and precision will always exist because there is always a trade-off between false positives and false negatives. 
 
+- **precision**: increasing precision leads to a decrease in false positives.
+- **recall**: an increase in recall decreases false negatives
 
+Here are some examples showcasing this tradeoff:
+
+- **credit card fraud**: false positives (marking a transaction you made as fradulent) is ok, but false negatives (a fraud transaction not being flagged as such) is costly, so you should aim to increase the **recall** of the classification model evaluation.
+
+F1 score is a nice way to seek a balance between precision and recall, where a high F1 score can only arise from a balanced, low precision and recall:
+
+$$F1 = 2 \frac{precision * recall}{precision + recall}$$
 #### ROC curve
 
 The ROC (receiver operating characteristic) curve is just plotting the true positive rate vs the false positive rate. 
 
+- **false positive rate** is on the X axis
+- **true positive rate** is on the Y axis
+
+The ROC (Receiver Operating Characteristic) curve is a graph that shows the trade-off between the true positive rate (which is the same as recall) and the false positive rate (which involves false positives and true negatives) at different threshold settings.
+
 We call the area under the ROC curve as AUC (area under the curve).
 
-- The closer the AUC is to 1, the better the model performs.
+AUC (Area Under the Curve) measures the overall ability of the model to distinguish between positive and negative classes by summarizing the ROC curve into a single value. 
+
+- A higher AUC means better model performance in ranking positive cases higher than negative ones.
+	- The closer the AUC is to 1, the better the model performs.
+- If you care about false positives, then you'd optimize on AUC
+
 
 
 ![](https://i.imgur.com/m68hpJn.jpeg)
