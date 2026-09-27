@@ -807,11 +807,9 @@ summarization_middleware = SummarizationMiddleware(
 )
 ```
 
-#### Built-in middlewares
 
-- **summarization middleware**: automatically compacts context by summarizing the context after a certain threshold you reach is configured.
 
-##### Summarization middleware
+#### Summarization middleware
 
 Automatically summarize conversation history when approaching token limits, preserving recent messages while compressing older context. Summarization is useful for the following:
 
@@ -827,6 +825,8 @@ Here's an example of creating a `SummarizationMiddleware` instance and attaching
 	- `"tokens"`: threshold property for the total number of tokens in the conversation history
 	- `"fraction"`: threshold property for the percentage of currently used context from the max context.
 - `keep=`: the custom setting for the amount of most recent data to keep from the threshold properties set.
+
+##### Compacting on messages
 
 In the example below, let's walk through the `trigger=` and `keep=` kwargs:
 
@@ -879,7 +879,7 @@ for q in questions:
     print(f"Messages: {len(response['messages'])}")
 ```
 
-**summarization threshold on tokens**
+##### Compacting on tokens
 
 Here is another example of creating a custom threshold on the number of max tokens to allow before summarization, specified by the `"tokens"` threshold property:
 
@@ -938,7 +938,7 @@ for city in cities:
     print(f"{(response['messages'])}")
 ```
 
-**summarization threshold on context percentage**
+##### Compacting on context percentage
 
 By creating a threshold on the `"fraction"` property, we can dynamically summarize context based on the percentage of currently used context from the max context:
 
@@ -991,6 +991,9 @@ for city in cities:
     print(f"{city}: ~{tokens} tokens ({fraction:.4%}), {len(response['messages'])} msgs")
     print(response['messages'])
 ```
+
+#### Human in the loop
+
 
 ## Langchain TS
 
