@@ -68,6 +68,12 @@ model = init_chat_model(
 )
 ```
 
+3. Invoke the model with `model.invoke(message)`
+
+```py
+response = model.invoke("what's the weather like")
+print(response.text)
+```
 #### Prompt templates
 
 ```py
@@ -103,7 +109,153 @@ response = model.invoke(prompt)
 print(response.text)
 ```
 
+#### Streaming
 
+```py
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def get_groq_model(model_name: str):
+    # 1. Load the GROQ API key from the environment variables.
+    groq_api_key = os.getenv('GROQ_API_KEY')
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY is not set")
+    os.environ['GROQ_API_KEY'] = groq_api_key
+
+    # 2. create the BaseChatModel instance from groq provider
+    return init_chat_model(
+        model=model_name,
+        model_provider="groq",
+    )
+```
+
+The `model.stream(message)` method returns the AI response back as a generator which you can iterate over, where new chunks are yielded after a model creates them.
+
+```py
+model = get_groq_model("openai/gpt-oss-120b")
+
+for chunk in model.stream("How to follow an extreme work season?"):
+    print(chunk.text, end=" ", flush=True)
+```
+
+#### Batch
+
+The `model.batch(prompts: str[])` lets you send multiple prompts to an LLM in parallel and it returns all the responses at once after inference is done for all of them:
+
+```py
+model.batch(
+    [
+        "How to follow an extreme work season and work 12 hours a day?",
+        "how do airplanes fly?"
+    ],
+    config={
+        "max_concurrency": 1
+    }
+)
+```
+
+You can pass in a `config=` kwarg dict with these properties to configure the batch inference behavior:
+
+- `"max_concurrency"`: an int number that determines the maximum concurrency for the inflight inference calls
+
+
+### Messages API
+
+Messages are the fundamental unit of context for models in LangChain. They represent the input and output of models, carrying both the content and metadata needed to represent the state of a conversation when interacting with an LLM. 
+
+
+Messages are objects that contain:
+
+- Role - Identifies the message type (e.g. system, user)
+- Content - Represents the actual content of the message (like text, images, audio, documents, etc.)
+- Metadata - Optional fields such as response information, message IDs, and token usage
+
+Message types in langchain are represented by 4 different classes:
+
+- `SystemMessage`: used for system messages, represents an initial set of instructions that primes the model’s behavior. You can use a system message to set the tone, define the model’s role, and establish guidelines for responses.
+- `HumanMessage`: represents user input and interactions. They can contain text, images, audio, files, and any other amount of multimodal content.=
+- `AIMessage`: represents the output of a model invocation. They can include multimodal data, tool calls, and provider-specific metadata that you can later access.
+- `ToolMessage`: For models that support tool calling, AI messages can contain tool calls. Tool messages are used to pass the results of a single tool execution back to the model.
+
+> [!NOTE]
+> All of these classes inherit from the `AnyMessage` class.
+
+The `model.invoke()`, `model.batch()`, and `model.stream()` methods are all compatible with the messages API, and are able to take in an array of `AnyMessage` concrete instances and run model inference with messages.
+
+
+```py
+from langchain.messages import SystemMessage, HumanMessage, AIMessage, AnyMessage
+
+messages=[
+    SystemMessage("You are a poetry expert"),
+    HumanMessage("Write a poem on artificial intelligence")
+]
+
+response=model.invoke(messages)
+response.content
+```
+
+
+#### `HumanMessage`
+
+```py
+## Message Metadata
+human_msg = HumanMessage(
+    content="Hello!",
+    name="alice",  # Optional: identify different users
+    id="msg_123",  # Optional: unique identifier for tracing
+)
+```
+
+#### `ToolMessage`
+
+```py
+from langchain.messages import AIMessage
+from langchain.messages import ToolMessage
+
+# After a model makes a tool call
+# (Here, we demonstrate manually creating the messages for brevity)
+ai_message = AIMessage(
+    content=[],
+    tool_calls=[{
+        "name": "get_weather",
+        "args": {"location": "San Francisco"},
+        "id": "call_123"
+    }]
+)
+
+# Execute tool and create result message
+weather_result = "Sunny, 72°F"
+tool_message = ToolMessage(
+    content=weather_result,
+    tool_call_id="call_123"  # Must match the call ID
+)
+
+# Continue conversation
+messages = [
+    HumanMessage("What's the weather in San Francisco?"),
+    ai_message,  # Model's tool call
+    tool_message,  # Tool execution result
+]
+response = model.invoke(messages)  # Model processes the result
+```
+
+#### AIMessage
+
+#### response object reference
+
+- `response.tool_calls`: the list of tool calls the AI made. Empty if no tool calls.
+- `response.text`: the text the AI responsed with. Empty if made a tool call.
+- `response.usage_metadata`: returns info about the tokens a response took, including input and output tokens.
+
+```
+{'input_tokens': 53, 'output_tokens': 258, 'total_tokens': 311}
+```
 ### Model providers
 
 #### `ChatGroq`
@@ -151,9 +303,140 @@ response = llm.invoke([message])
 print(response.content)
 ```
 
+### Structured output
+
+With Pydantic models, you can force a model to output structured output that adheres to the pydantic model:
+
+1. Create the model
+
+```py
+from pydantic import BaseModel,Field
+
+class Movie(BaseModel):
+    title:str=Field(description="The title of the movie")
+    year:int=Field(description="This year the movie was released")
+    director:str=Field(description="The director of the movie")
+    rating:float=Field(description="The movies rating out of 10")
+```
+
+2. Bind the model to have structured output to the specific pydantic model using the `model.with_structured_output(pydantic_obj: BaseModel)` method, which returns a model that outputs structured output according to that Pydantic schema.
+
+```py
+model_with_structure = model.with_structured_output(Movie)
+```
+
+3. Invoke the model to receive the parsed pydantic object class instance back.
+
+```py
+obj = model_with_structure.invoke("some message")
+```
+
+> [!NOTE]
+> When using structured output, all you get back is the object output, and all metadata like tool calls, token usage, reasoning, etc. is stripped from the response.
+
+Behind the scenes, a structured output call is simply a tool call to Pydantic to process the prompt and format it according to Pydantic spec.
+
+Here's an example:
+
+```
+[
+    {
+        "id": "r0n9zde78",
+        "function": {
+            "arguments": "{\"director\":\"Christopher Nolan\",\"rating\":8.8,\"title\":\"Inception\",\"year\":2010}",
+            "name": "Movie"
+        },
+        "type": "function"
+    }
+]
+```
+#### raw output 
+
+Here is an example where you also ask for the raw AI message back by specifying `include_raw=True` kwarg when creating the model with structured output.
+
+```py
+from pydantic import BaseModel, Field
+
+# 1. create the pydantic model
+class Movie(BaseModel):
+    """A movie with details."""
+    title: str = Field(..., description="The title of the movie")
+    year: int = Field(..., description="The year the movie was released")
+    director: str = Field(..., description="The director of the movie")
+    rating: float = Field(..., description="The movie's rating out of 10")
+
+# 2. bind to structured output, include raw
+model_with_structure = model.with_structured_output(Movie, include_raw=True)  
+
+# 3. invoke
+response = model_with_structure.invoke("Provide details about the movie Inception")
+
+response.raw # returns AIMessage
+response.parsed # returns Movie instance
+response.parsing_error # returns error from parsing, if any, else None
+```
+
+- `response.raw`: returns the normal response without structured output, which is a resulting `AIMessage`
+- `response.parsed`: returns the parsed pydantic obnject instance, the actual structured outpu
+- `response.parsing_error`: returns error from parsing, if any, else None
+### Tools
+
+Tools are a pairing of:
+
+1. **schema**: includes the name of the tool, description, type hints for arguments, and type hints for the output of the tool
+2. **execution**: a function or some business logic that executes some code according to the schema.
+
+#### Creating custom tools
+
+You can create custom tools in Python with normal functions that are decorated with the `@tool` decorator, with some caveats:
+
+- **docstring**: description should be in the docstring
+- **input types**: Input type schema is defined by type hinting the function arguments.
+- **output types**: Output type schema is defined by type hinting the function return type.
+
+```py
+from langchain.tools import tool
+
+@tool
+def random_tool(input: str) -> str:
+    """A random tool that processes the input string."""
+    return f"Processed: {input}"
+```
+
+
+You can then bind tools an existing model to give that model access to tools:
+
+```py
+# 1. bind tools
+model_with_tools = model.bind_tools([random_tool])
+
+# 2. invoke with bound tools
+response = model_with_tools.invoke(
+	"invoke the random tool and tell me what it returned on this string: 'blue'"
+	)
+```
+
+Behind the scenes, here is what happens:
+
+1. **convert schema to JSON**: the input and output schema are converted into a JSON dict and that's how they are passed into the LLMs. 
+2. **tool calls are codified as an object**: tool calls are stored on the `response.tool_calls` object, which roughly looks like this:
+
+
+```json
+[
+    {
+        "id": "fc_22c1fdbe-7e87-4b88-8af2-4c345746c088",
+        "function": {
+            "arguments": "{\"input\":\"blue\"}",
+            "name": "random_tool"
+        },
+        "type": "function"
+    }
+]
+```
 ### Agents
 
-#### Creating an agent
+#### First agent
 
 An agent is defined by a model with tools, so here's the most basic way to create that agent:
 
@@ -180,7 +463,9 @@ def get_groq_model(model_name: str):
     )
 ```
 
-You define tools as normal python functions, where the parameter and return type hinting is type hinting for the tool, and the docstring is the description.
+When providing tools to agents, you don't even need to use the `@tool` decorator.
+
+You can define tools as normal python functions, where the parameter and return type hinting is type hinting for the tool, and the docstring is the description.
 
 ```py
 import datetime
@@ -199,7 +484,6 @@ agent = create_agent(
 )
 ```
 
-#### Message invoking
 
 You can then invoke the agent using the messages convention:
 
@@ -215,6 +499,59 @@ response = agent.invoke({
 print(response["messages"][-1].content)
 ```
 
+#### Tools
+
+##### Pydantic tools
+
+
+```py
+from pydantic import BaseModel, Field
+from langchain.agents import create_agent
+
+
+class ContactInfo(BaseModel):
+    """Contact information for a person."""
+    name: str = Field(description="The name of the person")
+    email: str = Field(description="The email address of the person")
+    phone: str = Field(description="The phone number of the person")
+
+agent = create_agent(
+    model="gpt-5",
+    response_format=ContactInfo  # Auto-selects ProviderStrategy
+)
+
+result = agent.invoke({
+    "messages": [{"role": "user", "content": "Extract contact info from: John Doe, john@example.com, (555) 123-4567"}]
+})
+```
+
+##### Data class tools
+
+```py
+## Dataclass
+
+from dataclasses import dataclass
+from langchain.agents import create_agent
+
+@dataclass
+class ContactInfo:
+    """Contact information for a person."""
+    name: str # The name of the person
+    email: str # The email address of the person
+    phone: str # The phone number of the person
+
+
+agent = create_agent(
+    model="gpt-5",
+    response_format=ContactInfo  # Auto-selects ProviderStrategy
+)
+
+result = agent.invoke({
+    "messages": [{"role": "user", "content": "Extract contact info from: John Doe, john@example.com, (555) 123-4567"}]
+})
+
+result["structured_response"]
+```
 ## Langchain TS
 
 ### Basics
