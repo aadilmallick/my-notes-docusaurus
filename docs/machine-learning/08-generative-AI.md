@@ -56,6 +56,121 @@ The generator can only generate photos of the same type that the discriminator w
 
 ## LLMs
 
+### State of LLMs today
+
+#### Supervised fine-tuning and RLHF
+
+In order to get LLMs to follow instructions, OpenAI released a paper that showed that adding supervised learning and RLHF allows LLMs to achieve better results when following instructions.
+
+1. **supervised fine-tuning**: human labeler creates sample response from sample prompt, and then that question-answer pair is used to finetune the LLM
+
+
+![](https://i.imgur.com/wQ2M3YS.jpeg)
+
+
+2. **RHLF**: let the model generate multiple different outputs from a single prompt, human labeler grades the responses, picks the best one, and those results go back into training a reinforcement learning model called a **reward model**
+
+
+![](https://i.imgur.com/6sCuvp4.jpeg)
+
+
+3. **reinforcement learning**: use reinforcement learning to update the model with the reward
+
+
+![](https://i.imgur.com/blomlGL.jpeg)
+
+
+
+**RHLF**
+
+Reinforcement learning from human feedback (RLHF) is a training method used to make large language models better at following instructions and producing helpful, safe outputs. Here's how it works:  
+  
+
+1. After initial fine-tuning, the model generates multiple responses to a task.
+2. Human labelers rank these responses based on quality, safety, and how well they follow instructions.
+3. A reward model is trained to predict these human preferences.
+4. The original model is then optimized using reinforcement learning, guided by this reward model, to produce outputs that get higher human approval.
+
+#### LLM scaling laws
+
+Scaling laws in language models describe how their performance improves when you increase three key factors together: 
+
+1. **model size** (number of parameters)
+2. **amount of training data** (dataset size)
+3. **amount of compute** used for training.
+
+When you increase of all of these properties, test loss decreases, just making LLM performance better as long as you scale up.
+
+
+![](https://i.imgur.com/b2F7AK3.jpeg)
+
+
+> [!NOTE]
+> Due to OpenAI's research, they concluded that shoving compute towards making the model larger gives you the best return on investment for your compute and is what will contribute the most to better model performance. 
+
+#### LLM types
+
+##### BERT
+
+BERT, which stands for bi-directional encoder representations from transformers, is a large language model developed by Google
+
+It's based on the transformer architecture, and is an **encoder-only** model, and is designed to understand language deeply rather than generate text. 
+
+- **primary use case**: Google uses BERT in its search engine to better understand the meaning behind queries, allowing for more accurate and relevant search results. 
+
+Unlike models like GPT that generate text, BERT focuses on language understanding through tasks like predicting missing words and determining if one sentence logically follows another.
+
+here are the tasks BERT was trained on:
+
+- **MLM (masked language model)**: requires BERT to predict a masked out word, with the end goal being to have BERT master context and text completion.
+- **NSP (next sentence prediction)**: asks "does the second sentence follow immediately after the first", with the end goal being to get BERT to understand the logical flow of sentences in sequence
+
+
+![](https://i.imgur.com/y3jJXkG.jpeg)
+
+##### GPT-3
+
+GPT-3 is trained on a large corpus of the english language and is a decoder-only transformer, with its main objective as trying to predict the next token given previous tokens.
+
+> [!NOTE]
+> These are also called causal or autoregressive LLMs because they look at previous tokens in order to predict the next one.
+
+Because these are auto-regressive models, they benefit from sentence examples in the prompt that follow a pattern, as it's easier to complete tokens if there is a simple, established pattern in the previous tokens already.
+
+> [!NOTE]
+> That's why few-shot and one-shot prompts work far better than zero-shot for all LLMs.
+
+But the biggest factor in model performance is still model size, as shown by the graph below, and then adding in examples so finding patterns is easier in the text.
+
+
+![](https://i.imgur.com/x9RcMzh.jpeg)
+
+##### CHincilla
+
+By now, the scaling law of LLMs still worked fine and LLMs became larger and larger, but not that much better.
+
+Google Deep Mind's hypothesis was that large language models are significantly undertrained. You could get much better performance with the same computational budget by training a smaller model for longer. 
+
+Chincilla was a 70B parameter trained on 1.4 trillion training tokens, and it proved Deepmind's hypothesis correct because it outperformed GPT-3.
+
+Deepmind's conclusion from building Chinchilla was the following:
+
+> As compute scales up you should invest equal amounts in both increasing the model size and getting more training data and training for longer on more tokens. 
+
+
+> [!NOTE]
+> Basically, more training data is also very important in improving model performance because LLMs are severely undertrained for their size.
+
+##### PaLM
+
+PaLM has 540B params, and discovered that the bigger the size of your model, it starts to unlock capabilities other smaller models don't have, like code generation and joke understanding.
+
+##### GPT4
+
+- **GPT3.5**: follows instructions better with supervised fine-tuning and RLHF
+- **ChatGPT**: finetuned from GPT3.5 for dialogue purposes.
+
+GPT-4 achieves human-level performance on many college exams and is multimodal.
 ## Diffusion models
 
 

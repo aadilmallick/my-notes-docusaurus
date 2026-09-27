@@ -663,9 +663,28 @@ Here are the main properties of a transformer:
 
 By converting input data into **high-dimensional vectors**, Transformers can grasp the underlying meaning and relationships within data
 
-**limitations**
+> [!WARNING]
+> Despite their power, they can be **computationally expensive** to run, struggle with extremely long sequences of data, and are limited to the patterns they have seen during their training process
 
-Despite their power, they can be **computationally expensive** to run, struggle with extremely long sequences of data, and are limited to the patterns they have seen during their training process
+#### Encoders and decoders
+
+In a transformer, the encoder and decoder serve different roles:  
+  
+
+- The **encoder** processes the input text (like an English sentence) to understand its meaning deeply. It consists of multiple layers that help capture complex language features.
+- The **decoder** takes the encoded information and generates the output (like translating the sentence into German).
+
+
+They can work together or separately
+
+  
+- **together**: They can work together for tasks like translation or summarization (encoder-decoder models)
+- **encoders only**: encoders alone are great for understanding tasks like classifying sentences, like BERT.
+- **decoders only**: while decoders alone are used for generating text, such as in ChatGPT or GPT-3.
+
+#### **limitations**
+
+
 ### Self-attention
 
 #### Motivation
