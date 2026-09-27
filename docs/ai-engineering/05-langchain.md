@@ -362,6 +362,12 @@ print(response.content)
 
 ### Structured output
 
+There are three types of ways to do structured output in Langchain:
+
+- **pydantic structured output**: uses pydantic `BaseModel` subclass as the structured output response, returning an object instance of that `BaseModel` subclass.
+
+#### Pydantic structured output
+
 With Pydantic models, you can force a model to output structured output that adheres to the pydantic model:
 
 1. Create the model
