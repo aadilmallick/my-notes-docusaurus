@@ -376,3 +376,4 @@ with any llm chat that supports creating images like ChatGPT, you have the abili
 - **provide aspect ratio**: You can tell gpt to set the image's aspect ratio to something like 16:10 or 4:3.
 - **refine the image**: Since images are saved as part of the chat history, you can ask gpt to refine the image and change certain parts of the image.
 - **base off of a previous image**: If you find an image you like, you can ask chat to create an image in that exact same style.
+

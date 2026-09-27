@@ -631,6 +631,32 @@ response = agent.invoke({
 print(response["messages"][-1].content)
 ```
 
+### Agent initialization reference
+
+When creating an agent with `create_agent`, here are the kwargs you can pass:
+
+```py
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model("groq:openai/gpt-oss-120b")
+agent = create_agent(
+    model=model,
+    system_prompt="you are a helpful assistant",
+    **kwargs
+)
+```
+
+**required kwargs**
+
+- `model=`: the `BaseChatModel` instance to use here
+- `system_prompt`: the system prompt, which can be a string or a `SystemPrompt` instance.
+
+**optional kwargs**
+
+- `debug=`: if set to true, enables agent tracing for extra debugging observability
+- `middleware=`: list of middleware to attach to the agent, see [[#Middleware]].
+- `tools=`: list of tools to provide to the agent.
 ### Tools
 
 #### Custom tools
