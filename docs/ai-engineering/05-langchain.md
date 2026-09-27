@@ -185,7 +185,7 @@ Message types in langchain are represented by 4 different classes:
 > [!NOTE]
 > All of these classes inherit from the `AnyMessage` class.
 
-The `model.invoke()`, `model.batch()`, and `model.stream()` methods are all compatible with the messages API, and are able to take in an array of `AnyMessage` concrete instances and run model inference with messages.
+The `model.invoke()`, `model.batch()`, and `model.stream()` methods are all compatible with the messages API, and are able to take in an array of `AnyMessage` concrete instances and run model inference with messages, and then return an `AIMessage` as a result
 
 
 ```py
@@ -196,8 +196,7 @@ messages=[
     HumanMessage("Write a poem on artificial intelligence")
 ]
 
-response=model.invoke(messages)
-response.content
+ai_message = model.invoke(messages) # returns AnyMessage type now
 ```
 
 
@@ -245,9 +244,67 @@ messages = [
 response = model.invoke(messages)  # Model processes the result
 ```
 
-#### AIMessage
+#### `AIMessage` and responses
 
-#### response object reference
+The `AIMessage` is the most important one because it's what is returned from a response.
+
+Therefor there are two types that can be returned when you call any of the `model.invoke()`, `model.batch()`, and `model.stream()` AI inference methods:
+
+- **invocation response object**: standard response object returned when passing in one single prompt as a string to these methods.
+	- **main difference**: a single response object is returned with different properties as opposed to an `AIMessage`
+- **message response object**: when using the messages API for inference, then you get back an `AIMessage` as a response.
+
+##### `AIMessage` response reference
+
+- `response.content`: the text content of the AI message
+- `response.tool_calls`: if the AI decided to call tools, then `response.tool_calls` represents an `AIMessage[]`
+- `response.id`: the id of the message
+
+##### Shared response metadata fields
+
+You also have response metadata fields that are on both of them:
+
+
+
+- `response.additional_kwargs`: a dict with extra response metadata with these properties:
+	- `'reasoning_content'`: the AIs reasoning output
+- `response.usage_metadata`: returns info about the tokens a response took, including input and output tokens.
+
+```json
+{
+	"input_tokens": 53, 
+	"output_tokens": 258, 
+	"total_tokens": 311,
+	"output_token_details": {"reasoning": 122}
+}
+```
+
+- `response.response_metadata`: returns response latency time and other metrics
+
+```json
+{
+    "token_usage": {
+        "completion_tokens": 170,
+        "prompt_tokens": 231,
+        "total_tokens": 401,
+        "completion_time": 0.272850748,
+        "completion_tokens_details": {
+            "reasoning_tokens": 122
+        },
+        "prompt_time": 0.012105539,
+        "prompt_tokens_details": null,
+        "queue_time": 0.056327181,
+        "total_time": 0.284956287
+    },
+    "model_name": "qwen/qwen3-32b",
+    "system_fingerprint": "fp_5cf921caa2",
+    "service_tier": "on_demand",
+    "finish_reason": "tool_calls",
+    "logprobs": null,
+    "model_provider": "groq"
+}
+```
+##### invocation response object reference
 
 - `response.tool_calls`: the list of tool calls the AI made. Empty if no tool calls.
 - `response.text`: the text the AI responsed with. Empty if made a tool call.
