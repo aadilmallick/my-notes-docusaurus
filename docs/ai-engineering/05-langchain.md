@@ -315,6 +315,14 @@ You also have response metadata fields that are on both of them:
 ```
 ### Model providers
 
+#### Model basics
+
+All models have different properties, like which ones support tool calling vs which ones don't, but at least in Langchain you can access all those details in a provider-agnostic way due to every single concrete model provider inheriting from the `BaseChatModel` abstract class.
+
+Here are the properties on each model:
+
+- `model.profile`: returns a dict of data describing the capabilities of the model, like whether it can do tool calling, handle image inputs, and the max input tokens it can do at once.
+
 #### `ChatGroq`
 
 The `ChatGroq` requires the `GROQ_API_KEY` env var to be set in the environment.
@@ -365,6 +373,67 @@ print(response.content)
 There are three types of ways to do structured output in Langchain:
 
 - **pydantic structured output**: uses pydantic `BaseModel` subclass as the structured output response, returning an object instance of that `BaseModel` subclass.
+- **data class structured output**: uses a Python dataclass as the structured output response, returning an object instance of that dataclass.
+- **typed dict structured output**: uses a Typed dict as the structured output response, returning an object instance type annotated to that typed dict.
+
+For all of these structured output methods, you have the exact same way provider-agnostic way of creating a model with structured output
+
+1. Create the structured output schema either with Pydantic, dataclass, or typed dict:
+
+```py
+from pydantic import BaseModel,Field
+from typing_extensions import TypedDict,Annotated
+from typing import Type
+from dataclasses import dataclass
+
+class MoviePydantic(BaseModel):
+    title:str=Field(description="The title of the movie")
+    year:int=Field(description="This year the movie was released")
+    director:str=Field(description="The director of the movie")
+    rating:float=Field(description="The movies rating out of 10")
+
+
+class MovieDict(TypedDict):
+    """A movie with details."""
+    title: Annotated[str, ..., "The title of the movie"]
+    year: Annotated[int, ..., "The year the movie was released"]
+    director: Annotated[str, ..., "The director of the movie"]
+    rating: Annotated[float, ..., "The movie's rating out of 10"]
+
+@dataclass
+class MovieDataclass:
+    """A movie with details."""
+    title: str # The title of the movie
+    year: int # The year the movie was released
+    director: str # The director of the movie
+    rating: float # The movie's rating out of 10
+
+SchemaType = Type[MoviePydantic | MovieDict | MovieDataclass]
+```
+
+2. Create a model binded to that schema using the `model.with_structured_output(pydantic_obj: BaseModel)` method, which returns a model that outputs structured output according to that Pydantic schema.
+
+```py
+from langchain.chat_models import BaseChatModel
+
+
+def get_model_with_structured_output(
+	model: BaseChatModel, 
+	schema: SchemaType
+):
+    return model.with_structured_output(schema)
+
+model_with_structured_output = get_model_with_structured_output(
+	model, 
+	MoviePydantic
+)
+```
+
+3. Invoke the model to receive the parsed pydantic object class instance back.
+
+```py
+obj = model_with_structure.invoke(messages)
+```
 
 #### Pydantic structured output
 
@@ -382,7 +451,7 @@ class Movie(BaseModel):
     rating:float=Field(description="The movies rating out of 10")
 ```
 
-2. Bind the model to have structured output to the specific pydantic model using the `model.with_structured_output(pydantic_obj: BaseModel)` method, which returns a model that outputs structured output according to that Pydantic schema.
+2. Bind the model to have structured output to the specific pydantic model
 
 ```py
 model_with_structure = model.with_structured_output(Movie)
@@ -497,9 +566,9 @@ Behind the scenes, here is what happens:
     }
 ]
 ```
-### Agents
+## Langchain Agents
 
-#### First agent
+### First agent
 
 An agent is defined by a model with tools, so here's the most basic way to create that agent:
 
@@ -562,7 +631,9 @@ response = agent.invoke({
 print(response["messages"][-1].content)
 ```
 
-#### Tools
+### Tools
+
+#### Custom tools
 
 ##### Pydantic tools
 
@@ -615,6 +686,312 @@ result = agent.invoke({
 
 result["structured_response"]
 ```
+
+### Agent memory
+
+In the realm of conversational AI, **agent memory** refers to the ability of an agent to retain information and context from previous interactions.
+
+The `checkpointer=` kwarg you pass into the agent initialization **persists the state of the agent's conversation history** (the `messages` array) and allows it to be loaded later.
+
+> [!NOTE]
+> Think of agent memory in Langchain as a save/load mechanism for your agent's `messages` invocation history, where you delegate the work to Langchain to manage your messages instead of you.
+
+
+When you use `checkpointer=InMemorySaver()`, it means that the conversation history is stored _in memory_. 
+
+> [!NOTE]
+> This is useful for development and testing, but for production, you would typically use a `checkpointer` that saves to a persistent storage (like a database) so that conversations can be resumed even if the application restarts.
+
+```py
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.messages import HumanMessage, SystemMessage
+
+agent=create_agent(
+    model="groq:qwen/qwen3.8-27b",
+    checkpointer=InMemorySaver(),
+)
+```
+
+> [!NOTE]
+> The benefit of using checkpointers to store agent message history is that it  automatically remember messages we send to the agent without us having to craft a large messages array each and every time.
+> 
+> - When you `invoke` the agent with a new `HumanMessage`, the framework internally takes the current conversation history (loaded by the `checkpointer`), appends your new message, processes it, and then saves the updated history back through the `checkpointer` for the next turn. 
+> - You don't need to manually pass the entire history in subsequent calls; the `checkpointer` handles this for you.
+
+There are 4 different checkpointer types:
+
+1. **`InMemorySaver` (Used in your notebook):**
+    
+    - **Description:** This is the simplest checkpointer. It stores the entire conversation history and state _in the memory of the running application_. This means that if the application restarts, or if the specific process handling the agent terminates, all conversation history is lost.
+    - **Use Cases:** Ideal for development, testing, and short-lived demonstrations where persistence across sessions isn't required. It's fast because there's no I/O overhead.
+    - **Limitations:** No persistence. Not suitable for production environments or any scenario where conversation history needs to survive application restarts.
+2. **`SQLCheckpointSaver` (e.g., using SQLite, PostgreSQL, MySQL):**
+    
+    - **Description:** This type of checkpointer stores the agent's state in a SQL database. It typically uses an ORM (Object-Relational Mapper) like SQLAlchemy to interact with the database, allowing you to configure it to connect to various SQL databases.
+    - **Use Cases:** Excellent for production environments where you need reliable persistence and the ability to scale your application. Each `thread_id` corresponds to a row or set of rows in a database table, making it easy to retrieve and update specific conversation histories.
+    - **Advantages:** Robust, reliable, widely supported, and can handle a large number of concurrent threads. Data is persisted even if the application restarts.
+3. **`RedisCheckpointSaver`:**
+    
+    - **Description:** Stores the agent's state in a Redis key-value store. Redis is an in-memory data structure store, often used as a database, cache, and message broker. It offers high performance.
+    - **Use Cases:** Suitable for applications requiring fast access to conversation states and good scalability, especially when Redis is already part of your infrastructure. It can be particularly good for high-throughput conversational agents.
+    - **Advantages:** Very fast reads and writes due to its in-memory nature, but can also be configured for persistence to disk. Scales well.
+4. **Cloud-Specific Checkpointers (e.g., for Google Cloud Firestore, AWS DynamoDB, Azure Cosmos DB):**
+    
+    - **Description:** These are specialized checkpointers designed to integrate with specific cloud database services. They leverage the native capabilities of these services for storage and retrieval.
+    - **Use Cases:** Best when your application is already deployed on a particular cloud platform and you want to leverage its managed database services for scalability, reliability, and ease of management.
+    - **Advantages:** Seamless integration with cloud ecosystems, often providing serverless scaling, high availability, and built-in security features.
+#### Threads
+
+What if you have several users using the same agent via an API? Then you need to scope message history to individual users, which you can do via **threads**.
+
+When invoking a model, you have access to the `thread_id` property inside the `config=` kwarg for this very occasion, to uniquely identify a messages array.
+
+```py
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.messages import HumanMessage, SystemMessage
+
+agent=create_agent(
+    model="groq:qwen/qwen3.8-27b",
+    checkpointer=InMemorySaver(),
+)
+
+
+
+questions = [
+    "What is 2+2?",
+    "What is 10*5?",
+    "What is 100/4?",
+    "What is 15-7?",
+    "What is 3*3?",
+    "What is 4*4?",
+]
+
+for q in questions:
+    response=agent.invoke(
+	    {"messages":[HumanMessage(content=q)]},
+	    config={"configurable":{"thread_id":"test-1"}}
+	)
+```
+
+The `thread_id` is essential for handling **multiple concurrent conversations** or distinguishing different users' interactions. 
+
+Here's how it works:
+
+1. **Isolation**: Each unique `thread_id` corresponds to a separate conversation history. When you invoke the agent with a specific `thread_id`, the `checkpointer` loads the history associated _only_ with that ID.
+2. **Continuation**: If the `thread_id` is new, a fresh conversation history is started. If the `thread_id` already exists (meaning a conversation with that ID has happened before), the `checkpointer` retrieves the last saved state of that particular conversation. This allows users to pick up where they left off in a conversation.
+3. **Concurrency**: This mechanism enables a single agent instance to manage multiple independent conversations simultaneously without their histories getting mixed up.
+### Middleware
+
+For agents in langchain, you get access to hooks, which is called **middleware** in Langchain. 
+
+Roughly, here's the agent lifecycle:
+
+To attach middlewares to an agent, you pass in a list of middleware object instances to the `middleware=` kwarg.
+
+For most middlewares, you can configure when the middleware triggers via a `trigger=` kwarg, which is a a tuple of two elements representing the threshold of a certain middleware, where once breached, the middleware will be triggered.
+
+1. **first argument**: a middleware-specific property to trigger on, where each middleware has different available properties.
+2. **second argument**: the threshold value for that property
+
+Here is an example of a `SummarizationMiddleware` instance being created, where summarization will be triggered after the `response.messages` property has a length >= 10.
+
+```py
+summarization_middleware = SummarizationMiddleware(
+	model="gpt-4o-mini",
+	trigger=("messages",10),
+	keep=("messages",4)
+)
+```
+
+#### Built-in middlewares
+
+- **summarization middleware**: automatically compacts context by summarizing the context after a certain threshold you reach is configured.
+
+##### Summarization middleware
+
+Automatically summarize conversation history when approaching token limits, preserving recent messages while compressing older context. Summarization is useful for the following:
+
+- Long-running conversations that exceed context windows.
+- Multi-turn dialogues with extensive history.
+- Applications where preserving full conversation context matters.
+
+Here's an example of creating a `SummarizationMiddleware` instance and attaching it as one of the middlewares to the agent, where we configure the following kwargs:
+
+- `model=`: the model to use for summarization.
+- `trigger=`: the custom trigger setting for when to trigger summarization. You have these trigger properties available:
+	- `"messages"`: threshold property for the length of the messages array of the conversation history.
+	- `"tokens"`: threshold property for the total number of tokens in the conversation history
+	- `"fraction"`: threshold property for the percentage of currently used context from the max context.
+- `keep=`: the custom setting for the amount of most recent data to keep from the threshold properties set.
+
+In the example below, let's walk through the `trigger=` and `keep=` kwargs:
+
+- `trigger=`: trigger on `"messages"` where we trigger summarization if the messages array length is greater than or equal to 10 
+- `keep=`: keep most recent data from `"messages"` where we we keep the four most recent entries in the messages array. 
+
+```py
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.messages import HumanMessage, SystemMessage
+
+### Messagebased summarization
+agent=create_agent(
+    model="gpt-4o-mini",
+    checkpointer=InMemorySaver(),
+    middleware=[
+        SummarizationMiddleware(
+            model="gpt-4o-mini",
+            trigger=("messages",10),
+            keep=("messages",4)
+        )
+    ]
+)
+```
+
+
+> [!IMPORTANT]
+> It's also extremely important when using some middleware related to conversation history that you use message threads to uniquely identify user conversations with a model and not overwrite them.
+
+```py
+config={"configurable":{"thread_id":"test-1"}}
+
+# Alternative test data
+questions = [
+    "What is 2+2?",
+    "What is 10*5?",
+    "What is 100/4?",
+    "What is 15-7?",
+    "What is 3*3?",
+    "What is 4*4?",
+]
+
+for q in questions:
+    response=agent.invoke(
+	    {"messages" [HumanMessage(content=q)]},
+	    config
+    )
+    print(f"Messages: {response}")
+    print(f"Messages: {len(response['messages'])}")
+```
+
+**summarization threshold on tokens**
+
+Here is another example of creating a custom threshold on the number of max tokens to allow before summarization, specified by the `"tokens"` threshold property:
+
+```py
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import InMemorySaver
+
+@tool
+def search_hotels(city: str) -> str:
+    """Search hotels - returns long response to use more tokens."""
+    return f"""Hotels in {city}:
+    1. Grand Hotel - 5 star, $350/night, spa, pool, gym
+    2. City Inn - 4 star, $180/night, business center
+    3. Budget Stay - 3 star, $75/night, free wifi"""
+
+
+agent=create_agent(
+    model="gpt-4o-mini",
+    tools=[search_hotels],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        SummarizationMiddleware(
+            model="gpt-4o-mini",
+            trigger=("tokens",550),
+            keep=("tokens",200),
+        ),
+    ]
+)
+```
+
+Then here's how you test it out. 
+
+```py
+
+config = {"configurable": {"thread_id": "test-1"}}
+
+# Token counter (approximate)
+def count_tokens(messages):
+    total_chars = sum(len(str(m.content)) for m in messages)
+    return total_chars // 4  # 4 chars ≈ 1 token
+
+# Run test
+cities = ["Paris", "London", "Tokyo", "New York", "Dubai", "Singapore"]
+
+for city in cities:
+    response = agent.invoke(
+        {"messages": [HumanMessage(content=f"Find hotels in {city}")]},
+        config=config
+    )
+    
+    tokens = count_tokens(response["messages"])
+    print(f"{city}: ~{tokens} tokens, {len(response['messages'])} messages")
+    print(f"{(response['messages'])}")
+```
+
+**summarization threshold on context percentage**
+
+By creating a threshold on the `"fraction"` property, we can dynamically summarize context based on the percentage of currently used context from the max context:
+
+```py
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import InMemorySaver
+
+@tool
+def search_hotels(city: str) -> str:
+    """Search hotels."""
+    return f"Hotels in {city}: Grand Hotel $350, City Inn $180, Budget Stay $75"
+
+# LOW fraction for testing!
+agent = create_agent(
+    model="gpt-4o-mini",
+    tools=[search_hotels],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        SummarizationMiddleware(
+            model="gpt-4o-mini",
+            trigger=("fraction", 0.005),  # 0.5% = ~640 tokens
+            keep=("fraction", 0.002),     # 0.2% = ~256 tokens
+        ),
+    ],
+)
+```
+
+Then here's how you test it out
+
+```py
+config = {"configurable": {"thread_id": "test-1"}}
+
+# Token counter
+def count_tokens(messages):
+    return sum(len(str(m.content)) for m in messages) // 4
+
+# Test
+cities = ["Paris", "London", "Tokyo", "New York", "Dubai", "Singapore"]
+
+for city in cities:
+    response = agent.invoke(
+        {"messages": [HumanMessage(content=f"Hotels in {city}")]},
+        config=config
+    )
+    tokens = count_tokens(response["messages"])
+    fraction = tokens / 128000  # gpt-4o-mini context
+    print(f"{city}: ~{tokens} tokens ({fraction:.4%}), {len(response['messages'])} msgs")
+    print(response['messages'])
+```
+
 ## Langchain TS
 
 ### Basics
