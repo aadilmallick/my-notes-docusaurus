@@ -1020,7 +1020,105 @@ for city in cities:
 
 #### Human in the loop
 
+1. Create tools attach them to agent, specify allowed decisions on each tool via `HumanInTheLoopMiddleware`
 
+```py
+from langchain.agents import create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
+
+
+def read_email_tool(email_id: str) -> str:
+    """Mock function to read an email by its ID."""
+    return f"Email content for ID: {email_id}"
+
+def send_email_tool(recipient: str, subject: str, body: str) -> str:
+    """Mock function to send an email."""
+    return f"Email sent to {recipient} with subject '{subject}'"
+
+agent = create_agent(
+    model="gpt-4o",
+    tools=[read_email_tool,send_email_tool],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+	            # human intervention with these 3 actions
+                "send_email_tool": {
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                },
+                # skip human intervention
+                "read_email_tool": False,
+            }
+        ),
+    ],
+)
+
+def invoke():
+	config = {"configurable": {"thread_id": "test-edit"}}
+
+	# Step 1: Request (with wrong info)
+	result = agent.invoke(
+	    {"messages": [HumanMessage(content="Send email to wrong@email.com with subject 'Test' and body 'Hello'")]},
+	    config=config
+	)
+	return result
+```
+
+2. Handle edit case
+
+```py
+
+
+# Step 2: Edit and approve
+if "__interrupt__" in result:
+    print("⏸️ Paused! Editing...")
+    
+    result = agent.invoke(
+        Command(
+            resume={
+                "decisions": [
+                    {
+                        "type": "edit",
+                        "edited_action": {
+                            "name": "send_email_tool",      # Tool name
+                            "args": {                   # New arguments
+                                "recipient": "correct@email.com",
+                                "subject": "Corrected Subject",
+                                "body": "This was edited by human before sending"
+                            }
+                        }
+                    }
+                ]
+            }
+        ),
+        config=config
+    )
+    
+    print(f"✏️ Result: {result['messages'][-1].content}")
+```
+
+3. Handle accept case
+
+```py
+from langgraph.types import Command
+# Step 2: Approve
+if "__interrupt__" in result:
+    print("⏸️ Paused! Approving...")
+    
+    result = agent.invoke(
+        Command(
+            resume={
+                "decisions": [
+                    {"type": "approve"}
+                ]
+            }
+        ),
+        config=config
+    )
+    
+    print(f"✅ Result: {result['messages'][-1].content}")
+```
 ## Langchain TS
 
 ### Basics
