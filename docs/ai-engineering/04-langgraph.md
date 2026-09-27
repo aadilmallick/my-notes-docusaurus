@@ -7,12 +7,28 @@ In LangGraph, everything revolves around a shared state graph.
 Unlike a linear script or standard functional calls, a LangGraph application is a state machine where execution flows through **Nodes** that read and write to a shared **State**.
 
 - **Nodes:** Python functions that take the current state as input, perform work (like calling an LLM or running a database query), and return a dictionary containing state updates.
-- **Edges:** Directives that tell the graph what node to run next.
-- **state**: state is typed by schema. 
-	- You define what data your graph carries around using Python's `TypedDict` or Pydantic. 
-	- By default, fields are overwritten when a node returns them, but you can use reducers (like `operator.add`) to append data (e.g., keeping a growing message history).
+	- **LLM node**: a node where logic is executed via an LLM
+	- **Tool Node:** Executes external tools as part of the agent's workflow.
+	- **Action/agent Node:** Invokes another agent from within the current agent.
+	- **Logic Node:** Executes any custom logic that doesn't fit into the other node types.
+	- **start node**: the starting node of the graph
+	- **end node**: the end node of the graph.
+- **Edges:** Directives that tell the graph what node to run next, because each node is connected to another node via an edge.
+	- **conditional edge**: helps route requests to a connected node based on conditional checks
+- **state**: reflects the internal state of the agent, storing info about the execution of the graph, where each node writes its output to the state.
+	- **schema typing**: You define what data your graph carries around using Python's `TypedDict` or Pydantic. 
+	- **dynamic**: By default, fields are overwritten when a node returns them, but you can use reducers (like `operator.add`) to append data (e.g., keeping a growing message history).
 
-Here is the simplest example:
+
+
+![](https://i.imgur.com/DVu2ySG.jpeg)
+
+
+Here is the simplest example, and let's notice some things here:
+
+- **state schema**: we have type safety for the state
+- **node input is state**: every single node takes in the state as input
+- **node names**: nodes are referred to by their names.
 
 ```py
 from langgraph.graph import StateGraph, START, END
@@ -41,6 +57,75 @@ app = workflow.compile()
 # Run it
 result = app.invoke({"message": "Hello HHMI"})
 print(result)  # Output: {'message': 'Hello HHMI -> Processed by node!'}
+```
+
+
+#### State
+
+Instead of passing around messages arrays everywhere, instead, we delegate state management and conversation history to the state.
+
+Agent state is a key concept in LangGraph for building AI agents. It acts as a shared memory during the execution of the agent's workflow, where each node writes its output to the agent state and subsequent nodes read from it to get their inputs. 
+
+- Unlike edges, which only control the flow between nodes, the actual data is passed through this agent state. 
+- This allows the agent to maintain and manage information throughout the process, enabling complex, multi-step reasoning and actions within the chatbot.
+
+1. Nodes write their output to the state
+2. Subsequent nodes read their input from state
+
+> [!NOTE]
+> No data is exchanged through edges. Data is always exchanged through agent state. 
+
+#### Edges
+
+##### Conditional edges
+
+Instead of pointing from Node A directly to Node B, a **conditional edge** evaluates the current state and routes execution to different nodes based on runtime logic.
+
+
+```py
+from langgraph.graph import StateGraph, START, END
+from typing import TypedDict
+
+class RouterState(TypedDict):
+    input_text: str
+    route: str
+
+def classifier_node(state: RouterState):
+    # Simulated classification logic
+    text = state["input_text"]
+    destination = "database_team" if "data" in text else "ai_team"
+    return {"route": destination}
+
+def db_handler(state: RouterState):
+    return {"input_text": "Handled by Database Team"}
+
+def ai_handler(state: RouterState):
+    return {"input_text": "Handled by AI Accelerator Team"}
+
+workflow = StateGraph(RouterState)
+workflow.add_node("classifier", classifier_node)
+workflow.add_node("db_handler", db_handler)
+workflow.add_node("ai_handler", ai_handler)
+
+workflow.add_edge(START, "classifier")
+
+# Define routing function for conditional edge
+def decide_path(state: RouterState):
+    return state["route"]
+
+workflow.add_conditional_edges(
+    "classifier",
+    decide_path,
+    {
+        "database_team": "db_handler",
+        "ai_team": "ai_handler"
+    }
+)
+
+workflow.add_edge("db_handler", END)
+workflow.add_edge("ai_handler", END)
+
+app = workflow.compile()
 ```
 
 ### Prebuilt agents
