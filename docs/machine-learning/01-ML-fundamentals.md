@@ -208,6 +208,15 @@ standard_scaler = StandardScaler()
 scaled_df = standard_scaler.fit_transform(data)
 ```
 
+### Feature importance
+
+Feature importance matters because you want to find the most important features that contribute the most to a target value, as focusing on those features will make your predictor stronger.
+
+Here are the core benefits
+
+- **improves performance, reduces model complexity**: It helps you focus on the most relevant data, improving prediction accuracy and reducing model complexity. 
+- **improves explainability**: lowering the number of features makes explainign those features and thus improves model interpretability.
+
 ### Feature engineering
 
 Feature engineering is the process of creating new features from existing raw data and other existing features to use new features that would benefit the model training in order to improve a model's performance

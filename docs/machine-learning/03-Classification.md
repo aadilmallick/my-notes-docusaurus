@@ -71,6 +71,11 @@ AUC (Area Under the Curve) measures the overall ability of the model to distingu
 
 ![](https://i.imgur.com/m68hpJn.jpeg)
 
+#### Confusion matrix
+
+
+![](https://i.imgur.com/fFxHovw.jpeg)
+
 
 ## SVM
 
