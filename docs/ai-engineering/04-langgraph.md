@@ -19,16 +19,14 @@ Unlike a linear script or standard functional calls, a LangGraph application is 
 	- **schema typing**: You define what data your graph carries around using Python's `TypedDict` or Pydantic. 
 	- **dynamic**: By default, fields are overwritten when a node returns them, but you can use reducers (like `operator.add`) to append data (e.g., keeping a growing message history).
 
-
-
 ![](https://i.imgur.com/DVu2ySG.jpeg)
 
 
 Here is the simplest example, and let's notice some things here:
 
 - **state schema**: we have type safety for the state
-- **node input is state**: every single node takes in the state as input
-- **node names**: nodes are referred to by their names.
+- **node functions**: you create node functions as normal python functions that take in state and return state, exactly typed. State goes in, state comes out
+- **nodes**: you refer to nodes by the name you give them in the graph.
 
 ```py
 from langgraph.graph import StateGraph, START, END
@@ -39,7 +37,7 @@ class State(TypedDict):
     message: str
 
 # 2. Define a Node function
-def process_message(state: State):
+def process_message(state: State) -> State:
     new_msg = state["message"] + " -> Processed by node!"
     return {"message": new_msg}
 
@@ -54,7 +52,7 @@ workflow.add_edge("processor", END)
 # 5. Compile into an executable app
 app = workflow.compile()
 
-# Run it
+# Run it: graph accepts State as input
 result = app.invoke({"message": "Hello HHMI"})
 print(result)  # Output: {'message': 'Hello HHMI -> Processed by node!'}
 ```
@@ -80,6 +78,14 @@ Agent state is a key concept in LangGraph for building AI agents. It acts as a s
 ##### Conditional edges
 
 Instead of pointing from Node A directly to Node B, a **conditional edge** evaluates the current state and routes execution to different nodes based on runtime logic.
+
+Here's the graph logic:
+
+1. **START**: start at start node, create edge to classifier node
+2. **classifier**: 2nd node in graph, branches to either `db_handler` or `ai_handler` nodes.
+
+```
+```
 
 
 ```py
@@ -128,6 +134,13 @@ workflow.add_edge("ai_handler", END)
 app = workflow.compile()
 ```
 
+Now if you do this, it routes to the `db_handler` node because:
+
+
+
+```py
+app.invoke({"input_text" : "wow I need me some data"})
+```
 ### Prebuilt agents
 
 #### ReAct agent
