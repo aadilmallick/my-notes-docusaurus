@@ -1427,7 +1427,7 @@ teamcity run list --branch main --limit 10
 
 
 
-##### `teamcity run list` reference
+**`teamcity run list` reference**
 
 | Flag              | Description                                                                                 |
 | ----------------- | ------------------------------------------------------------------------------------------- |
@@ -1446,6 +1446,32 @@ teamcity run list --branch main --limit 10
 | `--no-header`     | Omit header row (use with `--plain`)                                                        |
 | `-w`, `--web`     | Open the list in the browser                                                                |
 
+**`teamcity run start` reference**
+
+| Flag                    | Description                                                                                                                                                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-b`, `--branch`        | Branch to build. Use `@this` to resolve the current git branch.                                                                                                                                      |
+| `--revision`            | Pin build to a specific Git commit SHA. Use `@head` to resolve the current HEAD; short SHAs are expanded from the local repo.                                                                        |
+| `-P`, `--param`         | Build parameters as `key=value` (can be repeated)                                                                                                                                                    |
+| `-S`, `--system`        | System properties as `key=value` (can be repeated)                                                                                                                                                   |
+| `-E`, `--env`           | Environment variables as `key=value` (can be repeated)                                                                                                                                               |
+| `-m`, `--comment`       | Build comment                                                                                                                                                                                        |
+| `-t`, `--tag`           | Build tag (can be repeated)                                                                                                                                                                          |
+| `--personal`            | Run as a personal build                                                                                                                                                                              |
+| `-l`, `--local-changes` | Include local changes. Accepts `git` (default), `-` (stdin), or a file path.                                                                                                                         |
+| `--no-push`             | Skip auto-push of branch to remote                                                                                                                                                                   |
+| `--clean`               | Clean source files before building                                                                                                                                                                   |
+| `--rebuild-deps`        | Rebuild all dependencies                                                                                                                                                                             |
+| `--rebuild-failed-deps` | Rebuild failed or incomplete dependencies only                                                                                                                                                       |
+| `--reuse-deps`          | Reuse existing builds as snapshot dependencies. Accepts a comma-separated list of build IDs or can be repeated. TeamCity resolves which dependency slot each build fills by its build configuration. |
+| `--top`                 | Add to the top of the build queue                                                                                                                                                                    |
+| `--agent`               | Run on a specific agent (by ID)                                                                                                                                                                      |
+| `--watch`               | Watch the build after starting it                                                                                                                                                                    |
+| `-i`, `--interval`      | Refresh interval in seconds when watching (default: 3)                                                                                                                                               |
+| `--timeout`             | Timeout when watching (for example, `30m`, `1h`); implies `--watch`                                                                                                                                  |
+| `--dry-run`             | Preview without starting                                                                                                                                                                             |
+| `--json`                | Output as JSON                                                                                                                                                                                       |
+| `-w`, `--web`           | Open run in browser                                                                                                                                                                                  |
 ##### Running remote builds
 
 Trigger a new build by specifying a job ID:
@@ -1497,20 +1523,157 @@ Using logs, we can investigate a failed build. When a build fails, use this work
     ```
     teamcity run tests 12345 --failed
     ```
-##### **running locally**
+
+
+##### view snapshot dependency tree
+
+Visualize the snapshot dependency chain for a run with `teamcity run tree`:
+
+```
+teamcity run tree 12345
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/run-tree.gif)
+
+Here are the flags you have:
+
+| Flag            | Description                      |
+| --------------- | -------------------------------- |
+| `-d`, `--depth` | Limit tree depth (0 = unlimited) |
+| `--json`        | Output as JSON                   |
+
+##### **running personal builds**
 
 The `teamcity run start <JobName>` command lets you rerun a job in the teamcity cloud, specified by a job name.
 
-The below command lets you run changes you made locally within your Kotlin DSL project.
+The below command lets you run changes you made locally in the repo of the VCS root configured for the specific build configuration (job) you're running.
 
 ```
 teamcity run start <JobName> --local-changes --watch
 ```
 
-> [!NOTE]
-> For running teamcity builds locally to work, you must be within a directory that has a `.teamcity` folder and a `.teamcity/settings.kts` file.
+Include uncommitted local changes in a personal build:
 
+```
+# Auto-detect changes from Git working directory
+teamcity run start MyProject_Build --local-changes
 
+# From a patch file
+teamcity run start MyProject_Build --local-changes changes.patch
+
+# From stdin
+git diff | teamcity run start MyProject_Build --local-changes -
+```
+
+By default, the CLI pushes your branch to the remote before starting a personal build. Use `--no-push` to skip this:
+
+```
+teamcity run start MyProject_Build --local-changes --no-push
+```
+
+##### dry run
+
+Preview what would be triggered without actually starting a build:
+
+```
+teamcity run start MyProject_Build --dry-run
+```
+
+##### artifacts
+
+**list artifacts**
+
+List artifacts from a run without downloading them:
+
+```
+teamcity run artifacts 12345
+teamcity run artifacts --job MyProject_Build
+teamcity run artifacts 12345 --path html_reports/coverage
+teamcity run artifacts 12345 --json
+```
+
+**download artifacts**
+
+Download artifacts from a completed run:
+
+```
+teamcity run download 12345
+teamcity run download 12345 --path build/assets
+teamcity run download 12345 -o ./artifacts
+teamcity run download 12345 --artifact "*.jar"
+teamcity run download 12345 --path build/assets -a "*.js"
+teamcity run download 12345 --timeout 30m
+```
+
+The `--timeout` flag sets the maximum time for the entire download operation (default: `10m`). Use longer values for large artifact sets, for example `--timeout 1h`.
+
+##### comparing runs
+
+Compare two runs side-by-side and highlight what changed between them — status, duration, agent, parameters, test results, problems, and VCS changes:
+
+```
+teamcity run diff 12345 12346
+```
+
+If only one run ID is given, the CLI compares it against the previous finished run of the same job — handy for "what changed since last time?":
+
+```
+teamcity run diff 12345
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/run-diff.gif)
+
+**diffing from logs**
+
+Pass `--log` to compare the two build logs as a colored unified diff. Timestamps, temp paths, and noisy git progress lines are normalized so the diff focuses on real content:
+
+```
+teamcity run diff 12345 12346 --log
+teamcity run diff 12345 12346 --log -U5            # 5 lines of context
+```
+
+The output is piped through your pager (`$PAGER`, defaults to `less`). Strip colors and pipe to an external diff viewer for richer rendering:
+
+```
+teamcity run diff 12345 12346 --log --no-color | delta
+teamcity run diff 12345 12346 --log --no-color | diff-so-fancy
+```
+
+**diffing in browser**
+
+Open both runs in the browser:
+
+```
+teamcity run diff 12345 12346 --web
+```
+
+**diff output in JSON**
+
+Machine-readable output for scripts:
+
+```
+teamcity run diff 12345 12346 --json
+```
+
+##### comments
+
+Set a comment on a run:
+
+```
+teamcity run comment 12345 "Deployed to production"
+```
+
+View the current comment:
+
+```
+teamcity run comment 12345
+```
+
+Delete the comment:
+
+```
+teamcity run comment 12345 --delete
+```
 #### `teamcity job`
 
 > [!NOTE]
@@ -1528,8 +1691,241 @@ teamcity job list --project MyProject
 
 ![](https://resources.jetbrains.com/help/img/teamcity/2026.2/job-list.gif)
 
+- `teamcity job view <job>`: view detail of a specific job
+##### listing jobs
 
+Filter by project:
 
+```
+teamcity job list --project MyProject
+```
+
+Limit the number of results:
+
+```
+teamcity job list --limit 20
+```
+
+Output as JSON:
+
+```
+teamcity job list --json
+teamcity job list --json=id,name,projectName,webUrl
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/job-list.gif)
+
+| Flag              | Description                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| `-p`, `--project` | Filter by project ID                                                                        |
+| `-n`, `--limit`   | Maximum number of jobs to display                                                           |
+| `--json`          | Output as JSON. Use `--json=` to list available fields, `--json=f1,f2` for specific fields. |
+
+##### viewing specific job
+
+View details of a build configuration:
+
+```
+teamcity job view MyProject_Build
+```
+
+Open the job page in your browser:
+
+```
+teamcity job view MyProject_Build --web
+```
+
+Output as JSON:
+
+```
+teamcity job view MyProject_Build --json
+```
+
+##### snapshot dependency tree
+
+Visualize the snapshot dependency chain for a job. By default, the tree shows both dependents (what gets triggered after this job) and dependencies (what must run before this job):
+
+```
+teamcity job tree MyProject_DeployStaging
+```
+
+Show only one direction:
+
+```
+teamcity job tree MyProject_Build --only dependents
+teamcity job tree MyProject_Deploy --only dependencies
+```
+
+Limit the tree depth:
+
+```
+teamcity job tree MyProject_Build --depth 2
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/job-tree.gif)
+
+| Flag            | Description                              |
+| --------------- | ---------------------------------------- |
+| `-d`, `--depth` | Limit tree depth (0 = unlimited)         |
+| `--only`        | Show only `dependents` or `dependencies` |
+
+##### build configuration parameters
+
+**Read parameters**
+
+View all parameters defined on a job:
+
+```
+teamcity job param list MyProject_Build
+teamcity job param list MyProject_Build --json
+```
+
+Retrieve the value of a specific parameter:
+
+```bash
+teamcity job param get MyProject_Build VERSION
+teamcity job param get MyProject_Build env.JAVA_HOME
+```
+
+**Set parameters**
+
+Set or update a parameter value:
+
+```
+teamcity job param set MyProject_Build VERSION "2.0.0"
+```
+
+To mark a parameter as secure (password field), use the `--secure` flag. Secure parameters have their values hidden in the web interface and build logs:
+
+```
+teamcity job param set MyProject_Build SECRET_KEY "my-secret-value" --secure
+```
+
+**Delete parameter**
+
+Remove a parameter from a job:
+
+```
+teamcity job param delete MyProject_Build MY_PARAM
+```
+
+#### `teamcity project`
+
+- `teamcity project list`: list projects
+
+```bash
+teamcity project list --limit 20
+teamcity project list --json
+teamcity project list --json=id,name,parentProjectId,webUrl
+```
+
+- `teamcity project view <project-name>`: view detailed info of a specific project
+- `teamcity project tree <project-name>`: view project hierarchy
+##### listing projects
+
+| Flag             | Description                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `-p`, `--parent` | Filter by parent project ID                                                                 |
+| `-n`, `--limit`  | Maximum number of projects to display                                                       |
+| `--json`         | Output as JSON. Use `--json=` to list available fields, `--json=f1,f2` for specific fields. |
+##### view project details
+
+View details of a project:
+
+```
+teamcity project view MyProject
+```
+
+Open the project page in your browser:
+
+```
+teamcity project view MyProject --web
+```
+
+Output as JSON:
+
+```
+teamcity project view MyProject --json
+```
+##### view project hierarchy
+
+Display the project hierarchy as a tree, including subprojects and build configurations using the `teamcity project tree` command.
+
+Build default, this shows the hierarchy of the root project
+
+```
+teamcity project tree
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/project-tree.gif)
+
+Show a specific subtree:
+
+```
+teamcity project tree MyProject
+```
+
+Hide build configurations to see only the project structure:
+
+```
+teamcity project tree --no-jobs
+```
+
+Limit the tree depth:
+
+```
+teamcity project tree --depth 2
+```
+
+| Flag            | Description                                   |
+| --------------- | --------------------------------------------- |
+| `--no-jobs`     | Hide build configurations, show only projects |
+| `-d`, `--depth` | Limit tree depth (0 = unlimited)              |
+##### ssh keys
+
+SSH keys uploaded to a project can be used for VCS root authentication (`TEAMCITY_SSH_KEY` auth method). Keys are inherited by child projects.
+
+**Listing SSH keys**﻿
+
+```
+teamcity project ssh list --project MyProject
+teamcity project ssh list --project MyProject --json
+```
+
+**Generating an SSH key pair**﻿
+
+Generate an ed25519 or RSA key pair directly in TeamCity and print the public key:
+
+```
+teamcity project ssh generate --name deploy-key --project MyProject
+teamcity project ssh generate --name deploy-key --type rsa --project MyProject
+```
+
+Add the printed public key as a deploy key in your Git hosting provider
+
+**Uploading an SSH key**
+
+```
+teamcity project ssh upload ~/.ssh/id_ed25519 --project MyProject
+teamcity project ssh upload key.pem --name my-deploy-key --project MyProject
+```
+
+**Deleting an SSH key**
+
+```
+teamcity project ssh delete my-deploy-key --project MyProject
+teamcity project ssh delete my-deploy-key --project MyProject --yes
+```
+##### versioned settings
+
+Check the synchronization status of versioned settings for a project:
+
+```
+teamcity project settings status MyProject
+teamcity project settings status MyProject --json
+```
+
+This displays whether versioned settings are enabled, the current sync state, last successful sync timestamp, VCS root and format information, and any errors from the last sync attempt.
 
 #### `teamcity agent`
 
@@ -1539,11 +1935,26 @@ The `teamcity agent` commands family lets you manage agents, SSH into them, and 
 - `teamcity agent term <agent-id>`: SSH into a specific agent
 - `teamcity agent exec <agent-id> <cmd>`: Execute a command within the context of an agent's terminal
 
+Validate Kotlin DSL configuration by running the TeamCity configuration generator:
+
+```
+teamcity project settings validate
+teamcity project settings validate ./path/to/.teamcity
+teamcity project settings validate --verbose
+```
+
+The command auto-detects the `.teamcity` directory in the current directory or its parents. It requires Maven (`mvn`) or uses the Maven wrapper (`mvnw`) if present in the DSL directory
+
 #### `teamcity config`
 
 TeamCity CLI stores its configuration in a YAML file at `~/.config/tc/config.yml`. This file is created automatically when you run `teamcity auth login`.
 
-A typical configuration file looks like this:
+A typical configuration file looks like this and contains these components:
+
+- **server list**: a list of teamcity servers the CLI can connect to, and a setting for the default server to connect to. You also have these additional settings on each server:
+	- **default user**: specified by `user`,the default teamcity user to authenticate with when using that server.
+	- **readonly**: specified by `ro`, where if set to `true`, then readonly access to that server is granted.
+- **aliases**: a list of additional aliased commands to use with the `teamcity` CLI.
 
 ```yaml
 default_server: https://teamcity.example.com
@@ -1564,7 +1975,7 @@ aliases:
 
 The `config` command lets you view and modify CLI settings without editing the YAML file directly.
 
-Here are the available keys:
+Here are the available keys you can set for the configuration settings.
 
 |Key|Scope|Description|
 |---|---|---|
@@ -1607,7 +2018,95 @@ teamcity config set ro true --server tc.example.com
 teamcity config set guest true
 ```
 
+##### Aliases
 
+The `teamcity alias` command lets you have complete CRUD over the aliases in the teamcity config file, which are stored in the `aliases` section of `~/.config/tc/config.yml`:
+
+View all configured aliases:
+
+```
+teamcity alias list
+teamcity alias list --json
+```
+
+Remove an alias:
+
+```
+teamcity alias delete rl
+```
+
+
+**creating aliases**
+
+Create an alias with `teamcity alias set`
+
+```
+teamcity alias set rl 'run list'
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/alias-workflow.gif)
+
+**positional arguments**
+
+Use `$1`, `$2`, and so on for positional arguments:
+
+```
+teamcity alias set rw 'run view $1 --web'
+```
+
+- Now `teamcity rw 12345` expands to `teamcity run view 12345 --web`.
+
+> [!NOTE]
+> Extra arguments that do not match a placeholder are appended to the end of the expanded command.
+
+**shell aliases**
+
+For aliases that need pipes, redirection, or other shell features, prefix the expansion with `!` or use the `--shell` flag:
+
+```bash
+teamcity alias set watchnotify '!teamcity run watch $1 && notify-send "Build $1 done"'
+teamcity alias set faillog '!teamcity run list --status=failure --json | jq ".[].id"'
+```
+
+Shell aliases are evaluated through `sh` instead of being expanded directly.
+
+##### useful aliases
+
+```bash
+teamcity alias set rl       'run list'
+teamcity alias set rv       'run view $1'
+teamcity alias set rw       'run view $1 --web'
+teamcity alias set jl       'job list'
+teamcity alias set ql       'queue list'
+```
+
+```bash
+teamcity alias set mine     'run list --user=@me'
+teamcity alias set fails    'run list --status=failure --since=24h'
+teamcity alias set running  'run list --status=running'
+teamcity alias set morning  'run list --status=failure --since=12h'
+```
+
+```bash
+teamcity alias set go       'run start $1 --watch'
+teamcity alias set try      'run start $1 --local-changes --watch'
+teamcity alias set hotfix   'run start $1 --top --clean --watch'
+teamcity alias set retry    'run restart $1 --watch'
+```
+
+```bash
+teamcity alias set rush     'queue top $1'
+teamcity alias set ok       'queue approve $1'
+```
+
+```bash
+teamcity alias set whoami   "api '/app/rest/users/current'"
+```
+
+```bash
+teamcity alias set watchnotify '!teamcity run watch $1 && notify-send "Build $1 done"'
+teamcity alias set faillog     '!teamcity run list --status=failure --json | jq ".[].id"'
+```
 #### Reference
 
 Run `teamcity <command> --help` for usage
@@ -2954,6 +3453,26 @@ description: "Fetching https://www.jetbrains.com/help/teamcity/ai-agent-integrat
 url: "https://www.jetbrains.com/help/teamcity/ai-agent-integration.html#-m3d1g2_121"
 favicon: ""
 placeholder-id: "embed-1790375240804-dbyz7dkko"
+```
+
+## Teamcity REST API
+
+```embed
+title: "Fetching"
+image: "data:image/svg+xml;base64,PHN2ZyBjbGFzcz0ibGRzLW1pY3Jvc29mdCIgd2lkdGg9IjgwcHgiICBoZWlnaHQ9IjgwcHgiICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PGcgdHJhbnNmb3JtPSJyb3RhdGUoMCkiPjxjaXJjbGUgY3g9IjgxLjczNDEzMzYxMTY0OTQxIiBjeT0iNzQuMzUwNDU3MTYwMzQ4ODIiIGZpbGw9IiNlMTViNjQiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM0MC4wMDEgNDkuOTk5OSA1MCkiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49IjBzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9Ijc0LjM1MDQ1NzE2MDM0ODgyIiBjeT0iODEuNzM0MTMzNjExNjQ5NDEiIGZpbGw9IiNmNDdlNjAiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM0OC4zNTIgNTAuMDAwMSA1MC4wMDAxKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMDYyNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iNjUuMzA3MzM3Mjk0NjAzNiIgY3k9Ijg2Ljk1NTE4MTMwMDQ1MTQ3IiBmaWxsPSIjZjhiMjZhIiByPSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgzNTQuMjM2IDUwIDUwKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMTI1cyI+PC9hbmltYXRlVHJhbnNmb3JtPgo8L2NpcmNsZT48Y2lyY2xlIGN4PSI1NS4yMjEwNDc2ODg4MDIwNyIgY3k9Ijg5LjY1Nzc5NDQ1NDk1MjQxIiBmaWxsPSIjYWJiZDgxIiByPSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgzNTcuOTU4IDUwLjAwMDIgNTAuMDAwMikiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49Ii0wLjE4NzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9IjQ0Ljc3ODk1MjMxMTE5NzkzIiBjeT0iODkuNjU3Nzk0NDU0OTUyNDEiIGZpbGw9IiM4NDliODciIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM1OS43NiA1MC4wMDY0IDUwLjAwNjQpIj4KICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InJvdGF0ZSIgY2FsY01vZGU9InNwbGluZSIgdmFsdWVzPSIwIDUwIDUwOzM2MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiIGJlZ2luPSItMC4yNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iMzQuNjkyNjYyNzA1Mzk2NDE1IiBjeT0iODYuOTU1MTgxMzAwNDUxNDciIGZpbGw9IiNlMTViNjQiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDAuMTgzNTUyIDUwIDUwKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMzEyNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iMjUuNjQ5NTQyODM5NjUxMTc2IiBjeT0iODEuNzM0MTMzNjExNjQ5NDEiIGZpbGw9IiNmNDdlNjAiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDEuODY0NTcgNTAgNTApIj4KICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InJvdGF0ZSIgY2FsY01vZGU9InNwbGluZSIgdmFsdWVzPSIwIDUwIDUwOzM2MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiIGJlZ2luPSItMC4zNzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9IjE4LjI2NTg2NjM4ODM1MDYiIGN5PSI3NC4zNTA0NTcxNjAzNDg4NCIgZmlsbD0iI2Y4YjI2YSIgcj0iNSIgdHJhbnNmb3JtPSJyb3RhdGUoNS40NTEyNiA1MCA1MCkiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49Ii0wLjQzNzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT48L2c+PC9zdmc+"
+description: "Fetching https://www.jetbrains.com/help/teamcity/teamcity-cli-rest-api-access.html"
+url: "https://www.jetbrains.com/help/teamcity/teamcity-cli-rest-api-access.html"
+favicon: ""
+placeholder-id: "embed-1790612312777-wttxtmifg"
+```
+
+```embed
+title: "Fetching"
+image: "data:image/svg+xml;base64,PHN2ZyBjbGFzcz0ibGRzLW1pY3Jvc29mdCIgd2lkdGg9IjgwcHgiICBoZWlnaHQ9IjgwcHgiICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PGcgdHJhbnNmb3JtPSJyb3RhdGUoMCkiPjxjaXJjbGUgY3g9IjgxLjczNDEzMzYxMTY0OTQxIiBjeT0iNzQuMzUwNDU3MTYwMzQ4ODIiIGZpbGw9IiNlMTViNjQiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM0MC4wMDEgNDkuOTk5OSA1MCkiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49IjBzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9Ijc0LjM1MDQ1NzE2MDM0ODgyIiBjeT0iODEuNzM0MTMzNjExNjQ5NDEiIGZpbGw9IiNmNDdlNjAiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM0OC4zNTIgNTAuMDAwMSA1MC4wMDAxKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMDYyNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iNjUuMzA3MzM3Mjk0NjAzNiIgY3k9Ijg2Ljk1NTE4MTMwMDQ1MTQ3IiBmaWxsPSIjZjhiMjZhIiByPSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgzNTQuMjM2IDUwIDUwKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMTI1cyI+PC9hbmltYXRlVHJhbnNmb3JtPgo8L2NpcmNsZT48Y2lyY2xlIGN4PSI1NS4yMjEwNDc2ODg4MDIwNyIgY3k9Ijg5LjY1Nzc5NDQ1NDk1MjQxIiBmaWxsPSIjYWJiZDgxIiByPSI1IiB0cmFuc2Zvcm09InJvdGF0ZSgzNTcuOTU4IDUwLjAwMDIgNTAuMDAwMikiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49Ii0wLjE4NzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9IjQ0Ljc3ODk1MjMxMTE5NzkzIiBjeT0iODkuNjU3Nzk0NDU0OTUyNDEiIGZpbGw9IiM4NDliODciIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDM1OS43NiA1MC4wMDY0IDUwLjAwNjQpIj4KICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InJvdGF0ZSIgY2FsY01vZGU9InNwbGluZSIgdmFsdWVzPSIwIDUwIDUwOzM2MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiIGJlZ2luPSItMC4yNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iMzQuNjkyNjYyNzA1Mzk2NDE1IiBjeT0iODYuOTU1MTgxMzAwNDUxNDciIGZpbGw9IiNlMTViNjQiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDAuMTgzNTUyIDUwIDUwKSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGNhbGNNb2RlPSJzcGxpbmUiIHZhbHVlcz0iMCA1MCA1MDszNjAgNTAgNTAiIHRpbWVzPSIwOzEiIGtleVNwbGluZXM9IjAuNSAwIDAuNSAxIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgZHVyPSIxLjVzIiBiZWdpbj0iLTAuMzEyNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KPC9jaXJjbGU+PGNpcmNsZSBjeD0iMjUuNjQ5NTQyODM5NjUxMTc2IiBjeT0iODEuNzM0MTMzNjExNjQ5NDEiIGZpbGw9IiNmNDdlNjAiIHI9IjUiIHRyYW5zZm9ybT0icm90YXRlKDEuODY0NTcgNTAgNTApIj4KICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InJvdGF0ZSIgY2FsY01vZGU9InNwbGluZSIgdmFsdWVzPSIwIDUwIDUwOzM2MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiIGJlZ2luPSItMC4zNzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxjaXJjbGUgY3g9IjE4LjI2NTg2NjM4ODM1MDYiIGN5PSI3NC4zNTA0NTcxNjAzNDg4NCIgZmlsbD0iI2Y4YjI2YSIgcj0iNSIgdHJhbnNmb3JtPSJyb3RhdGUoNS40NTEyNiA1MCA1MCkiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MzYwIDUwIDUwIiB0aW1lcz0iMDsxIiBrZXlTcGxpbmVzPSIwLjUgMCAwLjUgMSIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIGR1cj0iMS41cyIgYmVnaW49Ii0wLjQzNzVzIj48L2FuaW1hdGVUcmFuc2Zvcm0+CjwvY2lyY2xlPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBjYWxjTW9kZT0ic3BsaW5lIiB2YWx1ZXM9IjAgNTAgNTA7MCA1MCA1MCIgdGltZXM9IjA7MSIga2V5U3BsaW5lcz0iMC41IDAgMC41IDEiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBkdXI9IjEuNXMiPjwvYW5pbWF0ZVRyYW5zZm9ybT48L2c+PC9zdmc+"
+description: "Fetching https://www.jetbrains.com/help/teamcity/teamcity-cli-scripting.html"
+url: "https://www.jetbrains.com/help/teamcity/teamcity-cli-scripting.html"
+favicon: ""
+placeholder-id: "embed-1790612324223-4us6b4uhm"
 ```
 
 ## Octopus Basics
