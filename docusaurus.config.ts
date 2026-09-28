@@ -214,9 +214,22 @@ export default async function createConfigAsync() {
         prism: {
           theme: prismThemes.github,
           darkTheme: prismThemes.dracula,
-          additionalLanguages: ["docker", "csharp", "nginx","vim", "glsl", "wgsl", "mongodb", "bash"],
+          additionalLanguages: [
+            "docker",
+            "csharp",
+            "nginx",
+            "vim",
+            "glsl",
+            "wgsl",
+            "mongodb",
+            "bash",
+          ],
         },
       },
+    markdown: {
+      mermaid: true,
+    },
+    themes: ["@docusaurus/theme-mermaid"],
   } satisfies Config;
 
   return config;
