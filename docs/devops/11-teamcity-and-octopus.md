@@ -891,7 +891,14 @@ A TeamCity connection is an entity that stores settings required to access resou
 
 Related article: [Configuring Connections](https://www.jetbrains.com/help/teamcity/configuring-connections.html)
 
-#### Teamcity + Gitlab SSH keys
+TeamCity connections store credentials required to access external services. Based on a type of this 3rd-party service, are two major connection categories.
+
+- **VCS connections**: These connections store the information needed to access VCS providers. They offer the fastest way to create projects, build configurations, and pipelines — handling authentication automatically so you can simply choose a repository and start configuring your build steps.
+	- Without a configured connection, you would require to provide credentials for every new pipeline, build configuration, or [root](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html).
+- **Non-VCS connections**: Connections in this category store information needed to access services other than VCS providers and are used for purposes unrelated to retrieving remote repository sources. For example:
+	- [Jira](https://www.jetbrains.com/help/teamcity/jira.html) connection allows TeamCity builds to show links to Jira issues in their Changes tabs, and post build statuses back to these issues.
+
+#### Manually without connections: Teamcity + Gitlab SSH keys
 
 > [!NOTE]
 > Why should we use SSH keys to connect Team City to a Gitlab VCS root? Because it removes the need for a username and password by having a direct SSH connection, we can avoid credentials being leaked. 
@@ -932,6 +939,113 @@ ssh-keygen -f teamcity -m 'PEM'
 
 
 ![](https://i.imgur.com/DUeYRkH.jpeg)
+
+#### VCS connection
+
+For most modern TeamCity setups:
+
+1. Create a **GitHub App** (or other OAuth) connection.
+2. Avoid storing PATs where possible.
+3. Let TeamCity create refreshable tokens automatically.
+4. Reuse tokens through the **VCS Auth Tokens** page.
+5. Limit project and repository scope where practical.
+
+To create a new connection, do the following:
+
+1. Open [project settings](https://www.jetbrains.com/help/teamcity/project-administrator-guide.html#Edit+and+View+Modes) and navigate to the **Connections** settings tab.
+    
+2. Click **Add Connection**. Note that connections can be used only in their parent projects and their subprojects. If you want a connection to be available globally, add it to the **Root** project.
+    
+3. Select the connection type, set its Display name to distinguish it from the others, and configure it as described below.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-bbconnection-createConnection.png)
+
+##### Projects from connections
+
+You often don't need to create tokens manually.
+
+When you create a project from a configured GitHub/GitLab connection, TeamCity automatically:
+
+1. Creates the token
+2. Assigns it to the VCS Root
+3. Uses it for authentication
+
+##### API and automation use case
+
+If you're creating projects and VCS roots through:
+
+- TeamCity Kotlin DSL
+- TeamCity REST API
+- Automation scripts
+
+GitHub App connections expose an endpoint that can generate token IDs programmatically. This allows automation to obtain auth tokens without using the UI.
+
+```
+/app/oauth/githubapp/installationToken
+```
+
+#### Refreshable access tokens
+
+A **refreshable access token** is TeamCity's modern way of authenticating to VCS providers more securely than connecting with username/password or PAT tokens.
+
+Instead, TeamCity uses an existing **OAuth connection** and automatically obtains and renews access tokens when needed.
+
+Think of it like:
+
+- **PAT** = giving TeamCity a permanent key.
+- **Refreshable Token** = giving TeamCity permission to ask the provider for a new temporary key whenever it needs one.
+
+Here are the main benefits:
+
+- ✅ More secure than username/password authentication.  
+- ✅ No need to manually rotate expired PATs.  
+- ✅ Centrally managed in TeamCity.  
+- ✅ Can be restricted to specific projects.  
+- ✅ GitHub App tokens can even be restricted to specific
+
+Many TeamCity features need access to your Git provider:
+
+- VCS Roots
+- Commit Status Publisher
+- Pull Request integrations
+- Project creation from Git repositories
+- Other VCS-related features
+
+Instead of each feature storing its own credentials, TeamCity can share a refreshable token
+
+
+##### Token scope
+
+You can scope a token to certain actions:
+
+- **project scope**: scope a token to only certain projects.
+- **repo scope**: For **GitHub App** connections, TeamCity lets you limit a token to specific repositories.
+
+Therefore a token in the root project can be used by all other projects in TeamCity, therefore it's important to pay heed to project scope of tokens
+
+##### Creating a refreshable token
+
+Think of a Connection as:
+
+> "TeamCity knows how to talk to GitHub/GitLab using OAuth."
+
+The refreshable token is then created from that connection.
+
+1. **Create a connection**: Before you can create refreshable tokens, you must configure a **Connection** in Project Settings → Connections.
+2. **create a token**: login as a user with the **Project Administrator** role to create a token, specifying the token name, connection to use, and optional project scope.
+
+```
+Project Settings
+  → VCS Auth Tokens
+  → Generate New Token
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-generate-token-dialog.png)
+
+3. **Assign It to a VCS Root or Build Feature**: When configuring a VCS Root or build feature, you can specify the authentication method to either generate a new token or use an existing token from the VCS auth tokens page.
+
+
+
 ### Users, groups, and roles
 
 - **users**: represent individual users in a Teamcity server with individual permissions
