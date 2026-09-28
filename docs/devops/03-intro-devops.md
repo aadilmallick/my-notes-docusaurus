@@ -358,7 +358,29 @@ aspectRatio: "50"
 
 ![](https://i.imgur.com/dDbkz3G.jpeg)
 
+![](https://www.jetbrains.com/teamcity/ci-cd-guide/img/diagrams/continuous-integration-delivery-deployment/continuous-integration-delivery-deployment_desktop.png)
 #### CI
+
+Without CI, developers work for days on separate branches and then merge large changes together, often causing:
+
+- Build failures
+- Merge conflicts
+- Hidden bugs
+- Long debugging sessions
+
+CI encourages small, frequent integrations so problems are found while the changes are still fresh in developers' minds.
+
+> [!NOTE]
+> The biggest benefit is fast feedback. Instead of discovering a bug days or weeks later, CI can tell you within minutes that your change broke something. This dramatically reduces troubleshooting time.
+
+Successful CI requires:
+
+- Version control (Git, SVN, etc.)
+- Frequent commits and merges
+- Automated builds
+- Automated tests
+- Fast response to build failures
+- Ongoing maintenance of the pipeline and test suite
 
 There are six practices that will help you with continuous integration:
 
@@ -431,6 +453,60 @@ There are two types of deployment strategies you can do for continuous deploymen
 
 ![](https://i.imgur.com/NP8BFCN.jpeg)
 
+### Branching strategies
+
+CI encourages developers to integrate changes frequently instead of waiting weeks or months. The more frequently changes are integrated, the easier it is to:
+
+- Detect bugs
+- Avoid merge conflicts
+- Release software faster
+- Maintain deployment confidence
+
+The challenge is deciding **where those integrations happen** and **which branches should trigger automated testing and deployments**.
+
+>That's why we need branching strategies.
+
+Put simply, a branching strategy is your team’s agreement on how and when to create and merge branches in version control. 
+
+> [!NOTE]
+> How you set up your version control system and use branches will impact how you set up your CI/CD pipeline, so it’s important to choose a model that meets your needs.
+
+A branching strategy is simply an agreement on:
+
+- When to create branches
+- When to merge them
+- Which branches are used for development
+- Which branches are used for releases
+
+Here are the different types of branching strategies:
+
+- **trunk-based development**: Everyone commits directly to a central branch (often `main` or `master`).
+
+#### Trunk-based development
+
+Trunk-based development is the simplest conceptual approach and a good fit for mature CI/CD environments practicing frequent deployment. It works by having everyone commit directly to a central branch (often `main` or `master`).
+
+```
+main
+ ├─ Commit A
+ ├─ Commit B
+ ├─ Commit C
+ └─ Deploy
+
+```
+
+benefits:
+
+- Maximum continuous integration
+- Very small merge conflicts
+- Fastest path to production
+- Simpler branch structure
+
+cons:
+
+- Requires strong automated testing
+- Requires disciplined teams
+- Risk of unfinished features reaching production unless feature flags are used
 ### Types of CI/CD tools
 
 CI/CD tools fall into four categories: self-hosted, Software as a Service (SaaS), cloud service providers, and code repositories, each with different setup and flexibility levels.

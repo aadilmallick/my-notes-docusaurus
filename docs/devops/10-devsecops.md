@@ -178,7 +178,7 @@ Here are the dynamic security testing techniques:
 
 ### Static testing
 
-### SAST
+#### SAST
 
 SAST is static application security testing, where it reviews the source code of software to identify potential vulnerabilities.
 
@@ -444,6 +444,10 @@ Here are the common security settings to enable in a secure by default approach:
 
 
 ### Supply chain attacks and SBOM
+
+Your application is only as secure as the dependencies, frameworks, build tools, libraries, and CI/CD systems it relies on. DevSecOps extends beyond your code to securing the entire software supply chain.
+
+![](https://www.jetbrains.com/teamcity/ci-cd-guide/what-is-devsecops/img/software-supply-chain.png)
 
 A supply chain attack happens when attackers compromise trusted software components or updates that your application depends on. 
 
