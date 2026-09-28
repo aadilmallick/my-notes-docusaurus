@@ -1916,7 +1916,7 @@ teamcity project ssh upload key.pem --name my-deploy-key --project MyProject
 teamcity project ssh delete my-deploy-key --project MyProject
 teamcity project ssh delete my-deploy-key --project MyProject --yes
 ```
-##### versioned settings
+##### validating versioned settings
 
 Check the synchronization status of versioned settings for a project:
 
@@ -1926,6 +1926,18 @@ teamcity project settings status MyProject --json
 ```
 
 This displays whether versioned settings are enabled, the current sync state, last successful sync timestamp, VCS root and format information, and any errors from the last sync attempt.
+
+You can locally validate if your Kotlin DSL in a `.teamcity` folder is correct:
+
+Validate Kotlin DSL configuration by running the TeamCity configuration generator:
+
+```
+teamcity project settings validate
+teamcity project settings validate ./path/to/.teamcity
+teamcity project settings validate --verbose
+```
+
+The command auto-detects the `.teamcity` directory in the current directory or its parents. It requires Maven (`mvn`) or uses the Maven wrapper (`mvnw`) if present in the DSL directory.
 
 #### `teamcity agent`
 
@@ -3377,7 +3389,7 @@ This approach works well because we treat the VCS with the kotlin DSL as the sou
 
 ### Local testing
 
-#### Local validation by building config
+#### Local config validation
 
 Another habit we'll build is validating configuration before committing it.
 
@@ -3411,6 +3423,157 @@ commit
 TeamCity applies settings
 ```
 
+You can also validate the teamcity config in your current project in the IDE via the `teamcity project validate` CLI command, learn more in [[#validating versioned settings]].
+
+#### Running Kotlin DSL build off another branch
+
+Let's say you want to test a new Kotlin DSL change for a project, so you push your changes to a branch called `kotlin-dsl-test` and then you want to create a test build using the DSL configuration from that branch. 
+
+Is that possible? Yes, but only in two ways:
+
+- **Method 1 - feature branches**: listen for branch pushes on configured VCS roots and then create a build from one of those branches.
+	- Caveat: only works if your `.teamcity` config as code is in the same repo as your codebase, meaning your VCS root and versioned settings configured VCS root are the same.
+- **Method 2 - create a test project (recommended)**: Create a "Testing Zone" project and then add a subproject that uses a VCS root listening for the `kotlin-dsl-test` branch for its versioned settings.
+	- This is the simplest and foolproof way to do it.
+
+> [!IMPORTANT]
+> The most important thing to understand when deciding between these two methods is that feature branches are only possible if your team's config-as-code is in the exact same repo as your codebase that you're trying to do the CI with. 
+> 
+> - **choose feature branches when**: If you're using the exact same VCS root for your version settings and your build configurations, then you can go ahead and use feature branches. 
+> - **choose test project when**: Otherwise you need to do a test project if you separated your config as code from your codebase. 
+
+##### Feature branches
+
+> [!IMPORTANT]
+> Use feature branches when the application source and `.teamcity` settings are on the same branch name and in the same repo.
+
+```
+main                     → normal source + normal settings
+feature/my-change        → feature source + changed settings
+```
+
+1. Configure the project’s Versioned Settings as: "When build starts: use settings from VCS"
+2. Then start a build of `feature/my-change` (assuming that's the branch with your new DSL). TeamCity reads `.teamcity` from `feature/my-change` and runs the build using that branch’s settings.
+
+
+##### Creating a test project
+
+Have a TeamCity administrator create a temporary/sandbox subproject with:
+
+- Versioned Settings VCS root: `git@gitlab.compusearch.com:devops/teamcityci/prismci.git`
+- Settings branch: `fixing-disparity-svn-git`
+- Settings directory: `.teamcity`
+- Kotlin DSL format
+- “When build starts”: `use settings from VCS`
+
+Here's an example recommended setup:
+
+```
+Testing Zone / PRISM Git DSL Disparity Test
+│
+├── Versioned-settings VCS root
+│   └── prismci @ fixing-disparity-svn-git
+│
+└── DSL-defined build source roots
+    └── Prism @ Release_7.6.5.86
+```
+
+This neatly separates the two concerns:
+
+- TeamCity reads Kotlin settings from your pushed feature branch.
+- The build checks out the exact PRISM source branch you want to validate.
+- No production TeamCity settings change.
+- No need to create the same feature branch in `prism/Prism.git`.
+- This should be a normal manually started test build, not a personal/local-changes build.
+
+Here are the most important rules to understand in order to make this process successful:
+
+1. **versioned control settings**: Always do "When build starts: always use current settings" for the build start settings in version control, since you want the branch settings to override the DSL settings.
+
+Here are the steps to do it:
+
+1. Create a new empty container project called `TestingZone`
+2. Create and push a branch with new DSL changes:
+
+```bash
+cd prismci
+
+git switch master
+git pull --ff-only
+git switch -c fixing-disparity-svn-git
+
+# Edit .teamcity/DbTemplate3_1.kt:
+# - add the SF Current/Deltas validation step
+# - restore cssutilities artifact rules, if included in this change
+
+git add .teamcity
+git commit -m "Validate Git SF database payload"
+git push -u origin fixing-disparity-svn-git
+```
+
+2. Validate teamcity config
+
+```
+teamcity project settings validate
+```
+
+3. Create a new subproject in the `TestingZone` parent project
+
+```bash
+teamcity project create "PRISM Git DSL Disparity Test" `
+  --id TestingZone_PrismsGitDisparityTest `
+  --parent TestingZone
+```
+
+4. Within that subproject, create a new VCS root and point to your branch with the DSL changes.
+
+```bash
+teamcity project vcs create `
+  --project TestingZone_PrismsGitDisparityTest `
+  --name "PrismCI - fixing-disparity-svn-git" `
+  --url "git@gitlab.compusearch.com:devops/teamcityci/prismci.git" `
+  --branch "refs/heads/fixing-disparity-svn-git" `
+  --branch-spec "+:refs/heads/fixing-disparity-svn-git" `
+  --auth ssh-key `
+  --ssh-key-name "tc_gitlab.id_rsa" `
+  --json
+```
+
+5. Copy the returned VCS-root ID.
+6. Enable Kotlin versioned settings for the test project
+
+```bash
+teamcity project settings enable TestingZone_PrismsGitDisparityTest `
+  --vcs-root <returned-vcs-root-id> `
+  --format kotlin `
+  --settings-path .teamcity
+```
+
+7. Then open the project’s **Versioned Settings** page and set:
+
+```
+Synchronization: enabled
+Settings format: Kotlin
+When build starts: always use current settings
+```
+
+> [!NOTE]
+> Why not “use settings from VCS” here? Your build source branch is `Release_7.6.5.86`, whereas your settings branch is `fixing-disparity-svn-git`. “Use settings from VCS” would attempt to select settings based on the build branch and defeats the separation you intentionally created.
+
+8. Confirm TeamCity imported your branch:
+
+```bash
+teamcity project settings status TestingZone_PrismsGitDisparityTest
+```
+
+9. Run a build with those new DSL settings by specifying `--settings current` flag in order to toggle on the "always use current settings" option.
+
+```
+teamcity run start <job> `
+  --settings current `
+  --clean `
+  --watch
+```
 ## Teamcity AI
 
 ### Teamcity MCP

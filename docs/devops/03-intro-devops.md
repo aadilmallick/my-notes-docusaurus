@@ -481,7 +481,25 @@ A branching strategy is simply an agreement on:
 Here are the different types of branching strategies:
 
 - **trunk-based development**: Everyone commits directly to a central branch (often `main` or `master`).
+- **feature-based development**: Each feature gets its own branch.
+- **release branches**: create dedicated branches for codebases that are candidates to become releases, and then run CI/CD on the release branches.
 
+Overall, here are best practices to keep in mind when working with branching strategies:
+
+- Run builds on feature branches.
+- Validate pull requests before merge.
+- Keep branches short-lived.
+- Use release branches for versioned releases.
+- Use hotfix branches for emergencies.
+
+Here's what to avoid:
+
+- Long-running feature branches.
+- Waiting weeks before merging.
+- Running CI only on the main branch.
+- Maintaining many stale branches simultaneously.
+
+>The closer you stay to continuous integration, the more value you get from CI/CD. Branches are useful, but they should not prevent frequent integration and automated testing.
 #### Trunk-based development
 
 Trunk-based development is the simplest conceptual approach and a good fit for mature CI/CD environments practicing frequent deployment. It works by having everyone commit directly to a central branch (often `main` or `master`).
@@ -507,6 +525,100 @@ cons:
 - Requires strong automated testing
 - Requires disciplined teams
 - Risk of unfinished features reaching production unless feature flags are used
+
+#### Feature branch development
+
+Each feature gets its own branch.
+
+```
+main
+ ├─ feature/login
+ ├─ feature/reporting
+ └─ feature/export
+```
+
+Benefits
+
+- Keeps unfinished work out of production
+- Makes experimentation safer
+- Easier code reviews
+- Cleaner separation of work streams
+
+Drawbacks
+
+- Delays integration
+- Larger merge conflicts
+- Harder bug resolution
+- Reduced benefits of CI if branches live too long
+
+> [!NOTE]
+> This is the main criticism from trunk-based development advocates.
+
+When working with feature branches, it's important to implement these three best practices so feature-based development stays manageable:
+
+1. **add CI to feature branches**: Run CI builds on feature branches, not just main, as this results in an even tighter feedback loop.
+2. **keep branches small**: Keep feature branches short-lived (1-2 days if possible).
+3. **merge in often to avoid merge conflicts**: Regularly merge or rebase from main to stay current.
+
+#### Release branches
+
+When a release is approaching:
+
+```
+main
+ ├─ Feature A
+ ├─ Feature B
+ └─ release/7.6
+
+release/7.6
+ ├─ Bug Fix 1
+ ├─ Bug Fix 2
+ └─ Production Release
+```
+
+Once the release branch is created:
+
+- No new features are added.
+- Only testing and bug fixes occur.
+- New feature development continues elsewhere
+
+Here are the key benefits:
+
+- Stabilizes releases
+- Supports versioned products
+- Makes long-term maintenance easier
+- Works well for Continuous Delivery
+
+However, there is a main tradeoff:
+
+> [!WARNING]
+> Bug fixes made on the release branch must also be merged back into main to avoid losing those fixes in future releases
+
+Release branches are particularly useful when:
+
+- You support multiple product versions.
+- Customers don't all upgrade immediately.
+- You need maintenance releases.
+
+> [!NOTE]
+> This pattern is common in enterprise software such as the work you're doing around PRISM/TeamCity builds.
+
+#### Hotfix branch
+
+A hotfix branch is created specifically for urgent production issues.
+
+```
+release/7.6
+    │
+    └─ hotfix/security-fix
+```
+
+The goal is to:
+
+1. Fix the issue quickly.
+2. Run necessary CI validation.
+3. Deploy immediately.
+4. Merge the fix back to the main development stream
 ### Types of CI/CD tools
 
 CI/CD tools fall into four categories: self-hosted, Software as a Service (SaaS), cloud service providers, and code repositories, each with different setup and flexibility levels.
