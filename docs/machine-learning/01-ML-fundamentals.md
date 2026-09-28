@@ -1096,3 +1096,8 @@ Once in production, static metrics degrade because the real world changes. You m
 #### 3. Rigorous Experimentation
 
 - **A/B Testing:** Routing a percentage of live production traffic to a newly fine-tuned model or updated prompt chain to measure concrete business impact (e.g., resolution time, user correction rate) before full rollout.
+
+### ML pipeline
+
+
+![](https://i.imgur.com/RjqBEs8.jpeg)
