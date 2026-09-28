@@ -150,7 +150,7 @@ For example, you can create [AWS cloud profile](https://www.jetbrains.com/help/
 > [!NOTE]
 > Note that since [user permissions](https://www.jetbrains.com/help/teamcity/2026.1/managing-roles-and-permissions.html?Creating%20and%20Editing%20Projects) are project-based, only Root project administrators can edit its settings.
 
-#### VCS roots vs versioned settings
+#### VCS root
 
 A VCS (Version Control System) root is a crucial component in a CI/CD pipeline, specifically in TeamCity. It essentially acts as a connection point between TeamCity and your source control system, allowing builds to access source code for various projects or build configurations.
 
@@ -218,6 +218,13 @@ if a VCS root that fetches data from a GitHub, GitHub App, Bitbucket Server, Bit
 
 **Refreshable access tokens** are short-lived tokens acquired by TeamCity from a required VCS provider via existing OAuth connections (as opposed to static PAT tokens issued manually by users on a VCS hosting side).
 
+Here's how it works when a build runs:
+
+1. TeamCity asks GitHub for access.
+2. GitHub issues a short-lived token.
+3. TeamCity clones the repository.
+4. When the token expires, TeamCity gets a new one automatically
+
 ##### Additional VCS root properties
 
 Here are two additional VCS root properties:
@@ -280,11 +287,16 @@ Let's first do it manually:
 > [!NOTE]
 > Whenever you create a build configuration, TeamCity creates a unique ID for that, which is used internally and which TeamCity recognizes as a **job** or **run**, and then you can use that in the teamcity API or teamcity CLI to programmatically fetch the info of those jobs.
 
-##### Versioned settings
+#### Versioned settings
 
 **Versioned settings** store all properties related to project and build configurations, fetching those properties and settings from a remote repo with version control.
 
 If you're using Kotlin DSL to configure TeamCity, you might create a repository that defines your settings, including VCS roots, through code. This allows for version-controlled configuration, facilitating easier management and deployment of CI/CD settings.
+
+The key thing to understand is that **Versioned Settings has two separate concerns**:
+
+1. **Where TeamCity loads its project configuration from** (the DSL repo + branch)
+2. **What branch the builds themselves run against**
 
 Kotlin DSL works at the **project level**, fetching info from a `.teamcity/settings.kts` entrypoint from a repository, via configuration of **versioned settings**.
 
@@ -296,6 +308,8 @@ Kotlin DSL works at the **project level**, fetching info from a `.teamcity/setti
 > 
 > If your build project and DSL settings are stored in the same repository (not recommended for public repos accepting external contributions), you can reuse the same root.
 
+
+##### Basic versioned settings
 
 In TeamCity, the project administrator must ensure **Project Settings → Versioned Settings** has:
 
@@ -315,11 +329,11 @@ As soon as you enable settings synchronization, TeamCity commits the current pro
 
 This warning allows you to choose whether TeamCity should:
 
-- **import from UI**: overwrite the settings in the VCS with the current project settings on the TeamCity server (only if the two-way [synchronization](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#two-way-sync) is enabled); or
+- **import from UI**: overwrite the settings in the VCS with the current project settings on the TeamCity server (only if the two-way [synchronization](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#two-way-sync) is enabled).
     
 - **import from code**: import the settings from the VCS replacing the current project settings on the TeamCity server with those from version control.
 
-###### Synchronization types
+##### Synchronization types
 
 If synchronization is enabled, it can work in either two-way or one-way mode.
 
@@ -332,7 +346,7 @@ If synchronization is enabled, it can work in either two-way or one-way mode.
 > [!NOTE]
 > Before applying the newly checked-in settings, TeamCity validates them. If the validation fails (for example, when a build configuration references a non-existent VCS root or has duplicate ID), the current project settings are left intact and an error is shown in the UI.
 
-**two-way sync**
+###### **two-way sync**
 
 Here are the main rules and properties of two-way sync:
 
@@ -340,18 +354,18 @@ Here are the main rules and properties of two-way sync:
 	- The author of the commited changes matches the TeamCity user who made related project edits.
 2. **Config as code is source of truth**: If the changes are applied on the VCS side (if a Kotlin or XML settings file is edited), the TeamCity server detects them and modifies the project on the fly.
 
-**one-way sync**
+###### **one-way sync**
 
 If you disable UI editing, then you are in one-way sync mode, where the config as code is the absolute source of truth and you can only change the project settings through Kotlin DSL.
 
 ###### Synchronization with subprojects
 
-Enabling synchronization for a project also enables it for all its subprojects with the default " Use settings from a parent project " option selected. 
+Enabling synchronization for a project also enables it for all its subprojects with the default "Use settings from a parent project " option selected. 
 
 - TeamCity synchronizes all changes to the project settings (including modifications of [build configurations](https://www.jetbrains.com/help/teamcity/managing-builds.html), [templates](https://www.jetbrains.com/help/teamcity/build-configuration-template.html), [VCS roots](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html), and so on) except [SSH keys](https://www.jetbrains.com/help/teamcity/ssh-keys-management.html). 
 - To exclude individual subprojects from the synchronization, switch them to Synchronization disabled mode.
 
-###### separate VCS roots
+##### separate VCS roots
 
 > [!NOTE]
 > Project settings can be saved to the same repo that hosts application sources, or a [completely separate repository](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Separate+VCS+Root).
@@ -362,11 +376,12 @@ For example, teams working with monorepos where stand-alone microservices and ex
 
 Another scenario you might want to implement is moving TeamCity-specific files away from the sources. This approach obscures the specifics of your CI/CD ecosystem, hiding them from external parties. In addition, having a dedicated VCS repository that stores settings of your entire TeamCity server (each project has its own repository folder to store its settings) can also prove beneficial for settings maintenance and testing.
 
-
-
 The Project settings VCS root selector allows you to choose which [Configuring VCS Roots](https://www.jetbrains.com/help/teamcity/configuring-vcs-roots.html) TeamCity should use to obtain and commit project settings. 
 
-You can choose any root owned by either this project directly, or by any of its parent projects.
+> [!TIP]
+> You can choose any root owned by either this project directly, or by any of its parent projects. 
+> 
+> This is due to the rules of projects (see [[#TeamCity projects]]), where all project components and subprojects inherit settings from the parent project, including VCS roots.
 
 > [!NOTE]
 > Note that the Project settings VCS root combo-box does not allow you to create new roots. You need to navigate to the VCS Roots tab of your project settings and set up a required root before you can start using it on the Versioned Settings page.
@@ -378,7 +393,7 @@ Here are the general steps to set a VCS root to use for versioned settings for a
 
 ![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-versioned-settings-chooseroot.png)
 
-###### Custom settings path
+##### Custom settings path
 
 The Settings path in VCS option allows you to manually specify a path to the directory that stores project settings.
 
@@ -413,13 +428,19 @@ To modify this settings path, disable the synchronization and save the settings,
 >     
 > 4. Click Apply to save your settings, then Load project settings from VCS... at the bottom of the page.
 
-###### Defining settings to apply to builds
+##### Defining settings to apply to builds
+
+To specify which settings TeamCity should apply when a build starts, choose a required option on the Administration | `<Project>` Versioned Settings page.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-chooseSettingsOnStart.png)
 
 When TeamCity needs to start a build, it can apply either of the two possible settings:
 
-- **Current settings on the TeamCity server**: These are settings that include all latest changes applied to the server either via TeamCity UI or via a commit to the [project settings directory](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Custom+Settings+Path) in the VCS.
+- **always use current settings** — all builds use current project settings from the TeamCity server. Settings' changes in branches, history, and personal builds are ignored. Users cannot run a build with custom project settings.
     
-- **Custom settings stored in the VCS**: These are settings from the [project settings directory](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Custom+Settings+Path) stored in a non-default branch or in the specific revision selected for a build.
+- **use current settings by default** — regular builds use the latest project settings from the TeamCity server. Users can run [custom builds](https://www.jetbrains.com/help/teamcity/build-results-page.html#Changes+Tab) with settings imported from a VCS.
+
+- **use settings from VCS** — all branch builds and history builds, which use settings from VCS, load settings from the versioned settings' revision calculated for the build. Users can change configuration settings in [personal builds from IDE](https://www.jetbrains.com/help/teamcity/remote-run.html) or run a build with current project settings on the TeamCity server via the [custom build dialog](https://www.jetbrains.com/help/teamcity/build-results-page.html#Changes+Tab).
 
 
 An ability to choose which of these two settings to apply grants you the following options:
@@ -430,6 +451,28 @@ An ability to choose which of these two settings to apply grants you the followi
     
 - Add more flexibility to your [history builds](https://www.jetbrains.com/help/teamcity/history-build.html). TeamCity initially attempts to use the settings corresponding to the moment of the selected change. Otherwise, the current project settings will be used.
 
+**Using settings from VCS**
+
+> [!DANGER]
+> Certain settings cannot be loaded from a VCS. When TeamCity detects edits in these settings, it ignores them and applies current settings stored on the server instead. These settings are:
+> 
+> - build triggers
+>     
+> - build configuration-level options, such as hanging builds detection, personal builds' availability, build configuration type, and so on
+>     
+> - clean-up rules
+>     
+> - agent requirements in [custom runs](https://www.jetbrains.com/help/teamcity/running-custom-build.html)
+>     
+> - settings of certain build features (for example, [Commit Status Publisher](https://www.jetbrains.com/help/teamcity/commit-status-publisher.html) uses VCS settings, while [Pull Requests](https://www.jetbrains.com/help/teamcity/pull-requests.html) always use the current server settings)
+>     
+> - edits to existing artifact rules (you can still add new and remove existing rules)
+>     
+> - (only if the [Apply Changes in Snapshot Dependencies and Version Control Settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Apply+Changes+in+Snapshot+Dependencies+and+Version+Control+Settings) setting is disabled) creating new and editing existing snapshot dependencies, checkout rules, and VCS roots.
+
+**seeing build configuration settings**
+
+Before starting a build, TeamCity stores a configuration for this build as a [hidden artifact](https://www.jetbrains.com/help/teamcity/build-artifact.html#Hidden+Artifacts) under the [`<project_settings_directory>`](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Custom+Settings+Path)`/settings` directory. You can inspect these configuration files to determine what settings were actually used by the build.
 ##### Adding a build configuration through Gitlab + Kotlin DSL 
 
 Here are the steps to set up Gitlab with Kotlin DSL to use config as code for defining everything within a project like build configurations, subprojects, and templates:
@@ -970,7 +1013,7 @@ When you create a project from a configured GitHub/GitLab connection, TeamCity a
 2. Assigns it to the VCS Root
 3. Uses it for authentication
 
-##### API and automation use case
+#### API and automation use case
 
 If you're creating projects and VCS roots through:
 
@@ -978,10 +1021,29 @@ If you're creating projects and VCS roots through:
 - TeamCity REST API
 - Automation scripts
 
+##### Github app
+
 GitHub App connections expose an endpoint that can generate token IDs programmatically. This allows automation to obtain auth tokens without using the UI.
 
 ```
 /app/oauth/githubapp/installationToken
+```
+
+TeamCity [GitHub App](https://www.jetbrains.com/help/teamcity/configuring-connections.html#github-app) connections can issue authentication tokens that let TeamCity access GitHub repositories. This usually happens automatically when you create projects in the UI or manually issue tokens on the [VCS Auth Tokens](https://www.jetbrains.com/help/teamcity/manage-access-tokens.html#How+to+Create+and+Assign+Refreshable+Tokens) page.
+
+The `<TeamCity_Server_URL/app/oauth/githubapp/installationToken` endpoint provides an alternative way to generate these tokens without using the UI. This is especially useful when configuring build configurations and VCS roots via the [REST API](https://www.jetbrains.com/help/teamcity/teamcity-rest-api.html), as it allows you to programmatically obtain the token IDs needed for those roots.
+
+See this article for more information: [InstallationToken Endpoint: How to Issue GitHub Auth Tokens Programmatically](https://www.jetbrains.com/help/teamcity/github-app-installationtoken-endpoint.html).
+
+##### Gitlab auth
+
+```embed
+title: "Configuring Connections | TeamCity On-Premises"
+image: "https://resources.jetbrains.com/storage/products/teamcity/img/meta/preview.png"
+description: ""
+url: "https://www.jetbrains.com/help/teamcity/configuring-connections.html#GitLab"
+favicon: ""
+aspectRatio: "49.21875"
 ```
 
 #### Refreshable access tokens
@@ -1011,9 +1073,23 @@ Many TeamCity features need access to your Git provider:
 - Project creation from Git repositories
 - Other VCS-related features
 
-Instead of each feature storing its own credentials, TeamCity can share a refreshable token
+Instead of each feature storing its own credentials, TeamCity can share a refreshable token across many projects and build configurations:
 
+In many organizations you'll see:
 
+```
+Root Project
+    └─ GitHub App Connection
+    └─ Refreshable Token
+
+         ↓ inherited by
+
+Team A Project
+Team B Project
+Team C Project
+```
+
+This avoids every team creating its own PATs. The connection and token are managed once and inherited by subproject.
 ##### Token scope
 
 You can scope a token to certain actions:
@@ -1021,8 +1097,20 @@ You can scope a token to certain actions:
 - **project scope**: scope a token to only certain projects.
 - **repo scope**: For **GitHub App** connections, TeamCity lets you limit a token to specific repositories.
 
-Therefore a token in the root project can be used by all other projects in TeamCity, therefore it's important to pay heed to project scope of tokens
+**project scope**
 
+Generated tokens are by default available for the currently edited project and all of its subprojects. 
+
+> [!NOTE]
+> That is, if you create a token from the Root project's VCS Auth Tokens page, this token can be used by any project on the server by default. 
+
+You can view projects for which a token was initially configured under the Project Scope.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-view-token-scope.png)
+
+**repository scope**
+
+[GitHub App connections](https://www.jetbrains.com/help/teamcity/configuring-connections.html#github-app) support granular per-repository token permissions. When creating a refreshable token using this connection, you need to specify which repositories this token can access. Enter repository names without user/organization names (`myRepo` instead of `myUser/myRepo`).
 ##### Creating a refreshable token
 
 Think of a Connection as:
@@ -1032,6 +1120,9 @@ Think of a Connection as:
 The refreshable token is then created from that connection.
 
 1. **Create a connection**: Before you can create refreshable tokens, you must configure a **Connection** in Project Settings → Connections.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-githubchecks-from-connection.png)
+
 2. **create a token**: login as a user with the **Project Administrator** role to create a token, specifying the token name, connection to use, and optional project scope.
 
 ```
@@ -1044,6 +1135,10 @@ Project Settings
 
 3. **Assign It to a VCS Root or Build Feature**: When configuring a VCS Root or build feature, you can specify the authentication method to either generate a new token or use an existing token from the VCS auth tokens page.
 
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-publisher-share-root-creds.png)
+
+
+![](https://i.imgur.com/Zx3Or0l.jpeg)
 
 
 ### Users, groups, and roles
@@ -1167,51 +1262,241 @@ To enable read-only mode, set `TEAMCITY_RO=1` as an env var, or run `teamcity co
 teamcity config set ro true
 ```
 
+### Authentication and automation
+
+#### Basic auth
+
+- `teamcity auth login`: login to teamcity interactively with OAuth 2.0
+- `teamcity auth lgout`: logout of teamcity
+- `teamcity auth status`: get auth status
+
+#### Authentication with PAT
+
+Here is how to do automated authentication with a single command, which requires two main pieces of information:
+
+1. **teamcity self-hosted server URL**: your specific Teamcity self-hosted server URL
+2. **teamcity token**: a teamcity PAT you created
+
+```bash
+teamcity auth login --server https://teamcity.example.com --token <token> --no-browser
+```
+
+Here are the additional flags you can set when using `teamcity auth login`:
+
+- `--server <server-url>`: sets the self-hosted server URL of your teamcity instance you want to connect to
+- `--token <token>`: uses PAT for auth with teamcity
+- `--no-browser`: no interactivity with browser, only in CLI, best for automation.
+
+#### Teamcity environment variables
+
+Environment variables override configuration file settings and are the recommended way to configure the CLI in CI/CD pipelines.
+
+| Variable             | Description                                                                                                                                                                                                                                                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TEAMCITY_URL`       | TeamCity server URL. Takes precedence over `default_server` in the config file.                                                                                                                                                                                                                                                               |
+| `TEAMCITY_TOKEN`     | Access token for authentication. Takes precedence over the keyring and config file token.                                                                                                                                                                                                                                                     |
+| `TEAMCITY_GUEST`     | Set to `1` to use guest authentication (read-only, no token needed). The CLI must be able to resolve the server URL (via `TEAMCITY_URL`, DSL detection, or the config file).                                                                                                                                                                  |
+| `TEAMCITY_RO`        | Set to `1`, `true`, or `yes` to enable read-only mode. When enabled, all non-GET API requests (POST, PUT, DELETE) are blocked, preventing any modifications to the TeamCity server. Useful for monitoring scripts and dashboards. Can also be set per server in the config file with `ro: true`.                                              |
+| `TEAMCITY_DSL_DIR`   | Path to the Kotlin DSL directory. Overrides automatic detection of `.teamcity/` or `.tc/` directories.                                                                                                                                                                                                                                        |
+| `NO_COLOR`           | Disable colored output. Follows the [NO_COLOR standard](https://no-color.org/).                                                                                                                                                                                                                                                               |
+| `TEAMCITY_NO_COLOR`  | App-specific alternative to `NO_COLOR` for disabling colored output.                                                                                                                                                                                                                                                                          |
+| `TEAMCITY_NO_UPDATE` | Set to `1`, `true`, or `yes` to disable automatic update checks. Update checks are also disabled automatically in CI environments and non-interactive terminals.                                                                                                                                                                              |
+| `TEAMCITY_HEADER_*`  | Add an HTTP header to every outgoing request. The suffix becomes the header name with underscores converted to hyphens, canonical-cased: `TEAMCITY_HEADER_FOO_BAR=baz` sends `Foo-Bar: baz`. Empty values are ignored; values containing CR/LF/NUL are dropped to prevent header injection. Header values are redacted in `--verbose` output. |
+| `DO_NOT_TRACK`       | Set to `1`, `true`, `yes`, or `on` to disable [anonymous usage statistics](https://www.jetbrains.com/help/teamcity/teamcity-cli-analytics.html). Follows the [industry convention](https://donottrack.sh/). Takes precedence over `TEAMCITY_ANALYTICS` and the config file.                                                                   |
+| `TEAMCITY_ANALYTICS` | Set to `0`, `false`, `no`, or `off` to disable [anonymous usage statistics](https://www.jetbrains.com/help/teamcity/teamcity-cli-analytics.html) for this CLI specifically. Takes precedence over the config file.                                                                                                                            |
+
+##### **auth environment variables**
+
+When doing automation, it's important to set the these two environment variables:
+
+- `TEAMCITY_URL`: your specific Teamcity self-hosted server URL
+- `TEAMCITY_TOKEN`: the teamcity token
+
+
+```ps
+$env:TEAMCITY_URL = "https://teamcity.example.com"
+$env:TEAMCITY_TOKEN = "your-access-token"
+```
+
+
+```cmd
+set TEAMCITY_URL=https://teamcity.example.com
+set TEAMCITY_TOKEN=your-access-token
+```
+
+Once you set these env vars, you can skip authentication and use the teamcity CLI directly:
+
+
+```ps
+$env:TEAMCITY_URL = "https://teamcity-prod.example.com"
+teamcity run list    # uses teamcity-prod
+teamcity auth status # shows teamcity-prod
+```
+
+
+```cmd
+set TEAMCITY_URL=https://teamcity-prod.example.com
+teamcity run list    # uses teamcity-prod
+teamcity auth status # shows teamcity-prod
+```
+
+##### **readonly mode**
+
+To restrict the CLI to read-only operations (no builds triggered, no data modified), set `TEAMCITY_RO=1`.
+
+```
+set TEAMCITY_RO=1
+```
 ### Commands 
+
+#### Command primer
+
+TeamCity CLI uses shorter names for TeamCity concepts. Knowing these mappings will help you navigate the commands.
+
+
+![](https://i.imgur.com/cNusTa2.jpeg)
+
+The hierarchy is: Project contains Jobs, each Job produces Runs, and each Run executes on an Agent.
+
+- **project IDs**: projects can be referenced by their project name
+- **job IDs**: jobs (build configurations) can be specified either through their `<ProjectName>_<BuildConfigurationName>` syntax identifier.
+- **runs**: runs (builds in a build configuration) have a numeric identifier visible in the UI.
+
+##### **list commands**
+
+> [!IMPORTANT]
+> Most commands expect IDs, not display names. Use `teamcity job list` or `teamcity project list` to find them.
+
+
+##### **view commands**
+
+Most view commands support a `--web` flag that opens the corresponding page in your browser:
+
+```
+teamcity run view 12345 --web
+teamcity job view MyProject_Build --web
+teamcity project view MyProject --web
+```
+
+> The `--web` flag works with `run view`, `job view`, `project view`, and `agent view`.
+
+
+##### output options
+
+Both `list` and `view` commands come with two output modes you can set via flags
+
+- `--plain`: **default**, outputs info in plain text
+- `--json`: outputs info as structured JSON
+
+```bash
+# JSON output (see Scripting and automation for details)
+teamcity run list --json
+teamcity run list --json=id,status,webUrl
+
+# Plain text for scripting
+teamcity run list --plain
+teamcity run list --plain --no-header
+```
+
 
 #### `teamcity run`
 
 - `teamcity run list`: lists the 30 most recent teamcity runs
+	- `--job <job>`: list builds from a specific build configuration
+	- `--status <status>`: filter to get only builds of a specific status, like "success" or "failure"
+	- `--limit <n>`: only receive back max `n` build records.
 
 ```bash
-(prism-7.6.5-bug) PS C:\Users\amallick.ENGINEERS\Documents\work\prism-7.6.5-bug> teamcity run list           
-STATUS     RUN                              JOB               BRANCH  TRIGGERED BY  DURATION  AGE    
-* Running  375502  #40                      AutomationClm...  ...     ...           27m 35s   now    
-+ Success  375500  #20                      AutomationClm...  ...     ...           6m 32s    51m ago
-+ Success  375501  #20                      AutomationClm...  ...     ...           8m 45s    48m ago
-x Failed   375499  #32                      AutomationClm...  ...     ...           1h 24m    1h ago 
-+ Success  375498  #2649                    PrismModern_T...  -       vcs           1m 46s    2h ago 
-+ Success  375497  #2496                    TestingZone_T...  -       vcs           3m 43s    2h ago 
-+ Success  375496  #20                      AutomationClm...  ...     ...           8m 2s     2h ago 
-+ Success  375495  #21                      AutomationClm...  ...     ...           8m 23s    2h ago 
-+ Success  375494  #2026.2.0.24             Clm_CLM_Insta...  ...     ...           1m 4s     2h ago 
-+ Success  375493  #48                      PrismModern_O...  -       vcs           1m 15s    3h ago 
-+ Success  375492  #2026.2.0.24             Clm_AI_Pipeli...  ...     ...           2m 25s    3h ago 
-+ Success  375491  #2026.2.0.20             Clm_CLM_Insta...  ...     ...           1m 25s    3h ago 
-+ Success  375490  #47                      PrismModern_O...  -       vcs           2m 56s    3h ago 
-x Failed   375489  #29                      AutomationClm...  ...     ...           51m 34s   3h ago 
-+ Success  375488  #8                       PrismModern_P...  -       ...           3m 59s    3h ago 
-x Failed   375487  #27                      AutomationClm...  ...     ...           43m 34s   3h ago 
-+ Success  375486  #12                      PrismModern_A...  -       vcs           11m 23s   4h ago 
-+ Success  375485  #2648                    PrismModern_T...  -       vcs           1m 46s    5h ago 
-+ Success  375484  #2328                    PrismModern_T...  -       vcs           12m 53s   4h ago 
-+ Success  375483  #2495                    TestingZone_T...  -       vcs           3m 52s    5h ago 
-+ Success  375482  #2259                    TestingZone_T...  -       vcs           12m 49s   4h ago 
-+ Success  375481  #8.8.0.2382              Clm_ClmMergeR...  ...     vcs           23m 35s   4h ago 
-+ Success  375480  #8.8.0.2381              Clm_ClmMergeR...  ...     vcs           27m 3s    4h ago 
-+ Success  375477  #7.6.7.11.OTPortFeature  PrismModern_O...  -       ...           17m 57s   5h ago 
-+ Success  375479  #8.8.0.198               Clm_ClmTrunkC...  ...     vcs           31m 21s   5h ago 
-+ Success  375478  #11                      PrismModern_A...  -       vcs           13m 31s   5h ago 
-+ Success  375470  #8.8.0.2380              Clm_ClmMergeR...  ...     vcs           23m 15s   5h ago 
-+ Success  375469  #2647                    PrismModern_T...  -       vcs           1m 36s    5h ago 
-+ Success  375458  #8.8.0.2379              Clm_ClmMergeR...  ...     vcs           28m 28s   5h ago 
-+ Success  375467  #7.6.7.11.OTPortFeature  PrismModern_O...  -       ...           12m 18s   5h ago
+# Builds from a specific job
+teamcity run list --job MyProject_Build
 
-! Showing only the first 30 results - use --limit 0 to fetch all
+# Only failures from the last 24 hours
+teamcity run list --status failure --since 24h
+
+# Builds on a specific branch
+teamcity run list --branch main --limit 10
 ```
 
-- `teamcity run view <job-id>`: provides detailed info of a specific run
 
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/run-list.gif)
+
+- `teamcity run view <run-id>`: provides detailed info of a specific run
+- `teamcity run start <job>`: starts a build using a specific build configuration
+	- `--watch`: enables watch mode to follow the build in real time.
+	- `--branch <branchname>`: uses a specific branch of the configured project VCS root.
+
+
+
+##### `teamcity run list` reference
+
+| Flag              | Description                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| `-j`, `--job`     | Filter by job (build configuration) ID                                                      |
+| `-p`, `--project` | Filter by project ID                                                                        |
+| `-b`, `--branch`  | Filter by branch name. Use `@this` to resolve the current git branch.                       |
+| `--status`        | Filter by status: `success`, `failure`, `running`, `queued`, `error`, or `unknown`          |
+| `--favorites`     | Show favorite builds for the current user.                                                  |
+| `-u`, `--user`    | Filter by the user who triggered the build. Use `@me` for the current user.                 |
+| `--revision`      | Filter by VCS revision (commit SHA). Use `@head` to resolve the current git HEAD.           |
+| `--since`         | Show builds finished after this time (for example, `24h`, `7d`, `2026-01-21`)               |
+| `--until`         | Show builds finished before this time                                                       |
+| `-n`, `--limit`   | Maximum number of runs to display                                                           |
+| `--json`          | Output as JSON. Use `--json=` to list available fields, `--json=f1,f2` for specific fields. |
+| `--plain`         | Tab-separated output for scripting                                                          |
+| `--no-header`     | Omit header row (use with `--plain`)                                                        |
+| `-w`, `--web`     | Open the list in the browser                                                                |
+
+##### Running remote builds
+
+Trigger a new build by specifying a job ID:
+
+```
+teamcity run start MyProject_Build
+```
+
+Add `--watch` to follow the build in real time:
+
+```
+teamcity run start MyProject_Build --branch main --watch
+```
+
+The `--watch` flag displays a live progress view that updates until the build completes.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/run-start-watch.gif)
+
+##### View logs and troubleshooting builds
+
+View the log output from a specific build:
+
+```
+teamcity run log 12345
+```
+
+Or get the latest log for a job:
+
+```
+teamcity run log --job MyProject_Build
+```
+
+Using logs, we can investigate a failed build. When a build fails, use this workflow to quickly find the root cause:
+
+1. Find the failed build:
+    
+    ```
+    teamcity run list --status failure
+    ```
+    
+2. View failure diagnostics (problems, failed tests with full stack traces):
+    
+    ```
+    teamcity run log 12345 --failed
+    ```
+    
+3. Inspect individual test failures:
+    
+    ```
+    teamcity run tests 12345 --failed
+    ```
 ##### **running locally**
 
 The `teamcity run start <JobName>` command lets you rerun a job in the teamcity cloud, specified by a job name.
@@ -1225,6 +1510,27 @@ teamcity run start <JobName> --local-changes --watch
 > [!NOTE]
 > For running teamcity builds locally to work, you must be within a directory that has a `.teamcity` folder and a `.teamcity/settings.kts` file.
 
+
+#### `teamcity job`
+
+> [!NOTE]
+> Job IDs like `MyProject_Build` are not the same as display names. Always use the ID column from the output when trying to query by a specific job.
+
+- `teamcity job list`: browse available jobs, which are just build configurations
+
+```bash
+# List all jobs
+teamcity job list
+
+# Filter by project
+teamcity job list --project MyProject
+```
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/job-list.gif)
+
+
+
+
 #### `teamcity agent`
 
 The `teamcity agent` commands family lets you manage agents, SSH into them, and more.
@@ -1232,6 +1538,75 @@ The `teamcity agent` commands family lets you manage agents, SSH into them, and 
 - `teamcity agent list`: lists all agents associated with your Teamcity server
 - `teamcity agent term <agent-id>`: SSH into a specific agent
 - `teamcity agent exec <agent-id> <cmd>`: Execute a command within the context of an agent's terminal
+
+#### `teamcity config`
+
+TeamCity CLI stores its configuration in a YAML file at `~/.config/tc/config.yml`. This file is created automatically when you run `teamcity auth login`.
+
+A typical configuration file looks like this:
+
+```yaml
+default_server: https://teamcity.example.com
+servers:
+  https://teamcity.example.com:
+    user: alice
+  https://teamcity-staging.example.com:
+    user: alice
+    guest: true
+  https://teamcity-prod.example.com:
+    user: alice
+    ro: true
+aliases:
+  rl: 'run list'
+  rw: 'run view $1 --web'
+  mine: 'run list --user=@me'
+```
+
+The `config` command lets you view and modify CLI settings without editing the YAML file directly.
+
+Here are the available keys:
+
+|Key|Scope|Description|
+|---|---|---|
+|`default_server`|Global|The default TeamCity server URL.|
+|`guest`|Per-server|Enable guest authentication (no token needed). Use `--server` to target a specific server.|
+|`ro`|Per-server|Enable read-only mode (blocks all write operations). Use `--server` to target a specific server.|
+|`token_expiry`|Per-server|Token expiry timestamp (RFC 3339). Normally set by `auth login`.|
+|`analytics`|Global|Enable or disable [anonymous usage statistics](https://www.jetbrains.com/help/teamcity/teamcity-cli-analytics.html). Default: `true`. Set to `false` to opt out.|
+
+> [!NOTE]
+> Authentication fields (`token`, `user`) are managed by `teamcity auth login`/`teamcity auth logout` and cannot be set via `config set`.
+
+
+You have complete CRUD over settings.
+
+- **list all settings**
+
+```
+teamcity config list
+teamcity config list --json
+```
+
+- **get a specific setting**
+
+```bash
+teamcity config get default_server
+teamcity config get ro --server tc.example.com
+```
+
+- **set a setting**
+
+```bash
+# Switch default server
+teamcity config set default_server tc.example.com
+
+# Enable read-only mode for a specific server
+teamcity config set ro true --server tc.example.com
+
+# Enable guest auth for the default server
+teamcity config set guest true
+```
+
 
 #### Reference
 
@@ -1255,6 +1630,21 @@ Run `teamcity <command> --help` for usage
 | **skill**    | `list`, `install`, `remove`, `update`                                                                                                                                                                                                                                                                           |
 | **update**   | Check for CLI updates                                                                                                                                                                                                                                                                                           |
 
+### Completion
+
+**bash**
+
+```bash
+teamcity completion bash > ~/.teamcity-completion.bash
+echo 'source ~/.teamcity-completion.bash' >> ~/.bashrc
+```
+
+**Powershell**
+
+```ps
+teamcity completion powershell > teamcity.ps1
+. ./teamcity.ps1
+```
 ### AI
 
 The CLI ships with an [Agent Skill](https://agentskills.io/) that teaches coding agents (Claude Code, Cursor, and others) how to drive `teamcity`:
@@ -1838,12 +2228,26 @@ Here are the basic properties that the `GitVcsRoot` object takes in:
 - `url`: either the HTTPS or SSH url of the repo to connect to
 - `branch`: the git branch to use as the source, like `"main"`
 
-**auth methods**
+##### **auth methods**
 
 There are two ways to authenticate with a Git repo when setting up the Git VCS root:
 
 - **Method 1 - HTTPS**: for the `url` property you pass the HTTPS URL to your github repo, and then for the `authMethod`, you specify HTTPS
 - **Method 2 - SSH**: for the `url` property you pass the SSH URL to connect to your github repo in `<user>@<host>` style, and then use the `uploadedKey` lambda to specify the public key in gitlab that should be used to connect to the private key in Teamcity (check out [[#Teamcity + Gitlab SSH keys]] for more info).
+- **method 3 - refresheable access token**: use refreshable access tokens to authenticate and let TeamCity pull down the repo without an explicit SSH key. To enable this option, you must create a [[#VCS connection]] first.
+
+```kt
+object MyRepo : GitVcsRoot({
+    name = "My Repo"
+
+    url = "https://github.com/company-org/api-service.git"
+
+    authMethod = token {
+	    //this ID points to a TeamCity refreshable token stored on the server.
+        tokenId = "PROJECT_EXT_15"
+    }
+})
+```
 
 
 #### subprojects
