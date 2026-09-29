@@ -4285,6 +4285,19 @@ Now that you created a channel, you can use channels in your releases to further
 
 
 ![](https://i.imgur.com/0XDP3LP.jpeg)
+### All together
+
+#### Updating deployments
+
+Here are the most important tips to understand with deployments from channels:
+
+> [!IMPORTANT]
+> Whenever the process steps of a deployment get updated you will need to create a new release in order to incorporate those changes.
+
+Here is a list of what you need to do after you update a deployment step template
+
+1. Update the step in your deployment process that is based on the deployment step template
+2. Create a new deployment.
 
 
 ### Tenants
@@ -4376,6 +4389,50 @@ aspectRatio: "53.333333333333336"
 
 ![](https://i.imgur.com/DClzGD9.jpeg)
 
+3. Create a variable with the value of it being the Octopus API key, and then put that variable into a global variable set that can be accessed across all projects.
+
+
+![](https://i.imgur.com/iOzrieX.jpeg)
+
+### Swagger UI
+
+If you are self-hosting Octopus, you can view the Swagger UI representation of the Octopus REST API at this URL, following this template:
+
+```
+https://<your-octopus-domain>/swaggerui
+https://cd.compusearch.com/swaggerui/index.html
+```
+
+### API basics
+
+#### API authentication
+
+There are two ways to authenticate with the API:
+
+- **Method 1 - query param**: attach the `ApiKey=` query param and provide the value as the API key
+
+```http
+@octopusServer = https://ashdevdeploy01.compusearch.com
+@apiKey = "your api key here"
+
+GET {{octopusServer}}/api/environments/all?ApiKey={{apiKey}}
+```
+
+- **Method 2 - with headers**: pass in the API key as the value for the `X-Octopus-ApiKey` header like so:
+
+```ps
+$headers = @{
+  "X-Octopus-ApiKey" = $apiKey
+  "Content-Type"     = "application/json"
+}
+
+$envs = Invoke-RestMethod "$octopusServerUrl/api/environments/all" -Headers $headers
+```
+
+
+
+
+#### API resources
 ### Service accounts
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/SMsZMpUwCZc?si=2RIQTPI1v_IvpXeG" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
