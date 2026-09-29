@@ -4365,6 +4365,17 @@ aspectRatio: "53.333333333333336"
  
  With an Octopus API key, you can connect Octopus with TeamCity directly and also use the Octopus Server REST API .
 
+1. Click on your profile image, then go to **My Profile**
+
+
+![](https://i.imgur.com/5ZiHnmp.jpeg)
+
+2. Once in your profile, click on **My API keys** and then create a new API key
+
+
+
+![](https://i.imgur.com/DClzGD9.jpeg)
+
 ### Service accounts
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/SMsZMpUwCZc?si=2RIQTPI1v_IvpXeG" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
