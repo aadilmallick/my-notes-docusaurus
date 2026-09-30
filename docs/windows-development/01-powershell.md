@@ -20,6 +20,8 @@ PowerShell is a powerful tool for both IT professionals and developers because i
 - **cmdlet**: A cmdlet is a combination of a verb and a noun/resource, like `Get-Service` or `Get-Help`.
 - **command**: A powershell command is a combination of a cmdlet and parameters to pass to the cmdlet.
 
+There are 4 verbs: `GET`, `Write`, `Remove`
+
 > [!IMPORTANT]
 > Powershell is **case-insensitive**
 
@@ -28,6 +30,8 @@ When you run a powershell command, it returns an object describing the resource.
 
 ![](https://i.imgur.com/Frt6zau.jpeg)
 
+> [!IMPORTANT]
+> When passing in parameters, you can use wildcard syntax with `*`.
 
 ### Piping
 
@@ -58,10 +62,33 @@ You also have these additional options to organize how the help information come
 
 #### Listing commands with `Get-Command`
 
-Run the `Get-Command` cmdlet to list all possible commands in powershell.
+- `Get-Command`: all possible commands in powershell.
 
-#### Process management with `Get-Service`
+```ps
+Get-Command 
 
+# returns list of all commands that start with "Write"
+Get-Command Write-* 
+
+# returns list of all commands that start with "Get"
+Get-Command Get-*
+```
+#### Process management
+
+
+- `Get-Process`: returns a list of processes or a single specific process
+- `Start-Process`: cmdlet to start a specific process.
+
+```ps
+Get-Process
+Get-Process *-Process
+
+Start-Process notepad
+```
+
+#### Service management
+
+- `Get-Service`: returns a list of system services
 
 The `Get-Service` cmdlet returns a list of all **service** objects, where a service represents a process on the machine.
 
@@ -73,7 +100,24 @@ For example, the below command lists all services with their `status` property a
 Get-Service | Where-Object {$_.status -eq "stopped"}
 ```
 
-### Important flags
+
+
+
+#### Interacting to console
+
+The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
+
+```ps
+Write-Host "Hello World"
+```
+
+The `Clear-Host` command clears the screen for you
+### Protecting against destructive commands
+
+You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
+
+- `-whatif`: performs a dry run of a command without actually executing it, just showing what would be outputted.
+- `-confirm`: asks before performing the destructive action on each item in the list of objects returned by the command
 
 #### `-whatif`
 
@@ -102,24 +146,32 @@ Get-Service | Stop-Service -confirm
 
 
 
-### Object-oriented info with`Get-Member`
-
-Since objects in powershell are based off of classes in .NET, you have a powerfull way of listing methods and properties on object isntances and then being able to use them.
-
-For example, piping the output of a list of objects in powershell to the `Get-Member` cmdlet will list all the methods and properties on those objects:
-
-```powershell
-Get-Service | Get-Member
-```
 ### Aliases
 
 Powershell bridges the gap for bash developers by providing **aliases** for common bash commands and mapping them to the underlying powershell command.
 
 For example, the alias for the bash `ls` command maps to the `Get-ChildItem` command in powershell, which is what actually lists a directory.
 
-
 ![](https://i.imgur.com/fY6FaG0.jpeg)
 
+> [!WARNING]
+> Use aliases sparingly, and don't use them in scripts. This is because you need powershell scripts to be as easy to understand as possible.
+
+
+**creating aliases**
+
+Here's how to create an alias:
+
+```ps
+
+```
+
+**get alias**
+
+```
+Get-Alias pwd
+Get-Alias -Definition pwd
+```
 ### Functions
 
 Functions let you extend PowerShell by writing your own reusable commands tailored to your needs. 
@@ -148,6 +200,40 @@ function add
 ```
 
 
+
+### Output
+
+```powershell
+Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
+```
+
+- `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
+- `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
+
+## Object-oriented powershell
+
+### Object basics
+
+Objects in powershell have methods and properties attached to them.
+
+Most cmdlets in powershell return a **list** of objects, and then from that you can access certain properties and methods:
+
+- `list.count`: returns the size of the list.
+
+```ps
+(Get-Command).count # returns 1905
+```
+
+### Object-oriented info with`Get-Member`
+
+Since objects in powershell are based off of classes in .NET, you have a powerfull way of listing methods and properties on object isntances and then being able to use them.
+
+For example, piping the output of a list of objects in powershell to the `Get-Member` cmdlet will list all the methods and properties on those objects:
+
+```powershell
+Get-Service | Get-Member
+```
+
 ### Object formatting
 
 Object formatting allows you to format and transform lists of objects you get back from a powershell cmdlet:
@@ -171,15 +257,8 @@ Here are the transformation cmdlets that work as streams, meaning you can pass t
 > [!NOTE]
 > When referencing properties on a cmdlet, you can use `*` to refer to all properties.
 
-### Output
-
-```powershell
-Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
-```
-
-- `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
-- `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
-
+#### `Format-List` and `Format-Table`
+#### `Sort-Object`
 
 ## Modules
 
