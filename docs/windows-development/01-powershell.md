@@ -234,9 +234,11 @@ $Processes = Get-Process
 $Processes | Format-List
 ```
 
+#### Strings
 
 
-#### Interpolation
+
+#### Variable and command interpolation
 
 Variable interpolation within a string is very simple. Just reference the variable name:
 
