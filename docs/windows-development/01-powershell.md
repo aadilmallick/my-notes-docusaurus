@@ -73,45 +73,30 @@ Get-Command Write-*
 # returns list of all commands that start with "Get"
 Get-Command Get-*
 ```
-#### Process management
-
-
-- `Get-Process`: returns a list of processes or a single specific process
-- `Start-Process`: cmdlet to start a specific process.
-
-```ps
-Get-Process
-Get-Process *-Process
-
-Start-Process notepad
-```
-
-#### Service management
-
-- `Get-Service`: returns a list of system services
-
-The `Get-Service` cmdlet returns a list of all **service** objects, where a service represents a process on the machine.
-
-Since it returns a list of thousands of services, it's important to pipe the output of the `Get-Service` cmdlet into some filtering command.
-
-For example, the below command lists all services with their `status` property as "stopped".
-
-```powershell
-Get-Service | Where-Object {$_.status -eq "stopped"}
-```
-
-
-
-
 #### Interacting to console
 
-The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
+- The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
 
 ```ps
 Write-Host "Hello World"
 ```
 
-The `Clear-Host` command clears the screen for you
+- The `Clear-Host` command clears the screen for you
+- The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
+
+```ps
+$Age = Read-Host "What's your age?"
+
+Write-Host "Hello, you are $Age years old"
+```
+
+```
+PS C:\Users\amallick.ENGINEERS> $Age = Read-Host "What's your age?"
+
+Write-Host "Hello, you are $Age years old"
+What's your age?: 22
+Hello, you are 22 years old
+```
 ### Protecting against destructive commands
 
 You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
@@ -210,6 +195,83 @@ Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGIN
 - `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
 - `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
 
+### Variables and values
+
+In Powershell, variables are prefixed with a `$`, and you refer to them in this syntax:
+
+```
+$variableName
+```
+
+You can set variables like so:
+
+```
+$variableName = value
+```
+
+There are three different types of values you can store:
+
+- **string**: string value represented by text within double quotes
+
+```ps
+# stores the value of "Aadil" in the `$UserName` variable.
+$UserName = "Aadil"
+```
+
+- **number**: numeric value
+
+```ps
+$Age = 22
+
+Write-Host "Hello, you are $Age years old"
+```
+
+- **object or object list**: you can store the results of commands as variables, just like you can in bash
+
+```ps
+$Processes = Get-Process
+
+$Processes | Format-List
+```
+
+
+
+#### Interpolation
+
+Variable interpolation within a string is very simple. Just reference the variable name:
+
+```ps
+$UserName = "Aadil"
+
+Write-Host "Hello $UserName"
+```
+
+What if you want to interpolate a command? Well you use this syntax for command interpolation, wrapping the command in `$()`:
+
+```
+$(command)
+```
+
+Here's an example:
+
+```ps
+Write-Host "Here's a list of all process-related commands: $(Get-Command *-Process)"
+```
+
+#### Environment variables
+
+Environment variables are under the `$Env` object variable, and you can access variable properties on `$Env` as if it were a Python dict by using `:` like a `.`:
+
+```ps
+Write-Host "You are on $Env:ComputerName"
+```
+
+Here are the different available environment variables:
+
+- `$Env:ComputerName`: the name of the machine you are currently on
+- `$Env:UserName`: the current username you are running powershell in.
+
+
 ## Object-oriented powershell
 
 ### Object basics
@@ -224,6 +286,10 @@ Most cmdlets in powershell return a **list** of objects, and then from that you 
 (Get-Command).count # returns 1905
 ```
 
+Different objects have different properties and methods, but these two rules are consistent across all objects:
+
+- **property access syntax**: for accessing properties on an object, just use dot-notation syntax, just like in other programming languages.
+- **method syntax**: Invoke just like a method.
 ### Object-oriented info with`Get-Member`
 
 Since objects in powershell are based off of classes in .NET, you have a powerfull way of listing methods and properties on object isntances and then being able to use them.
@@ -259,6 +325,49 @@ Here are the transformation cmdlets that work as streams, meaning you can pass t
 
 #### `Format-List` and `Format-Table`
 #### `Sort-Object`
+
+## System commands
+
+### Getting operating system info
+
+### Process management
+
+
+- `Get-Process`: returns a list of processes or a single specific process
+- `Start-Process`: cmdlet to start a specific process.
+- `Stop-Process`: cmdlet to stop a specific process
+
+```ps
+Get-Process
+Get-Process *-Process
+
+Start-Process notepad
+Stop-Process -Name notepad
+```
+
+
+### Service management
+
+- `Get-Service`: returns a list of system services
+
+The `Get-Service` cmdlet returns a list of all **service** objects, where a service represents a process on the machine.
+
+Since it returns a list of thousands of services, it's important to pipe the output of the `Get-Service` cmdlet into some filtering command.
+
+For example, the below command lists all services with their `status` property as "stopped".
+
+```powershell
+Get-Service | Where-Object {$_.status -eq "stopped"}
+```
+
+
+
+
+## Other commands
+
+### `Get-Date`
+
+The `Get-Date` cmdlet retruns the current date and time in a human readable format.
 
 ## Modules
 
@@ -336,6 +445,9 @@ To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy`
 ```powershell
 Set-ExecutionPolicy restricted
 ```
+
+## Powershell scripting
+
 
 
 ## Powershell 7 features
