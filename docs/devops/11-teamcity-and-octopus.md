@@ -878,6 +878,28 @@ Failure conditions allow you to add specific conditions to decide when a build s
 
 ![](https://i.imgur.com/z25lZ7W.jpeg)
 
+#### Feature branches
+
+Feature branches allow you to create builds on different branches of your VCS root, not just main.
+
+But first, you have to enable feature branches by editing the **branch specification** of the VCS root you're going to use for versioned settings to allow for other branches to be recognized and triggered on.
+
+![](https://i.imgur.com/H9rUdFq.jpeg)
+
+![](https://i.imgur.com/XruBS7x.jpeg)
+
+For more info on branch specification syntax, go here:
+
+```embed
+title: "Working with Feature Branches | TeamCity On-Premises"
+image: "https://resources.jetbrains.com/storage/products/teamcity/img/meta/preview.png"
+description: ""
+url: "https://www.jetbrains.com/help/teamcity/working-with-feature-branches.html#Common+Specification+Syntax"
+favicon: ""
+aspectRatio: "49.21875"
+```
+
+
 ### Build steps
 
 #### Recipes
@@ -3427,7 +3449,7 @@ You can also validate the teamcity config in your current project in the IDE via
 
 #### Running Kotlin DSL build off another branch
 
-Let's say you want to test a new Kotlin DSL change for a project, so you push your changes to a branch called `kotlin-dsl-test` and then you want to create a test build using the DSL configuration from that branch. 
+Let's say you want to test a new Kotlin DSL change for a project whose codebase is `supabase-proj`, so you push your changes to a branch called `kotlin-dsl-test` and then you want to create a test build using the DSL configuration from that branch. 
 
 Is that possible? Yes, but only in two ways:
 
@@ -3442,7 +3464,9 @@ Is that possible? Yes, but only in two ways:
 > - **choose feature branches when**: If you're using the exact same VCS root for your version settings and your build configurations, then you can go ahead and use feature branches. 
 > - **choose test project when**: Otherwise you need to do a test project if you separated your config as code from your codebase. 
 
-##### Feature branches
+##### Branch-specific build configuration settings with Feature branches
+
+With the help of [versioned settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html), you can create build configurations with variable settings for every repository branch via feature branches. 
 
 > [!IMPORTANT]
 > Use feature branches when the application source and `.teamcity` settings are on the same branch name and in the same repo.
@@ -3452,9 +3476,30 @@ main                     → normal source + normal settings
 feature/my-change        → feature source + changed settings
 ```
 
+Look at this specific example:
+
+```embed
+title: "Storing Project Settings in Version Control | TeamCity On-Premises"
+image: "https://resources.jetbrains.com/storage/products/teamcity/img/meta/preview.png"
+description: ""
+url: "https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#branch-specific-settings"
+favicon: ""
+aspectRatio: "49.21875"
+```
+
+
+Here's the main workflow of using feature branches with Kotlin DSL:
+
 1. Configure the project’s Versioned Settings as: "When build starts: use settings from VCS"
 2. Then start a build of `feature/my-change` (assuming that's the branch with your new DSL). TeamCity reads `.teamcity` from `feature/my-change` and runs the build using that branch’s settings.
 
+You can manually run a build on a specific branch in one of the two ways:
+
+- Click Run opposite the required branch in the build list.
+    
+- Open the [Custom Run](https://www.jetbrains.com/help/teamcity/running-custom-build.html) dialog, go to the Changes tab, and choose the required branch in the " Build branch " drop-down menu.
+
+To run builds from a specific branch or set of branches automatically, configure [build triggers](https://www.jetbrains.com/help/teamcity/configuring-build-triggers.html) or VCS triggers
 
 ##### Creating a test project
 
@@ -3647,10 +3692,10 @@ placeholder-id: "embed-1790612324223-4us6b4uhm"
 Octopus has these components:
 
 - **octopus deploy server**: stores all CD info and configurations, communicates with the deploy tentacles to perform tasks.
-- **octopus deploy tentacle**: manage of execution of deployment pipelines and to deploy the final result to target servers. There are two types of tentacles:
+- **octopus deploy tentacle**: manage of execution of deployment pipelines and to deploy the final result to target servers. There are three types of tentacles:
 	- **listening tentacle**: long-running process on a cloud server, or running on port 10933 locally if self-hosting, listens for commands from the deploy server and then executes those commands.
 	- **polling tentacle**: periodically connects to the Octopus deploy server and polls it for new commands to execute. 
-	- **worker tentacle**: performs tasks on behalf of Octopus Deploy
+	- **worker tentacle**: performs tasks on behalf of Octopus Deploy, like executing scripts
 - **calamari**: what does the actual legwork of executing the deploy pipeline, controlled via tentacles. Tentacle can run multiple instances of calamari to perform multiple tasks in parallel. 
 
 > [!NOTE]
@@ -3664,24 +3709,45 @@ Octopus has these components:
 > [!NOTE]
 > You must put your tentacles on your target servers. If there is a server you want to deploy something to, then it must have a tentacle on it. 
 
+> [!NOTE]
+> In _Octopus Deploy_, **Workers**, **Tentacles**, and **Calamari** are core components that work together to execute your deployment processes. Here is how they differ:
+> 
+> - **Tentacles**: A _Tentacle_ is an agent installed on a deployment target (a server or machine) that communicates with the _Octopus_ server to receive and execute instructions. It essentially acts as the "arms" that reach out to your infrastructure to carry out tasks (34:25-35:50).
+> - **Workers**: A _Worker_ is a specialized _Tentacle_ used for executing tasks on behalf of the _Octopus_ server rather than deploying directly to a specific target. Think of them as "emissaries" that perform actions like standing up infrastructure, checking connections, or running scripts in isolated environments, such as a DMZ or a cloud region (20:38-21:20, 34:00-34:35).
+> - **Calamari**: _Calamari_ is the underlying command-line tool invoked by a _Tentacle_ during a deployment. While the _Tentacle_ provides the connection, _Calamari_ does the actual heavy lifting—such as extracting NuGet packages, installing files, and running deployment scripts (like `Deploy.ps1`).
+
 ### Hierarchy
 
-Here is what lives at the same level:
-
+- **spaces**: acts like a workspace, contains project groups, projects, and environments.
 - **environments**: stuff like `dev`, `qa`, etc., which you can use to tag deployment targets with.
-- **spaces**: organize projects
 - **project groups**: organize projects
 - **projects**: contain the configuration for deployments
 
+```
+-> Spaces 
+-> project groups, environments
+-> project
+-> deployment process, channels, lifecycles
+```
 
 
+#### Spaces
 
+Octopus Deploy offers an analog to workspaces called **Spaces**, which allows you to organize your projects and project groups into different workspaces.
+
+In **Octopus Deploy**, **spaces** serve as a top-level organizational concept used to provide **clean separation** and **isolation** between different parts of your deployment workflows
+
+Key aspects of spaces include:
+
+- **Isolation:** They allow you to segment projects, environments, permissions, and access controls away from other areas of the application (10:21-10:40).
+- **Organizational Flexibility:** You can treat a space as a dedicated container for a specific set of projects, managing them with their own unique set of admins and managers (10:43-11:05).
+- **Clean Environment:** When you create a new space, it provides an isolated, empty environment to begin configuring your specific deployment needs without interference from other teams or project groups (11:07-11:13).
 #### Environments
 
 
 Octopus Deploy allows you to create several environments, like Dev, Test, and QA, which allow you to specify target environments to deploy to for the same package. 
 
-- **Definition:** Environments are groupings of your deployment targets that represent different stages of your deployment pipeline.
+- **Definition:** Environments are semantic groupings of your deployment targets that represent different stages of your deployment pipeline.
 - **Purpose:** They help organize targets so you can manage releases as they move through your infrastructure.
 
 For practical use, apply the same environments across multiple projects rather than creating unique sets for every project.
@@ -3689,10 +3755,11 @@ For practical use, apply the same environments across multiple projects rather t
 - **Naming:** Use common company terminology, such as _Development (dev)_, _Test (qa)_, _Staging (pre-prod)_, and _Production_.
 - **Abbreviations:** Only use industry-standard abbreviations (e.g., _QA_) to avoid team confusion.
 
+> [!NOTE]
+> In _Octopus Deploy_, managing deployment targets is primarily achieved by organizing them into **Environments**. Environments act as containers for your targets, representing the different stages of your deployment pipeline
 
-In _Octopus Deploy_, managing deployment targets is primarily achieved by organizing them into **Environments**. Environments act as containers for your targets, representing the different stages of your deployment pipeline
-
-On the environments page, you can see how many deployment targets are assigned to each environment—for example, you might see that your _Development_ environment contains three targets, while your _Test_ environment holds eleven.
+- On the environments page, you can see how many deployment targets are assigned to each environment
+- for example, you might see that your _Development_ environment contains three targets, while your _Test_ environment holds eleven.
 
 
 #### Deployment targets and roles
@@ -3742,9 +3809,7 @@ If a step is assigned multiple roles, _Octopus Deploy_ uses logic to select targ
 - **Specific Roles:** Use for deployments and application-specific runbooks to cleanly model environments.
 - **Generic Roles:** Use for maintenance runbooks (e.g., OS updates, software installation), by targeting by software/VM type, like `nginx` or `windows-server-2019`
 - **Dual Assignment:** It is recommended to assign both generic and application-specific roles to a single target to maximize utility.
-#### Spaces
 
-Octopus Deploy offers an analog to folders called **Spaces**, which allows you to organize your deployments into different categories/buckets.
 
 #### Projects
 
@@ -3898,6 +3963,18 @@ You can select which project groups and projects are visible in the dashboard by
 
 
 ![](https://i.imgur.com/n46nGHc.jpeg)
+
+#### Creating projects
+
+You can create projects in Octopus, but it requires two important details:
+
+- **project group**: the project group to scope the project to.
+- **lifecycle**: the default lifecycle to set for the project.
+
+
+![](https://i.imgur.com/prAu5YS.jpeg)
+
+
 ### Users, roles, permissions, and teams
 
 
@@ -3955,8 +4032,15 @@ A useful shorthand is:
 A deployment requires these components:
 
 - **Deployment Process:** A set of steps defined within an _Octopus Deploy_ project that the server runs to deploy software.
+- **Channel**: versioning and lifecycle integration for package deployment.
+- **Release**: versioned snapshot of the deployment process and the associated artifacts/assets as they existed when the release was created.
 
 #### Creating a deployment process
+
+
+
+![](https://i.imgur.com/bBzWv1H.jpeg)
+
 
 1. Add a step to the deployment process
 
@@ -4011,12 +4095,14 @@ When creating an octopus project, you can configure the pipeline with prebuilt s
 
 ### Releases
 
-**Releases** are a snapshot of the deployment process and the associated artifacts/assets as they existed when the release was created.
+**Releases** are a versioned snapshot of the deployment process and the associated artifacts/assets as they existed when the release was created.
 
 From a single versioned release, you can deploy to different environments, which then deploys to the actual deployment targets/tentacles.
 
 > [!NOTE]
 > The primary philosophy of Octopus Deploy is that how you deploy to dev and test should be the same way you deploy to production. You can do this by creating a release abstraction and the release abstraction is the thing that actually handles the individual configuration and parameter injection to deploy to test, dev, and prod with a unified interface. 
+
+Here are the rules:
 
 - You can have one release generator per project
 - You can create releases either from deployment processes or from packages.
