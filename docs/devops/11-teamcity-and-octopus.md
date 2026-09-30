@@ -440,7 +440,9 @@ When TeamCity needs to start a build, it can apply either of the two possible se
     
 - **use current settings by default** — regular builds use the latest project settings from the TeamCity server. Users can run [custom builds](https://www.jetbrains.com/help/teamcity/build-results-page.html#Changes+Tab) with settings imported from a VCS.
 
-- **use settings from VCS** — all branch builds and history builds, which use settings from VCS, load settings from the versioned settings' revision calculated for the build. Users can change configuration settings in [personal builds from IDE](https://www.jetbrains.com/help/teamcity/remote-run.html) or run a build with current project settings on the TeamCity server via the [custom build dialog](https://www.jetbrains.com/help/teamcity/build-results-page.html#Changes+Tab).
+- **use settings from VCS** — all branch builds and history builds, which use settings from VCS, load settings from the versioned settings' revision calculated for the build. 
+	- Allows users to change configuration settings in [personal builds from IDE](https://www.jetbrains.com/help/teamcity/remote-run.html) or run a build with current project settings on the TeamCity server via the [custom build dialog](https://www.jetbrains.com/help/teamcity/build-results-page.html#Changes+Tab).
+	- With **use settings from VCS**, branch builds can load the versioned settings revision calculated for that build rather than unconditionally using the current/default project configuration on the server.
 
 
 An ability to choose which of these two settings to apply grants you the following options:
@@ -899,6 +901,38 @@ favicon: ""
 aspectRatio: "49.21875"
 ```
 
+**Logical branches**
+
+It's important to understand what logical branches are in Teamcity:
+
+Suppose your source root has:
+
+```
+Default:
+refs/heads/main
+
+Branch specification:
++:refs/heads/*
+```
+
+Then
+
+```
+refs/heads/main          → main
+refs/heads/test-thing    → test-thing
+refs/heads/foo           → foo
+```
+
+Those right-hand values are TeamCity's **logical branch names**.
+
+> [!IMPORTANT]
+> Here are two extremely important rules:
+> 
+> - TeamCity explicitly groups branches from multiple VCS roots according to their **logical branch names**. 
+> - If another root doesn't contain that logical branch, its **default branch can be used instead**
+
+> [!NOTE]
+> when a logical branch exists for one VCS root but not another, the root missing that branch uses its default branch
 
 ### Build steps
 
@@ -3476,6 +3510,10 @@ main                     → normal source + normal settings
 feature/my-change        → feature source + changed settings
 ```
 
+Why does this work? Because of this rule (see [[#Feature branches]] for more info):
+
+>when a logical branch exists for one VCS root but not another, the root missing that branch uses its default branch.
+
 Look at this specific example:
 
 ```embed
@@ -3487,11 +3525,152 @@ favicon: ""
 aspectRatio: "49.21875"
 ```
 
+Let's go more into depth:
 
-Here's the main workflow of using feature branches with Kotlin DSL:
+```
+Supa_Source_Root
+    repository: supa
+    default branch: refs/heads/main
+    branch spec: refs/heads/feat-*
 
-1. Configure the project’s Versioned Settings as: "When build starts: use settings from VCS"
+Supa_Settings_Root
+    repository: supa-ci
+    default branch: refs/heads/main
+    branch spec: refs/heads/test-*
+```
+
+```
+Supa Project
+│
+├── Versioned Settings
+│      VCS Root = Supa_Settings_Root
+│      Kotlin DSL
+│
+└── Supa Build
+       VCS Root = Supa_Source_Root
+```
+
+Suppose both repos contain the logical branch `test-new-step`:
+
+```
+supa/test-new-step
+supa-ci/test-new-step
+```
+
+If both roots participate in branch resolution with that logical name, TeamCity matches them:
+
+```
+TeamCity branch:
+test-new-step
+
+        │
+   ┌────┴────┐
+   ↓         ↓
+
+supa       supa-ci
+ ↓           ↓
+test-*      test-*
+```
+
+> [!IMPORTANT]
+> TeamCity tries to correlate roots using logical branch names. If a root doesn't have the corresponding branch, its default branch can be used.
+> 
+> So when adding branch specs to let TeamCity recognize multiple branches for the VCS root connection, just make sure you name your branches intentionally.
+
+```
+Logical TeamCity branch
+        test-new-step
+            │
+        ┌───┴──────────┐
+        │              │
+        ▼              ▼
+supa source        supa-ci settings
+
+test-new-step?     test-new-step?
+     │                  │
+     NO                YES
+     │                  │
+     ▼                  ▼
+default branch      matching branch
+     │                  │
+     ▼                  ▼
+   main            test-new-step
+```
+
+So the resulting revisions can conceptually be:
+
+```
+SOURCE:
+supa/main
+
+SETTINGS:
+supa-ci/test-new-step
+```
+
+For more info, see this convo:
+
+```embed
+title: "link-shortener.aadilmallick.deno.net"
+image: ""
+description: ""
+url: "https://link-shortener.aadilmallick.deno.net/M2MzYmM0Mzk"
+favicon: ""
+```
+
+Here is the mental model to keep:
+
+```
+                    TeamCity
+                logical branch
+                  "test-foo"
+                      │
+           ┌──────────┴──────────┐
+           │                     │
+           ▼                     ▼
+       supa root            supa-ci settings
+           │                     │
+    test-foo exists?       test-foo exists?
+           │                     │
+          NO                    YES
+           │                     │
+           ▼                     ▼
+    default → main           test-foo
+           │                     │
+           └──────────┬──────────┘
+                      ▼
+
+                  BUILD USES
+
+             CODE         SETTINGS
+             main         test-foo
+```
+
+**setup**
+
+Here's the main setup of using feature branches with Kotlin DSL:
+
+1. Configure the project’s Versioned Settings as: "When build starts: use settings from VCS" and also apply changes in snapshot dependencies.
+
+```
+Synchronization:
+    Enabled
+
+Project settings VCS root:
+    Supa_Settings_Root
+
+Settings format:
+    Kotlin
+
+When build starts:
+    use settings from VCS
+
+Apply changes in snapshot dependencies and version control settings
+```
+
 2. Then start a build of `feature/my-change` (assuming that's the branch with your new DSL). TeamCity reads `.teamcity` from `feature/my-change` and runs the build using that branch’s settings.
+
+
+**manually running builds**
 
 You can manually run a build on a specific branch in one of the two ways:
 
