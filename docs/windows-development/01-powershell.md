@@ -19,13 +19,15 @@ PowerShell is a powerful tool for both IT professionals and developers because i
 
 - **cmdlet**: A cmdlet is a combination of a verb and a noun/resource, like `Get-Service` or `Get-Help`.
 - **command**: A powershell command is a combination of a cmdlet and parameters to pass to the cmdlet.
+	- **positional parameters**: parameters specified without flags
+	- **named parameters**: parameters specified with flags or they are another way to explicitly name positional parameters
 
 There are 4 verbs: `GET`, `Write`, `Remove`
 
 > [!IMPORTANT]
 > Powershell is **case-insensitive**
 
-When you run a powershell command, it returns an object describing the resource.
+When you run a powershell command, it returns an **object**
 
 
 ![](https://i.imgur.com/Frt6zau.jpeg)
@@ -59,6 +61,14 @@ You also have these additional options to organize how the help information come
 - `-detailed`: returns detailed text information. 
 - `-full`: returns all info.
 - `-online`: links you to the online documentation for the command.
+
+##### Viewing help info on parameters of a cmdlet
+
+For named parameters for a cmdlet you can view help info for them by following this syntax and specifying the parameter with the `-Parameter <ParameterName>` flag:
+
+```
+Get-Help Get-Process -Parameter Name
+```
 
 #### Listing commands with `Get-Command`
 
@@ -104,48 +114,6 @@ The `-confirm` flag will ask you to confirm the command execution for each objec
 ```powershell
 Get-Service | Stop-Service -confirm
 ```
-
-
-### Interacting to console
-
-- The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
-
-```ps
-Write-Host "Hello World"
-```
-
-- The `Clear-Host` command clears the screen for you
-- The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
-
-```ps
-$Age = Read-Host "What's your age?"
-
-Write-Host "Hello, you are $Age years old"
-```
-
-```
-PS C:\Users\amallick.ENGINEERS> $Age = Read-Host "What's your age?"
-
-Write-Host "Hello, you are $Age years old"
-What's your age?: 22
-Hello, you are 22 years old
-```
-
-#### `Write-Host`
-
-The `Write-Host` cmdlet takes in an unlimited amount of parameters of any type and then writes them to the console as strings separated by spaces:
-
-```ps
-$IsFertile = $True
-
-Write-Host "Is fertile" $IsFertile
-```
-
-Here are the option you have available for this cmdlet:
-
-- `-ForegroundColor <color>`: sets the text color of the output in the console.
-- `-BackgroundColor <color>`: sets the background color of the text output in the console.
-
 
 
 ### Aliases
@@ -227,7 +195,10 @@ $variableName = value
 ```
 
 
-There are three different types of primitive data types you can store:
+#### Primitive variables basics
+
+
+There are four different types of primitive data types you can store:
 
 - **string**: string value represented by text within double quotes
 
@@ -257,6 +228,18 @@ Else {
 }
 ```
 
+- **null**: null value represented by `$Null` value.
+
+Variables are under the hood an object instance of a certain class, and the same goes for primitive data type variables.
+
+For example:
+
+- **strings**: of type `String`
+- **numbers**: of type `Int` or `Int32` if integer, or `Double` if floating point.
+- **boolean**: of type `Boolean`
+
+#### Object variable basics
+
 Besides that, you also have object, hashmap, and array types:
 
 - **object or object list**: you can store the results of commands as variables, just like you can in bash
@@ -267,16 +250,7 @@ $Processes = Get-Process
 $Processes | Format-List
 ```
 
-### Primitive data types
-
-Variables are under the hood an object instance of a certain class, and the same goes for primitive data type variables.
-
-For example:
-
-- **strings**: of type `String`
-- **numbers**: of type `Int` or `Int32` if integer, or `Double` if floating point.
-- **boolean**: of type `Boolean`
-#### Strings
+### Strings
 
 With strings you can concatenate them using the `+` operator, which is useful for creating new strings by joining other strings and string variables:
 
@@ -286,14 +260,68 @@ $Age = 22
 $Greeting = "Hello, my name is " + $Name + " and I am $Age years old"
 ```
 
-##### Escaping strings
+#### Escaping strings
 
 To escape certain characters in strings, you don't use a backslash. Instead, you use a backtick:
 
 ```ps
 Write-Host "`n`n loser"
 ```
-#### Numbers
+
+#### `String` object
+
+For all following notation, we will store an object instance of the `String` class (a normal string) in a `$String` variable.
+
+Here are the properties on a string object:
+
+- `$String.Length`: returns the length of the string
+
+Here are the methods on a string object:
+
+- `$String.Substring(start: Int, end: Int)`: returns a substring
+- `$String.Replace(old: String, new: String)`: replace the first matching string with the new string.
+- `$String.ToLower()`: return the string as lowercase
+- `$String.ToUpper()`: return the string as uppercase
+
+##### Substrings
+
+You have multiple ways of creating a substring, which will return a slice of that string:
+
+```ps
+$String = "Hello world"
+
+# start at 0 inclusive, end at 4 exclusive
+$Hell = $String.Substring(0, 4)
+
+# start at 6 inclusive, go to end of string
+$World = $String.Substring(6)
+```
+
+#### Regex and replacement
+
+**Testing regex**
+
+The `-Match` option on a string variable allows you to test if a certain regex pattern or substring matches the string or not, returning a boolean value.
+
+This is the most simple case of substring matching:
+
+```ps
+$String = "the quick brown fox"
+$IsMatch = $String -Match "fox"
+```
+
+
+Here is an example of regex matching:
+
+```ps
+$String = "the quick brown fox"
+$IsMatch = $String -Match ".o[a-z]"
+```
+
+> [!NOTE]
+> The `-Like` option does the same thing.
+
+### Numbers
 
 In powershell, you can store number values in variables and you can also do basic arithmetic and store the result of that in a variable
 
@@ -309,7 +337,7 @@ You have these numeric variable types:
 - `Double`: floating point
 - `Int`: integer
 
-#### Booleans
+### Booleans
 
 There are two values for a boolean:
 
@@ -329,35 +357,107 @@ Else {
 }
 ```
 
-### Variable metadata
+### Arrays
 
-Variables are under the hood an object in powershell which come with their own properties and methods:
+Arrays are zero-indexed and you can create them like so as a comma-separated list of values and then store that in a variable.
 
-- `$variableName.GetType()`: returns the data type of the variable as an object.
+- **index-based access**: access like `$Array[i]`
+- **adding elements**: add with `+=` operator (not performant)
 
-```ps
-$Age = 22
-
-# prints: The variable 'Age' is Int32
-Write-Host "The variable 'Age' is" $Age.GetType().Name
-```
-
-### Casting
-
-You can cast variables to another data type like so:
 
 ```ps
-$Price = "19.99"
+$Fruits = "Apple", "Banana", "Orange", "Grape"
 
-# casts $Price to a double
-$AfterTaxPrice = [Double]$Price + 1.68
+# indexed base access
+$Fruits[0] 
+
+# appending element to array
+$Fruits += "Passionfruit"
 ```
 
-Here are the main primitive data types you can do for casting:
+Here are the properties on the underlying `Array<T>` class
 
-- `[Double]$variableName`: cast to a double
-- `[Int]$variableName`: cast to an int
-- `[String]$variableName`: cast to a string
+- `$Array.count`: returns length
+
+#### Adding elements
+
+You could append elements to the array with the `+=` operator
+
+```ps
+$Fruits = "Apple", "Banana", "Orange", "Grape"
+$Fruits += "Passionfruit"
+```
+
+> [!DANGER]
+> The problem? `+=` is extremely inefficient because it destroys the old array to make a new one with the included element.
+
+#### Looping over an array
+
+```ps
+$Fruits = "Apple", "Banana", "Orange", "Grape"
+
+ForEach ($Element in $Fruits) {
+	# use $Element as current item iteration
+}
+```
+#### List filtering
+
+This method of list filtering returns a new array.
+
+1. Pipe the array to the `Where-Object` cmdlet, which takes in a lambda function.
+2. In this lambda function, you have access to the `$_` variable which represents the value of the current iteration.
+3. Based on the value of the current `$_` variable, return a boolean.
+	- If returning `$True`, the value of the `$_` will be included in the resultant array
+	- If returning `$False`, the value of the `$_` will not omitted from the resultant array
+
+```ps
+$Fruits = "Apple", "Banana", "Orange", "Grape"
+
+$NoVitaminC = $Fruits | Where-Object {
+	($_ -ne "Orange") -And ($_ -ne "Grape")
+}
+
+$NoVitaminC # Apple, Banana
+```
+
+### Hashtable
+
+Here is how to create a hashtable/dict in powershell, which is under the hood a `HashTable` object instance.
+
+```ps
+$Grades = @{
+	"Alice": 90
+	"Bob": 85
+}
+
+# key/value access
+$Grades["Alice"]
+$Grades["Alice"] = 95
+```
+
+Key-value access is just the same as in Python, even easier.
+
+- **retrieving values**: use `$Dict["Key"]` notation, and if the key is not in the dictionary, `null` (or nothing) is returned, not throwing an error.
+- **setting values**: use `$Dict["Key"] = value` notation
+
+Here are the properties available on the `Hashtable` object instance:
+
+- `$Dict.Keys`: returns the string array of keys in the dict
+- `$Dict.Values`: returns the array of values in the dict
+- `$Dict.Count`: returns the number of key-value pairs in the dict.
+
+#### Removing keys
+
+Use the `$Dict.Remove(key: String)` method to remove a specific key from the hashtable:
+
+```ps
+$Grades = @{
+	"Alice": 90
+	"Bob": 85
+}
+$Grades.Remove("Alice")
+```
+
 
 ### Variable and command interpolation
 
@@ -389,7 +489,39 @@ Here's an example:
 Write-Host "Here's a list of all process-related commands: $(Get-Command *-Process)"
 ```
 
-### `New-Variable`, `Set-Variable`, and `Remove-Variable`
+
+### Variable management
+#### Variable metadata
+
+Variables are under the hood an object in powershell which come with their own properties and methods:
+
+- `$variableName.GetType()`: returns the data type of the variable as an object.
+
+```ps
+$Age = 22
+
+# prints: The variable 'Age' is Int32
+Write-Host "The variable 'Age' is" $Age.GetType().Name
+```
+
+#### Casting
+
+You can cast variables to another data type like so:
+
+```ps
+$Price = "19.99"
+
+# casts $Price to a double
+$AfterTaxPrice = [Double]$Price + 1.68
+```
+
+Here are the main primitive data types you can do for casting:
+
+- `[Double]$variableName`: cast to a double
+- `[Int]$variableName`: cast to an int
+- `[String]$variableName`: cast to a string
+
+#### `New-Variable`, `Set-Variable`, and `Remove-Variable`
 
 When you create a variable like so and then overwrite it's value, here's what's happening under the hood:
 
@@ -523,7 +655,7 @@ Here are the different available environment variables:
 . $pathToProfile
 ```
 
-#### Scopes
+### Scopes
 
 In PowerShell, scopes define the visibility and lifetime of variables, functions, and modules within your session or scripts. Here are the main scopes:  
   
@@ -571,20 +703,33 @@ Get-Service | format-list *
 Get-Service | Sort-Object -Property status | format-table DisplayName, Status
 ```
 
-Here are the different cmdlets you can use to format the data you get back and perform transformations on, and then write the data to stdout, finishing the stream:
+Here are the different cmdlets you can use to format the data you get back and perform transformations on, and then write the data to stdout, finishing the pipeline:
 
 - `Format-List`: displays list of objects in a list format. It accepts a comma-separated list of object properties to show in the list.
 - `Format-Table`: displays list of objects in a table format. It accepts a comma-separated list of object properties to show in the list.
 
-Here are the transformation cmdlets that work as streams, meaning you can pass their output as stdin to another command.
+
+Here are the transformation cmdlets that work as streams, meaning you can pass their output as stdin to another command down the pipeline
 
 - `Sort-Object`: groups objects or sorts by them, accepts these flags:
 	- `-Property <propertyname>`: the property to group by
+- `Select-Object`: list of properties/fields in the objects to select and return.
 
 > [!NOTE]
 > When referencing properties on a cmdlet, you can use `*` to refer to all properties.
 
+#### `Select-Object`
+
+Here's an example of filtering down the returned properties to only `CPU` on the objects that are returned in the pipeline:
+
+```ps
+Get-Process | Select-Object CPU
+```
+
+And you can use this at any point in the pipeline, since it's a producer and consumer.
 #### `Format-List` and `Format-Table`
+
+
 #### `Sort-Object`
 
 ## System commands and interaction
@@ -979,6 +1124,52 @@ Set-Location -Path SharedDrive:
 ```
 ## Powershell scripting
 
+### Interacting to console
+
+- The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
+
+```ps
+Write-Host "Hello World"
+```
+
+- The `Clear-Host` command clears the screen for you
+- The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
+
+```ps
+$Age = Read-Host "What's your age?"
+
+Write-Host "Hello, you are $Age years old"
+```
+
+```
+PS C:\Users\amallick.ENGINEERS> $Age = Read-Host "What's your age?"
+
+Write-Host "Hello, you are $Age years old"
+What's your age?: 22
+Hello, you are 22 years old
+```
+
+#### `Write-Host`
+
+The `Write-Host` cmdlet takes in an unlimited amount of parameters of any type and then writes them to the console as strings separated by spaces:
+
+```ps
+$IsFertile = $True
+
+Write-Host "Is fertile" $IsFertile
+```
+
+Here are the options you have available for this cmdlet:
+
+- `-ForegroundColor <color>`: sets the text color of the output in the console.
+- `-BackgroundColor <color>`: sets the background color of the text output in the console.
+
+The `Write-Host` cmdlet writes to stdout and accepts stdin as input via powershell pipelines.
+
+
+
+
+
 ### Conditional logic
 
 #### If/else
@@ -994,6 +1185,64 @@ Else {
 }
 ```
 
+### Functions
+### Pipelines
+
+Pipelines in powershell allow you to create scripts that read from stdin and then write to stdout.
+
+> [!NOTE]
+> The difference is that powershell pipelines allow streaming objects as stdin and stdout, and since every primitive data type is under the hood an object, you can have any type of variable be used as stdin or stdout in a pipeline.
+
+PowerShell pipelines let you chain commands together so the output of one command (an object) becomes the input for the next.
+
+There are two types of commands in powershell:
+
+- **accepts pipeline input**: able to accept pipeline input, meaning it can be piped to and then consume the stream
+	- Example: `Write-Host` or `Format-Table`
+- **accepts pipeline input and outputs to pipeline**: can be at any point in the pipeline.  
+#### Input and output basics
+
+Using the `Write-Output` cmdlet writes data to the pipeline stream which you can then use for piping to other commands as stdin.
+
+> [!NOTE]
+> The difference of `Write-Output` and `Write-Host` is that under the hood, `Write-Output` creates an object that can then be piped into other commands, will `Write-Host` ends the stream/pipeline by writing to stdout.
+
+Here is an example showcasing the differences between the two:
+
+![](https://i.imgur.com/OuBkFJJ.jpeg)
+
+
+- `Write-Host` doesn't return anything. It just writes to stdout and accepts stdin
+- `Write-Output` returns a `String` object instance which you can store in a variable.
+
+For cmdlets like `Write-Host` which write to stdout and are pipeline consumers, not producers, you can pipe stdin to them.
+
+Since stdin as per powershell pipelines is any object, that means you can pipe variables as stdin to `Write-Host` and similar cmdlets:
+
+```ps
+$Result = "Hello world"
+
+$Result | Write-Host
+```
+
+```ps
+$Processes = Get-Process
+
+$Process | Select-Object ProcessName, Id
+```
+#### Pipeline flags
+
+During any point in the pipeline, you can use these flags to transform or filter the stream:
+
+- `-First <n>`: returns only the first `n` objects being streamed in.
+
+#### Pipeline filtering
+
+Filter streams by piping to the `Where-Object` cmdlet (see [[#List filtering]] for more info):
+
+```ps
+Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object CPU
+```
 
 ## Powershell 7 features
 
