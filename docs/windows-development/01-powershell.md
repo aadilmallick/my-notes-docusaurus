@@ -888,6 +888,8 @@ The key point of providers is that you can use the same cmdlets with all of them
 
 - `Get-ChildItem`: a listing function that lists all children of some item
 - `New-Item`: creates a new item
+- `Set-Location`: traverse to a specific node
+- `Get-Location`: get the current node info
 
 
 ```ps
@@ -903,11 +905,78 @@ Get-ChildItem -Path Env:
 
 ### FileSystem provider
 
+#### Navigating
+
+- `Get-Location`: return `pwd`
+- `Set-Location -Path <dirpath>`: `cd` to the specified folder
+
+#### Listing files
+
+```ps
+Get-ChildItem -Path C:\Temp
+```
+
+- `-Path <dirpath>`: the path to the directory to use for `ls`
+- `-Recurse`: recursively get all files and folders
+
+#### Creating files
+
+```ps
+New-Item -Path "C:\Temp" -ItemType Directory
+```
+
+- `-Path <filepath>`: the filepath to create the new file in
+- `-ItemType`: `Directory` to create a folder, `File` to create a file.
+
+#### Reading file content
+
+```ps
+Get-Content -Path "C:\Temp\temp1.txt"
+```
+
+- `-Path <filepath>`: the filepath to the file whose content you want to read
+
+#### Deleting files
+
+```ps
+Remove-Item -Path "C:\Temp\node_modules" -Recurse -Force
+```
+
+- `-Path <path>`: the folder or file to remove
+- `-Recurse`: same as `rm -r`
+- `-Force`: same as `rm -f`
 ### Env provider
 
 
-### Custom providers
+### Custom providers with PSDrive
 
+A PSDrive in PowerShell is a special kind of provider that lets you map different data stores—like network shares, folders, or even registry keys—as drives you can navigate and manage just like a regular file system.
+
+It is the abstraction and unified interface for all providers.
+
+Here's how to create a PSDrive and use it
+
+1. Create a new PSDrive and choose the concrete provider type you want to use, like filesystem or env provider, using the `New-PSDrive` cmdlet
+
+```ps
+New-PSDrive -Name "SharedDrive" -PSProvider FileSystem -Root "C:\Temp"
+```
+
+2. View your newly created PSDrive using the `Get-PSDrive` cmdlet
+
+
+```ps
+Get-PSDrive -Name "SharedDrive"
+```
+
+3. Switch to the filesystem of the PSDrive you created, in order to cd into the isolated mount path filesystem:
+
+
+```ps
+# like you cd into C:, now you cd into SharedDrive:
+
+Set-Location -Path SharedDrive:
+```
 ## Powershell scripting
 
 ### Conditional logic
