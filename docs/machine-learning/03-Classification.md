@@ -50,6 +50,22 @@ Here are some examples showcasing this tradeoff:
 F1 score is a nice way to seek a balance between precision and recall, where a high F1 score can only arise from a balanced, low precision and recall:
 
 $$F1 = 2 \frac{precision * recall}{precision + recall}$$
+
+#### False alarm rate
+
+False alarm rate (also known as FPR)
+
+#### true alarm rate
+
+The true alarm rate is based on Baye's theorem.
+
+$$  
+P(B|A)=\frac{P(A|B)P(B)}{P(A)}  
+$$
+
+You can think of it as the true positive rate: the probability that given the ML algo classified it as positive, it ended up being a true positive.
+
+$$TPR = P(TP|P) = \frac{TP}{TP + FN}$$
 #### ROC curve
 
 The ROC (receiver operating characteristic) curve is just plotting the true positive rate vs the false positive rate. 
