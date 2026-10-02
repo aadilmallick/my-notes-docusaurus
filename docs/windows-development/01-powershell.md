@@ -502,9 +502,6 @@ $IsFertile = $IsYoung -And $IsRipeForPickin
 
 Write-Host "Is fertile $IsFertile"
 ```
-
-
-
 ### Environment
 
 #### Environment variables
@@ -526,7 +523,15 @@ Here are the different available environment variables:
 . $pathToProfile
 ```
 
+#### Scopes
 
+In PowerShell, scopes define the visibility and lifetime of variables, functions, and modules within your session or scripts. Here are the main scopes:  
+  
+
+- **Global scope:** The top-level scope for the entire PowerShell session. Variables and functions here are accessible anywhere in the session.
+- **Local scope:** The current scope, such as inside a function or script. Variables defined here are only accessible within that scope.
+- **Script scope:** Applies to the entire script file. Variables and functions defined here are accessible anywhere within the script but not outside it.
+- **Private scope:** Used to restrict variables or functions so they are only accessible within the current scope and not inherited by child scopes.
 
 ## Object-oriented powershell
 
@@ -626,7 +631,8 @@ The `$host.UI` object represents the powershell window UI, and you can change ho
 - `$host.UI.RawUI.BackgroundColor`: setting this string variable to a color changes the background color of the text prompt in powershell.
 - `$host.UI.RawUI.ForegroundColor`: setting this string variable to a color changes the text color of the text prompt in powershell.
 
-#### Powershell profile and scopes
+
+#### Powershell profile 
 
 The powershell profile is the startup file script that runs at startup of a new powershell session.
 
@@ -664,12 +670,15 @@ The `Get-Date` cmdlet retruns the current date and time in a human readable form
 
 ## Modules
 
-A module is a collection of cmdlets for a particular function or application.
+A module is a collection of cmdlets, variables, functions, etc., packaged up. 
 
-A PowerShell module is essentially a package that contains a collection of related cmdlets (commands) designed for a specific function or technology. 
+A module consists of three main components:
 
-- For example, there are modules for VMware, Citrix, Azure, and Office 365, each providing commands tailored to manage those environments. 
-- Modules help organize and extend PowerShell's capabilities, allowing you to easily access and run commands related to particular tasks
+1. cmdlets
+2. functions
+3. aliases
+
+Once a module is imported/loaded into a powershell session, you have access to use all cmdlets, functions, and aliases that come from that module.
 
 PowerShell modules come in several main types:  
   
@@ -686,6 +695,19 @@ Additionally, modules can be categorized by their source:
 - **Community modules:** Available from the PowerShell Gallery, contributed by the community.
 - **Custom modules:** Developed within organizations for specific internal needs.
 - **Personal modules:** Created by individual users to organize frequently used scripts into modules
+
+### Installation configuration context
+
+In PowerShell, configuration context scopes determine where modules, settings, or scripts are applied and who can access them. Here are the common scopes you’ll encounter:  
+  
+
+- **`CurrentUser`:** Applies settings or installs modules only for the logged-in user. This doesn’t require administrative rights and keeps changes isolated to that user’s environment.  
+      
+    
+- **`LocalMachine` (`AllUsers`):** Applies system-wide, making modules or settings available to all users on the machine. This usually requires administrative privileges.  
+      
+    
+- **`Process`:** A temporary scope limited to the current PowerShell session or process; changes here don’t persist after the session ends.
 ### Modules basics
 
 #### List modules
@@ -697,39 +719,50 @@ You have these flags:
 - `-ListAvailable`: Lists all available modules ready for download.
 
 
-#### Loading modules
+#### Loading and unloading modules
 
-> [!NOTE]
-> In PowerShell 3.0 and later, modules can even load automatically when you run a command from them, making it easier to work with a wide range of tools without manually importing each module.
+In PowerShell, loading modules means bringing their cmdlets, functions, variables, and aliases into your current session so you can use them. There are two main ways to load modules:  
+  
 
-However, the syntax is still there if you want to manually import/load a module using the `Import-Module` cmdlet
+- **Explicit loading:** Use the `Import-Module` cmdlet to manually load a module, like `Import-Module ActiveDirectory`. This makes all the module's features immediately available.  
 
 ```powershell
 Import-Module -name applocker
 ```
 
+- **Automatic loading:** PowerShell can load a module automatically the first time you run a cmdlet or function from that module, so you don't have to import it manually.
+
+> [!NOTE]
+> In PowerShell 3.0 and later, modules can even load automatically when you run a command from them, making it easier to work with a wide range of tools without manually importing each module.
+
+When a module is no longer needed, you can unload it with `Remove-Module` to free up resources and remove from the current powershell session the aliases, cmdlets, and variables from that module.
+
+##### `ImportModule`
+
+Here are the available flags on the `ImportModule` cmdlet:
+
+- `-Name`: the name of the module to load
+- `-Force`: force reload the module without restarting the session
+- `-Scope <scope>`: controls which scope the module will get loaded into.
 
 
-#### Installing third-party modules
+##### `RemoveModule`
 
-Use the `Install-Module` cmdlet to install third-party modules.
+Here are the available flags on the `RemoveModule` cmdlet:
 
-Here is the basic syntax:
+- `-Name`: the name of the module to unload
+- `-Force`: force unload the module
 
-```powershell
-Install-Module -Name $packagename
+#### Using commands from modules
+
+Once you import/load a module into a powershell session, you can use all cmdlets, functions, variables, and aliases from that module.
+
+To avoid naming ambiguity in case there are multiple loaded modules that have the same names for cmdlets, functions, and aliases, you can reduce the ambiguity with a special naming syntax:
+
+```
+<ModuleName>\<CommandName>
 ```
 
-And here is how to install Azure as a third-party module:
-
-```powershell
-Install-Module -Name AzureAD
-```
-
-You have these options:
-
-- `-Name <module-name>`: the name of the module to install
-- `-Scope <scope>`: the scope to install the modules in, `CurrentUser` by default.
 
 ### Execution policies
 
@@ -771,6 +804,109 @@ Here are the additional flags you can set on this cmdlet:
 ```ps
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
 ```
+
+### Custom modules
+
+Before we can create custom modules, we have to understand module internals:
+
+- **private functions**: private functions internal to the module, can't be used after loading a module
+- **public functions**: functions exposed publicly and are accessible after loading the module.
+
+You can create your own modules by creating `.psm1` files (stands for ps1 module files) and then bundling functions and exporting them with `Export-ModuleMember`, allowing reuse and sharing across systems.
+
+Here is how to create a custom module:
+
+1. Create a file with the `.psm1` extension and then create a bunch of powershell functions
+2. Export the functions you want to make public by using the `Export-ModuleMember` cmdlet with the `-Function` option, which takes in an array of functions
+
+
+
+
+
+### Powershell gallaery
+
+The PowerShell Gallery is a centralized online repository where you can find and download a wide variety of PowerShell resources like modules, scripts, and tools created by both Microsoft and the community. 
+
+- It makes it easy to discover new functionality and install modules directly into your environment using commands like Install-Module and Find-Module. 
+- The gallery also allows you to share your own scripts and collaborate with others, helping you extend and customize your PowerShell experience efficiently.
+
+#### Finding third party modules
+
+You can find third party modules available to install with the `Find-Module` cmdlet:
+
+
+
+#### Installing third-party modules
+
+Use the `Install-Module` cmdlet to install third-party modules.
+
+Here is the basic syntax:
+
+```powershell
+Install-Module -Name $packagename
+```
+
+And here is how to install Azure as a third-party module:
+
+```powershell
+Install-Module -Name AzureAD -Scope CurrentUser -Force -AllowClobber
+```
+
+You have these options:
+
+- `-Name <module-name>`: the name of the module to install
+- `-Scope <scope>`: the scope to install the modules in, `CurrentUser` by default.
+- `-Force`: forces installation by overwriting any existing packages without text prompts.
+- `-AllowClobber`: solving naming conflicts of cmdlets, variables, etc. across different installed modules
+
+#### Managing third-party modules
+
+- `Get-InstalledModule`: lists all installed third-party modules
+- `Update-Module`: update modules to the latest version
+- `Uninstall-Module`: uninstall a third-party module
+
+## Providers
+
+PowerShell providers are components that let you interact with different types of data stores—like files, the Windows registry, environment variables, and certificates—using a consistent, file system-like interface. 
+
+This means you can navigate and manage these diverse data sources with familiar commands, simplifying complex tasks by instead using commands exposed on an abstract interface.
+
+> [!NOTE]
+> Providers make it easier to automate and manage various system resources seamlessly within PowerShell, which is especially useful for scripting and backend development.
+
+Here are some key providers:  
+  
+
+- **File System Provider:** Manages files and directories, allowing you to create, move, copy, and delete files just like navigating folders.
+- **Registry Provider:** Lets you access and modify Windows registry keys and values as if they were files and folders.
+- **Environment Provider:** Provides access to environment variables, so you can view or change system and user settings.
+- **Certificate Provider:** Enables management of digital certificates, such as viewing, importing, and exporting certificates.
+- **Active Directory Provider:** Allows direct interaction with directory objects like users and groups without extra tools.
+- **Custom Providers:** You can create your own providers to manage specialized data sources like databases or APIs.
+
+The key point of providers is that you can use the same cmdlets with all of them, since all providers follow the same unified abstract interface that they implement with their own concrete functions.
+
+- `Get-ChildItem`: a listing function that lists all children of some item
+- `New-Item`: creates a new item
+
+
+```ps
+# use FileSystem provider
+Get-ChildItem -Path C:\Temp
+New-Item -Path "C:\Temp" -ItemType Directory
+New-Item -Path "C:\Temp\temp1.txt" -ItemType File
+
+# use EnvironmentProvider
+Get-ChildItem -Path Env:
+```
+
+
+### FileSystem provider
+
+### Env provider
+
+
+### Custom providers
 
 ## Powershell scripting
 
