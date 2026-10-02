@@ -626,7 +626,7 @@ The `$host.UI` object represents the powershell window UI, and you can change ho
 - `$host.UI.RawUI.BackgroundColor`: setting this string variable to a color changes the background color of the text prompt in powershell.
 - `$host.UI.RawUI.ForegroundColor`: setting this string variable to a color changes the text color of the text prompt in powershell.
 
-#### Powershell profile
+#### Powershell profile and scopes
 
 The powershell profile is the startup file script that runs at startup of a new powershell session.
 
@@ -639,7 +639,23 @@ These different scopes have different profile files locations:
 
 ![](https://i.imgur.com/sXhLMgx.jpeg)
 
+#### Customizing prompt
 
+The prompt text in powershell is read from the `prompt` function in the powershell profile, which you can override in the powershell profile
+
+```ps title="~\Documents\WindowsPowerShell\Microsoft.PowerShellISE_profile.ps1"
+
+function prompt {
+	"Custom prompt> "
+}
+```
+
+To reset to the current prompt, just remove the `prompt` function from the current powershell session:
+
+
+```ps
+Remove-Item Function:prompt
+```
 ## Other commands
 
 ### `Get-Date`
@@ -655,6 +671,21 @@ A PowerShell module is essentially a package that contains a collection of relat
 - For example, there are modules for VMware, Citrix, Azure, and Office 365, each providing commands tailored to manage those environments. 
 - Modules help organize and extend PowerShell's capabilities, allowing you to easily access and run commands related to particular tasks
 
+PowerShell modules come in several main types:  
+  
+
+- **Script modules:** These bundle PowerShell scripts into reusable packages.
+- **Binary modules:** These are DLL files that integrate compiled .NET assemblies for advanced functions.
+- **Manifest modules:** These include metadata about the module and can combine multiple module types.
+- **Dynamic modules:** These are created on the fly during a session for specific tasks.
+
+Additionally, modules can be categorized by their source:  
+  
+
+- **Built-In modules:** Pre-installed with PowerShell for common administrative tasks.
+- **Community modules:** Available from the PowerShell Gallery, contributed by the community.
+- **Custom modules:** Developed within organizations for specific internal needs.
+- **Personal modules:** Created by individual users to organize frequently used scripts into modules
 ### Modules basics
 
 #### List modules
@@ -666,7 +697,7 @@ You have these flags:
 - `-ListAvailable`: Lists all available modules ready for download.
 
 
-#### Importing modules
+#### Loading modules
 
 > [!NOTE]
 > In PowerShell 3.0 and later, modules can even load automatically when you run a command from them, making it easier to work with a wide range of tools without manually importing each module.
@@ -677,10 +708,9 @@ However, the syntax is still there if you want to manually import/load a module 
 Import-Module -name applocker
 ```
 
-You have these options:
 
-- `-Name <module-name>`: the name of the module to install
-### Installating third-party modules
+
+#### Installing third-party modules
 
 Use the `Install-Module` cmdlet to install third-party modules.
 
@@ -695,6 +725,12 @@ And here is how to install Azure as a third-party module:
 ```powershell
 Install-Module -Name AzureAD
 ```
+
+You have these options:
+
+- `-Name <module-name>`: the name of the module to install
+- `-Scope <scope>`: the scope to install the modules in, `CurrentUser` by default.
+
 ### Execution policies
 
 PowerShell execution policies control which scripts are allowed to run on your system to help protect against running untrusted code. Here are the four main policies:  
