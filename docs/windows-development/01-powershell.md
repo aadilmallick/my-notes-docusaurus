@@ -73,30 +73,6 @@ Get-Command Write-*
 # returns list of all commands that start with "Get"
 Get-Command Get-*
 ```
-#### Interacting to console
-
-- The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
-
-```ps
-Write-Host "Hello World"
-```
-
-- The `Clear-Host` command clears the screen for you
-- The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
-
-```ps
-$Age = Read-Host "What's your age?"
-
-Write-Host "Hello, you are $Age years old"
-```
-
-```
-PS C:\Users\amallick.ENGINEERS> $Age = Read-Host "What's your age?"
-
-Write-Host "Hello, you are $Age years old"
-What's your age?: 22
-Hello, you are 22 years old
-```
 ### Protecting against destructive commands
 
 You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
@@ -128,6 +104,47 @@ The `-confirm` flag will ask you to confirm the command execution for each objec
 ```powershell
 Get-Service | Stop-Service -confirm
 ```
+
+
+### Interacting to console
+
+- The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
+
+```ps
+Write-Host "Hello World"
+```
+
+- The `Clear-Host` command clears the screen for you
+- The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
+
+```ps
+$Age = Read-Host "What's your age?"
+
+Write-Host "Hello, you are $Age years old"
+```
+
+```
+PS C:\Users\amallick.ENGINEERS> $Age = Read-Host "What's your age?"
+
+Write-Host "Hello, you are $Age years old"
+What's your age?: 22
+Hello, you are 22 years old
+```
+
+#### `Write-Host`
+
+The `Write-Host` cmdlet takes in an unlimited amount of parameters of any type and then writes them to the console as strings separated by spaces:
+
+```ps
+$IsFertile = $True
+
+Write-Host "Is fertile" $IsFertile
+```
+
+Here are the option you have available for this cmdlet:
+
+- `-ForegroundColor <color>`: sets the text color of the output in the console.
+- `-BackgroundColor <color>`: sets the background color of the text output in the console.
 
 
 
@@ -269,6 +286,13 @@ $Age = 22
 $Greeting = "Hello, my name is " + $Name + " and I am $Age years old"
 ```
 
+##### Escaping strings
+
+To escape certain characters in strings, you don't use a backslash. Instead, you use a backtick:
+
+```ps
+Write-Host "`n`n loser"
+```
 #### Numbers
 
 In powershell, you can store number values in variables and you can also do basic arithmetic and store the result of that in a variable
@@ -481,7 +505,9 @@ Write-Host "Is fertile $IsFertile"
 
 
 
-### Environment variables
+### Environment
+
+#### Environment variables
 
 Environment variables are under the `$Env` object variable, and you can access variable properties on `$Env` as if it were a Python dict by using `:` like a `.`:
 
@@ -493,6 +519,13 @@ Here are the different available environment variables:
 
 - `$Env:ComputerName`: the name of the machine you are currently on
 - `$Env:UserName`: the current username you are running powershell in.
+
+#### sourcing scripts
+
+```ps
+. $pathToProfile
+```
+
 
 
 ## Object-oriented powershell
@@ -549,7 +582,7 @@ Here are the transformation cmdlets that work as streams, meaning you can pass t
 #### `Format-List` and `Format-Table`
 #### `Sort-Object`
 
-## System commands
+## System commands and interaction
 
 ### Getting operating system info
 
@@ -584,6 +617,27 @@ Get-Service | Where-Object {$_.status -eq "stopped"}
 ```
 
 
+### Powershell customization
+
+#### UI customization
+
+The `$host.UI` object represents the powershell window UI, and you can change how it looks like:
+
+- `$host.UI.RawUI.BackgroundColor`: setting this string variable to a color changes the background color of the text prompt in powershell.
+- `$host.UI.RawUI.ForegroundColor`: setting this string variable to a color changes the text color of the text prompt in powershell.
+
+#### Powershell profile
+
+The powershell profile is the startup file script that runs at startup of a new powershell session.
+
+The `$PROFILE` variable gives you the filepath to the profile file.
+
+You can scope the powershell profile to a different scope, like the current windows user or all users on the machine.
+
+These different scopes have different profile files locations:
+
+
+![](https://i.imgur.com/sXhLMgx.jpeg)
 
 
 ## Other commands
@@ -605,14 +659,17 @@ A PowerShell module is essentially a package that contains a collection of relat
 
 #### List modules
 
-To list all available modules, run the `Get-Module` command:
+Run the `Get-Module` command to see all installed modules.
 
-```powershell
-Get-Module -ListAvailable
-```
-#### Import module manually
+You have these flags:
 
-In PowerShell 3.0 and later, modules can even load automatically when you run a command from them, making it easier to work with a wide range of tools without manually importing each module.
+- `-ListAvailable`: Lists all available modules ready for download.
+
+
+#### Importing modules
+
+> [!NOTE]
+> In PowerShell 3.0 and later, modules can even load automatically when you run a command from them, making it easier to work with a wide range of tools without manually importing each module.
 
 However, the syntax is still there if you want to manually import/load a module using the `Import-Module` cmdlet
 
@@ -620,6 +677,9 @@ However, the syntax is still there if you want to manually import/load a module 
 Import-Module -name applocker
 ```
 
+You have these options:
+
+- `-Name <module-name>`: the name of the module to install
 ### Installating third-party modules
 
 Use the `Install-Module` cmdlet to install third-party modules.
@@ -653,20 +713,27 @@ If you encounter errors running scripts, it’s often due to these policies, and
 > [!WARNING]
 > Just be cautious, especially with Unrestricted, to avoid security risks.
 
-#### Getting the execution policy
-
 To get the current execution policy of PowerShell, use the `Get-ExecutionPolicy` cmdlet
 
 ```powershell
 Get-ExecutionPolicy
 ```
 
-#### Setting the execution policy
-
 To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy` cmdlet and then pass in as the argument one of the 4 available execution policies to choose from.
 
 ```powershell
 Set-ExecutionPolicy restricted
+```
+
+Here are the additional flags you can set on this cmdlet:
+
+- `-Scope`: how to scope this. accepts these values:
+	- `-CurrentUser`: scope to current windows user
+- `-ExecutionPolicy`: specify the execution pollicy, which you use this flag instead of supplying the parameter if you are using flags.
+- `-Force`: force override
+
+```ps
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
 ```
 
 ## Powershell scripting
