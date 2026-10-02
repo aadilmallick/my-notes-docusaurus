@@ -195,7 +195,7 @@ Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGIN
 - `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
 - `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
 
-### Variables and values
+## Variables and values
 
 In Powershell, variables are prefixed with a `$`, and you refer to them in this syntax:
 
@@ -209,7 +209,8 @@ You can set variables like so:
 $variableName = value
 ```
 
-There are three different types of values you can store:
+
+There are three different types of primitive data types you can store:
 
 - **string**: string value represented by text within double quotes
 
@@ -218,13 +219,28 @@ There are three different types of values you can store:
 $UserName = "Aadil"
 ```
 
-- **number**: numeric value
+- **number**: stores a numeric value, either integer or float.
 
 ```ps
 $Age = 22
 
 Write-Host "Hello, you are $Age years old"
 ```
+
+- **boolean**: stores a conditional value, either `$True` for true or `$False` for false.
+
+```
+$IsActive = $True
+
+If ($IsActive) {
+	Write-Host "is active is true"
+}
+Else {
+	Write-Host "is active is false"
+}
+```
+
+Besides that, you also have object, hashmap, and array types:
 
 - **object or object list**: you can store the results of commands as variables, just like you can in bash
 
@@ -234,11 +250,92 @@ $Processes = Get-Process
 $Processes | Format-List
 ```
 
+### Primitive data types
+
+Variables are under the hood an object instance of a certain class, and the same goes for primitive data type variables.
+
+For example:
+
+- **strings**: of type `String`
+- **numbers**: of type `Int` or `Int32` if integer, or `Double` if floating point.
+- **boolean**: of type `Boolean`
 #### Strings
 
+With strings you can concatenate them using the `+` operator, which is useful for creating new strings by joining other strings and string variables:
 
+```ps
+$Name = "Aadil"
+$Age = 22
+$Greeting = "Hello, my name is " + $Name + " and I am $Age years old"
+```
 
-#### Variable and command interpolation
+#### Numbers
+
+In powershell, you can store number values in variables and you can also do basic arithmetic and store the result of that in a variable
+
+```ps
+$Age = 22
+$FutureAge = 22 + 1
+
+Write-Host "In $($FutureAge - $Age) years I'll be $Age years old" 
+```
+
+You have these numeric variable types:
+
+- `Double`: floating point
+- `Int`: integer
+
+#### Booleans
+
+There are two values for a boolean:
+
+- `$True`: represents a true value
+- `$False`: represents a false value
+
+Booleans are very useful in conditionals:
+
+```ps
+$IsActive = $True
+
+If ($IsActive) {
+	Write-Host "is active is true"
+}
+Else {
+	Write-Host "is active is false"
+}
+```
+
+### Variable metadata
+
+Variables are under the hood an object in powershell which come with their own properties and methods:
+
+- `$variableName.GetType()`: returns the data type of the variable as an object.
+
+```ps
+$Age = 22
+
+# prints: The variable 'Age' is Int32
+Write-Host "The variable 'Age' is" $Age.GetType().Name
+```
+
+### Casting
+
+You can cast variables to another data type like so:
+
+```ps
+$Price = "19.99"
+
+# casts $Price to a double
+$AfterTaxPrice = [Double]$Price + 1.68
+```
+
+Here are the main primitive data types you can do for casting:
+
+- `[Double]$variableName`: cast to a double
+- `[Int]$variableName`: cast to an int
+- `[String]$variableName`: cast to a string
+
+### Variable and command interpolation
 
 Variable interpolation within a string is very simple. Just reference the variable name:
 
@@ -246,6 +343,14 @@ Variable interpolation within a string is very simple. Just reference the variab
 $UserName = "Aadil"
 
 Write-Host "Hello $UserName"
+```
+
+If you want to escape the `$`, you can do so by putting a backtick before it, like so:
+
+```ps
+$UserName = "Aadil"
+
+Write-Host "The `$UserName variable value is $Username"
 ```
 
 What if you want to interpolate a command? Well you use this syntax for command interpolation, wrapping the command in `$()`:
@@ -260,7 +365,123 @@ Here's an example:
 Write-Host "Here's a list of all process-related commands: $(Get-Command *-Process)"
 ```
 
-#### Environment variables
+### `New-Variable`, `Set-Variable`, and `Remove-Variable`
+
+When you create a variable like so and then overwrite it's value, here's what's happening under the hood:
+
+- **variable declaration**: The `New-Variable` cmdlet creates the variable and initializes it with a value.
+- **variable setting**: The `Set-Variable` cmdlet sets a variable to another value:
+
+```ps
+# syntactic sugar for New-Variable -Name Age -Value 22
+$Age = 22
+
+# syntactic sugar for Set-Variable -Name Age -Value 23
+$Age = 23
+```
+
+Here are the flags you can set on the `New-Variable` cmdlet:
+
+- `-Name <string>`: the name of the variable
+- `-Value <string>`: the value of the variable
+- `-Option <option>`: setting the behavior of the variable. You have these options:
+	- `Readonly`: makes it a readonly variable.
+	- `Constant`: makes it a constant variable.
+
+Here are the flags you can set on the `Set-Variable` cmdlet:
+
+- `-Name <string>`: the name of the variable
+- `-Value <string>`: the value of the variable
+- `-Force`: forces a set to occur, even on readonly variables. Fails on constants.
+
+You can delete a variable with the `Remove-Variable` cmdlet:
+
+```
+Remove-Variable <variableName>
+```
+
+Here are the options you have available:
+
+- `-Force`: forces removal, even on readonly variables. Fails on constants.
+
+> [!IMPORTANT]
+> For all these cmdlets that work under the hood of variable management, you DO NOT refer to variables with the `$` prefix.
+
+#### Readonly vs const
+
+To create a **readonly** variable where you cannot overwrite it, you should create a variable using the `New-Variable` cmdlet and pass the `-Option Readonly` flag:
+
+```ps
+New-Variable -Name DemoReadOnly -Value "hi" -Option Readonly
+```
+
+> [!NOTE]
+> Read-only variables can only be changed when you force the change with the `-Force` option on the `Set-Variable` cmdlet. 
+
+To create a **constant** variable where you cannot mutate it or overwrite it, you should create a variable using the `New-Variable` cmdlet and pass the `-Option Constant` flag:
+
+```ps
+New-Variable -Name DemoConstant -Value "hi" -Option Constant
+```
+
+> [!NOTE]
+> The main difference between constants and read-only variables is that constants can never be forcibly overwritten via the `-force` option. They can't be overwritten ever.
+
+Here are the main differences between the two:
+
+
+|                            | constant                                          | readonly                                              |
+| -------------------------- | ------------------------------------------------- | ----------------------------------------------------- |
+| How to create              | Run `New-Variable` cmdlet with `-Option Constant` | Run `New-Variable` cmdlet with `-Option Readonly`     |
+| Can mutate/overwrite value | No                                                | Yes, with `-Force` option on `Set-Variable` cmdlet    |
+| Can remove/delete          | No                                                | Yes, with `-Force` option on `Remove-Variable` cmdlet |
+### Operators
+
+#### Arithemtic operators
+
+```ps
+$Age = 2 * 3 + (10/5)
+```
+
+#### Comparison operators
+
+- `-eq`: checks if two values are equal to each other, returns a boolean.
+- `-ne`: checks if two values are NOT equal to each other, returns a boolean.
+- `-gt`: checks if the first value is greater than the second value, returns a boolean.
+- `-lt`: checks if the first value is less than the second value, returns a boolean.
+- `-gte`: checks if the first value is greater than or equal to the second value, returns a boolean.
+- `-lte`: checks if the first value is less than or equal to the second value, returns a boolean.
+
+```ps
+$Age1 = 22
+$Age2 = 23
+
+$Age1 -eq $Age2 # returns $False
+$Age1 -ne $Age2 # returns $True
+
+$Age1 -lt $Age2 # returns $True
+$Age1 -gt $Age2 # returns $False
+```
+
+You also have these boolean-specific operators:
+
+- `-And`: returns `$True` if both conditions evaluate to `$True`
+- `-Or`: returns `$True` if at least one boolean evaluates to `$True`
+
+```ps
+$Age = 22
+
+$IsYoung = $Age -lt 35
+$IsRipeForPickin = $Age -gt 18
+
+$IsFertile = $IsYoung -And $IsRipeForPickin
+
+Write-Host "Is fertile $IsFertile"
+```
+
+
+
+### Environment variables
 
 Environment variables are under the `$Env` object variable, and you can access variable properties on `$Env` as if it were a Python dict by using `:` like a `.`:
 
@@ -450,6 +671,20 @@ Set-ExecutionPolicy restricted
 
 ## Powershell scripting
 
+### Conditional logic
+
+#### If/else
+
+```ps
+$IsActive = $True
+
+If ($IsActive) {
+	Write-Host "is active is true"
+}
+Else {
+	Write-Host "is active is false"
+}
+```
 
 
 ## Powershell 7 features
