@@ -19,10 +19,6 @@ PowerShell is a powerful tool for both IT professionals and developers because i
 
 - **cmdlet**: A cmdlet is a combination of a verb and a noun/resource, like `Get-Service` or `Get-Help`.
 - **command**: A powershell command is a combination of a cmdlet and parameters to pass to the cmdlet.
-	- **positional parameters**: parameters specified without flags
-	- **named parameters**: parameters specified with flags or they are another way to explicitly name positional parameters
-
-There are 4 verbs: `GET`, `Write`, `Remove`
 
 > [!IMPORTANT]
 > Powershell is **case-insensitive**
@@ -35,14 +31,30 @@ When you run a powershell command, it returns an **object**
 > [!IMPORTANT]
 > When passing in parameters, you can use wildcard syntax with `*`.
 
-### Piping
 
-The pipe operator `|` works the exact same way it does in bash, piping output from one command as input to another command.
+![](https://i.imgur.com/ErgQtlq.jpeg)
 
-```powershell
-get-service | out-file c:\services.txt
-```
+#### Parameter types
 
+There are two types of parameters you can pass to a cmdlet in order to make it a command:
+
+- **positional parameters**: parameters specified without flags
+- **named parameters**: parameters specified with flags or they are another way to explicitly name positional parameters
+
+> [!IMPORTANT]
+> Positional parameters always have named parameter variants, but not the other way around. 
+> 
+> Some named parameters cannot be positional parameters.
+
+
+#### Parameter sets
+
+In PowerShell, a parameter set is a way for a single cmdlet to support different groups of parameters for various related tasks. E
+
+Each parameter set defines a unique combination of parameters that can be used together, ensuring only valid parameter combinations are accepted. 
+
+- This design helps reduce errors and makes cmdlets more flexible and user-friendly. 
+- For example, the Get-EventLog cmdlet uses different parameter sets to query events by log name or event ID, allowing you to perform different queries with the same command but different parameters.
 
 
 ### Important cmdlets
@@ -72,7 +84,7 @@ Get-Help Get-Process -Parameter Name
 
 #### Listing commands with `Get-Command`
 
-- `Get-Command`: all possible commands in powershell.
+The `Get-Command` lists all possible commands in powershell.
 
 ```ps
 Get-Command 
@@ -83,6 +95,12 @@ Get-Command Write-*
 # returns list of all commands that start with "Get"
 Get-Command Get-*
 ```
+
+You have these named parameters:
+
+- `-Verb <verb>`: the verb to filter on, like `Get`, `Remove`, etc.
+- `-Noun <noun>`: the noun to filter on, like `Process`, `Service`, etc.
+- `-CommandType <type>`: the command type to filter on, like `Alias` to filter down to only alias commands.
 ### Protecting against destructive commands
 
 You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
@@ -171,14 +189,7 @@ function add
 
 
 
-### Output
 
-```powershell
-Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
-```
-
-- `Out-File`: this cmdlet accepts an output filepath to write the incoming data to.
-- `Export-Csv`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
 
 ## Variables and values
 
@@ -393,6 +404,8 @@ $Fruits += "Passionfruit"
 
 #### Looping over an array
 
+You can either use `ForEach` loop:
+
 ```ps
 $Fruits = "Apple", "Banana", "Orange", "Grape"
 
@@ -400,6 +413,13 @@ ForEach ($Element in $Fruits) {
 	# use $Element as current item iteration
 }
 ```
+
+Or pipe the array as stdin to the `ForEach-Object` cmdlet, which takes in an iteration lambda as the positional parameter:
+
+```ps
+$Fruits | ForEach-Object { Write-Host $_.Count }
+```
+
 #### List filtering
 
 This method of list filtering returns a new array.
@@ -1050,12 +1070,14 @@ Get-ChildItem -Path Env:
 
 ### FileSystem provider
 
-#### Navigating
+#### Navigation
 
 - `Get-Location`: return `pwd`
 - `Set-Location -Path <dirpath>`: `cd` to the specified folder
 
-#### Listing files
+#### File management
+
+##### Listing files
 
 ```ps
 Get-ChildItem -Path C:\Temp
@@ -1064,7 +1086,7 @@ Get-ChildItem -Path C:\Temp
 - `-Path <dirpath>`: the path to the directory to use for `ls`
 - `-Recurse`: recursively get all files and folders
 
-#### Creating files
+##### Creating files
 
 ```ps
 New-Item -Path "C:\Temp" -ItemType Directory
@@ -1073,15 +1095,7 @@ New-Item -Path "C:\Temp" -ItemType Directory
 - `-Path <filepath>`: the filepath to create the new file in
 - `-ItemType`: `Directory` to create a folder, `File` to create a file.
 
-#### Reading file content
-
-```ps
-Get-Content -Path "C:\Temp\temp1.txt"
-```
-
-- `-Path <filepath>`: the filepath to the file whose content you want to read
-
-#### Deleting files
+##### Deleting files
 
 ```ps
 Remove-Item -Path "C:\Temp\node_modules" -Recurse -Force
@@ -1090,6 +1104,22 @@ Remove-Item -Path "C:\Temp\node_modules" -Recurse -Force
 - `-Path <path>`: the folder or file to remove
 - `-Recurse`: same as `rm -r`
 - `-Force`: same as `rm -f`
+
+#### File content
+
+##### Reading file content
+
+```ps
+Get-Content -Path "C:\Temp\temp1.txt"
+```
+
+- `-Path <filepath>`: the filepath to the file whose content you want to read
+
+##### Adding file content
+
+
+
+
 ### Env provider
 
 
@@ -1098,6 +1128,9 @@ Remove-Item -Path "C:\Temp\node_modules" -Recurse -Force
 A PSDrive in PowerShell is a special kind of provider that lets you map different data stores—like network shares, folders, or even registry keys—as drives you can navigate and manage just like a regular file system.
 
 It is the abstraction and unified interface for all providers.
+
+
+#### Additional File drives
 
 Here's how to create a PSDrive and use it
 
@@ -1200,6 +1233,13 @@ There are two types of commands in powershell:
 - **accepts pipeline input**: able to accept pipeline input, meaning it can be piped to and then consume the stream
 	- Example: `Write-Host` or `Format-Table`
 - **accepts pipeline input and outputs to pipeline**: can be at any point in the pipeline.  
+
+You can pipe output from one command to the next command as input via the pipe operator `|`:
+
+```powershell
+get-service | out-file c:\services.txt
+```
+
 #### Input and output basics
 
 Using the `Write-Output` cmdlet writes data to the pipeline stream which you can then use for piping to other commands as stdin.
@@ -1244,6 +1284,23 @@ Filter streams by piping to the `Where-Object` cmdlet (see [[#List filtering]] f
 Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object CPU
 ```
 
+
+#### Pipeline output
+
+
+```powershell
+Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
+```
+
+These commands accept stdin from pipelines and are consumers, meaning they end the pipeline, consuming it completely.
+
+
+Here are the different commands you have and how to use them you pipe to them as pipeline consumers:
+
+- `Write-Host`: writes stdin to stdout.
+- `Out-File <filepath>`: this cmdlet accepts an output filepath to write the incoming data to. It has these flags:
+	- `-Append`: if set, then appends to the existing file rather than overwriting it.
+- `Export-Csv <filepath>`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
 ## Powershell 7 features
 
 PowerShell 7 is designed to coexist with PowerShell 5.1 on the same system without interfering with each other. This is possible because PowerShell 7 installs into a new directory (`%programfiles%\PowerShell\7`), separate from where PowerShell 5.1 is installed. 
