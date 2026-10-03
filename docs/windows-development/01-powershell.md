@@ -74,6 +74,21 @@ You also have these additional options to organize how the help information come
 - `-full`: returns all info.
 - `-online`: links you to the online documentation for the command.
 
+```ps
+Get-Help Format-Table | Out-Host -Paging
+
+# Display more information for a cmdlet
+Get-Help Format-Table -Detailed
+Get-Help Format-Table -Full
+
+# Display selected parts of a cmdlet by using parameters
+Get-Help Format-Table -Examples
+Get-Help Format-Table -Online
+Get-Help Format-Table -Parameter *
+Get-Help Get-ChildItem -Parameter *
+Get-Help Format-Table -Parameter GroupBy
+```
+
 ##### Viewing help info on parameters of a cmdlet
 
 For named parameters for a cmdlet you can view help info for them by following this syntax and specifying the parameter with the `-Parameter <ParameterName>` flag:
@@ -96,11 +111,20 @@ Get-Command Write-*
 Get-Command Get-*
 ```
 
+
+
+
+![](https://i.imgur.com/atPe5LM.jpeg)
+
 You have these named parameters:
 
 - `-Verb <verb>`: the verb to filter on, like `Get`, `Remove`, etc.
 - `-Noun <noun>`: the noun to filter on, like `Process`, `Service`, etc.
-- `-CommandType <type>`: the command type to filter on, like `Alias` to filter down to only alias commands.
+- `-CommandType <type>`: the command type to filter on, like `Alias` to filter down to only alias commands. Here are the different types:
+	- `Cmdlet`
+	- `Function`
+	- `Alias`
+- `-Name <name>`: the name of a certain command to find. Also the 1st positional parameter.
 ### Protecting against destructive commands
 
 You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
@@ -132,6 +156,12 @@ The `-confirm` flag will ask you to confirm the command execution for each objec
 ```powershell
 Get-Service | Stop-Service -confirm
 ```
+
+### `ErrorAction`
+
+`-ErrorAction` is a global flag you can set to control try/catch behavior with a single flag:
+
+- `-ErrorAction SilentlyContinue`: don't exit 1 in case of error, just silently continue
 
 
 ### Aliases
@@ -332,6 +362,15 @@ $IsMatch = $String -Match ".o[a-z]"
 > [!NOTE]
 > The `-Like` option does the same thing.
 
+
+#### Double quotes vs single quotes
+
+- Use double quotes to allow variable expansion. 
+- Use single quotes to escape everything. 
+
+
+![](https://i.imgur.com/qWx2akd.jpeg)
+
 ### Numbers
 
 In powershell, you can store number values in variables and you can also do basic arithmetic and store the result of that in a variable
@@ -348,7 +387,16 @@ You have these numeric variable types:
 - `Double`: floating point
 - `Int`: integer
 
-### Booleans
+### Special variables in powershell
+
+
+![](https://i.imgur.com/hMX0Lfu.jpeg)
+
+- `$null`: represents null value
+- `$Error`: stores errors from previous command stderr
+- **booleans**: either `$true` or `$false`
+
+**Boolean values**
 
 There are two values for a boolean:
 
@@ -370,21 +418,29 @@ Else {
 
 ### Arrays
 
-Arrays are zero-indexed and you can create them like so as a comma-separated list of values and then store that in a variable.
+Arrays are zero-indexed and you can create them in two different ways:
 
-- **index-based access**: access like `$Array[i]`
-- **adding elements**: add with `+=` operator (not performant)
+- **Method 1 (deprecated) - comma-separated list**: as a comma-separated list of values and then store that in a variable.
+- **Method 2 - using `@()`**: as a comma-separated list of values wrapped in `@()` and then store that in a variable.
 
 
 ```ps
 $Fruits = "Apple", "Banana", "Orange", "Grape"
+$Fruits = @("Apple", "Banana", "Orange", "Grape")
 
-# indexed base access
+# indexed based access
 $Fruits[0] 
 
 # appending element to array
 $Fruits += "Passionfruit"
 ```
+
+
+
+
+![](https://i.imgur.com/BpCbFwx.jpeg)
+
+#### `Array` class
 
 Here are the properties on the underlying `Array<T>` class
 
@@ -526,7 +582,18 @@ Write-Host "The variable 'Age' is" $Age.GetType().Name
 
 #### Casting
 
-You can cast variables to another data type like so:
+Powershell handles automatic type conversion, converting narrower types to broader types by default, like int to double, called **implicit conversion**
+
+For cases where you need **explicit conversion**, like when converting a broad type to a narrower type, you can do so via casting by forcing conversion using type accelerators.
+
+Here are the different type accelerators you have access to:
+
+- `[Double]$variableName`: cast to a double
+- `[Float]$variableName`: cast to a float
+- `[Boolean]$variableName`: cast to a boolean
+- `[Int]$variableName`: cast to an int
+- `[String]$variableName`: cast to a string
+
 
 ```ps
 $Price = "19.99"
@@ -535,11 +602,15 @@ $Price = "19.99"
 $AfterTaxPrice = [Double]$Price + 1.68
 ```
 
-Here are the main primitive data types you can do for casting:
 
-- `[Double]$variableName`: cast to a double
-- `[Int]$variableName`: cast to an int
-- `[String]$variableName`: cast to a string
+```ps
+# Ensuring the right data types for variables
+[int32]$var #Displays single number e.g. 1
+[float]$var #Displays number with decimal e.g. 1.2
+[string]$var #Displays text value e.g. 1.2
+[boolean]$var #Displays either true or false e.g. True
+[datetime]$var #Displays a date e.g. "Thursday, January 2, 2020 12:00:00 AM" 
+```
 
 #### `New-Variable`, `Set-Variable`, and `Remove-Variable`
 
@@ -583,6 +654,9 @@ Here are the options you have available:
 > [!IMPORTANT]
 > For all these cmdlets that work under the hood of variable management, you DO NOT refer to variables with the `$` prefix.
 
+#### `Get-Variable`
+
+`Get-Variable` lists all the variables in the session, and then you can further scope it down with named parameters to find specific variables
 #### Readonly vs const
 
 To create a **readonly** variable where you cannot overwrite it, you should create a variable using the `New-Variable` cmdlet and pass the `-Option Readonly` flag:
@@ -678,13 +752,66 @@ Here are the different available environment variables:
 ### Scopes
 
 In PowerShell, scopes define the visibility and lifetime of variables, functions, and modules within your session or scripts. Here are the main scopes:  
+
+![](https://i.imgur.com/qiHsaD0.jpeg)
+
   
 
-- **Global scope:** The top-level scope for the entire PowerShell session. Variables and functions here are accessible anywhere in the session.
-- **Local scope:** The current scope, such as inside a function or script. Variables defined here are only accessible within that scope.
-- **Script scope:** Applies to the entire script file. Variables and functions defined here are accessible anywhere within the script but not outside it.
-- **Private scope:** Used to restrict variables or functions so they are only accessible within the current scope and not inherited by child scopes.
+- **Global scope:** The top-level scope for the entire PowerShell session. *Variables and functions here are accessible anywhere in the session.*
+- **Local scope:** The current scope, such as inside a function or script. *Variables defined here are only accessible within that scope.*
+- **Script scope:** Applies to the entire script file. *Variables and functions defined here are accessible anywhere within the script but not outside it*.
+- **Private scope:** Used to restrict variables or functions so they are only accessible *within the current scope and not inherited by child scopes*.
 
+#### Global scope
+
+To create a global-scoped variable, create a variable under the `$global:` object namespace, like so:
+
+1. Create the global variable within a powershell script
+
+```ps
+$global:globalVar = "global var"
+```
+
+2. After running the script, that variable is now "exported" into the current shell session
+
+```ps
+Write-Host $global:globalVar
+```
+
+#### Local scope
+
+Local scope is the default of how you think variables should act:
+
+```ps
+$localVar = "in script body"
+
+function localScope {
+	$localVar = "in function body"
+	Write-Host $localVar
+}
+```
+
+#### Script scope
+
+Script scoped variables act like global variables within the context of the script, but are not exported into the current shell session after running the script.
+
+Script-scoped variables are namespaced under the `$script:` namespace:
+
+```ps
+$script:scriptVar = "global var just in script"
+```
+
+#### Private scope
+
+Private-scoped variables can only be accessed within the scope they are created and not any parent scopes.
+
+If you want variables to be unique a function, create private variables, scoped under the `$private:` namespace
+
+```ps
+function PrivateFun {
+	$private:varPrivate = "private, can't be accessed outside of function body"
+}
+```
 ## Object-oriented powershell
 
 ### Object basics
@@ -713,21 +840,7 @@ For example, piping the output of a list of objects in powershell to the `Get-Me
 Get-Service | Get-Member
 ```
 
-### Object formatting
-
-Object formatting allows you to format and transform lists of objects you get back from a powershell cmdlet:
-
-```powershell
-Get-Service | format-list DisplayName, Status
-Get-Service | format-list *
-Get-Service | Sort-Object -Property status | format-table DisplayName, Status
-```
-
-Here are the different cmdlets you can use to format the data you get back and perform transformations on, and then write the data to stdout, finishing the pipeline:
-
-- `Format-List`: displays list of objects in a list format. It accepts a comma-separated list of object properties to show in the list.
-- `Format-Table`: displays list of objects in a table format. It accepts a comma-separated list of object properties to show in the list.
-
+### Pipeline methods
 
 Here are the transformation cmdlets that work as streams, meaning you can pass their output as stdin to another command down the pipeline
 
@@ -747,17 +860,91 @@ Get-Process | Select-Object CPU
 ```
 
 And you can use this at any point in the pipeline, since it's a producer and consumer.
+
+
+![](https://i.imgur.com/eqOOcAm.jpeg)
+
+#### `Sort-Object` and `Group-Object`
+
+The `Sort-Object` cmdlet sorts the object by a certain property of the object in the pipeline by ascending or descending:
+
+```ps
+Get-Service | Sort-Object -property Status
+```
+
+
+![](https://i.imgur.com/dee9Fbb.jpeg)
+
+#### `Where-Object`
+
+
+![](https://i.imgur.com/sJ2h3OY.jpeg)
+
+Filter streams by piping to the `Where-Object` cmdlet, which accepts an **iteration lambda** as a positional argument:
+
+- `$_` refers to the current element/object iteration
+- The lambda must return a boolean, `$True` to include the element, `$False` to omit it.
+
+
+
+```ps
+Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object CPU
+```
+
+### Object formatting and aggregation
 #### `Format-List` and `Format-Table`
 
+Object formatting allows you to format and transform lists of objects you get back from a powershell cmdlet:
 
-#### `Sort-Object`
+```powershell
+Get-Service | format-list DisplayName, Status
+Get-Service | format-list *
+Get-Service | Sort-Object -Property status | format-table DisplayName, Status
+```
+
+- `Format-List`: displays list of objects in a list format. It accepts a comma-separated list of object properties to show in the list.
+- `Format-Table`: displays list of objects in a table format. It accepts a comma-separated list of object properties to show in the list.
+
+> [!IMPORTANT]
+> The important thing to understand here is that these object formatting commandlets can only come last in the pipeline, after any object filtering or transformation commandlets. 
+
+#### `Measure-Object`
+
+![](https://i.imgur.com/mbZElKC.jpeg)
+
+#### `ForEach-Object`
+
+the `ForEach-Object` cmdlet takes in an iteration lambda as the positional parameter, and then in there you can write as many lines of code as you want to interact with each object in the pipeline.
+
+```ps
+$Fruits | ForEach-Object { Write-Host $_.Count }
+```
+
+### Output
+
+The family of output commands completely end the pipeline, meaning that they can't pipe to any other commands; they are pure consumers.
+
+Here are the different types of `Out-*` cmdlets:
+
+- `Out-File <filepath>`: writes the data from the pipeline to a filepath
+- `Out-GridView`: writes the data from the pipeline to a GUI table you can view, providing a hands-on way to interact, filter, and view the output of a pipeline.
+- `Out-Host`:
+- `Out-Null`: discards the data entirely, like echoing to `/dev/null`
+
+#### `Out-GridView`
+
+Grid view is another way to format objects and then display them in the powershell GUI as a table you can easily filter.
+
+```ps
+Get-Service | Out-GridView
+```
+
 
 ## System commands and interaction
 
 ### Getting operating system info
 
 ### Process management
-
 
 - `Get-Process`: returns a list of processes or a single specific process
 - `Start-Process`: cmdlet to start a specific process.
@@ -771,10 +958,12 @@ Start-Process notepad
 Stop-Process -Name notepad
 ```
 
+#### `Get-Process`
 
+Here are the named parameters you can set:
+
+- `-Name <name>`: gets a single process or a list of processes by a name or pattern. Also a positional parameter.
 ### Service management
-
-- `Get-Service`: returns a list of system services
 
 The `Get-Service` cmdlet returns a list of all **service** objects, where a service represents a process on the machine.
 
@@ -786,7 +975,30 @@ For example, the below command lists all services with their `status` property a
 Get-Service | Where-Object {$_.status -eq "stopped"}
 ```
 
+```ps
+# View the methods for an object
+Get-Service | Get-Member -MemberType 'Method'
 
+# Selecting values from a PowerShell Object
+Get-Service -ServiceName * | Select-Object -Property 'Status','DisplayName'
+
+# Sorting values from Object
+Get-Service -ServiceName * | Select-Object -Property 'Status','DisplayName' |
+    Sort-Object -Property 'Status' -Descending
+    
+# Filtering the objects
+Get-Service * | Select-Object -Property 'Status','DisplayName' |
+Where-Object -FilterScript {$_.Status -eq 'Running' -and $_.DisplayName -like "Windows*" |
+    Sort-Object -Property 'DisplayName' -Descending | Format-Table -AutoSize
+```
+#### Service class and methods
+
+```ps
+# Populate variable with object
+$svc = Get-Service -ServiceName 'Dnscache'
+$svc.Name
+$svc.RequiredServices
+```
 ### Powershell customization
 
 #### UI customization
@@ -875,6 +1087,22 @@ In PowerShell, configuration context scopes determine where modules, settings, o
 - **`Process`:** A temporary scope limited to the current PowerShell session or process; changes here don’t persist after the session ends.
 ### Modules basics
 
+```ps
+# Import the members of a module into the current session
+Import-Module -Name PSDiagnostics
+
+# Import all modules specified by the module path
+Get-Module -ListAvailable | Import-Module
+
+# Import the members of several modules into the current session
+$module = Get-Module -ListAvailable PSDiagnostics, Dism
+Import-Module -ModuleInfo $module
+
+# Restrict module members imported into a session
+Import-Module PSDiagnostics -Function Disable-PSTrace, Enable-PSTrace
+(Get-Module PSDiagnostics).ExportedCommands
+```
+
 #### List modules
 
 Run the `Get-Module` command to see all installed modules.
@@ -882,7 +1110,6 @@ Run the `Get-Module` command to see all installed modules.
 You have these flags:
 
 - `-ListAvailable`: Lists all available modules ready for download.
-
 
 #### Loading and unloading modules
 
@@ -1275,14 +1502,6 @@ $Process | Select-Object ProcessName, Id
 During any point in the pipeline, you can use these flags to transform or filter the stream:
 
 - `-First <n>`: returns only the first `n` objects being streamed in.
-
-#### Pipeline filtering
-
-Filter streams by piping to the `Where-Object` cmdlet (see [[#List filtering]] for more info):
-
-```ps
-Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object CPU
-```
 
 
 #### Pipeline output
