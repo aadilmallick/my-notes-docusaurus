@@ -232,32 +232,7 @@ Here's how to create an alias:
 Get-Alias pwd
 Get-Alias -Definition pwd
 ```
-### Functions
 
-Functions let you extend PowerShell by writing your own reusable commands tailored to your needs. 
-
-We invoke functions the same way as we do cmdlets
-
-> [!NOTE]
-> **functions vs cmdlets**
-> ***
-> PowerShell functions and cmdlets are similar in how you use them—they're both called like commands. However, cmdlets are built-in commands designed for specific tasks, while functions can be created by you to perform custom or more complex operations. 
-> 
-> - **Functions** can bundle multiple commands or logic inside them, giving you flexibility to automate tasks like calculations or processing data.
-> - **cmdlets** are predefined, built-in commands.
-
-You can create functions in powershell with the `function` keyword, like so:
-
-1. Type the `function <functionname>` syntax in the powershell console. 
-2. Then hit enter to start writing the function body, doing `shift + enter` to go into a new line.
-
-```powershell
-function add
-{
-  $add = [int](2+2)
-  write-output "$add"
-}
-```
 
 
 
@@ -759,6 +734,7 @@ You also have these boolean-specific operators:
 
 - `-And`: returns `$True` if both conditions evaluate to `$True`
 - `-Or`: returns `$True` if at least one boolean evaluates to `$True`
+- `-not`: returns `$True` if the operand is false or falsy.
 
 ```ps
 $Age = 22
@@ -769,7 +745,12 @@ $IsRipeForPickin = $Age -gt 18
 $IsFertile = $IsYoung -And $IsRipeForPickin
 
 Write-Host "Is fertile $IsFertile"
+
+$IsHag = -not $IsYoung
 ```
+
+
+
 ### Environment
 
 #### Environment variables
@@ -1091,6 +1072,8 @@ $largeFiles = $fileExtensions | ForEach-Object {
     Get-ChildItem -Path $directory -Filter $_ | Where-Object { $_.Length -gt 1KB }
 }
 ```
+
+
 ### Output
 
 The family of output commands completely end the pipeline, meaning that they can't pipe to any other commands; they are pure consumers.
@@ -1242,7 +1225,7 @@ Select-Object Name, @{Name = "Size (MB)"; Expression = { [math]::Round(\$_.Lengt
 
 ### Custom objects
 
-#### `PSCustomObject` basics
+#### `PSCustomObject`
 
 A PSCustomObject in PowerShell is a flexible way to create your own structured objects with custom properties and methods. It lets you organize data neatly, like creating a table with named columns, which you can then manipulate or pass through your scripts.
 
@@ -1264,6 +1247,58 @@ $people | `
 > [!NOTE]
 > The point of using a PS custom object as opposed to just creating a normal hash table is that a PS custom object gives you type safety and gives you property completion.
 
+You can even nest these objects:
+
+```ps
+# 4. Create Custom Objects with Nested Properties
+# Define a custom object with nested properties
+$company = [PSCustomObject]@{
+    Name     = "TechCorp"
+    Location = [PSCustomObject]@{
+        City    = "Seattle"
+        Country = "USA"
+    }
+    Employees = 500
+}
+
+```
+
+You can also create them in a loop using a `ForEach` loop
+
+```ps
+# Create a Report for Running Services
+$services = Get-Service | Where-Object { $_.Status -eq "Running" }
+$report = foreach ($service in $services) {
+    [PSCustomObject]@{
+        ServiceName = $service.DisplayName
+        Status      = $service.Status
+        StartType   = $service.StartType
+    }
+}
+
+```
+### Object methods
+
+All objects have method versions of the pipeline methods
+
+#### `.Where()` and `.Select()`
+
+Using the **`.Where()` method** is much faster than running data through the pipeline (`| Where-Object`) because it processes the collection entirely in memory at the .NET layer rather than passing objects one by one down a pipeline stream.
+
+Here is how you can filter the array using both the **`.Where()`** and **`.Select()`** methods, which eliminates the pipeline and backticks entirely:
+
+```ps
+$people = @(
+    [PSCustomObject]@{ Name = "Alice"; Age = 25 }
+    [PSCustomObject]@{ Name = "Bob"; Age = 35 }
+    [PSCustomObject]@{ Name = "Charlie"; Age = 28 }
+)
+
+# Faster in-memory filtering and property selection
+$filteredPeople = $people.Where({ $_.Age -gt 30 }).Select({ [PSCustomObject]@{ Name = $_.Name; Age = $_.Age } })
+
+$filteredPeople
+```
 ### Custom classes
 
 #### Custom classes with splatting
@@ -1780,6 +1815,26 @@ To understand how sourcing works, it's also important to understand how it mixes
 Write-Host "Hello World"
 ```
 
+
+#### `Write-Host`
+
+The `Write-Host` cmdlet writes to stdout and accepts stdin as input via powershell pipelines.
+
+The `Write-Host` cmdlet takes in an unlimited amount of parameters of any type and then writes them to the console as strings separated by spaces:
+
+```ps
+$IsFertile = $True
+
+Write-Host "Is fertile" $IsFertile
+```
+
+Here are the options you have available for this cmdlet:
+
+- `-ForegroundColor <color>`: sets the text color of the output in the console.
+- `-BackgroundColor <color>`: sets the background color of the text output in the console.
+
+#### `Read-Host` and `Clear-Host`
+
 - The `Clear-Host` command clears the screen for you
 - The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
 
@@ -1797,28 +1852,20 @@ What's your age?: 22
 Hello, you are 22 years old
 ```
 
-#### `Write-Host`
+#### `Write-Output`
 
-The `Write-Host` cmdlet takes in an unlimited amount of parameters of any type and then writes them to the console as strings separated by spaces:
+The `Write-Output` cmdlet writes to the pipeline stdout, meaning you can store the contents of `Write-Output` in a variable or forward it along the pipeline.
 
-```ps
-$IsFertile = $True
+#### `Write-Warning`
 
-Write-Host "Is fertile" $IsFertile
-```
+The `Write-Warning` cmdlet is the same thing as `Write-Host`, but different semantics.
 
-Here are the options you have available for this cmdlet:
+#### `Write-Error`
 
-- `-ForegroundColor <color>`: sets the text color of the output in the console.
-- `-BackgroundColor <color>`: sets the background color of the text output in the console.
-
-The `Write-Host` cmdlet writes to stdout and accepts stdin as input via powershell pipelines.
+The `Write-Error` cmdlet writes to stderr, creating a new error that then gets stored in the `$Error` variable.
 
 
-
-
-
-### Conditional logic
+### Conditional logic and loops
 
 #### If/else
 
@@ -1833,9 +1880,110 @@ Else {
 }
 ```
 
+You also have `If`, `ElseIf` and `Else`
+
+```ps
+$Choice = Read-Host "Enter a number (1-3)"
+
+If ($Choice -eq 1) {
+    Write-Host "You chose option 1"
+} ElseIf ($Choice -eq 2) {
+    Write-Host "You chose option 2"
+} ElseIf ($Choice -eq 3) {
+    Write-Host "You chose option 3"
+} Else {
+    Write-Host "Invalid choice"
+}
+```
+
+#### Switch
+
+```ps
+$Choice = Read-Host "Enter a number (1-3)"
+
+Switch ($Choice) {
+    1 { Write-Host "You chose option 1" }
+    2 { Write-Host "You chose option 2" }
+    3 { Write-Host "You chose option 3" }
+    Default { Write-Host "Invalid choice" }
+}
+```
+
+#### For loop
+
+```ps
+For ($i=1; $i -le 10; $i++) {
+	Write-Host "the value of i is $i"
+}
+```
+
+#### `ForEach`
+
+You can also use the `ForEach` loop to loop through an array or object stream in the pipeline to store the output of each iteration element to create a new mapped stream.
+
+Use cases:
+
+- Looping through an array and doing something in it
+- Being a pipeline method able to accept and map object streams
+
+```ps
+$Processes = Get-Process
+
+$to_show = ForEach ($Element in $Processes) {
+	[PSCustomObject]@{
+		Name = $Element.Name
+		Id = $Element.Id
+	}
+}
+```
+
+#### `While` loop
+
+```ps
+$Count = 0
+
+While ($Count -le 10) {
+	# do something
+	$Count++
+}
+```
+
+#### `Break` and `Continue`
+
+Within a `For` or `While` loop, you can use the `Break` or `Continue` statements, which work exactly the way you think they do.
+
+- The **break** statement immediately exits a loop, skipping any remaining iterations and continuing with the code after the loop.
+- The **continue** statement skips the rest of the current loop iteration and moves directly to the next iteration.
+#### Ranges
+
+You can create a range of numbers like so, which creates an array:
+
+```ps
+$count_to_ten = 1..10
+```
+
+Since arrays are just a stream of objects, you can use ranges as producers in the pipeline:
+
+```ps
+1..10 | ForEach-Object {
+	Write-Host "on iteration $_"
+}
+```
 ### Error handling
 
-#### `try/catch`
+#### `$Error` variable
+
+The `$Error` variable is a special variable always available within a powershell session, and it is an array of error objects which stores all errors that have been thrown during the current powershell session.
+
+On each error object, you have these properties:
+
+- `$err.Exception`: returns the exception and message of the error thrown
+
+
+
+#### `try/catch` and throwing errors
+
+In a `try/catch` block, you get access to the individual error thrown through the `$_` variable within the `catch` block, which is an error object.
 
 ```ps
 try {
@@ -1843,30 +1991,95 @@ try {
 }
 catch {
 	# $_ within a catch block stores the current error.
-	$_ | Out-File "C:\temp\errorlog.txt"
+	$_.Exception | Out-File "C:\temp\errorlog.txt"
 }
 ```
+
+You can throw halting errors by using the `Throw` keyword with an error message:
+
+```ps
+try {
+	Throw "never try."
+}
+catch {
+	Write-Host "hope you learned your lesson: $_"
+}
+```
+
+Also, combining commands that may error with `-ErrorAction Stop` when within a `try` block helps by immediately halting execution and then jumping to the `catch` block if an error occurs:
+
+```ps
+try {
+	Get-Item -Path "C:\temp\nonexistentfile" -ErrorAction Stop
+	Write-Host "This never gets reached"
+}
+catch {
+	$_.Exception | Out-File "C:\temp\errorlog.txt"
+}
+```
+
+#### Powershell debugger
+
+1. **Set a breakpoint** at a specific line in your script using `Set-PSBreakpoint -Script <path-to-script> -Line <line-number>`.
+2. **Run your script** normally. When execution reaches the breakpoint, PowerShell enters debug mode and pauses.
+3. In debug mode, you can **inspect variables** by typing their names to see their current values.
+4. Use commands like **`S` (Step)** to execute the next line of code or **`C` (Continue)** to run until the next breakpoint.
+5. To **exit debug mode**, you can close the PowerShell session, which clears breakpoints tied to that session.
+
 ### Functions
 
-Here is how to create functions with parameters:
+Functions let you extend PowerShell by writing your own reusable commands tailored to your needs. 
+
+We invoke functions the same way as we do cmdlets
+
+> [!NOTE]
+> **functions vs cmdlets**
+> ***
+> PowerShell functions and cmdlets are similar in how you use them—they're both called like commands. However, cmdlets are built-in commands designed for specific tasks, while functions can be created by you to perform custom or more complex operations. 
+> 
+> - **Functions** can bundle multiple commands or logic inside them, giving you flexibility to automate tasks like calculations or processing data.
+> - **cmdlets** are predefined, built-in commands.
+
+You can create functions in powershell with the `Function` keyword, like so:
+
+```powershell
+# 1. create the function
+Function add
+{
+  $add = [int](2+2)
+  write-output "$add"
+}
+
+# 2. invoke it
+```
+
+#### Functions with parameters and return statements
+
+- `param($VariableName)`: when invoked within a function body, creates a parameter for the function that you can then use in the function body.
+- `Return`: the `Return` statement returns something from the function that you can then use in a pipeline.
+	- The **return** statement exits a function immediately, stopping any further code execution within that function and returning control to the main script.
 
 ```ps
 Function Get-ProcessReport {
+	# 1. define $Name as a parameter the function takes
     param($Name)
 
+	# 2. function body
     $Process = Get-Process -Name $name -ErrorAction SilentlyContinue
-
+	
+	$Result = $null
     If ($Process) {
-        $Process | Select-Object ProcessName, CPU
+        $Result = $Process | Select-Object ProcessName, CPU
     } Else {
-        Write-Host "Process $Name not found"
+        $Result = "Process $Name not found"
     }
+    
+    # 3. return something
+    Return $Result
 }
 
-Get-ProcessReport Notepad
-Get-ProcessReport PowerShell
-Get-ProcessReport Chrome
-
+# 4. invoke with parameter
+$Result = Get-ProcessReport Notepad
 ```
 
 ### Best practices
@@ -1915,13 +2128,28 @@ Beginner script example
 
 The `Get-Date` cmdlet retruns the current date and time in a human readable format.
 
-### `Invoke-WebRequest`
+### HTTP requests
+
+#### `Invoke-WebRequest`
 
 This makes a fetch request and returns back a response object:
 
 ```ps
 Invoke-WebRequest -Uri "https://example.com"
 ```
+
+#### `Invoke-RestMethod`
+
+```ps
+$response = Invoke-RestMethod -Uri "https://typicode.com"
+$customUser = [PSCustomObject]@{
+    UserID = $response.id
+    Name   = $response.name
+    Email  = $response.email
+    City   = $response.address.city
+}
+```
+
 ## Powershell 7 features
 
 PowerShell 7 is designed to coexist with PowerShell 5.1 on the same system without interfering with each other. This is possible because PowerShell 7 installs into a new directory (`%programfiles%\PowerShell\7`), separate from where PowerShell 5.1 is installed. 
