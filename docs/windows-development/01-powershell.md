@@ -203,6 +203,7 @@ Get-Service | Stop-Service -confirm
 `-ErrorAction` is a global flag you can set to control try/catch behavior with a single flag:
 
 - `-ErrorAction SilentlyContinue`: don't exit 1 in case of error, just silently continue
+- `-ErrorAction Stop`: exit 1 in case of error, stop command execution.
 
 
 ### Aliases
@@ -784,11 +785,6 @@ Here are the different available environment variables:
 - `$Env:ComputerName`: the name of the machine you are currently on
 - `$Env:UserName`: the current username you are running powershell in.
 
-#### sourcing scripts
-
-```ps
-. $pathToProfile
-```
 
 ### Scopes
 
@@ -1514,27 +1510,45 @@ To avoid naming ambiguity in case there are multiple loaded modules that have th
 
 ### Execution policies
 
-PowerShell execution policies control which scripts are allowed to run on your system to help protect against running untrusted code. Here are the four main policies:  
+PowerShell execution policies control which scripts are allowed to run on your system to help protect against running untrusted code. 
+
+- Execution policies act as a safety feature to control when scripts can run, helping prevent accidental execution of potentially malicious scripts.
+- Changing execution policies requires administrator privileges for machine-wide settings; users can change policies for their own scope without admin rights.
+- Windows also blocks scripts downloaded from the internet by default, showing a security warning until the file is unblocked manually.
+
+> [!NOTE]
+> You can run commands manually, it's just script execution that's blocked and that you need to change execution policies for.
+
+Here are the four main policies:  
   
 
 - **Restricted**: No scripts are allowed to run. This is the most secure setting and blocks all scripts, including those you create locally.
+	- You can run commands, but not scripts
 - **AllSigned**: Only scripts that are digitally signed by a trusted publisher can run, whether they are local or downloaded.
+	- You can run commands, and scripts only if they are digitally signed.
 - **RemoteSigned** (default): Locally created scripts run without restriction, but scripts downloaded from the internet must be digitally signed.
+	- You can run commands and local scripts
 - **Unrestricted**: All scripts can run regardless of signature. This is risky for production environments and should only be used temporarily for testing.
 
 > [!NOTE]
 > The default policy is `RemoteSigned`, balancing security and usability. 
 
-If you encounter errors running scripts, it’s often due to these policies, and you can change them with the `Set-ExecutionPolicy` command. 
 
-> [!WARNING]
-> Just be cautious, especially with Unrestricted, to avoid security risks.
+#### Getting the current execution policy
 
 To get the current execution policy of PowerShell, use the `Get-ExecutionPolicy` cmdlet
 
 ```powershell
 Get-ExecutionPolicy
 ```
+
+#### Changing the execution policy
+
+If you encounter errors running scripts, it’s often due to these policies, and you can change them with the `Set-ExecutionPolicy` command. 
+
+> [!WARNING]
+> Just be cautious, especially with Unrestricted, to avoid security risks.
+
 
 To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy` cmdlet and then pass in as the argument one of the 4 available execution policies to choose from.
 
@@ -1545,7 +1559,7 @@ Set-ExecutionPolicy restricted
 Here are the additional flags you can set on this cmdlet:
 
 - `-Scope`: how to scope this. accepts these values:
-	- `-CurrentUser`: scope to current windows user
+	- `-CurrentUser`: scope to powershell session, changing the execution policy just for this session. The advantage of this is that now you don't need to run as admin to change the execution policy.
 - `-ExecutionPolicy`: specify the execution pollicy, which you use this flag instead of supplying the parameter if you are using flags.
 - `-Force`: force override
 
@@ -1742,6 +1756,21 @@ Set-Location -Path SharedDrive:
 
 ### Special script variables
 
+### Scripts and environments
+
+#### sourcing scripts
+
+You can source scripts like so, which is called **dot-sourcing**
+
+```ps
+. $pathToPWSHScript
+```
+
+Sourcing a script runs it and then it makes all local variables and functions in the script public in the shell session.
+
+To understand how sourcing works, it's also important to understand how it mixes with variable scopes:
+
+
 
 ### Interacting to console
 
@@ -1818,6 +1847,68 @@ catch {
 }
 ```
 ### Functions
+
+Here is how to create functions with parameters:
+
+```ps
+Function Get-ProcessReport {
+    param($Name)
+
+    $Process = Get-Process -Name $name -ErrorAction SilentlyContinue
+
+    If ($Process) {
+        $Process | Select-Object ProcessName, CPU
+    } Else {
+        Write-Host "Process $Name not found"
+    }
+}
+
+Get-ProcessReport Notepad
+Get-ProcessReport PowerShell
+Get-ProcessReport Chrome
+
+```
+
+### Best practices
+
+Here are the best practices when creating a script:
+
+1. **modularity**: Break large scripts into smaller components (functions, variables, classes/objects, etc.) and then source them for reusability into the main script.
+2. **documentation**: use documentation that's compatible with the `Get-Help` cmdlet.
+3. **error handling**: use try/catch blocks and `-ErrorAction` flag
+4. **validate inputs**: validate inputs to the script and any functions
+5. **avoid hard coding variable values**: accept configuration parameters or read variables from JSON.
+6. **avoid running scripts as admin**: limit the damage that could be done by the script by running as a user, not as admin.
+
+#### Modularity
+
+Break large scripts into smaller components (functions, variables, classes/objects, etc.) and then source them for reusability into the main script.
+
+#### Comments and documentation
+
+On a script, you can create comment blocks that will appear when you use the `Get-Help` cmdlet on your script, which is great for documentation purposes.
+
+```powershell
+<#
+This script prompts the user for a process name,
+checks if it is running, and saves the result to a file.
+#>
+
+<#
+.SYNOPSIS
+Finds a process and saves details to a report file.
+
+.DESCRIPTION
+Prompts the user for a process name. If found, outputs
+the process name and CPU usage to a text file.
+
+.EXAMPLE
+.\process_report.ps1
+
+.NOTES
+Beginner script example
+#>
+```
 ## Other commands
 
 ### `Get-Date`
