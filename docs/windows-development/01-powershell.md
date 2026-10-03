@@ -49,14 +49,55 @@ There are two types of parameters you can pass to a cmdlet in order to make it a
 
 #### Parameter sets
 
-In PowerShell, a parameter set is a way for a single cmdlet to support different groups of parameters for various related tasks. E
+In PowerShell, a parameter set is a way for a single cmdlet to support different groups of parameters for various related tasks. 
 
 Each parameter set defines a unique combination of parameters that can be used together, ensuring only valid parameter combinations are accepted. 
 
 - This design helps reduce errors and makes cmdlets more flexible and user-friendly. 
 - For example, the Get-EventLog cmdlet uses different parameter sets to query events by log name or event ID, allowing you to perform different queries with the same command but different parameters.
 
+#### Backticks
 
+Backticks are used for line continuation in long commands.
+
+```ps
+# Backticks (`) for Line Continuation
+Get-Process -Name `
+    "notepad", `
+    "powershell"
+```
+
+#### Splatting
+
+In PowerShell, splatting is a technique that lets you group multiple parameters into a single variable (usually a hash table or array) and then pass them all at once to a cmdlet or function using the `@` symbol. 
+
+This makes your scripts cleaner and easier to read, especially when dealing with commands that require many parameters. Instead of writing a long command line with lots of parameters, you define them upfront in a variable and then pass that variable to the command.
+
+Instead of:
+
+```ps
+Get-Process -Name "notepad", "powershell"
+```
+
+We can just pass a hastable of those same named parameter values to the command:
+
+```ps
+# Splatting
+$params = @{
+    Name = "notepad"
+}
+Get-Process @params
+```
+
+```ps
+$processParams = @{
+    Name         = "notepad"
+    ComputerName = "Server01"
+    ErrorAction  = "SilentlyContinue"
+}
+
+Get-Process @processParams
+```
 ### Important cmdlets
 
 #### Getting help
@@ -758,11 +799,55 @@ In PowerShell, scopes define the visibility and lifetime of variables, functions
   
 
 - **Global scope:** The top-level scope for the entire PowerShell session. *Variables and functions here are accessible anywhere in the session.*
+	- Variables defined here are accessible anywhere—across scripts, functions, and commands—throughout the session. 
+	- This is useful for sharing data widely but requires caution to avoid accidental changes that can cause bugs.
 - **Local scope:** The current scope, such as inside a function or script. *Variables defined here are only accessible within that scope.*
+	- This is the default scope inside functions or script blocks. 
+	- Variables here are only accessible within that specific function or block, preventing interference with variables elsewhere. 
 - **Script scope:** Applies to the entire script file. *Variables and functions defined here are accessible anywhere within the script but not outside it*.
+	- Variables in this scope are accessible anywhere within the same script file but not outside it. 
+	- This allows sharing data between functions in a script without exposing it globally, helping organize script-level data.
 - **Private scope:** Used to restrict variables or functions so they are only accessible *within the current scope and not inherited by child scopes*.
+	- This restricts variable access strictly to the current function or block, not even allowing child functions to access them. 
+	- It's ideal for protecting variables from unintended modifications, ensuring data integrity within tightly controlled sections of code.
+
+There are two extremely important rules to keep in mind:
+
+1. PowerShell follows a hierarchy where inner scopes can access variables from outer scopes, but outer scopes cannot see inner scope variables. 
+2. Child scopes inherit copies of parent variables, so changes in child scopes don't affect the parent unless explicitly specified with `$global:`, `$script:`, or `$private:` to override.
+3. Scope precedence affects which variable value is used when names conflict, and the order is as follows from highest precendence to lowest precendence:
+
+```
+local > private > script> global
+```
+
+
+Here is an example of using these variables:
+
+- **global variables**: global variables are declared with the `$global:` namespace prefix
+- **script variables**: script variables are declared with the `$script:` namespace prefix
+- **private variables**: private variables are declared with the `$private:` namespace prefix
+
+
+```ps
+$global:varGlobal = "Global"
+$script:varScript = "Script"
+
+function Test-Scope {
+    $localVar = "Local"
+    $private:varPrivate = "Private"
+    Write-Host "Inside Function: $varGlobal, $varScript, `
+    $localVar, $varPrivate"
+}
+
+Test-Scope
+
+Write-Host "Outside Function: $varGlobal, $varScript"
+```
 
 #### Global scope
+
+Global variables defined within a script become available in the general powershell session and are able to be accessed from any script, function, or other command that is subsequently run within the same session.
 
 To create a global-scoped variable, create a variable under the `$global:` object namespace, like so:
 
@@ -778,9 +863,19 @@ $global:globalVar = "global var"
 Write-Host $global:globalVar
 ```
 
+
+
+![](https://i.imgur.com/EJfqNjw.jpeg)
+
+- **pro**: useful for sharing data across functions and scripts
+- **con**: can lead to unintended modifications and harder to debug
 #### Local scope
 
-Local scope is the default of how you think variables should act:
+
+![](https://i.imgur.com/PerOP3i.jpeg)
+
+
+Local scope is the default of how you think variables should act, where variables defined within a block are scoped to that block and child scopes.
 
 ```ps
 $localVar = "in script body"
@@ -791,6 +886,7 @@ function localScope {
 }
 ```
 
+- **pro - better memory management**: local variables live only in the execution context for a block or function, so they get automatically deallocated once the scope completes.
 #### Script scope
 
 Script scoped variables act like global variables within the context of the script, but are not exported into the current shell session after running the script.
@@ -798,12 +894,25 @@ Script scoped variables act like global variables within the context of the scri
 Script-scoped variables are namespaced under the `$script:` namespace:
 
 ```ps
-$script:scriptVar = "global var just in script"
+$script:counter = 0
+
+function Increment {
+	$script:counter++
+	Write-Host "Counter: $script:counter"
+}
 ```
+
+
+
+![](https://i.imgur.com/VzqDONe.jpeg)
 
 #### Private scope
 
-Private-scoped variables can only be accessed within the scope they are created and not any parent scopes.
+Private-scoped variables can only be accessed within the scope they are created and not any parent or child scopes.
+
+> [!NOTE]
+> The ideal use case for private scopes is for when you want to contain variable usage strictly within a function, preventing other scopes or child scopes from modifying or accessing that variable.
+> 
 
 If you want variables to be unique a function, create private variables, scoped under the `$private:` namespace
 
@@ -812,6 +921,11 @@ function PrivateFun {
 	$private:varPrivate = "private, can't be accessed outside of function body"
 }
 ```
+
+
+
+
+![](https://i.imgur.com/qFHAOew.jpeg)
 ## Object-oriented powershell
 
 ### Object basics
@@ -840,6 +954,29 @@ For example, piping the output of a list of objects in powershell to the `Get-Me
 Get-Service | Get-Member
 ```
 
+You have different member types:
+
+- **Properties:** These are data attributes that describe the object, like a process's ID or name.
+- **Methods:** These are actions the object can perform, such as starting or stopping a process.
+- **Events:** These are triggers related to the object that you can respond to.
+- **Types:** This indicates the class or category the object belongs to.
+
+#### Adding new members
+
+You can dynamically add new members on objects like so, and you can do this for any object in powershell:
+
+```ps
+# 10. Dynamic Members of PSObjects
+# Add a dynamic member to a custom object and inspect it
+$obj = [PSCustomObject]@{ Name = "Dynamic"; Type = "Object" }
+
+Add-Member -InputObject $obj `
+ -MemberType NoteProperty `
+ -Name "NewProperty" -Value "Value" `
+ $obj | Get-Member
+```
+
+
 ### Pipeline methods
 
 Here are the transformation cmdlets that work as streams, meaning you can pass their output as stdin to another command down the pipeline
@@ -864,17 +1001,46 @@ And you can use this at any point in the pipeline, since it's a producer and con
 
 ![](https://i.imgur.com/eqOOcAm.jpeg)
 
+You can also create **computed properties** with `Select-Object` via **expressions**, which allow you to create a new *column* or *computed property* based on the properties of the object in the stream.
+
+For example:
+
+```ps
+Get-ChildItem -Path "C:\temp" | Select-Object Name, Status, `
+	@{
+		# name of column
+		Name="NewComputedColumn - Size in MB"
+		# value to give for field in column
+		Expression = { 
+			[math]::Round($_.Length / 1MB, 2) 
+		}
+	}
+```
+
+This creates a new computed column on the data returned by `Select-Object`, calculated with the iteration lambda from the `Expression` object property.
 #### `Sort-Object` and `Group-Object`
 
 The `Sort-Object` cmdlet sorts the object by a certain property of the object in the pipeline by ascending or descending:
 
 ```ps
-Get-Service | Sort-Object -property Status
+Get-Service | Sort-Object -Property Status -Descending
 ```
+
+- `-Property <propertyName>`: the property name of the object to sort on
+- `-Descending`: if applied, sorts in descending order
+- `-Ascending`: if applied, sorts in ascending order
 
 
 ![](https://i.imgur.com/dee9Fbb.jpeg)
+Here is an example of using `Group-Object`, which returns a list of objects with a `Name` and `Count` property:
 
+- `Name`: name of the group. In the example below, the value of the `Service.Status` property will be the group name.
+- `Count`: count of the group members.
+
+```ps
+# Grouping Data with Group-Object - Group services by their status
+Get-Service | Group-Object Status | Select-Object Name, Count
+```
 #### `Where-Object`
 
 
@@ -885,12 +1051,11 @@ Filter streams by piping to the `Where-Object` cmdlet, which accepts an **iterat
 - `$_` refers to the current element/object iteration
 - The lambda must return a boolean, `$True` to include the element, `$False` to omit it.
 
-
-
 ```ps
 Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object CPU
 ```
 
+=
 ### Object formatting and aggregation
 #### `Format-List` and `Format-Table`
 
@@ -920,6 +1085,16 @@ the `ForEach-Object` cmdlet takes in an iteration lambda as the positional param
 $Fruits | ForEach-Object { Write-Host $_.Count }
 ```
 
+You can also use it to store mapped results, storing the result of the pipeline:
+
+```ps
+$directory = "C:\temp"
+
+# Store the pipeline output in a variable
+$largeFiles = $fileExtensions | ForEach-Object {
+    Get-ChildItem -Path $directory -Filter $_ | Where-Object { $_.Length -gt 1KB }
+}
+```
 ### Output
 
 The family of output commands completely end the pipeline, meaning that they can't pipe to any other commands; they are pure consumers.
@@ -939,6 +1114,191 @@ Grid view is another way to format objects and then display them in the powershe
 Get-Service | Out-GridView
 ```
 
+### Pipelines
+
+Pipelines in powershell are a mechanism for passing the output of one command as an input to another via the `|` character, by streaming objects from one command to another.
+
+> [!NOTE]
+> The difference is that powershell pipelines allow streaming objects as stdin and stdout, and since every primitive data type is under the hood an object, you can have any type of variable be used as stdin or stdout in a pipeline.
+
+Based on object streaming capabilities, are two types of commands in powershell:
+
+- **accepts pipeline input**: able to accept pipeline input, meaning it can be piped to and then consume the stream
+	- Example: `Write-Host` or `Format-Table`
+- **accepts pipeline input and outputs to pipeline**: can be at any point in the pipeline.  
+
+
+
+![](https://i.imgur.com/0PCdxzD.jpeg)
+Here is how pipelines work:
+
+1. Cmdlets output data as a stream of objects
+2. Objects are passed to the next cmdlet in the pipeline, which can filter, sort, or transform the stream of objects.
+3. Each cmdlet processes objects as they are received.
+
+
+![](https://i.imgur.com/BuZo3kY.jpeg)
+
+Here's a complete pipeline example:
+
+1. Loop through the `$fileExtensions` array, map it to a list of files in the `C:\temp` directory that end in the current file extension specified by `$_`, filtered further to if the file specified by `$_` is greater than 1 kilobyte.
+2. From that list of filtered files, select only the name, length, and last modified time, then export that into a CSV.
+
+```powershell
+$directory = "C:\Temp"
+$fileExtensions = @("*.txt", "*.csv", "*.log")
+$outputFile = "C:\Temp\FilteredFiles.csv"
+
+# Capture and export the results
+$fileExtensions | ForEach-Object {
+    Get-ChildItem -Path $directory -Filter $_ | Where-Object { $_.Length -gt 1KB }
+} | Select-Object Name, Length, LastWriteTime | Export-Csv -Path $outputFile -NoTypeInformation
+
+Write-Output "Filtered file list saved to $outputFile"
+```
+#### Input and output basics
+
+Using the `Write-Output` cmdlet writes data to the pipeline stream which you can then use for piping to other commands as stdin.
+
+> [!NOTE]
+> The difference of `Write-Output` and `Write-Host` is that under the hood, `Write-Output` creates an object that can then be piped into other commands, will `Write-Host` ends the stream/pipeline by writing to stdout.
+
+Here is an example showcasing the differences between the two:
+
+![](https://i.imgur.com/OuBkFJJ.jpeg)
+
+
+- `Write-Host` doesn't return anything. It just writes to stdout and accepts stdin
+- `Write-Output` returns a `String` object instance which you can store in a variable.
+
+For cmdlets like `Write-Host` which write to stdout and are pipeline consumers, not producers, you can pipe stdin to them.
+
+Since stdin as per powershell pipelines is any object, that means you can pipe variables as stdin to `Write-Host` and similar cmdlets:
+
+```ps
+$Result = "Hello world"
+
+$Result | Write-Host
+```
+
+```ps
+$Processes = Get-Process
+
+$Process | Select-Object ProcessName, Id
+```
+#### Pipeline `.take()`
+
+During any point in the pipeline, you can use these flags to transform or filter the stream:
+
+- `-First <n>`: returns only the first `n` objects being streamed in.
+
+#### Common pipeline cmdlets
+
+
+![](https://i.imgur.com/1dIoYAZ.jpeg)
+
+- `Where-Object`: allows you to filter each object in the stream via a predicate and choose whether to keep it in or omit it from the pipeline
+- `ForEach-Object`: allows you to execute commands on each item individually in the pipeline via iteration
+- `Select-Object`: allows you to pick only certain properties from the objects in the stream, creating shallow copies with only those properties
+- `Sort-Object`: organizes objects based on their properties in ascending or descending order.
+
+**filtering and iteration**
+
+
+![](https://i.imgur.com/oTbdgrM.jpeg)
+
+
+```ps
+Get-ChildItem -Path C:\Logs | `
+    Where-Object { $_.Length -gt 100KB } | `
+    ForEach-Object { \$_.FullName }
+```
+
+
+
+#### Pipeline output
+
+
+```powershell
+Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
+```
+
+These commands accept stdin from pipelines and are consumers, meaning they end the pipeline, consuming it completely.
+
+
+Here are the different commands you have and how to use them you pipe to them as pipeline consumers:
+
+- `Write-Host`: writes stdin to stdout.
+- `Out-File <filepath>`: this cmdlet accepts an output filepath to write the incoming data to. It has these flags:
+	- `-Append`: if set, then appends to the existing file rather than overwriting it.
+- `Export-Csv <filepath>`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
+
+#### Pipeline examples
+
+```ps
+# 5. Sort Large Files by Size
+# Sort files larger than 1 MB by size in descending order
+Get-ChildItem -Path C:\Temp -Recurse | `
+Where-Object { \$_.Length -gt 1KB } | `
+Sort-Object -Property Length -Descending | `
+Select-Object Name, @{Name = "Size (MB)"; Expression = { [math]::Round(\$_.Length / 1MB, 2) }}
+```
+
+### Custom objects
+
+#### `PSCustomObject` basics
+
+A PSCustomObject in PowerShell is a flexible way to create your own structured objects with custom properties and methods. It lets you organize data neatly, like creating a table with named columns, which you can then manipulate or pass through your scripts.
+
+The `PSCustomObject` class is the equivalent of **dataclasses** in Python. Basically, you can create an object that automatically has the methods `.equals()`, `.toString()`, etc.
+
+```ps
+$people = @(
+    [PSCustomObject]@{ Name = "Alice"; Age = 25 }
+    [PSCustomObject]@{ Name = "Bob"; Age = 35 }
+    [PSCustomObject]@{ Name = "Charlie"; Age = 28 }
+)
+
+$people | `
+    Where-Object { $_.Age -gt 30 } | `
+    Select-Object Name, Age
+
+```
+
+> [!NOTE]
+> The point of using a PS custom object as opposed to just creating a normal hash table is that a PS custom object gives you type safety and gives you property completion.
+
+### Custom classes
+
+#### Custom classes with splatting
+
+If we want something more robust than splatting, we can create a custom class and then create an object instance for that and use that type-safe object instance as the params hashtable for splatting:
+
+1. Create the custom class intended to hold named parameter values for the cmdlet you want to run
+
+```ps
+class ProcessParams {
+	[string[]]$Name
+}
+```
+
+2. Create an object instance from that custom class, cast it to the class type
+
+```ps
+$params = [ProcessParams]@{
+	Name = @("svchost", "msedge")
+}
+```
+
+3. Use it with splatting or normal named parameter passing
+
+```ps
+# named parameter passing
+Get-Process -Name $params.Name
+
+# splatting
+Get-Process @params
+```
 
 ## System commands and interaction
 
@@ -1039,11 +1399,7 @@ To reset to the current prompt, just remove the `prompt` function from the curre
 ```ps
 Remove-Item Function:prompt
 ```
-## Other commands
 
-### `Get-Date`
-
-The `Get-Date` cmdlet retruns the current date and time in a human readable format.
 
 ## Modules
 
@@ -1384,6 +1740,9 @@ Set-Location -Path SharedDrive:
 ```
 ## Powershell scripting
 
+### Special script variables
+
+
 ### Interacting to console
 
 - The `Write-Host` cmldet takes a string parameter and then echoes it to the string:
@@ -1445,81 +1804,33 @@ Else {
 }
 ```
 
+### Error handling
+
+#### `try/catch`
+
+```ps
+try {
+	Get-Item -Path "C:\temp\nonexistentfile"
+}
+catch {
+	# $_ within a catch block stores the current error.
+	$_ | Out-File "C:\temp\errorlog.txt"
+}
+```
 ### Functions
-### Pipelines
+## Other commands
 
-Pipelines in powershell allow you to create scripts that read from stdin and then write to stdout.
+### `Get-Date`
 
-> [!NOTE]
-> The difference is that powershell pipelines allow streaming objects as stdin and stdout, and since every primitive data type is under the hood an object, you can have any type of variable be used as stdin or stdout in a pipeline.
+The `Get-Date` cmdlet retruns the current date and time in a human readable format.
 
-PowerShell pipelines let you chain commands together so the output of one command (an object) becomes the input for the next.
+### `Invoke-WebRequest`
 
-There are two types of commands in powershell:
-
-- **accepts pipeline input**: able to accept pipeline input, meaning it can be piped to and then consume the stream
-	- Example: `Write-Host` or `Format-Table`
-- **accepts pipeline input and outputs to pipeline**: can be at any point in the pipeline.  
-
-You can pipe output from one command to the next command as input via the pipe operator `|`:
-
-```powershell
-get-service | out-file c:\services.txt
-```
-
-#### Input and output basics
-
-Using the `Write-Output` cmdlet writes data to the pipeline stream which you can then use for piping to other commands as stdin.
-
-> [!NOTE]
-> The difference of `Write-Output` and `Write-Host` is that under the hood, `Write-Output` creates an object that can then be piped into other commands, will `Write-Host` ends the stream/pipeline by writing to stdout.
-
-Here is an example showcasing the differences between the two:
-
-![](https://i.imgur.com/OuBkFJJ.jpeg)
-
-
-- `Write-Host` doesn't return anything. It just writes to stdout and accepts stdin
-- `Write-Output` returns a `String` object instance which you can store in a variable.
-
-For cmdlets like `Write-Host` which write to stdout and are pipeline consumers, not producers, you can pipe stdin to them.
-
-Since stdin as per powershell pipelines is any object, that means you can pipe variables as stdin to `Write-Host` and similar cmdlets:
+This makes a fetch request and returns back a response object:
 
 ```ps
-$Result = "Hello world"
-
-$Result | Write-Host
+Invoke-WebRequest -Uri "https://example.com"
 ```
-
-```ps
-$Processes = Get-Process
-
-$Process | Select-Object ProcessName, Id
-```
-#### Pipeline flags
-
-During any point in the pipeline, you can use these flags to transform or filter the stream:
-
-- `-First <n>`: returns only the first `n` objects being streamed in.
-
-
-#### Pipeline output
-
-
-```powershell
-Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
-```
-
-These commands accept stdin from pipelines and are consumers, meaning they end the pipeline, consuming it completely.
-
-
-Here are the different commands you have and how to use them you pipe to them as pipeline consumers:
-
-- `Write-Host`: writes stdin to stdout.
-- `Out-File <filepath>`: this cmdlet accepts an output filepath to write the incoming data to. It has these flags:
-	- `-Append`: if set, then appends to the existing file rather than overwriting it.
-- `Export-Csv <filepath>`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
 ## Powershell 7 features
 
 PowerShell 7 is designed to coexist with PowerShell 5.1 on the same system without interfering with each other. This is possible because PowerShell 7 installs into a new directory (`%programfiles%\PowerShell\7`), separate from where PowerShell 5.1 is installed. 
