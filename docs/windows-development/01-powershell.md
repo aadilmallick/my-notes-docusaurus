@@ -1542,6 +1542,11 @@ To avoid naming ambiguity in case there are multiple loaded modules that have th
 <ModuleName>\<CommandName>
 ```
 
+To find all the commands/functions a module exposes, you can list them with the `Get-Command` cmdlet with the `-Module` named parameter:
+
+```bash
+Get-Command -Module PSReadLine
+```
 
 ### Execution policies
 
@@ -2076,7 +2081,7 @@ Function add
 # 2. invoke it
 ```
 
-#### Functions with parameters and return statements
+What if you want to add parameters and return statements:
 
 - `param($VariableName)`: when invoked within a function body, creates a parameter for the function that you can then use in the function body.
 - `Return`: the `Return` statement returns something from the function that you can then use in a pipeline.
@@ -2104,6 +2109,75 @@ Function Get-ProcessReport {
 # 4. invoke with parameter
 $Result = Get-ProcessReport Notepad
 ```
+
+#### Functions with parameters
+
+There are two ways to declare functions with parameters in powershell
+
+- **Method 1 - inline parameters in function signature**: easier to understand
+- **Method 2 - declared with `param()` block**
+
+
+
+![](https://i.imgur.com/pOkC9cC.jpeg)
+
+
+When defining the parameters with the `param(...$VariableName)` function, you have two additional things you can do:
+
+- **explicit type casting**: add type hintings to the parameter via type accelerators:
+
+```ps
+function Hello {
+	# string parameter $Name
+	param([string]$Name)
+	
+	Write-Host "Hello $Name"
+}
+
+Hello "Aadil"
+Hello -Name "Aadil"
+```
+
+- **default values**: add default values for the parameter variables by assigning them a value instead of just declaring them
+
+```ps
+function Hello {
+	param($Name = "Aadil")
+
+	Write-Host "Hello $Name"
+}
+```
+
+- **multiple parameters**: you can add as many parameters as you want
+
+```ps
+function Add {
+	param([int]$x, [int]$y)
+	
+	Return $x + $y
+}
+
+function Get-EvenNumbersInRange {
+	param([int]$start, [int]$end)
+	
+	$start..$end | Where-Object { $_ % 2 -eq 0 }
+}
+```
+
+When invoking functions with parameters, you can also pass in named parameters instead of just using them positionally:
+
+
+![](https://i.imgur.com/heSbOnk.jpeg)
+
+#### Naming conventions and best practices
+
+The best practice naming conventions for functions is as follows:
+
+- **camelCase**: for private or helper functions
+- **Pascal-Case**: for public functions
+
+
+![](https://i.imgur.com/lMByAKR.jpeg)
 
 ### Best practices
 
