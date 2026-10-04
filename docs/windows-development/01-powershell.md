@@ -1609,13 +1609,36 @@ Before we can create custom modules, we have to understand module internals:
 - **private functions**: private functions internal to the module, can't be used after loading a module
 - **public functions**: functions exposed publicly and are accessible after loading the module.
 
-You can create your own modules by creating `.psm1` files (stands for ps1 module files) and then bundling functions and exporting them with `Export-ModuleMember`, allowing reuse and sharing across systems.
+You can create your own modules by creating `.psm1` files (stands for ps1 module files) within the **powershell modules** directory, which you can get the directory path for via the `$ENV:PSModulePath` variable.
 
-Here is how to create a custom module:
+That file will then declare functions and export them with the `Export-ModuleMember` cmdlet, allowing reuse and sharing across systems.
 
-1. Create a file with the `.psm1` extension and then create a bunch of powershell functions
-2. Export the functions you want to make public by using the `Export-ModuleMember` cmdlet with the `-Function` option, which takes in an array of functions
+So here are the generic steps to create and use the custom module:
 
+1. Inside the `$ENV:PSModulePath` directory, create a subfolder and then within that subfolder create a file named the same as that subfolder but with the `.psm1` file extension.
+2. Create functions in that file.
+3. Export the specific functions you want to make public by using the `Export-ModuleMember` cmdlet with the `-Function` option, which takes in an array of functions
+4. Import the module via the module name
+
+Here is how to create a custom module example:
+
+1. Inside the `$ENV:PSModulePath` directory, create a `greetings` subdirectory (choose the name for the module)
+2. Create a `greetings.psm1` file with the `.psm1` extension (module file name must be same as module directory) and then create a bunch of powershell functions
+
+```ps title="greetings.psm1"
+Function Say-Hello {
+	param($Name)
+	
+	Write-Host "Hello, $Name"
+}
+```
+
+3. If you don't want to export everything, then export the specific functions you want to make public by using the `Export-ModuleMember` cmdlet with the `-Function` option, which takes in an array of functions.
+4. Import the module to use the functions from it.
+
+```ps
+Import-Module greetings
+```
 
 
 
