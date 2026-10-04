@@ -746,20 +746,6 @@ $IsHag = -not $IsYoung
 
 
 
-### Environment
-
-#### Environment variables
-
-Environment variables are under the `$Env` object variable, and you can access variable properties on `$Env` as if it were a Python dict by using `:` like a `.`:
-
-```ps
-Write-Host "You are on $Env:ComputerName"
-```
-
-Here are the different available environment variables:
-
-- `$Env:ComputerName`: the name of the machine you are currently on
-- `$Env:UserName`: the current username you are running powershell in.
 
 
 ### Scopes
@@ -1801,22 +1787,159 @@ Remove-Item -Path "C:\Temp\node_modules" -Recurse -Force
 - `-Recurse`: same as `rm -r`
 - `-Force`: same as `rm -f`
 
+##### View file info
+
+```ps
+Get-Item -Path "C:\Temp\temp.txt"
+```
+
+##### Renaming files
+
+```ps
+Rename-Item -Path <oldpath> -NewName <newpath>
+```
+
+##### Change file properties
+
+You can change the attributes of a file using the `Set-ItemProperty` cmdlet.
+
+**making file readonly**
+
+```ps
+Set-ItemProperty -Path "Example.txt" -Name IsReadOnly -Value $True
+```
+
+**hide a file**
+
+This is how you make a file hidden in the filesystem when listing files:
+
+```ps
+Set-ItemProperty -Path "Example.txt" -Name Attributes -Value Hidden
+```
+
+And to unhide it, change the file attributes value to "normal"
+
+```ps
+Set-ItemProperty -Path "Example.txt" -Name Attributes -Value Normal
+```
+
 #### File content
 
+> [!NOTE]
+> Something even easier than this is using the `Out-File` pipeline consumer method to write or append to a file.
+
 ##### Reading file content
+
+The `Get-Content` cmdlet returns an object stream of the content in the node you want to read. 
+
+In this specific case, it returns a list of strings, each element corresponding to one line in the file sequentially.
+
+- `-Path <filepath>`: the filepath to the file whose content you want to read
 
 ```ps
 Get-Content -Path "C:\Temp\temp1.txt"
 ```
 
-- `-Path <filepath>`: the filepath to the file whose content you want to read
+Here is another way to loop through all the lines of a file:
 
+```ps
+$FileContent = Get-Content -Path "Myfile.txt"
+$Lines = ($FileContent | Measure-Object -Line).Lines
+$Range = 1..$Lines
+
+$Range | ForEach-Object {
+	Write-Host "Line $_ :" $FileContent[$_]
+}
+```
 ##### Adding file content
 
+This overwrites a file or creates it and then writes to it.
 
+```ps
+"Some file content" | Out-File "temp.txt"
+```
 
+This appends to a file:
 
+```ps
+"Some file content" | Out-File "temp.txt" -Append
+```
+
+##### Searching file content
+
+Use the `Select-String` provider cmdlet, which lets us find a regex match within a string or node content, requires these params:
+
+- `-Path <filepath>`: the filepath to retrieve the file content from
+- `-Pattern <pattern>`: regex or string pattern
+- `-CaseSensitive:<boolean>`: whether to set case sensitive search to true or false.
+
+This cmdlet returns a string array of matches where each match object has these properties:
+
+- `$match.LineNumber`: returns the line number of the match within the file
+- `$match.Line`: returns the content of the matching line within the file
+
+```ps
+# Prompt the user for a phrase to search
+$SearchPhrase = Read-Host "Enter the phrase you want to search for"
+
+# Specify the file to search
+$FilePath = "MyFile.txt"
+
+# Search for the phrase in the file
+$Matches = Select-String -Path $FilePath -Pattern $SearchPhrase `
+-CaseSensitive:$False
+
+# Check if any matches were found
+If ($Matches) {
+    Write-Host
+    Write-Host "Total Matches Found: " ($Matches).count
+    Write-Host
+    Write-Host "Found the phrase '$SearchPhrase' in the file. Here are the matching lines:"
+    Write-Host
+    $Matches | ForEach-Object { Write-Host "Line $($_.LineNumber): $($_.Line)" }
+} else {
+    Write-Host "The phrase '$SearchPhrase' was not found in the file."
+}
+
+```
 ### Env provider
+
+The `Env:` drive is a provider that contains environment variables
+
+Environment variables are under the `$Env` object variable, and you can access variable properties on `$Env` as if it were a Python dict by using `:`.
+
+```ps
+Write-Host "You are on $Env:ComputerName"
+
+# creating temporary env var
+$Env:Test = "this is a temporary env var"
+
+# creating permanent env var in current windows user scope
+# requires admin elevated shell session
+[Enviornment]::SetEnvironmentVariable("Key", "Value", "User")
+```
+
+
+#### Different environment variables
+
+Here are the different available environment variables:
+
+- `$Env:ComputerName`: the name of the machine you are currently on
+- `$Env:UserName`: the current username you are running powershell in.
+
+#### Listing environment variables
+
+This lists all environment variables
+
+```ps
+Get-ChildItem Env:
+```
+
+#### Removing environment variables
+
+```ps
+Remove-Item $Env:Test
+```
 
 
 ### Custom providers with PSDrive
@@ -1851,6 +1974,13 @@ Get-PSDrive -Name "SharedDrive"
 
 Set-Location -Path SharedDrive:
 ```
+
+4. Remove the shared drive once you're done with it:
+
+```ps
+Remove-PSDrive -Name SharedDrive
+```
+
 ## Powershell scripting
 
 ### Special script variables
