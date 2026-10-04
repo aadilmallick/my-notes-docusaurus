@@ -934,7 +934,47 @@ Add-Member -InputObject $obj `
  $obj | Get-Member
 ```
 
+##### Adding methods to objects
 
+You can also add methods to custom objects in powershell - let's examing this in detail:
+
+1. invoke `Add-Member` cmdlet to add a `ScriptMethod` member to the object
+2. Name the method `Ping` and give it a value as a callback which executes some powershell code.
+3. In this callback, you get access to all object methods and properties via `this`, which refers to the calling object.
+
+```ps
+# Create an object with basic properties
+$device = [PSCustomObject]@{ Name = "Server01"; IP =
+"192.168.1.100" }
+
+# Add a method to check if the IP is reachable
+$device | Add-Member -MemberType ScriptMethod -Name "Ping" -Value {
+    Test-Connection -ComputerName $this.IP -Count 1 -Quiet
+}
+
+$device.Ping()
+```
+
+Here's another example:
+
+```ps
+# 5. Add a Method for File Operations
+# Create an object with file details and a method to check existence
+$file = [PSCustomObject]@{ Path = "C:\Temp\example.txt" }
+$file | Add-Member -MemberType ScriptMethod -Name "FileExists" -Value {
+    Test-Path $this.Path
+}
+$file.FileExists()
+
+```
+
+```ps
+$person = [PSCustomObject]@{ Name = "Alice"; Age = 30; Email = "alice@example.com" }
+$person | Add-Member -MemberType ScriptMethod -Name "ToJson" -Value {
+    $this | ConvertTo-Json -Depth 2
+}
+$person.ToJson()
+```
 ### Pipeline methods
 
 Here are the transformation cmdlets that work as streams, meaning you can pass their output as stdin to another command down the pipeline
@@ -1055,24 +1095,10 @@ $largeFiles = $fileExtensions | ForEach-Object {
 ```
 
 
-### Output
 
-The family of output commands completely end the pipeline, meaning that they can't pipe to any other commands; they are pure consumers.
 
-Here are the different types of `Out-*` cmdlets:
 
-- `Out-File <filepath>`: writes the data from the pipeline to a filepath
-- `Out-GridView`: writes the data from the pipeline to a GUI table you can view, providing a hands-on way to interact, filter, and view the output of a pipeline.
-- `Out-Host`:
-- `Out-Null`: discards the data entirely, like echoing to `/dev/null`
 
-#### `Out-GridView`
-
-Grid view is another way to format objects and then display them in the powershell GUI as a table you can easily filter.
-
-```ps
-Get-Service | Out-GridView
-```
 
 ### Pipelines
 
@@ -1178,20 +1204,108 @@ Get-ChildItem -Path C:\Logs | `
 
 #### Pipeline output
 
+The family of output commands completely end the pipeline, meaning that they can't pipe to any other commands; they are pure consumers.
+
+Here are the different types of `Out-*` cmdlets and other export
+
+- `Out-File <filepath>`: writes the data from the pipeline to a filepath
+- `Out-GridView`: writes the data from the pipeline to a GUI table you can view, providing a hands-on way to interact, filter, and view the output of a pipeline.
+- `Out-Host`: displays output directly to the console.
+- `Out-String`: stringifies the data and returns it as a string.
+- `Out-Null`: discards the data entirely, like echoing to `/dev/null`
+- `Write-Host`: writes stdin to stdout.
+- `Export-Csv <filepath>`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
+
+
 
 ```powershell
 Get-Service | format-list DisplayName, Status | Out-File C:\Users\amallick.ENGINEERS\Documents\temp\services.txt
 ```
 
-These commands accept stdin from pipelines and are consumers, meaning they end the pipeline, consuming it completely.
+> [!NOTE]
+> These commands accept stdin from pipelines and are consumers, meaning they end the pipeline, consuming it completely.
 
 
-Here are the different commands you have and how to use them you pipe to them as pipeline consumers:
+##### `Out-File`
 
-- `Write-Host`: writes stdin to stdout.
-- `Out-File <filepath>`: this cmdlet accepts an output filepath to write the incoming data to. It has these flags:
-	- `-Append`: if set, then appends to the existing file rather than overwriting it.
-- `Export-Csv <filepath>`: this cmdlet accepts an output csv filepath to write the incoming data, forcing the data to parse as a CSV
+The `Out-File` cmdlet takes in object stream data, stringifies it, and then writes it to a file.
+
+![](https://i.imgur.com/DWALYR4.jpeg)
+Here are the required named/positional parameters you have:
+
+- `-FilePath <filepath>`: the filepath to write the data to. Overwrites by default, creates the file if it doesn't exist.
+
+Here are the optional parameters you can set:
+
+- `-Append`: if set, then appends to the existing file rather than overwriting it.
+- `-Encoding`: text file encoding, with these possible values:
+	- `Utf8`: universal standard
+	- `ASCII`: 128-char lightweight, for simple text
+	- `Unicode`: supports extended characters for multiple languages.
+
+
+```ps
+Get-Service | Format-Table -Property Name, Status | Out-File -FilePath "Services.txt"
+
+```
+
+##### Redirecting stdout and stedrr
+
+By default, all stdout and stderr from a cmdlet is piped through the pipeline, which is why you execute a cmdlet and then get an error, you see both the output and error in the shell.
+
+Just like in bash, you can redirect the stdout and stderr streams to files and you have full control over that redirection:
+
+- **stdout redirection**: Using the `1>` operator, you can redirect any stdout that occurs from a cmdlet in the pipeline to go into some file.
+- **stderr redirection**: Using the `2>` operator, you can redirect any errors that occur from a cmdlet in the pipeline to go into some file.
+- **stderr and stdeout redirection**: Using the `*>` operator, you can redirect all stderr and stdout that occur from a cmdlet in the pipeline to go into some file.
+	- This is the default way a cmdlet outputs to the console.
+
+```ps
+# redirect stderr only
+Get-Service -Name "NonExistentService" 2> "Errorlog.txt"
+
+# redirect stdout and stderr to different files
+Get-Service -Name "NonExistentService" 1> "Log.txt" 2> "Errorlog.txt"
+
+# redirect both stdout and stderr to the same file
+
+Get-Service -Name "NonExistentService" *> "log.txt"
+```
+
+
+##### `Out-GridView`
+
+Grid view is another way to format objects and then display them in the powershell GUI as a table you can easily filter.
+
+```ps
+Get-Service | Out-GridView
+```
+
+![](https://i.imgur.com/vNi4vYb.jpeg)
+- `-PassThru`: if this flag is set, then the pipeline isn't consumed and ends, passes through object stream to continue in the pipeline.
+
+**Selecting rows**
+
+Setting the `-OutputMode` flag allows you to continue the pipeline by having the user select one or more rows depending on the output mode, then those selected rows are pushed back into the object stream, continuing the pipeline.
+
+- `-OutputMode Single`: user can only select one row
+
+```ps
+# Demo 4: Using Grid View with User Input
+# Prompt user to select a service
+$selectedService = Get-Service | Out-GridView -Title "Select a Service" -OutputMode Single
+Write-Host "Selected Service: $($selectedService.Name)"
+```
+
+- `-OutputMode Multiple`: user can select multiple rows
+
+```ps
+$selectedServices = Get-Service | Out-GridView -Title "Select a Service" -OutputMode Multiple
+
+foreach ($service in $selectedServices) {
+	Write-Host "Selected Service: $($service.Name)"
+}
+```
 
 #### Pipeline examples
 
@@ -1205,8 +1319,6 @@ Select-Object Name, @{Name = "Size (MB)"; Expression = { [math]::Round(\$_.Lengt
 ```
 
 ### Custom objects
-
-#### `PSCustomObject`
 
 A PSCustomObject in PowerShell is a flexible way to create your own structured objects with custom properties and methods. It lets you organize data neatly, like creating a table with named columns, which you can then manipulate or pass through your scripts.
 
@@ -1258,6 +1370,8 @@ $report = foreach ($service in $services) {
 }
 
 ```
+
+
 ### Object methods
 
 All objects have method versions of the pipeline methods
@@ -1280,6 +1394,96 @@ $filteredPeople = $people.Where({ $_.Age -gt 30 }).Select({ [PSCustomObject]@{ N
 
 $filteredPeople
 ```
+
+#### Adding custom object methods
+
+View [[#Adding methods to objects]].
+
+### Object conversion
+
+You can convert objects to export formats and then import objects from export formats.
+
+
+![](https://i.imgur.com/Oh5C1c5.jpeg)
+
+
+![](https://i.imgur.com/KW6EI1o.jpeg)
+
+#### JSON
+
+This is how you to convert an object to JSON using the `ConvertTo-Json` cmdlet
+
+```ps
+$person = [PSCustomObject]@{
+	Name = "Alice"
+	Age = 30
+}
+
+$json = $person | ConvertTo-Json -Depth 2
+```
+
+Then you can import like so:
+
+```ps
+# Parse JSON data into a PowerShell object
+$json = '{
+    "Name": "Alice",
+    "Age": 30,
+    "Email": "alice@example.com"
+}'
+$object = $json | ConvertFrom-Json
+```
+
+
+#### XML
+
+```ps
+# 6. Convert XML to Object
+# Parse XML data into a PowerShell object
+$xmlString = '<Server><Name>Server1</Name><IP>192.168.1.1</IP><Status>Running</Status></Server>'
+$xmlObject = [xml]$xmlString
+$xmlObject.Server
+
+```
+
+```ps
+# 10. Transform XML Data for CSV Export
+# Parse XML and export to CSV
+$xmlData = '<Employees>
+    <Employee><Name>Alice</Name><Age>30</Age><Role>Manager</Role></Employee>
+    <Employee><Name>Bob</Name><Age>25</Age><Role>Engineer</Role></Employee>
+</Employees>'
+$xmlObject = [xml]$xmlData
+$csvData = $xmlObject.Employees.Employee | Select-Object Name, Age, Role
+$csvData | Export-Csv -Path C:\Temp\Employees.csv -NoTypeInformation
+```
+
+#### CSV
+
+Here's how to export an array of objects into a CSV file:
+
+```ps
+$person1 = [PSCustomObject]@{
+	Name = "Alice"
+	Age = 30
+}
+
+$person2 = [PSCustomObject]@{
+	Name = "Bob"
+	Age = 30
+}
+
+$people = @($person1, $person2)
+
+$people | Export-Csv -Path "C:\temp\people.csv" -NoTypeInformation
+```
+
+And then you can import from the CSV:
+
+```ps
+$people = Import-Csv -Path "C:\temp\people.csv"
+```
+
 ### Custom classes
 
 #### Custom classes with splatting
@@ -2570,6 +2774,8 @@ Beginner script example
 
 The `Get-Date` cmdlet retruns the current date and time in a human readable format.
 
+
+
 ### HTTP requests
 
 #### `Invoke-WebRequest`
@@ -2635,7 +2841,42 @@ You can run PowerShell either as an administrator or just a normal user.
 If you're not an admin, you can't run the `Enable-PSRemoting` cmdlet to enable SSHing into other windows servers, but if you do have admin permissions, you're able to run sensitive cmdlets like that.
 
 
+### WinRM
 
+WinRM (Windows Remote Management) is the essential transport layer that enables PowerShell remoting. 
+
+It allows secure communication between your local machine and remote systems by setting up service listeners on specific ports (usually 5985 for HTTP and 5986 for HTTPS). 
+
+WinRM handles the transmission of commands and data, supports various authentication methods, and ensures that only authorized users can connect remotely. 
+
+> [!IMPORTANT]
+> Without WinRM properly configured and enabled on the target systems, PowerShell remoting cannot function.
+
+
+#### Powershell remoting intro
+
+Here are the core features of powershell remoting:
+
+- **parallel execution**: execute many commands in parallel across multiple remote servers.
+- **interactive sessions**: you can SSH into a remote server interactively
+- **remote scripting**: you can apply the same script universally across remote servers.
+
+From these core features, you have two main modes you can use:
+
+
+![](https://i.imgur.com/u7ljiOG.jpeg)
+
+- **interactive**: a one-to-one SSH session with a remote server
+- **scripted**: running RPC or scripts on a remote server without interactivity.
+
+To use these modes, you have two different cmdlets:
+
+![](https://i.imgur.com/qqVMEIy.jpeg)
+
+#### `Enter-PSSession`
+
+
+#### `Invoke-Command`
 ## Powershell ISE
 
 The `ise` command in pwoershell gives you an IDE to write powershell scripts with intellisense on steroids.
