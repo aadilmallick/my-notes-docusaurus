@@ -1645,7 +1645,21 @@ Function Say-Hello {
 Import-Module greetings
 ```
 
+#### Creating a custom module with powershell cmds
 
+1. Create a file ending the `.psm1` extension
+2. Run this command, modify names
+
+```ps
+# Example 2: Creating a Simple PowerShell Module
+New-ModuleManifest -Path "\$path\8.MyModule.psd1" `
+    -RootModule "\$path\8.MyModule.psm1" `
+    -Author "Your Name" `
+    -Description "A module containing basic functions"
+
+# Import the module
+Import-Module -Name "\$path\8.MyModule.psm1"
+```
 
 
 ### Powershell gallaery
@@ -2110,7 +2124,7 @@ Function Get-ProcessReport {
 $Result = Get-ProcessReport Notepad
 ```
 
-#### Functions with parameters
+#### Functions with parameters basics
 
 There are two ways to declare functions with parameters in powershell
 
@@ -2169,6 +2183,113 @@ When invoking functions with parameters, you can also pass in named parameters i
 
 ![](https://i.imgur.com/heSbOnk.jpeg)
 
+#### Parameter attributes
+
+You can also add parameter attributes to add extra functionality to parameters, like making parameters required, add descriptions, etc.
+
+
+Here is all of what you can do:
+
+- **mandatory parameters**: mandatory parameters force a parameter to have a defined value.
+- **default value**: you can add default value for the parameter
+- **validation**: validation parameters have runtime validation to ensure a passed in argument value is valid for the parameter.
+- **aliases**: have your named parameters have different names than the positional arguments you accept, for better readability.
+
+![](https://i.imgur.com/mZ0wzya.jpeg)
+
+##### Mandatory parameters
+
+```ps
+function Get-UserInfo {
+	param(
+		[Parameter(Mandatory=$True)][string]$Username
+	)
+	
+	Write-Output "fetching $Username"
+}
+```
+
+##### Validation
+
+You have these validation functions available
+
+
+![](https://i.imgur.com/VgqhaV7.jpeg)
+
+- `ValidateSet`: restricts input to an enum type
+
+```ps
+param(
+	[ValidateSet("red", "green", "blue")]
+	[string]$Color
+)
+```
+
+- `ValidateRange`: restricts numeric input between a range
+
+```ps
+param(
+	[ValidateRange(1, 100)]
+	[int]$Age
+)
+```
+
+- `ValidateScript`: runs custom validation within a script block
+
+```ps
+function Read-File {
+	param(
+		[ValidateScript({
+			Test-Path $_
+		})]
+		[string]$filepath
+	)
+	
+	Get-Content -Name $filepath
+}
+```
+
+- `ValidateNotNullOrEmpty`: passes if decorated parameter is not null or empty.
+
+```ps
+function Read-File {
+	param(
+		[ValidateNotNullOrEmpty()]
+		[string]$filepath
+	)
+	
+	Get-Content -Name $filepath
+}
+```
+
+
+Here's a full example:
+
+```ps
+function Get-UserInfo {
+	param(
+		[ValidateRange(18, 100)][int]$Age
+	)
+
+	Write-Output "fetching $Username"
+}
+```
+
+##### Aliases
+
+```ps
+function Get-Sum {
+    param(
+        [Alias("First")][int]$a,
+        [Alias("Second")][int]$b
+    )
+    $a + $b
+}
+
+# Execute the function
+Get-Sum -First 5 -Second 10
+
+```
 #### Naming conventions and best practices
 
 The best practice naming conventions for functions is as follows:
@@ -2178,7 +2299,26 @@ The best practice naming conventions for functions is as follows:
 
 
 ![](https://i.imgur.com/lMByAKR.jpeg)
+#### Function examples
 
+**Logging function**
+
+```ps
+function Write-Log {
+    param(
+        [string]$Message,
+        [string]$LogFile = "C:\Logs\DefaultLog.txt"
+    )
+
+    if (-not (Test-Path $LogFile)) {
+        New-Item -Path $LogFile -ItemType File -Force | Out-Null
+    }
+
+    Add-Content -Path $LogFile -Value "$(Get-Date): $Message"
+    return "Log entry added."
+}
+
+```
 ### Best practices
 
 Here are the best practices when creating a script:
