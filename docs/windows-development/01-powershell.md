@@ -2845,15 +2845,69 @@ If you're not an admin, you can't run the `Enable-PSRemoting` cmdlet to enable S
 
 WinRM (Windows Remote Management) is the essential transport layer that enables PowerShell remoting. 
 
-It allows secure communication between your local machine and remote systems by setting up service listeners on specific ports (usually 5985 for HTTP and 5986 for HTTPS). 
+- It allows secure communication between your local machine and remote systems by setting up service listeners on specific ports (usually 5985 for HTTP and 5986 for HTTPS). 
+- WinRM handles the transmission of commands and data, supports various authentication methods, and ensures that only authorized users can connect remotely. 
 
-WinRM handles the transmission of commands and data, supports various authentication methods, and ensures that only authorized users can connect remotely. 
+> [!NOTE]
+> It acts as the transport layer that allows commands and scripts to be executed remotely. WinRM uses specific ports (usually 5985 for HTTP and 5986 for HTTPS) and supports authentication methods to ensure secure and authorized access.
 
 > [!IMPORTANT]
 > Without WinRM properly configured and enabled on the target systems, PowerShell remoting cannot function.
 
+#### SSH vs WinRM
 
-#### Powershell remoting intro
+SSH (Secure Shell) and WinRM (Windows Remote Management) are both protocols used for remote management, but they differ mainly in their typical environments and usage:  
+  
+
+- **SSH** is widely used in Unix/Linux systems for secure remote command-line access and file transfers. It encrypts the connection and is known for its strong security and cross-platform support.  
+      
+    
+- **WinRM** is a Microsoft protocol designed for remote management of Windows machines. It is the underlying protocol used by PowerShell remoting to execute commands and manage systems remotely in Windows environments.  
+  
+In the context of PowerShell, especially as covered in this course, WinRM is the primary protocol enabling remote sessions and command execution on Windows systems
+
+#### WinRM setup
+
+Here is how to set up WinRM communication in detail:
+
+1. Make sure you have the prereqs for both the client and server machines
+
+![](https://i.imgur.com/gu5Zdad.jpeg)
+2. Enable WinRM on the remote servers you want to connect to by following these steps:
+
+
+![](https://i.imgur.com/TvEKpXc.jpeg)
+
+### Connecting via Active Directory
+
+If you work for a company that uses Windows, your connection to remote windows servers is governed via authentication with Active Directory.
+
+Here is how to set up powershell remoting with Active Directory:
+
+1. Run powershell as administrator
+2. Execute `Get-Credential` cmdlet, log in with your windows machine login credentials in active directory, and then store the output of that cmdlet in a variable.
+
+```ps
+$Cred = Get-Credential
+```
+
+
+![](https://i.imgur.com/2Q3hvHZ.jpeg)
+
+3. Export the credentials variable into an encrypted XML file:
+
+```ps
+$Cred | Export-CliXml -Path ".\mycred.xml"
+```
+
+4. On subsequent powershell profile startups, you should set the value of the `$Cred` variable to the file content of that encrypted XML file:
+
+```ps
+$Cred = Import-CliXml -Path ".\mycred.xml"
+```
+
+
+### Powershell remoting intro
 
 Here are the core features of powershell remoting:
 
@@ -2866,17 +2920,127 @@ From these core features, you have two main modes you can use:
 
 ![](https://i.imgur.com/u7ljiOG.jpeg)
 
-- **interactive**: a one-to-one SSH session with a remote server
+- **interactive**: a one-to-one SSH or WinRM session with a remote server
 - **scripted**: running RPC or scripts on a remote server without interactivity.
 
 To use these modes, you have two different cmdlets:
 
 ![](https://i.imgur.com/qqVMEIy.jpeg)
 
+#### Sessions 
+
+
+![](https://i.imgur.com/QImq9bC.jpeg)
+
+Here are the steps to create and use sessions:
+
+1. **choose the specific protocol for connection**: run `Enable-PSRemoting` to use WinRM or `Enable-SSHRemoting` to choose SSH protocol.
+
+```ps
+Enable-PSRemoting -Force
+```
+
+2. **create the session**: create the connection session with either protocol using the `New-PSSession` cmdlet, then store that session in a `$Session` variable.
+
+```ps
+$Session = New-PSSession -ComputerName Win1 -Credential $Cred
+```
+
+3. **connect to the session**: you can connect to the session interactively with `Enter-PSSession` cmdlet or run commands with no interaction using the `Invoke-Command` cmdlet
+
+```ps
+# connecting interactively
+Enter-PSSession -Session $Session
+
+# connecting without interaction
+Invoke-Command -Session $Session -ScriptBlock {
+	# run commands on remote session here
+}
+```
+
+##### Fetching current session info
+
+You can fetch current session info with the `Get-PSSession` cmdlet
+##### **removing sessions**
+
+Once you're done with the session, you can remove it and deallocate it from memory using the `Remove-PSSession` cmdlet:
+
+```ps
+Remove-PSSession $Session
+```
+
 #### `Enter-PSSession`
+
+Once you create a session with `New-PSSession`, you can connect to it interactively with the `Enter-PSSession` cmdlet.
+
+1. **connect interactively and run commands**:
+
+```ps
+# connecting interactively
+Enter-PSSession -Session $Session
+```
+
+2. **exit the session**: run the `Exit-PSSession` cmdlet to exit the session:
+
+```ps
+Exit-PSSession
+```
 
 
 #### `Invoke-Command`
+
+The `Invoke-Command` cmdlet allows you to un-interactively run a script block on remote servers.
+
+Here are the core properties:
+
+- **parallel execution**: executes the same script block in parallel across all specified remote servers.
+- **pipeline compatibility**: the script block executes in the context of the remote server environment, but whatever is returned from the script block is streamed to the pipeline on the host machine, meaning you can store the output of the script block in a variable that you then locally have access to.
+
+There are two ways to connect to and use the `Invoke-Command` cmdlet:
+
+- **active directory credentials**: specify the remote servers you want to connect to with the `-ComputerName` named parameter and the active directory credentials to use for authentication via the `-Credentials` named parameter.
+- **session connection**: connect via a pre-existing session using the `-Session` named parameter.
+
+
+```ps
+$RemotePCs = Invoke-Command -Session $Session -ScriptBlock {
+	$ENV:COMPUTERNAME
+}
+```
+
+##### `Invoke-Command` with sessions
+
+Running the `Invoke-Command` cmdlet when connecting a SSH session or Remote powershell session allows you to omit computer name and credential details and instead connect to an already existing session you created, either WinRM or SSH connection.
+
+The main mechanism behind this is to connect to a specific session with the `-Session` named parameter:
+
+1. Create a new powershell session with WinRM
+
+```ps
+$Session = New-PSSession -ComputerName Win1 -Credential $Cred
+```
+
+2. Run the `Invoke-Command` cmdlet with the `-Session` named parameter:
+
+```ps
+Invoke-Command -Session $Session -ScriptBlock {
+	Write-Host "running on remote server $ENV:COMPUTERNAME"
+}
+```
+
+##### `Invoke-Command` with active directory
+
+If storing a credential to connect to active directory remote servers, you can pass the `-Credential` named parameter like so:
+
+1. Populate the `$Cred` variable with active directory credentials (see [[#Connecting via Active Directory]]).
+2. Run the `Invoke-Command` cmdlet and specify the active directory credentials with `-Credential` named parameter
+
+```ps
+Invoke-Command -ComputerName Win3 -Credential $Cred -ScriptBlock {
+	Write-Host "running on remote server $ENV:COMPUTERNAME"
+	# some script here
+}
+```
 ## Powershell ISE
 
 The `ise` command in pwoershell gives you an IDE to write powershell scripts with intellisense on steroids.
