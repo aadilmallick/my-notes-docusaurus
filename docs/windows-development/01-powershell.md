@@ -198,12 +198,7 @@ The `-confirm` flag will ask you to confirm the command execution for each objec
 Get-Service | Stop-Service -confirm
 ```
 
-### `ErrorAction`
-
-`-ErrorAction` is a global flag you can set to control try/catch behavior with a single flag:
-
-- `-ErrorAction SilentlyContinue`: don't exit 1 in case of error, just silently continue
-- `-ErrorAction Stop`: exit 1 in case of error, stop command execution.
+\
 
 
 ### Aliases
@@ -1647,8 +1642,33 @@ Import-Module greetings
 
 #### Creating a custom module with powershell cmds
 
-1. Create a file ending the `.psm1` extension
-2. Run this command, modify names
+In a PowerShell module, you use a **Module Manifest (`.psd1`)** and a **Script Module (`.psm1`)** together to manage how your functions are exposed to the user.
+
+- **The `.psm1` file (Script Module):** This contains your actual PowerShell code, variables, and internal functions.
+- **The `.psd1` file (Module Manifest):** This is a configuration file (a hash table) that describes the module. It controls metadata like the version number, author, and critically, **which functions are exported** (made public).
+
+> [!NOTE]
+> By default, importing a `.psm1` file exposes _all_ functions inside it. To hide internal "helper" functions and only show public tools to your users, you should use the **`FunctionsToExport`** key in your `.psd1` file.
+
+1. Create a file ending the `.psm1` extension, export the specific functions you want to make public
+
+```ps
+# INTERNAL HELPER (Should be hidden)
+function Get-PrivateTimestamp {
+    return "[$(Get-Date -Format 'HH:mm:ss')]"
+}
+
+# PUBLIC FUNCTION (Should be visible)
+function Write-CustomLog {
+    param([string]$Message)
+    $Time = Get-PrivateTimestamp
+    Write-Host "$Time $Message" -ForegroundColor Cyan
+}
+
+Export-ModuleMember -Function Write-CustomLog
+```
+
+2. Run this command, which creates a psd file.
 
 ```ps
 # Example 2: Creating a Simple PowerShell Module
@@ -1656,12 +1676,14 @@ New-ModuleManifest -Path "\$path\8.MyModule.psd1" `
     -RootModule "\$path\8.MyModule.psm1" `
     -Author "Your Name" `
     -Description "A module containing basic functions"
-
-# Import the module
-Import-Module -Name "\$path\8.MyModule.psm1"
 ```
 
+3. Import the latest version of the module to use it
 
+```ps
+# Import the module
+Import-Module -Name "\$path\8.MyModule.psm1" -Force
+```
 ### Powershell gallaery
 
 The PowerShell Gallery is a centralized online repository where you can find and download a wide variety of PowerShell resources like modules, scripts, and tools created by both Microsoft and the community. 
@@ -1961,6 +1983,11 @@ For ($i=1; $i -le 10; $i++) {
 
 #### `ForEach`
 
+
+
+![](https://i.imgur.com/J4QNZFr.jpeg)
+
+
 You can also use the `ForEach` loop to loop through an array or object stream in the pipeline to store the output of each iteration element to create a new mapped stream.
 
 Use cases:
@@ -1990,6 +2017,14 @@ While ($Count -le 10) {
 }
 ```
 
+And here's an example of a do/while loop:
+
+```ps
+do {
+    $value = Read-Host "Enter the secret code"
+} while ($value -ne "1234")
+Write-Output "Access Granted!"
+```
 #### `Break` and `Continue`
 
 Within a `For` or `While` loop, you can use the `Break` or `Continue` statements, which work exactly the way you think they do.
@@ -2013,9 +2048,32 @@ Since arrays are just a stream of objects, you can use ranges as producers in th
 ```
 ### Error handling
 
+There are two types of errors that can occur in powershell:
+
+- **terminating errors**: errors thrown that halt script execution
+- **non-terminating errors**: errors thrown that do not halt script execution, like cmdlet failures.
+
+#### `ErrorAction`
+
+
+![](https://i.imgur.com/nJM3Aba.jpeg)
+
+
+`-ErrorAction` is a global flag you can set to control try/catch behavior with a single flag:
+
+- `-ErrorAction SilentlyContinue`: when an error is thrown, it silences all errors and continues on.
+- `-ErrorAction Continue`: It converts all errors to non-terminating errors. When an error is thrown, it logs the error and continues.
+- `-ErrorAction Ignore`: don't exit 1 in case of error, just silently continue
+- `-ErrorAction Stop`: forces a non-terminating error, if thrown, to convert into a terminating error and halt script execution
+
 #### `$Error` variable
 
 The `$Error` variable is a special variable always available within a powershell session, and it is an array of error objects which stores all errors that have been thrown during the current powershell session.
+
+
+
+![](https://i.imgur.com/ZoBvdOu.jpeg)
+
 
 On each error object, you have these properties:
 
@@ -2026,6 +2084,17 @@ On each error object, you have these properties:
 #### `try/catch` and throwing errors
 
 In a `try/catch` block, you get access to the individual error thrown through the `$_` variable within the `catch` block, which is an error object.
+
+```ps
+try {
+    Get-Content -Path "nonexistentfile.txt"
+} catch {
+    Write-Output "Error occurred: $_"
+} finally {
+    Write-Output "Cleanup completed."
+}
+```
+
 
 ```ps
 try {
@@ -2061,6 +2130,12 @@ catch {
 ```
 
 #### Powershell debugger
+
+PowerShell offers a debugger that you can use via a cmdlet to start debugging your PowerShell script and add breakpoints. 
+
+![](https://i.imgur.com/jfAM7aA.jpeg)
+
+
 
 1. **Set a breakpoint** at a specific line in your script using `Set-PSBreakpoint -Script <path-to-script> -Line <line-number>`.
 2. **Run your script** normally. When execution reaches the breakpoint, PowerShell enters debug mode and pauses.
