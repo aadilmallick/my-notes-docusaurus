@@ -1071,6 +1071,23 @@ Get-Service | Sort-Object -Property status | format-table DisplayName, Status
 > [!IMPORTANT]
 > The important thing to understand here is that these object formatting commandlets can only come last in the pipeline, after any object filtering or transformation commandlets. 
 
+
+#### `Format-Custom`
+
+You can create a custom format with computed properties just like in [[#`Select-Object`]] with through the `-Property` named parameter on the `Format-Custom`, which accepts a list of computed properties:
+
+```ps
+$processes = Get-Process | Select-Object Name, Id
+
+$processes | Format-Custom -Property @{
+	Name = "Process Name"
+	Expression = { $_.Name }
+}, @{
+	Name = "Process Id"
+	Expression = { $_.Id }
+}
+```
+
 #### `Measure-Object`
 
 ![](https://i.imgur.com/mbZElKC.jpeg)
@@ -1411,6 +1428,8 @@ You can convert objects to export formats and then import objects from export fo
 
 #### JSON
 
+##### `ConvertTo-Json`
+
 This is how you to convert an object to JSON using the `ConvertTo-Json` cmdlet
 
 ```ps
@@ -1419,10 +1438,20 @@ $person = [PSCustomObject]@{
 	Age = 30
 }
 
-$json = $person | ConvertTo-Json -Depth 2
+$person | ConvertTo-Json -Depth 2 | Out-File "config.json"
 ```
 
-Then you can import like so:
+- `-Depth`: specifies how many levels of nested objects to include
+
+
+![](https://i.imgur.com/6MZUaF6.jpeg)
+
+##### `ConvertFrom-Json`
+
+Then you can import like so with the `ConvertFrom-Json` cmdlet, which converts string JSON data into an object.
+
+- `-Depth`: specifies how many levels of nested objects to include
+- `-AsHashTable`: converts JSON objects to a hashtable instead of a PSCustomObject instance
 
 ```ps
 # Parse JSON data into a PowerShell object
@@ -1432,10 +1461,36 @@ $json = '{
     "Email": "alice@example.com"
 }'
 $object = $json | ConvertFrom-Json
+
+$object.Name # "Alice"
 ```
 
-
+```ps
+$config = Get-Content -Path "config.json" | ` 
+	ConvertFrom-Json -Depth 2
+```
 #### XML
+
+You can export objects into XML files, which store the original object hierarchy and data, meaning you can perfectly store objects as XML and then parse the XML to get the original objects back.
+
+##### Exporting file into XML
+
+
+![](https://i.imgur.com/YlmIAGC.jpeg)
+
+```ps
+Get-ChildItem | Export-CliXml -Path "Files.xml"
+```
+
+##### Importing file from XML
+
+
+![](https://i.imgur.com/D2ibVsM.jpeg)
+```ps
+$Config = Import-CliXml -Path "config.xml"
+```
+
+##### Parsing XML
 
 ```ps
 # 6. Convert XML to Object
@@ -1460,6 +1515,25 @@ $csvData | Export-Csv -Path C:\Temp\Employees.csv -NoTypeInformation
 
 #### CSV
 
+##### `Export-Csv`
+
+
+![](https://i.imgur.com/pOzBbKB.jpeg)
+
+Here are the important named parameters:
+
+- `-Path <filepath>`: the csv filepath to write to
+- `-NoTypeInformation`: The `-NoTypeInformation` parameter in Export-Csv removes the type information header from the CSV file output. 
+	- This makes the CSV file cleaner and more compatible with other systems or software that might consume the file. 
+	- Without this parameter, PowerShell adds a header line describing the object type, which is often unnecessary and can cause issues when importing the CSV elsewhere. 
+- `-Append`: if this flag is turned on, doesn't overwrite file. Instead appends content.
+- `-Delimiter <delimiter>`: the delimiter to use to separate columns in the CSV, defaulting to a comma.
+
+> [!NOTE]
+> Using NoTypeInformation helps ensure your exported CSV is straightforward and easier to work with in automation or data processing tasks.  
+
+**usage example**
+
 Here's how to export an array of objects into a CSV file:
 
 ```ps
@@ -1477,6 +1551,8 @@ $people = @($person1, $person2)
 
 $people | Export-Csv -Path "C:\temp\people.csv" -NoTypeInformation
 ```
+
+##### `Import-Csv`
 
 And then you can import from the CSV:
 
@@ -2780,13 +2856,45 @@ The `Get-Date` cmdlet retruns the current date and time in a human readable form
 
 #### `Invoke-WebRequest`
 
-This makes a fetch request and returns back a response object:
+This makes a fetch request and returns back a response object with raw data stored on `$response.Content`, not parsed to any format.
 
 ```ps
-Invoke-WebRequest -Uri "https://example.com"
+# 1. make the HTTP request
+$response = Invoke-WebRequest -Uri "https://example.com"
+
+# 2. parse the response data
+$data = $response.Content | ConvertFrom-Json
+```
+
+You can also directly download the contents of a webpage or URL to a file using the `-Outfile` named parameter:
+
+```ps
+Invoke-WebRequest -Uri "https://example.com" -Outfile "example.html"
+```
+
+
+##### Parsing HTML
+
+You can download the HTML of a webpage through the `Invoke-WebRequest` cmdlet and then parse it using standard XML and HTML properties:
+
+```ps
+# Demo 2: Scraping Specific Data
+$response = Invoke-WebRequest -Uri "http://localhost:9090"
+$htmlContent = $response.Content
+[xml]$htmlDocument = $htmlContent
+$h1Elements = $htmlDocument.getElementsByTagName("h1")
+
+$h1Elements[0].InnerText
 ```
 
 #### `Invoke-RestMethod`
+
+The `Invoke-RestMethod` cmdlet is an abstraction on `Invoke-WebRequest` that parses JSON data returned from an API automatically and then immediately returns that JSON response data.
+
+Here is what a simple, default GET invocation of an API looks like:
+
+1. You call `Invoke-RestMethod` and then pass in the API URL to request with the `-Uri` flag as well as additional parameters if necessary.
+2. You immediately get the response back which already has data populated if a 200 response.
 
 ```ps
 $response = Invoke-RestMethod -Uri "https://typicode.com"
@@ -2798,6 +2906,67 @@ $customUser = [PSCustomObject]@{
 }
 ```
 
+Here is what are the common data on the response object returned:
+
+- `$response.StatusCode`: the numeric status code of the response.
+
+Here are the common named parameters you have on the `Invoke-RestMethod` cmdlet:
+
+- `-SkipHttpErrorCheck`: if this flag is set, then it doesn't throw on a bad error response.
+- `-Method <method>`: the HTTP method to use
+- `-Headers <headers_object>`: accepts a hastable object of headers to add to the request.
+##### `GET` request
+
+Here is a naive way to do error-handling by only accepting 200 responses:
+
+```ps
+# 2xx: success
+$uri = "https://example.com"
+
+$response = Invoke-RestMethod -Uri $uri -Method GET -SkipHttpErrorCheck
+
+if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+    Write-Output "Success: $($response.StatusCode). The data is:"
+    $response | ConvertTo-Json -Depth 3
+}
+```
+
+Here is a better way with try/catch, where in the `catch` block, the error thrown has its `$err.Exception.Response` variable as a response object: 
+
+```ps
+# 5xx: server errors
+$uri = "https://example.com"
+
+try {
+    $response = Invoke-RestMethod -Uri $uri `
+        -Method GET
+} catch {
+	# stored as a response
+    $response = $_.Exception.Response
+
+    if ($response.StatusCode -ge 500) {
+        Write-Output "Server Error: $($response.StatusCode)"
+    }
+}
+```
+
+You have these useful properties on the error:
+
+- `$_.Exception.Response.StatusCode`: the status code of the response 
+- `$_.Exception.Response.Message`: the error message of the response 
+##### Auth
+
+Here's an example with basic auth
+
+
+```ps
+# Demo 2: Sending a GET Request to the Authenticated Basic Endpoint
+# This request retrieves data using Basic Authentication
+$basicAuthHeader = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("admin:P@ssword1"))
+$response = Invoke-RestMethod -Uri "http://localhost:8080/auth-basic" `
+-Method Get -Headers @{ Authorization = "Basic $basicAuthHeader" }
+$response
+```
 ## Powershell 7 features
 
 PowerShell 7 is designed to coexist with PowerShell 5.1 on the same system without interfering with each other. This is possible because PowerShell 7 installs into a new directory (`%programfiles%\PowerShell\7`), separate from where PowerShell 5.1 is installed. 
@@ -2927,6 +3096,9 @@ To use these modes, you have two different cmdlets:
 
 ![](https://i.imgur.com/qqVMEIy.jpeg)
 
+> [!NOTE]
+> When you use PowerShell Remoting cmdlets like `Invoke-Command` or `Enter-PSSession`, **WinRM is the underlying engine** acting as the server that listens for your commands, executes them in a remote session, and returns the data to your terminal.
+
 #### Sessions 
 
 
@@ -3041,6 +3213,45 @@ Invoke-Command -ComputerName Win3 -Credential $Cred -ScriptBlock {
 	# some script here
 }
 ```
+
+### Troubleshooting
+
+And here are some troubleshooting tools:
+
+
+![](https://i.imgur.com/CVTQ2Tz.jpeg)
+
+And here's a troubleshooting process:
+
+1. Diagnose your WinRM service is running correctly:
+
+
+![](https://i.imgur.com/cA7SWmC.jpeg)
+2. Test WinRM connectivity:
+
+
+![](https://i.imgur.com/0fsQZu5.jpeg)
+#### Checking WinRM service status
+
+1. `Get-Service -Name WinRM`
+
+- **What it does:** Checks the status of the local WinRM service (displayed in Windows Services as _Windows Remote Management (WS-Management)_).
+- **AD User Context:** As a standard Active Directory user, you can run this command to see if the service is running. However, if it is stopped, you will need **local Administrator rights** on that machine to start it.
+
+2. `winrm e winrm/config/listener`
+
+- **What it does:** "e" stands for _enumerate_. This command lists the active WinRM **Listeners** on the system. Listeners tell WinRM which network addresses, ports (default: HTTP 5985, HTTPS 5986), and protocols to watch for incoming remote connections.
+- **AD User Context:** This is a read-only query. It helps you verify if a server or machine is ready to accept remote configurations.
+
+3. `winrm quickconfig`
+
+- **What it does:** Automatically configures a machine to accept remote commands. It performs 3 critical steps:
+    1. Starts the WinRM service and sets it to **Automatic** startup.
+    2. Configures a default HTTP listener on port 5985 for any IP address on the machine.
+    3. Creates an **Inbound Windows Defender Firewall exception** so remote traffic can actually hit the port.
+- **AD User Context:** **This command requires full administrative privileges.** If you try to run this as a standard AD user without local admin rights, it will fail with an _Access Denied_ error.
+
+---
 ## Powershell ISE
 
 The `ise` command in pwoershell gives you an IDE to write powershell scripts with intellisense on steroids.
