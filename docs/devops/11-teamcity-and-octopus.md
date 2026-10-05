@@ -663,6 +663,76 @@ Scheduled triggers let you run build configurations on a cron schedule.
 
 ![](https://i.imgur.com/mFvCnRO.jpeg)
 
+#### Build steps
+
+##### Setting step execution conditions
+
+Build steps run top to bottom, in the order they appear in the UI or configuration code. By default, TeamCity runs all steps until one fails. If a step fails, the build is marked as failed and remaining steps are skipped.
+
+You can override this behavior in build configurations by setting a custom execution policy that defines when a step should run.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-step-execution-conditions.png)
+
+Execution conditions consist of two parts:
+
+1. A general rule selected from a corresponding drop-down menu.
+    
+2. Optional additional conditions added via the Add condition menu.
+
+**general rules**
+
+- **Only if build status is successful** — before starting the step, the build agent requests the build status from the server, and skips the step if the status is "failed". This considers the failure conditions processed by the server, like failure on test failures or on metric change. Note that this still may be not exact as some failure conditions are processed on the server asynchronously ([TW-17015](https://youtrack.jetbrains.com/issue/TW-17015)).
+    
+- **Only if build status is failed** — same as above, but the agent skips the step if the build status is "success". This condition is useful for rollback or cleanup actions.
+    
+- **If all previous steps finished successfully** — runs if all prior steps on the agent succeeded, without checking the build status reported by the server.
+    
+- **Even if some of the previous steps failed** — runs regardless of prior step results or build status.
+    
+- **Always, even if build stop command was issued** — ensures the step runs even if the build was canceled. For example, if two steps use this setting and the build is stopped during the first, the second will still execute. A second stop command fully terminates the build.
+
+
+**additional conditions
+
+You can refine execution behavior with custom conditions.
+
+Execution conditions make builds more flexible and address many common use cases, such as:
+
+- running the step only in the default branch
+    
+- running the step only in the `release` branch
+    
+- skipping the step in [personal builds](https://www.jetbrains.com/help/teamcity/personal-build.html)
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/execution-conditions.png)
+
+Alternatively, select the Other condition option to add the parameter-based execution condition, which is a logical condition that takes on input any [build parameter](https://www.jetbrains.com/help/teamcity/configuring-build-parameters.html) provided by the TeamCity server or agent.
+
+For example, to run the build step only on the `testbranch` branch, you can test the value of the `teamcity.build.branch` parameter, as follows:
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/execution-conditions-other.png)
+
+##### Step status parameters
+
+TeamCity provides `teamcity.build.step.status.<step_ID>` parameters that report the status of the step with the given ID. These parameters can be used, for instance, for crafting fine-grained [execution conditions](https://www.jetbrains.com/help/teamcity/build-step-execution-conditions.html).
+
+Step IDs are shown below their names, and are editable only when you create them.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-stepID.png)
+
+The available values of the `teamcity.build.step.status.<step_ID>` parameters are:
+
+- `success` — when a step finishes with no errors.
+    
+- `failure` — when a step failed. This status is reported even when all build problems were [muted](https://www.jetbrains.com/help/teamcity/investigating-and-muting-build-failures.html).
+    
+- `cancelled` — when a build was cancelled while this step was running.
+    
+
+> [!NOTE]
+> The `teamcity.build.step.status.<step_ID>` parameters appear only after their corresponding steps finish, and are not available right from the moment a build starts. This means neither steps that are still running, nor skipped steps have their `teamcity.build.step.status.<step_ID>` parameters available.
+
+
 
 
 #### Build configuration artifacts
@@ -2721,6 +2791,47 @@ The `pom.xml` reads settings from the `settings.kts` to define the build configu
 </project>
 ```
 
+#### Advanced structure
+
+Teamcity requires you to split your `settings.kts` once it reaches over 20 entities (build configurations, templates, VCS roots, etc.)
+
+Here is how you should split them:
+
+```
+.teamcity
+  └─── pom.xml
+  └─── settings.kts   # Stores only the Kotlin DSL version and the "project(_Self.Project)" line
+  └─── _Self
+         └─── ...
+         └─── ...
+  └─── ProjectA
+         └─── ...
+         └─── ...
+  └─── ProjectA_Subproject1
+         └─── ...
+         └─── ...
+  └─── ProjectA_Subproject2
+         └─── ...
+         └─── ...
+  └─── ProjectB
+         └─── ...
+         └─── ...
+  └───...
+  └───...
+```
+
+Each folder (including the "`_Self`" folder for the `<Root>` project) has the following structure:
+
+```
+ProjectA
+  └─── Project.kt   # Stores a list of subprojects, parameters, connections, and other project-level settings
+  └─── buildTypes   # A folder with .kt files that define build configurations, their steps, triggers, build features, and more
+          └─── ProjectA_MyBuildConfig1.kt
+          └─── ProjectA_MyBuildConfig2.kt
+  └─── vcsRoots     # A folder with .kt files that define VCS roots (for example, custom GitVcsRoot class descendants)
+          └─── ProjectA_MyRoot1.kt
+          └─── ProjectA_MyRoot2.kt
+```
 ### Creating a project
 
 
@@ -3412,6 +3523,108 @@ params {
     password("pass-to-bucket", "credentialsJSON:12a3b456-c7de-890f-123g-4hi567890123")
 }
 ```
+
+#### Build steps
+
+##### Script steps
+
+Sometimes script steps you run via shell can be long, so it's better to load scripts from a file in the repo for better composability and avoiding redundancy.
+
+To keep your settings files neat, it is convenient to store lengthy code instructions in separate files. Such auxiliary scripts can be put in the `.teamcity` directory alongside the settings files. You can refer to them by their relative paths.
+
+For example, this part of `settings.kts` creates an object with a function `readScript` which reads the contents of the file it receives on input:
+
+
+```kt
+object Util {
+    fun readScript(path: String): String {
+        val bufferedReader: BufferedReader = File(path).bufferedReader()
+        return bufferedReader.use{ it.readText() }.trimIndent()
+    }
+}
+```
+
+In the build step, we call this function, so it reads the `scripts\test.sh` file located under the `.teamcity` directory:
+
+```kt
+object CommandLineRunnerTest : BuildType({
+    name = "Command Line Runner Test"
+    steps {
+        script {
+            name = "Imported from a file"
+            scriptContent = Util.readScript("scripts\\test.sh")
+        }
+    }
+})
+```
+
+##### Step execution conditions
+
+Refer to original concept in [[#Step execution conditions]]:
+
+In the Kotlin DSL, you can check the `teamcity.agent.jvm.os.name` parameter to run the current build step only on Windows agents, as follows:
+
+```kt
+package _Self.buildTypes
+import jetbrains.buildServer.configs.kotlin.*
+
+
+object MyBuildConfig : BuildType({
+    // ...
+    steps {
+        script {
+            name = "Step 1"
+            conditions {
+                contains("teamcity.agent.jvm.os.name", "Windows")
+            }
+            // ...
+        }
+    }
+})
+```
+
+The sample below illustrates how to utilize [parameters that report step exit statuses](https://www.jetbrains.com/help/teamcity/configuring-build-steps.html#Step+Status+Parameters) to create a custom condition (step #3 runs only when step #2 fails and step #1 is successful.), see [[#Step status parameters]] for more info.
+
+```kt
+package _Self.buildTypes
+
+import jetbrains.buildServer.configs.kotlin.*
+
+object MyBuildConf : BuildType({
+    steps {
+        python {
+            id = "Step1"
+            // ...
+        }
+        python {
+            id = "Step2"
+            // ...
+        }
+        python {
+            name = "Step3"
+            conditions {
+                equals("teamcity.build.step.status.Step1", "success")
+                equals("teamcity.build.step.status.Step2", "failure")
+            }
+            // ...
+        }
+    }
+})
+```
+
+> [!NOTE]
+> If you declare multiple execution conditions, the build step will be executed only if all of them are satisfied in the current build run.
+
+
+##### Resolving from the `.teamcity` folder
+
+**Problem**: I want to generate a TeamCity build configuration based on the data in some file residing in the VCS inside the `.teamcity` directory.
+
+**Solution**:  You can access the location of the `.teamcity` directory from DSL scripts with help of the `DslContext.baseDir` property, for example:
+
+```kt
+val dataFile = File(DslContext.baseDir, "data/setup.xml")
+```
 #### Build outputs and variable interpolation
 
 In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
@@ -3921,13 +4134,15 @@ class Maven(public var name: String, public var goals: String): BuildType({
 ```
 
 
-### Context Parameters
+### DSL Context Parameters
 
 You can customize the DSL generation behavior using context parameters configured in the TeamCity UI. Context parameters are specified as a part of the project [versioned settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#SynchronizingSettingswithVCS) in the UI.
 
 With context parameters, it is possible to maintain a single Kotlin DSL code and use it in different projects on the same TeamCity server. Each of these projects can have own values of context parameters, and the same DSL code can produce different settings based on values of these parameters.
 
 For more info, check out [Kotlin DSL | TeamCity On-Premises](https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Use+Context+Parameters+in+DSL)
+
+And [Creating TeamCity project templates with Kotlin DSL context parameters - The JetBrains Blog](https://blog.jetbrains.com/teamcity/2020/09/creating-teamcity-project-templates-with-kotlin-dsl-context-parameters/?_cl=MTsxOzE7bDJCOVFyaFh5SGpGa0syclJrNkF3RTVFdDF6aHA4dG55dTJublZya1FQMW5KaDIySWlUcHF1R2FONU5Xbm14Rjs=)
 
 ### Patches
 
@@ -3977,7 +4192,7 @@ aspectRatio: "49.21875"
 
 #### Local config validation
 
-Another habit we'll build is validating configuration before committing it.
+The `pom.xml` file provided for a Kotlin project has the `generate` task which can be used to generate TeamCity XML configuration files locally from the DSL scripts. This task can be started from IDE (see Plugins | teamcity-configs | teamcity-configs:generate node in the Maven tool window).
 
 The generated TeamCity Kotlin DSL Maven project can generate the corresponding configuration locally using:
 
@@ -3985,13 +4200,14 @@ The generated TeamCity Kotlin DSL Maven project can generate the corresponding c
 mvn teamcity-configs:generate
 ```
 
-Generated configuration is placed under:
+The result of the task execution will be placed under the `.teamcity/target/generated-configs` directory.
 
 ```
 .teamcity/target/generated-configs
 ```
 
-and generation performs DSL validation, which can catch missing mandatory settings before TeamCity applies them.
+> [!NOTE]
+> Generation performs DSL validation, which can catch missing mandatory settings before TeamCity applies them.
 
 So a useful development cycle is:
 
