@@ -837,6 +837,42 @@ In teamcity, you can specify two behaviors when it comes to build chains:
 - **sequential execution**: specify that a build needs another build to finish, so it executes sequentially after.
 - **parallel execution**: specify that a build can run in parallel with another build.
 
+##### Dependencies
+
+- **snapshot dependencies** — ordering + same source revision
+	- the mechanism that forms build chains and synchronizes source revisions between dependent builds
+- **artifact dependencies** — passing files between builds
+	- Artifact dependencies solve a different problem: transferring files produced by one build into another.
+
+Snapshot dependencies tell TeamCity that two build configurations should operate with synchronized revisions.
+
+Imagine commits:
+
+```
+A --- B --- C --- D
+```
+
+A chain begins for commit `C`.
+
+Without a coherent chain, you don't want:
+
+```
+Compile → commit C
+
+Test    → commit D
+```
+
+because then you're testing something different from what you compiled.
+
+You want:
+
+```
+Compile ─────┐
+             ├── revision C
+Test ────────┘
+```
+
+That consistency is one of the major reasons snapshot dependencies exist.
 ##### Creating a build chain
 
 You can create build chains where a build configuration depends on another build configuration sequentially by creating a new snapshot dependency and artifact dependency:
@@ -2269,6 +2305,7 @@ aspectRatio: "49.21875"
 
 3. Make sure you have a teamcity user on your gitlab repo that has READ/WRITE access to the repo
 
+
 ### Teamcity Kotlin DSL syntax primer
 
 TeamCity calls a build configuration a **`BuildType`** in its Kotlin DSL API. The API groups its settings into blocks such as `vcs`, `steps`, `triggers`, `failureConditions`, and `features`.
@@ -3184,12 +3221,148 @@ object BuildApplication : BuildType({
 })
 ```
 
+#### Parameters
+
+The below code block in a build configuration creates teamcity parameters on the build config.
+
+```kt
+params {
+    param("gradle.tasks", "test")
+}
+```
+
+TeamCity stores it as part of the resulting configuration. Current TeamCity parameters are referenced in most TeamCity settings with `%parameterName%`.
+
+
+So:
+
+```
+Kotlin val
+    │
+    └── DSL programming concept
+
+
+TeamCity parameter
+    │
+    └── TeamCity runtime/configuration concept
+```
+
+Here's a full example of using parameters:
+
+```kt
+object Test : BuildType({
+
+    name = "Test"
+
+    params {
+        param("gradle.tasks", "test")
+    }
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+        script {
+            name = "Run tests"
+
+            scriptContent = "./gradlew %gradle.tasks%"
+        }
+    }
+
+    dependencies {
+        snapshot(Compile) {
+        }
+    }
+})
+```
+
+There are three different types of parameters in TeamCity:
+
+1. **configuration parameter**: references the current deployment revision of the build configuration in TeamCity and attaches parameter variables on that deployment.
+2. **environment variable**: sets an environment variable in the build agent running that build configuration, set during the duration of the run.
+3. **system properties**
+
+
 #### Build outputs and variable interpolation
 
 In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
 
 - **build output variables**: when you instantiate a `BuildType` object, you're just creating a normal Kotlin object, so of course you can access properties on it.
 - **vcs root variables**: Root IDs are used in build parameters that allow you to read root properties, for example `vcsroot.<ProjectName>_<RootName>.branch` and `vcsroot.<ProjectName>_<RootName>.url`
+
+
+#### Publishing an artifact
+
+Build configurations have an `artifactRules` property which you must set in order to publish artifacts for the build configuration.
+
+
+```kt
+object Compile : BuildType({
+
+    name = "Compile"
+
+    artifactRules = "build/libs/*.jar => app"
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+        script {
+            name = "Compile application"
+
+            scriptContent = """
+                ./gradlew clean assemble
+            """.trimIndent()
+        }
+    }
+})
+```
+
+
+Conceptually, here's what's happening:
+
+```
+build/libs/*.jar
+        │
+        │ publish as artifact
+        ▼
+      app/
+```
+
+So if the working directory contains:
+
+```
+build/libs/my-app.jar
+```
+
+TeamCity's published artifacts contain something conceptually like:
+
+```
+app/
+└── my-app.jar
+```
+
+The important transition is:
+
+```
+Agent filesystem
+
+build/libs/my-app.jar
+          │
+          │ artifactRules
+          ▼
+
+TeamCity artifact storage
+
+app/my-app.jar
+```
+
+Once you set artifact rules, you have two use cases:
+
+1. **accessing artifacts**: you can now access artifacts that the build configuration created
+2. **artifact dependencies**: any build configuration that depends on another build configuration that outputs artifacts can establish artifact dependencies and use the artifact outputs from the previous build configuration in the chain.
 
 #### Build chains
 
@@ -3207,7 +3380,161 @@ There are two ways to create a build chain (configuring sequential dependencies 
 > [!IMPORTANT]
 > Then an important thing to understand once you configure a build chain is that the VCS trigger should only be on the LAST build type in the chain.
 
-##### Explicit dependencies methods
+##### Setting snapshot and artifact dependencies
+
+This is how you specify a build configuration that is dependent on another build Configuration:
+
+```kt
+object Compile = BuildType({
+	// ...
+})
+
+object Test : BuildType({
+	// ...
+
+    dependencies {
+        snapshot(Compile) {
+        }
+    }
+})
+```
+
+> [!NOTE]
+> What Does `snapshot(Compile)` Actually Mean?
+> ***
+> Many beginners interpret it as: "Run Compile first", but in reality, it's this:
+> 
+> `Test` and `Compile` belong to the same build chain and should operate against synchronized source revisions.
+> 
+
+
+
+Here's a more fleshed out example showcasing snapshot and artifact dependencies:
+
+- **snapshot dependencies**: necessary to have one build configuration depend on another
+- **artifact dependencies**: only necessary if you want to access the artifact outputs of the previous build configuration in the chain.
+
+> [!IMPORTANT]
+> It's very important to keep in mind that only the last build configuration in a build chain needs a VCS root, as to avoid duplicate triggering.
+
+```kt
+// 1. create build configuration that outputs artifacts
+object Compile : BuildType({
+
+    name = "Compile"
+
+    artifactRules = "build/libs/*.jar => app"
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+        script {
+            name = "Compile application"
+
+            scriptContent = """
+                ./gradlew clean assemble
+            """.trimIndent()
+        }
+    }
+})
+
+// 2. create build configuration
+	// - dependent on Compile via snapshot dependency only
+object Test : BuildType({
+
+    name = "Test"
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+        script {
+            name = "Run tests"
+            scriptContent = "./gradlew test"
+        }
+    }
+
+    dependencies {
+        snapshot(Compile) {
+        }
+    }
+})
+
+// 3. create build configuration
+	// - dependent on Compile via snapshot and artifact dependency
+object Package : BuildType({
+
+    name = "Package"
+
+    artifactRules = "dist/*.jar"
+
+    steps {
+        script {
+            name = "Create distribution"
+
+            scriptContent = """
+                mkdir -p dist
+                cp input/*.jar dist/
+            """.trimIndent()
+        }
+    }
+
+    dependencies {
+
+        snapshot(Test) {
+        }
+
+        artifacts(Compile) {
+            artifactRules = "app/*.jar => input"
+        }
+    }
+    
+    // VCS trigger only on last one in build chaiun
+    triggers {
+        vcs {
+        }
+    }
+})
+```
+
+Here is how the Package build configuration uses artifact dependencies:
+
+1. Read `artifacts(Compile)` as "*Download artifacts from Compile.*"
+2. Read this artifact rule as: "*Take JAR files underneath Compile's `app` artifact directory and put them into `input` for this build*."
+
+```kt
+artifactRules = "app/*.jar => input"
+```
+
+3. Copy `input/my-app.jar` to `dist/my-app.jar` in the script steps
+4. Create an artifact rule publishing the JAR files
+
+```kt
+artifactRules = "dist/*.jar"
+```
+
+The overall pipeline is:
+
+```ps
+TeamCity artifact storage
+
+Compile
+└── app/
+    └── my-app.jar
+             │
+             │ artifact dependency
+             ▼
+
+Package build agent
+
+input/
+└── my-app.jar
+```
+
+**more in depth example**
 
 Here's an example using Method 1:
 
@@ -3280,7 +3607,7 @@ object ReactBuild : BuildType({
 ```
 
 
-2. Create a job that is dependent on those two jobs:
+2. Create a job that is dependent on those two jobs by setting snapshot and artifact dependencies on that job
 
 ```kt
 object Publish : BuildType({
@@ -3441,6 +3768,18 @@ Here's how they work
 
 This approach works well because we treat the VCS with the kotlin DSL as the source of truth, and any changes made in the UI as a "nice suggestion" we can choose to include in the code as config or not.
 
+### IntelliJ with Kotlin DSL
+
+This is how you can install documentation for type hinting and code completion:
+
+```embed
+title: "Kotlin DSL | TeamCity On-Premises"
+image: "https://resources.jetbrains.com/storage/products/teamcity/img/meta/preview.png"
+description: ""
+url: "https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Download+DSL+Documentation"
+favicon: ""
+aspectRatio: "49.21875"
+```
 
 
 ### Local testing
