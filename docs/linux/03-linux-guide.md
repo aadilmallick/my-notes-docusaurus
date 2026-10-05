@@ -1474,19 +1474,27 @@ This is an assortment of topics that build on each other, including the Linux fi
 here are the folders that come preinstalled in the linux filesystem
 
 - `/bin` - Essential command binaries
-- `/sbin` - Essential system binaries, usually to be run by root
+- `/boot`: files needed to boot the operating system
+- `/cgroup`: cgroup hierarchy if making containers
+- `/sbin` - Essential system binaries for administration, usually to be run by root
 - `/dev` - Device files, special files that often are interfaces to hardware devices
 - `/etc` - Host-specific system-wide configuration files
 - `/home` - Home directories for users in the system
 - `/lib` - Common libraries for system programs
+- `/lib64` - Common libraries for system programs, 64 bit
 - `/opt` - Optional application software
 - `/sys` - Contains information and configuration for the system (covered in the [first lecture](https://missing.csail.mit.edu/2020/course-shell/))
 - `/tmp` - Temporary files (also `/var/tmp`). Usually deleted between reboots.
-- `/usr/` - Read only user data
+- `/usr/` - user related programs
     - `/usr/bin` - Non-essential command binaries
     - `/usr/sbin` - Non-essential system binaries, usually to be run by root
     - `/usr/local/bin` - Binaries for user compiled programs
 - `/var` - Variable files like logs or caches
+- `/mnt`: used to mount external filesystems.
+- `/proc`: stores info about running processes
+- `/root`: home directory for the root account
+
+
 
 #### Authentication files
 
