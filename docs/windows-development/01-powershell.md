@@ -198,7 +198,7 @@ The `-confirm` flag will ask you to confirm the command execution for each objec
 Get-Service | Stop-Service -confirm
 ```
 
-\
+
 
 
 ### Aliases
@@ -213,15 +213,17 @@ For example, the alias for the bash `ls` command maps to the `Get-ChildItem` com
 > Use aliases sparingly, and don't use them in scripts. This is because you need powershell scripts to be as easy to understand as possible.
 
 
-**creating aliases**
+
 
 Here's how to create an alias:
 
 ```ps
+New-Alias <AliasName> <Cmdlet>
 
+New-Alias getp Get-Process
 ```
 
-**get alias**
+Heres how to retrieve an alias
 
 ```
 Get-Alias pwd
@@ -1665,15 +1667,28 @@ The `$host.UI` object represents the powershell window UI, and you can change ho
 
 The powershell profile is the startup file script that runs at startup of a new powershell session.
 
-The `$PROFILE` variable gives you the filepath to the profile file.
-
-You can scope the powershell profile to a different scope, like the current windows user or all users on the machine.
-
-These different scopes have different profile files locations:
+The `$PROFILE` variable is an object which contains filepaths to the profile files for all different scopes:
 
 
 ![](https://i.imgur.com/sXhLMgx.jpeg)
 
+You can view these filepaths like so:
+
+```ps
+$PROFILE | Format-List
+```
+
+These files may not exist at first, so create them, and then you can create an example profile like so:
+
+```ps
+# 1. change execution policy
+Set-ExecutionPolicy RemoteSigned
+
+# 2. add aliases
+New-Alias getp Get-Process
+
+# 3. customize UI
+```
 #### Customizing prompt
 
 The prompt text in powershell is read from the `prompt` function in the powershell profile, which you can override in the powershell profile
@@ -2967,24 +2982,86 @@ $response = Invoke-RestMethod -Uri "http://localhost:8080/auth-basic" `
 -Method Get -Headers @{ Authorization = "Basic $basicAuthHeader" }
 $response
 ```
+
+## Powershell automation
+
+### Background jobs
+
+```ps
+# 1. start the job
+$Job = Start-Job -ScriptBlock {
+	# 2. async work
+	Start-Sleep -Seconds 5
+	# jobs don't print to the console, they run in separate process,
+	# so return result so it can be received.
+	"Job is Done"
+}
+
+# 3. check job status
+Write-Host "Job started, checking status..."
+Get-Job
+
+# 4. thread.join(), receive result
+$Result = Receive-Job -Job $Job
+
+Write-Host "Result $Result"
+
+# 5. cleanup job
+Remove-Job -Job $Job
+```
+
 ## Powershell 7 features
 
 PowerShell 7 is designed to coexist with PowerShell 5.1 on the same system without interfering with each other. This is possible because PowerShell 7 installs into a new directory (`%programfiles%\PowerShell\7`), separate from where PowerShell 5.1 is installed. 
 
 This setup lets you run either version independently depending on your needs. So, you can have both versions available and choose which one to use for different tasks or scripts, which is helpful when transitioning or working with different environments.  
 
+### New operators
 
-### Pipeline parallelization
+#### Ternary operators
 
-Pipeline parallelization in PowerShell 7 allows you to process multiple objects at the same time instead of one after another, which can speed up tasks that handle many items. This is done using the ForEach-Object cmdlet with the -Parallel parameter.  
-  
-Here's a simple example:  
-  
-```ps1
-1..5 | ForEach-Object -Parallel { Start-Sleep -Seconds $_ "Processed item $_" }
+```ps
+$Parity = (7 % 2 -eq 0) ? "Even" : "Odd"
 ```
 
-In this example, numbers 1 to 5 are processed in parallel. Each item causes a sleep for that number of seconds, but because they run simultaneously, the total time is roughly the longest sleep, not the sum of all sleeps.  
+#### Pipeline chain operators (short-circuiting)
+
+- `&&`: Use the `&&` in a pipeline as AND short circuiting, where the operand on the right-hand side will not be executed unless the previous operand on the left-hand side was truthy (returned data).
+
+```ps
+Get-Process notepad && Write-Host "notepad process exists"
+```
+
+- `||`: Use the `||` in a pipeline as OR short circuiting, where if the previous operand on the left hand side is falsy (returned null or threw non-terminating error), then the right hand side also gets executed.
+
+```ps
+# outputs "notepad process does not exist"
+(Get-Process notepad -ErrorAction SilentlyContinue &&  `
+Write-Host "notepad process exists") || `
+Write-Host "notepad process does not exist"
+```
+
+#### Null-coalescing operators
+
+```ps
+$Username = $Null
+
+$DisplayName = $UserName ?? "Guest User"
+```
+### Pipeline parallelization
+
+Pipeline parallelization in PowerShell 7 allows you to process multiple objects at the same time instead of one after another, which can speed up tasks that handle many items. 
+
+
+This is done using the `ForEach-Object` cmdlet with the `-Parallel` parameter.  
+  
+```ps1
+1..5 | ForEach-Object -Parallel { 
+	Start-Sleep -Seconds $_ "Processed item $_" 
+}
+```
+
+>In this example, numbers 1 to 5 are processed in parallel. Each item causes a sleep for that number of seconds, but because they run simultaneously, the total time is roughly the longest sleep, not the sum of all sleeps.  
   
 This feature is useful when you have tasks that can run independently and you want to save time by running them concurrently.
 
