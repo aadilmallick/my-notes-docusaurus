@@ -2358,6 +2358,15 @@ favicon: ""
 aspectRatio: "49.21875"
 ```
 
+#### Creating project with `.teamcity` config
+
+If you want to create a project from scratch using a repo that has a `.teamcity` folder in it, this is what you should follow:
+
+It is possible to import existing Kotlin settings. When creating the project from a repository URL, TeamCity will scan the sources. If existing Kotlin settings are detected, the wizard will suggest importing them.
+
+![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-teamcity-import-from-kotlin-dsl.png)
+
+Here are the full steps:
 
 1. Configure a git repo for source control:
 
@@ -2627,8 +2636,6 @@ project {
 	- **dependencies**: You can create **build chains** which are the equivalent of job dependencies in github actions to create sequential builds that depend on each other.
 
 Here's a basic, simple example that does the following:
-
-1. Registers a build configuration using the project's configured VCS root (configured on teamcity UI), steps to install and build with npm, and build triggers on VCS push
 
 ```kts
 version = "2020.1"
@@ -2943,6 +2950,8 @@ Here are the basic properties that the `GitVcsRoot` object takes in:
 - `url`: either the HTTPS or SSH url of the repo to connect to
 - `branch`: the git branch to use as the source, like `"main"`
 
+![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-vcs-root.png)
+
 ##### **auth methods**
 
 There are two ways to authenticate with a Git repo when setting up the Git VCS root:
@@ -2964,7 +2973,11 @@ object MyRepo : GitVcsRoot({
 })
 ```
 
+#### Build configuration basics
 
+A build configuration consists of these basic components:
+
+![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-kotlin-build-configuration.png)
 #### subprojects
 
 
@@ -3302,9 +3315,13 @@ project {
 
 #### VCS roots with build configurations
 
-Due to one of the rules of teamcity projects (see [[#TeamCity projects]]), build configurations inherit settings from the project they are scoped under, such as VCS roots.
+Due to one of the rules of teamcity projects (see [[#TeamCity projects]]), build configurations by default inherit settings from the project they are scoped under, such as VCS roots.
 
 However, you can override the VCS roots a build configuration uses with the `vcs { }` block, and then use the `root(GitVcsRoot)` method to register a `GitVcsRoot` instance as the VCS root for that build configuration.
+
+The `vcs{}` block is used to define the [version control settings](https://confluence.jetbrains.com/display/TCD18/Configuring+VCS+Settings), including the list of VCS roots and other attributes.
+
+![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-vcs-settings.png)
 
 ```kt
 import jetbrains.buildServer.configs.kotlin.*
@@ -4133,6 +4150,15 @@ class Maven(public var name: String, public var goals: String): BuildType({
 })
 ```
 
+#### Build features
+
+Build features are specified through the `features {}` block on a build configuration.
+
+##### Swabra
+
+Let’s extend this build a little bit. TeamCity provides a feature called _Build Files Cleaner_, also known as [Swabra](https://confluence.jetbrains.com/display/TCD10/Build+Files+Cleaner+%28Swabra%29). Swabra makes sure that files left by the previous build are removed before running new builds.
+
+![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-swabra.png)
 
 ### DSL Context Parameters
 
@@ -4174,7 +4200,134 @@ Here's how they work
 
 This approach works well because we treat the VCS with the kotlin DSL as the source of truth, and any changes made in the UI as a "nice suggestion" we can choose to include in the code as config or not.
 
+### Advanced best practices
+
+#### Level 1 abstraction - wrapper functions
+
+What we’d ideally like is to have every build configuration automatically have the _Build Files Cleaner_ feature, without having to manually add it. In order to do this, we could introduce a function that wraps every instance of `BuildType` with this feature. In essence, instead of having the _Project_ call
+
+```
+buildType(Build)
+buildType(AnotherBuild)
+buildType(OneMoreBuild)
+```
+
+we would have it call
+
+```
+buildType(cleanFiles(Build))
+buildType(cleanFiles(AnotherBuild))
+buildType(cleanFiles(OneMoreBuild))
+```
+
+For this to work, we’d need to create the following function
+
+```kt
+fun cleanFiles(buildType: BuildType): BuildType {
+   buildType.features {
+       swabra {}
+   }
+   return buildType
+}
+```
+
+The new function essentially takes a `BuildType`, adds a feature to it, and then returns the same `BuildType` instance.
+
+We can improve the code a little so that it only adds the feature if it doesn’t already exist:
+
+```kt
+
+fun cleanFiles(buildType: BuildType): BuildType {
+   if (buildType.features.items.find { it.type == "swabra" } == null) {
+       buildType.features {
+           swabra {
+           }
+       }
+   }
+   return buildType
+}
+```
+
+You can generalize this with lambda receivers:
+
+```kt
+fun wrapWithFeature(buildType: BuildType, featureBlock: BuildFeatures.() -> Unit): BuildType {
+   buildType.features {
+       featureBlock()
+   }
+   return buildType
+}
+```
+
+Then you can use it like so:
+
+```kt
+buildType(wrapWithFeature(Build){
+   swabra {}
+})
+```
+
+#### Level 2 abstraction - classes
+
+You can create custom classes that inherit from the teamcity constructs as to provide a more configurable approach and avoid code duplication:
+
+1. Create a subclass of a `BuildType` to create a custom build configuration class you can override with specific constructor arguments:
+
+```kt
+class Build(val os: String, val jdk: String) : BuildType({
+   id("Build_${os}_${jdk}".toExtId())
+   name = "Build ($os, $jdk)"
+
+   vcs {
+       root(DslContext.settingsRoot)
+   }
+
+   steps {
+       maven {
+           goals = "clean package"
+           mavenVersion = defaultProvidedVersion()
+           jdkHome = "%env.${jdk}%"
+       }
+   }
+
+   requirements {
+       equals("teamcity.agent.jvm.os.name", os)
+   }
+})
+```
+
+2. You can now register build configurations in a more flexible way by instantiating and registering those build configuration subclasses instead within the project:
+
+```kt
+val operatingSystems = listOf("Mac OS X", "Windows", "Linux")
+val jdkVersions = listOf("JDK_18", "JDK_11")
+
+project {
+   for (os in operatingSystems) {
+       for (jdk in jdkVersions) {
+           buildType(Build(os, jdk))
+       }
+   }
+}
+```
+
 ### IntelliJ with Kotlin DSL
+
+#### Cloning down project and installing dependencies
+
+The nice part about IntelliJ is that you can isntall the dependencies from the `pom.xml` with maven to get type completion and intellisense for the DSL code.
+
+> [!NOTE]
+> This works because the `.teamcity` folder is a Maven module.
+
+1. Clone down the project
+
+![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-teamcity-kotlin-dsl-project-layout2.png)
+
+2. Right-click on the _pom.xml_ file and select **Add as Maven Project** – the IDE will import the Maven module and download the required dependencies.
+
+![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-add-as-maven-project.png)
+#### Installing documentation
 
 This is how you can install documentation for type hinting and code completion:
 
