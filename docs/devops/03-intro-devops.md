@@ -334,9 +334,16 @@ The four key characteristics of GitOps according to OpenGitOps are:
 
 ### Policies as code
 
+Policies as code are an approach that is used to define security and compliance rules for infra as code.
+
 **Policies as code** help prevent risky configurations (like open network ports or missing encryption) before they reach production, using tools such as TFSEC, Chekov, Dry Run Security, and Open Policy Agent.
 
+The main components of a policy as code system are:  
+  
 
+- **Policy:** Contains the set of rules and conditions, such as denying public access to storage buckets or enforcing encryption.
+- **Data:** The input that the policy evaluates, like CloudFormation templates or Terraform configuration files.
+- **Query:** The command or trigger that tells the policy engine to start evaluating the policies against the data.
 
 ## CI/CD
 

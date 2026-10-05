@@ -249,6 +249,8 @@ Here are the best practices:
 
 #### Continuous IaC scanning
 
+Infrastructure as code scanning is the process of statically analyzing infrastructure configuration files to detect misconfigurations, security vulnerabilities, and policy violations before they are deployed. 
+
 Continuous IaC scanning scans your IaC code with static analysis tools like Checkov that can be fit into CI/CD pipelines to catch misconfigurations with your infra design.
 
 
@@ -259,6 +261,14 @@ Continuous IaC scanning scans your IaC code with static analysis tools like Chec
 > A single misconfiguration in IaC can propagate across all deployments, so integrating security checks early in the development process is crucial to catch issues when they are cheapest to fix.
 
 Security scanning tools like Akido Security and open-source Checkov can analyze IaC for vulnerabilities, providing instant feedback through IDE integration and bug tracking systems.
+
+This is also combined with [[03-intro-devops#Policies as code]].
+
+You have these tools for IaC scanning:
+
+
+![](https://i.imgur.com/JAwzQIG.jpeg)
+
 
 ### Dynamic testing
 
@@ -361,7 +371,45 @@ You can use comments with Checkov in order to skip checking certain problematic 
 
 ![](https://i.imgur.com/wzXyNpT.jpeg)
 
+### Trivy
 
+#### Basic scan
+
+After installation, you can begin scanning a configuration directory which contains the `main.tf` file by running the following command below:
+
+```bash
+trivy config --format template --template @contrib/html.tpl -o results.html 04_06/
+```
+
+#### Github action
+
+```yaml
+# Trivy Scanning YAML File
+name: Trivy Scan
+
+on:
+  push:
+    branches:
+      - main
+    pull_request:
+
+jobs:
+  trivy_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Run Trivy Scan
+      - name: Run Trivy Scan
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          scan-type: config
+          exit-code: "1"
+          severity: "HIGH,CRITICAL"
+```
 ## DAST tools
 
 ### OWASP Zap
