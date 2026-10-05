@@ -287,6 +287,69 @@ Let's first do it manually:
 > [!NOTE]
 > Whenever you create a build configuration, TeamCity creates a unique ID for that, which is used internally and which TeamCity recognizes as a **job** or **run**, and then you can use that in the teamcity API or teamcity CLI to programmatically fetch the info of those jobs.
 
+##### Checkout rules
+
+When teamcity pulls source code from a VCS root, it pulls down the entire repository.
+
+Teamcity checkout rules allow you to change that and only checkout out certain filepaths and folders you want from the repo instead of everything.
+
+VCS checkout rules allow to map repo paths to build agent paths in the filesystem, which is useful only if you want to change how the repo maps to the build agent filesystem when checking out the source code.
+
+> [!NOTE]
+> When is this useful? For composability and reusability, when you only need one folder or file from a VCS root and not everything.
+
+checkout rules answer two closely related questions:
+
+1. **Which repository paths does my build need?**: what do you specifically want to check out?
+2. **Which repository path changes matter to this build?**: if you don't checkout certain folders and files, then they don't contribute to the build, and thus any changes to those omitted files and folders should not register as a VCS change.
+
+
+The general syntax of a single checkout rule is as follows:
+
+- use `+` for including and `-` for excluding.
+- If no rule is specified, all files are included, which is the default.  
+- To include all the files explicitly, use the `+:.` rule.
+- - If you don't enter an operator, it will default to `+:`.
+
+| Syntax                  | Explanation                                                                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `+:.=>AgentPath`        | Checks out the root into the `Path` directory on a build agent.                                                                                                                |
+| `-:VCSPath`             | Excludes `VCSPath` (the path must be a directory and not a filename).                                                                                                          |
+| `+:VCSPath=>.`          | Maps the `VCSPath` from the VCS to the [build agent's default work directory](https://www.jetbrains.com/help/teamcity/cloud/agent-work-directory.html?utm_source=chatgpt.com). |
+| `VCSPath=>NewAgentPath` | Maps the `VCSPath` from the VCS to the `NewAgentPath` directory on a build agent.                                                                                              |
+| `+:VCSPath`             | Maps the `VCSPath` from the VCS to the same-named directory (`VCSPath`) on a build agent.                                                                                      |
+
+```
++|-: VCSPath [=> AgentPath]
+```
+
+
+Here's an example of adding a checkout rule to a VCS root:
+
+- **example 1**: checkout everything except this one `documentation` folder, which now means that changes in the documentation folder will not affect any VCS changes or trigger anything. 
+
+![](https://i.imgur.com/vOyY4rx.jpeg)
+
+- **example 2**: map folderpath from repo to another path on build agent:
+
+```
+-:originalpath => another/path
+```
+
+##### Checkout mode
+
+The VCS Checkout mode is a setting that affects how project sources reach an agent. This mode affects only sources checkout. The current revision and changes data retrieving logic is executed by the TeamCity server, and thus TeamCity server needs to access the VCS server in any mode.
+
+The checkout mode is configured on the build configuration's Version Control Settings page, in the Checkout Settings section (advanced settings).
+
+TeamCity has the following VCS checkout modes:
+
+- **Prefer to check out files on agent**: With this setting enabled, TeamCity will use the agent-side checkout.
+	- This is the default setting for the newly created build configurations
+- **Always check out files on server**: The TeamCity server will [export the sources](https://www.jetbrains.com/help/teamcity/cloud/build-checkout-directory.html?utm_source=chatgpt.com) and pass them to an agent before each build. Since the sources are exported rather than checked out, no administrative data is stored in the agent's file system and version control operations (like check-in, label or update) cannot be performed from the agent.
+- **Do not check out files automatically**: TeamCity will not check out any sources automatically
+	- The build checkout directory will not be cleaned automatically, unless the directory expiration period is [configured](https://www.jetbrains.com/help/teamcity/cloud/build-checkout-directory.html?utm_source=chatgpt.com#Automatic+Checkout+Directory+Cleaning).
+
 #### Versioned settings
 
 **Versioned settings** store all properties related to project and build configurations, fetching those properties and settings from a remote repo with version control.
@@ -2913,7 +2976,7 @@ Here's a list of what you have to explicitly register on a project in order for 
 3. **subprojects**: register a `SubProject` with the `subProject()` method, which takes in a `SubProject` object instance, registering a subproject within the project.
 4. **vcs roots**: register a VCS root represented by the `GitVcsRoot` class with the `vcsRoot()` method, which takes in a `GitVcsRoot` object instance.
 5. **build chains**: the `sequential { }` and `parallel { }` blocks allow you to create build chains and then register build configurations within those build chains with the`buildType()` method, which takes in a `BuildType` object instance.
-#### creating VCS roots
+#### VCS roots
 
 In the `projects` block, you can register VCS roots for the project via the `vcsRoot()` function, which takes in a `GitVcsRoot` instance:
 
@@ -2973,6 +3036,30 @@ object MyRepo : GitVcsRoot({
 })
 ```
 
+##### Branches and feature branches
+
+TeamCity's Git VCS root has separate `branch` and `branchSpec` properties.
+
+- `branch`: the default branch to pull from for the VCS root source code.
+	- TeamCity uses the default branch in many places where no other branch has been explicitly chosen.
+- `branchSpec`: tell TeamCity which additional feature branches should participate in branch-aware builds, using branch syntax.
+
+```kt
+object ApplicationRepository : GitVcsRoot({
+
+    id("ApplicationRepository")
+    name = "Application Repository"
+
+    url = "https://github.com/example/my-app.git"
+
+    branch = "refs/heads/main"
+
+    branchSpec = """
+        +:refs/heads/feature/*
+        +:refs/heads/release/*
+    """.trimIndent()
+})
+```
 #### Build configuration basics
 
 A build configuration consists of these basic components:
@@ -3360,11 +3447,144 @@ object BuildApplication : BuildType({
 })
 ```
 
+##### Handling branch filters
+
+If your VCS root supports feature branches (has the `branchSpec` property of branch rules), then you can override which branches the build configuration should run for via the `vcs.branchFilter` property:
+
+
+```kt
+object BuildApplication : BuildType({
+
+    name = "Build Application"
+
+    vcs {
+        root(ApplicationRepository)
+
+        branchFilter = """
+            +:*
+            -:release/*
+        """.trimIndent()
+    }
+})
+```
+
+Mental model:
+
+```
+VCS root branchSpec
+        │
+        │ What branches does this repository
+        │ definition know about?
+        ▼
+main
+feature/*
+release/*
+        │
+        │ Build configuration branchFilter
+        ▼
+main
+feature/*
+```
+
+Imagine:
+
+```
+Git repository
+│
+│ branchSpec
+▼
+Branches TeamCity tracks
+│
+│ build configuration branchFilter
+▼
+Branches available to this BuildType
+│
+│ trigger branchFilter
+▼
+Branches that automatically start this build
+```
+
+Each stage narrows the previous one.
+
+##### Checkout rules
+
+VCS checkout rules allow to map repo paths to build agent paths in the filesystem, which is useful only if you want to change how the repo maps to the build agent filesystem when checking out the source code.
+
+> [!NOTE]
+> When is this useful? For composability and reusability, when you only need one folder or file from a VCS root and not everything.
+
+checkout rules answer two closely related questions:
+
+1. **Which repository paths does my build need?**: what do you specifically want to check out?
+2. **Which repository path changes matter to this build?**: if you don't checkout certain folders and files, then they don't contribute to the build, and thus any changes to those omitted files and folders should not register as a VCS change.
+
+
+Suppose the repository is:
+
+```
+repository/
+├── backend/
+├── frontend/
+├── documentation/
+└── infrastructure/
+```
+
+A backend build may only care about:
+
+```
+backend/
+```
+
+So doing something like this, where the Kotlin DSL `root()` function accepts checkout rules when attaching a VCS root to a BuildType:
+
+```kt
+vcs {
+    root(
+        ApplicationRepository,
+        "+:backend => backend"
+    )
+}
+```
+
+means conceptually:
+
+```
+Git repository                    Agent
+
+backend/ -----------------------> backend/
+
+frontend/                         not checked out
+documentation/                    not checked out
+infrastructure/                   not checked out
+```
+
+**checkout rules also affect change detection**
+
+Suppose your build uses:
+
+```
+vcs {
+    root(
+        ApplicationRepository,
+        "+:backend => backend"
+    )
+}
+```
+
+and someone changes:
+
+```
+documentation/readme.md
+```
+
+TeamCity can treat that commit as irrelevant for this build because it does not match the attached VCS root's checkout rules. JetBrains specifically notes that checkout rules affect both checked-out files and the changes considered relevant to the build.
 #### Triggers
 
 You define triggers on a build type with the `BuildType.triggers` object block.
 
 ##### VCS triggers
+
+Here's a basic vcs trigger you can set via the `triggers.vcs` object, where a new build is triggered upon a new recognized commit to the VCS root.
 
 ```kt
 object BuildApplication : BuildType({
@@ -3389,158 +3609,19 @@ object BuildApplication : BuildType({
 })
 ```
 
-#### Parameters
-
-The below code block in a build configuration creates teamcity parameters on the build config.
+If you want to add branch filters to narrow down which branches the VCS trigger should trigger on, you can do so:
 
 ```kt
-params {
-    param("gradle.tasks", "test")
-}
-```
-
-TeamCity stores it as part of the resulting configuration. Current TeamCity parameters are referenced in most TeamCity settings with `%parameterName%`.
-
-
-So:
-
-```
-Kotlin val
-    │
-    └── DSL programming concept
-
-
-TeamCity parameter
-    │
-    └── TeamCity runtime/configuration concept
-```
-
-Here's a full example of using parameters:
-
-```kt
-object Test : BuildType({
-
-    name = "Test"
-
-    params {
-        param("gradle.tasks", "test")
-    }
+triggers {
 
     vcs {
-        root(ApplicationRepository)
+        branchFilter = """
+            +:*
+            -:release/*
+        """.trimIndent()
     }
-
-    steps {
-        script {
-            name = "Run tests"
-
-            scriptContent = "./gradlew %gradle.tasks%"
-        }
-    }
-
-    dependencies {
-        snapshot(Compile) {
-        }
-    }
-})
-```
-
-There are three different types of parameters in TeamCity:
-
-1. **configuration parameter**: standard normal parameter you set, which you supply at runtime via the TeamCity UI settings.
-2. **environment variable**: sets an environment variable in the build agent running that build configuration, set during the duration of the run.
-3. **system properties**
-
-Here's an example
-
-```kt
-params {
-    param("gradle.tasks", "test")
-
-    param("env.TEST_ENVIRONMENT", "ci")
 }
 ```
-
-Then
-
-```kt
-scriptContent = """
-    echo "Environment: ${'$'}TEST_ENVIRONMENT"
-    ./gradlew %gradle.tasks%
-""".trimIndent()
-```
-
-```
-Kotlin DSL evaluation
-       │
-       ▼
-TeamCity configuration
-       │
-       │ replaces %...%
-       ▼
-shell script
-       │
-       │ expands $...
-       ▼
-actual command
-```
-
-##### Configuration variables
-
-```kt
-params {
-    param("deployment.environment", "staging")
-}
-```
-
-You can then reference in teamcity:
-
-
-```
-%deployment.environment%
-```
-##### Environment variables
-
-Declaring environment variables as team city parameters sets the environment variables within the environment for the build agent during the run duration of the build configuration, which means you can access this environment variable within build configuration steps. 
-
-1. Declare an env var param in the build configuration under the `env` object:
-
-```kt
-params {
-    param("env.DEPLOYMENT_ENVIRONMENT", "staging")
-}
-```
-
-2. You can now access that environment variable in shell code scripts, but make sure to escape the `$`
-
-```bash
-scriptContent = """
-    echo "Environment: ${'$'}DEPLOYMENT_ENVIRONMENT"
-    ./gradlew %gradle.tasks%
-""".trimIndent()
-```
-
-##### Secure parameters
-
-In general, TeamCity processes a DSL parameter as a string. To mark a DSL value as secure, you can assign it to a parameter of the `password` type:
-
-```kt
-params {
-    password("<parameter_name>", "credentialsJSON:<token>")
-}
-```
-
-- `<parameter_name>`: is a unique name which can be used as a key for accessing the secure value via DSL (for example, in the [File Content Replacer](https://www.jetbrains.com/help/teamcity/file-content-replacer.html) build feature)
-- `<token>`: is the token corresponding to the target secure value.
-
-Here's an example:
-
-```kt
-params {
-    password("pass-to-bucket", "credentialsJSON:12a3b456-c7de-890f-123g-4hi567890123")
-}
-```
-
 #### Build steps
 
 ##### Script steps
@@ -4160,16 +4241,380 @@ Let’s extend this build a little bit. TeamCity provides a feature called _Buil
 
 ![](https://blog.jetbrains.com/wp-content/uploads/2019/03/teamcity-swabra.png)
 
-### DSL Context Parameters
+### Parameters
 
-You can customize the DSL generation behavior using context parameters configured in the TeamCity UI. Context parameters are specified as a part of the project [versioned settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#SynchronizingSettingswithVCS) in the UI.
+You can set teamcity parameters either at the project level or at the build configuration level:
 
-With context parameters, it is possible to maintain a single Kotlin DSL code and use it in different projects on the same TeamCity server. Each of these projects can have own values of context parameters, and the same DSL code can produce different settings based on values of these parameters.
+- **project level**: parameters that live at the project level are inherited by configurations under that project and its child projects.
 
-For more info, check out [Kotlin DSL | TeamCity On-Premises](https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Use+Context+Parameters+in+DSL)
+```kt
+project {
 
-And [Creating TeamCity project templates with Kotlin DSL context parameters - The JetBrains Blog](https://blog.jetbrains.com/teamcity/2020/09/creating-teamcity-project-templates-with-kotlin-dsl-context-parameters/?_cl=MTsxOzE7bDJCOVFyaFh5SGpGa0syclJrNkF3RTVFdDF6aHA4dG55dTJublZya1FQMW5KaDIySWlUcHF1R2FONU5Xbm14Rjs=)
+    params {
+        param("company.registry", "registry.example.com")
+        param("env.CI", "true")
+    }
 
+    vcsRoot(ApplicationRepository)
+
+    buildType(Compile)
+    buildType(Test)
+    buildType(Package)
+}
+```
+
+- **build configuration**: parameters that live on a build configuration are unique to that build configuration, and you can even override project parameters by resetting those parameters at the build configuration level.
+
+```kt
+object Test : BuildType({
+
+    name = "Test"
+
+    params {
+        param("gradle.tasks", "test")
+    }
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+        script {
+            name = "Run tests"
+
+            scriptContent = "./gradlew %gradle.tasks%"
+        }
+    }
+
+    dependencies {
+        snapshot(Compile) {
+        }
+    }
+})
+```
+
+
+The below code block in a build configuration creates teamcity parameters
+
+```kt
+params {
+    param("gradle.tasks", "test")
+}
+```
+
+Current TeamCity parameters are referenced in most TeamCity settings with `%parameterName%`.
+
+So:
+
+```
+Kotlin val
+    │
+    └── DSL programming concept
+
+
+TeamCity parameter
+    │
+    └── TeamCity runtime/configuration concept
+```
+
+#### Parameter types
+
+There are four different types of variables/parameters in TeamCity:
+
+1. **configuration parameter**: standard normal parameter you set, which you supply at runtime via the TeamCity UI settings.
+2. **environment variable**: sets an environment variable in the build agent running that build configuration, set during the duration of the run.
+3. **kotlin variables**: standard kotlin variables you set
+4. **DSL context parameters**: project-wide parameters you set on the versioned settings of a project and then you can fetch at runtime via the `DSLContext.getParameter()` method.
+
+By this point, TeamCity DSL has several types of “variables.”
+
+- **standard kotlin variables**
+
+```
+val serviceName = "payments"
+```
+
+- **DSL evaluation context**
+
+```
+DslContext.getParameter("Region", "us-east")
+```
+
+- **TeamCity build/configuration parameter**
+
+```
+param("deployment.environment", "staging")
+```
+
+- **process environment variable**
+
+```
+param("env.JAVA_HOME", "/opt/java")
+```
+
+Here's a full example using all of them:
+
+```kt
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.triggers.vcs
+import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot
+
+version = "YOUR_TEAMCITY_VERSION"
+
+project {
+
+    params {
+        param("company.registry", "registry.example.com")
+        param("env.CI", "true")
+    }
+
+    vcsRoot(ApplicationRepository)
+
+    buildType(BuildApplication)
+}
+
+
+object ApplicationRepository : GitVcsRoot({
+
+    id("ApplicationRepository")
+    name = "Application Repository"
+
+    url = "git@github.com:company/application.git"
+
+    branch = "refs/heads/main"
+
+    branchSpec = """
+        +:refs/heads/feature/*
+        +:refs/heads/release/*
+    """.trimIndent()
+
+    authMethod = uploadedKey {
+        uploadedKey = "teamcity-github-key"
+    }
+
+    checkoutPolicy =
+        GitVcsRoot.AgentCheckoutPolicy.AUTO
+})
+
+
+object BuildApplication : BuildType({
+
+    id("BuildApplication")
+    name = "Build Application"
+
+    params {
+        param("gradle.tasks", "clean build")
+    }
+
+    vcs {
+
+        root(ApplicationRepository)
+
+        checkoutMode = CheckoutMode.AUTO
+    }
+
+    steps {
+
+        script {
+
+            name = "Build"
+
+            scriptContent = """
+                echo "CI = ${'$'}CI"
+
+                ./gradlew %gradle.tasks%
+
+                echo "Registry: %company.registry%"
+            """.trimIndent()
+        }
+    }
+
+    triggers {
+
+        vcs {
+
+            branchFilter = """
+                +:*
+                -:release/*
+            """.trimIndent()
+        }
+    }
+})
+```
+
+#### Configuration variables
+
+```kt
+params {
+    param("deployment.environment", "staging")
+}
+```
+
+You can then reference in teamcity:
+
+
+```
+%deployment.environment%
+```
+#### Environment variables
+
+Declaring environment variables as team city parameters sets the environment variables within the environment for the build agent during the run duration of the build configuration, which means you can access this environment variable within build configuration steps. 
+
+1. Declare an env var param in the build configuration under the `env` object:
+
+```kt
+params {
+    param("env.DEPLOYMENT_ENVIRONMENT", "staging")
+}
+```
+
+2. You can now access that environment variable in shell code scripts, but make sure to escape the `$`
+
+```bash
+scriptContent = """
+    echo "Environment: ${'$'}DEPLOYMENT_ENVIRONMENT"
+    ./gradlew %gradle.tasks%
+""".trimIndent()
+```
+
+Here's an example
+
+```kt
+params {
+    param("gradle.tasks", "test")
+
+    param("env.TEST_ENVIRONMENT", "ci")
+}
+```
+
+Then
+
+```kt
+scriptContent = """
+    echo "Environment: ${'$'}TEST_ENVIRONMENT"
+    ./gradlew %gradle.tasks%
+""".trimIndent()
+```
+
+```
+Kotlin DSL evaluation
+       │
+       ▼
+TeamCity configuration
+       │
+       │ replaces %...%
+       ▼
+shell script
+       │
+       │ expands $...
+       ▼
+actual command
+```
+
+#### Secure parameters
+
+In general, TeamCity processes a DSL parameter as a string. To mark a DSL value as secure, you can assign it to a parameter of the `password` type:
+
+```kt
+params {
+    password("<parameter_name>", "credentialsJSON:<token>")
+}
+```
+
+- `<parameter_name>`: is a unique name which can be used as a key for accessing the secure value via DSL (for example, in the [File Content Replacer](https://www.jetbrains.com/help/teamcity/file-content-replacer.html) build feature)
+- `<token>`: is the token corresponding to the target secure value, which you generate in the Teamcity UI.
+
+> [!NOTE]
+> The important part is that the committed value is a TeamCity secure-value token, not your plaintext API token. JetBrains explicitly recommends generating a token rather than storing the plaintext password in DSL.
+
+Here's an example:
+
+```kt
+params {
+    password("pass-to-bucket", "credentialsJSON:12a3b456-c7de-890f-123g-4hi567890123")
+}
+```
+
+##### **secure parameters as environment variables**
+
+We can make the secret become an environment variable for the process so the build configuration steps can use that secret, all the while TeamCity handles it as a protected parameter.
+
+1. Create a secure parameter that gets stored as an encrypted environment variable on the build agent:
+
+```kt
+params {
+    password(
+        "env.API_TOKEN",
+        "credentialsJSON:..."
+    )
+}
+```
+
+2. Create a build step that uses that secret environment variable
+
+```kt
+scriptContent = """
+    curl \
+      -H "Authorization: Bearer ${'$'}API_TOKEN" \
+      https://example.com/api
+""".trimIndent()
+```
+
+Think of it like:
+
+```
+Git repository
+
+settings.kts
+    │
+    └── credentialsJSON:abc...
+                   │
+                   ▼
+            TeamCity secure value
+                   │
+                   ▼
+               Build runtime
+```
+
+##### Secure parameters via secret stores
+
+> [!NOTE]
+> For higher-security environments, current TeamCity also supports remote-secret parameter types backed by external secret stores like AWS secrets manager.
+
+#### DSL Context Parameters
+
+You can customize the DSL generation behavior using context parameters configured in the TeamCity UI. 
+
+Context parameters are specified as a part of the project [versioned settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#SynchronizingSettingswithVCS) in the UI.
+
+- With context parameters, it is possible to maintain a single Kotlin DSL code and use it in different projects on the same TeamCity server. 
+- Each of these projects can have own values of context parameters, and the same DSL code can produce different settings based on values of these parameters.
+
+For more info, check out [Kotlin DSL | TeamCity On-Premises](https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Use+Context+Parameters+in+DSL) And [Creating TeamCity project templates with Kotlin DSL context parameters - The JetBrains Blog](https://blog.jetbrains.com/teamcity/2020/09/creating-teamcity-project-templates-with-kotlin-dsl-context-parameters/?_cl=MTsxOzE7bDJCOVFyaFh5SGpGa0syclJrNkF3RTVFdDF6aHA4dG55dTJublZya1FQMW5KaDIySWlUcHF1R2FONU5Xbm14Rjs=)
+
+Now you can use them in kotlin via the `DslContext.getParameter()` method, which follows this syntax:
+
+```kt
+val param = DslContext.getParameter(
+	parameterName: string, 
+	default: string
+)
+```
+Here's an example, where if the `"Environment"` DSL parameter is not populated in versioned settings Teamcity UI settings for the project, it resolves to the default "development" value during runtime.
+
+```kt
+val environment =
+    DslContext.getParameter(
+        "Environment",
+        "development"
+    )
+
+object Deploy : BuildType({
+
+    name = "Deploy to $environment"
+})
+```
 ### Patches
 
 In _TeamCity_, when your project configuration is stored as _Kotlin DSL_ in version control, the system tries to automatically commit changes made in the web UI back to your code. 
