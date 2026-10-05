@@ -2491,6 +2491,12 @@ There are two types of errors that can occur in powershell:
 - `-ErrorAction Ignore`: don't exit 1 in case of error, just silently continue
 - `-ErrorAction Stop`: forces a non-terminating error, if thrown, to convert into a terminating error and halt script execution
 
+If you get tired of setting this named parameter on every single command, you can use a globally-recognized variable to configure the default behavior of the `-ErrorAction` named parameter through setting the `$ErrorActionPreference` variable.
+
+```ps
+$ErrorActionPreference = "Stop"
+```
+
 #### `$Error` variable
 
 The `$Error` variable is a special variable always available within a powershell session, and it is an array of error objects which stores all errors that have been thrown during the current powershell session.
