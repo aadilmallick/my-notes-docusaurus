@@ -1404,6 +1404,23 @@ The reason why we supply `~/.ssh/gh_key` as the `IdentityFile` in the `~/.ssh/co
 > You can use the same SSH key as much as you want to connect to different hosts and applications, since SSH keys are not application specific, they're only machine specific. It's totally up to your comfort for security.
 
 
+### FTP
+
+FTP is the insecure version of SFTP
+
+1. Connect to a server:  
+    `ftp server_address`
+2. Log in with your username and password.
+3. Common commands:
+    - `ls` or `dir`: List files on the remote server.
+    - `cd directory`: Change directory on the remote server.
+    - `lcd directory`: Change directory on your local machine.
+    - `get filename`: Download a file from the server.
+    - `put filename`: Upload a file to the server.
+    - `mget *`: Download multiple files.
+    - `mput *`: Upload multiple files.
+    - `delete filename`: Delete a file on the server.
+    - `bye` or `quit`: Exit the FTP session.
 
 ### SFTP
 
