@@ -1482,9 +1482,8 @@ get <remote-file-path>
 get <remote-file-path> <local-file-path>
 ```
 
-## Advanced Linux
+## Linux OS
 
-This is an assortment of topics that build on each other, including the Linux file system and system control services in Linux. 
 
 ### Learning the Linux Filesystem
 
@@ -1741,7 +1740,64 @@ sudo systemctl daemon-reload
 | **Inspect**          | `systemctl status <name>`              | Shows state, PID, cgroups, memory, and logs.      |
 | **Refresh Config**   | `sudo systemctl daemon-reload`         | Re-reads all unit files from disk into memory.    |
 
-### Cron
+### Linux boot process
+
+BIOS stands for **Basic Input/Output System** as is special firmware attached to all OS types with the primary purpose being to find and execute the boot loader
+
+The Linux kernel and necessary boot files are stored in the `/boot` directory, with these components:
+
+- **initrd**: the initial RAM disk (initrd) is a temporary file system loaded into memory to help mount the actual file system.
+- **kernel**: kernel is often named vmlinux or vmlinuz.
+- **boot loader configuration**
+
+### Shutting down
+
+```bash
+shutdown [options] time [message]
+
+# shutdown -r 15:30 "rebooting!"
+# shutdown -r +5 "rebooting soon!"
+# shutdown -r now
+
+```
+
+### syslog
+
+Syslog categorizes messages using facilities and severities:
+
+- **facility codes** indicate the source of the log
+- **severity levels** indicate the importance.
+
+A **syslog server** like `rsyslog` receives syslog messages and processes those messages based on a set of configurable rules.
+
+Those rules are based on these properties:
+
+- **selector field**: matches based on facility code and severity level combination
+- **action field**: a callback or action determining how to process a message
+	- The most common action is writing to a log file
+
+Here is how you can write your own log files with a linux command
+
+![](https://i.imgur.com/0DpFAXo.jpeg)
+
+
+#### `rsyslog`
+
+All the confgiruation for teh `rsyslog` server lives in teh `/etc/rsyslog.conf` file
+
+### Partitions
+
+#### Mounting
+
+Mounting is the process of making a storage device or partition accessible to the operating system by attaching it to a specific directory, called a mount point. 
+
+For example, if you have a partition for user home directories, you might mount it at `/home`. Once mounted, all files and directories under `/home` are stored on that partition.
+
+You can mount partitions anywhere in the Linux directory tree, and even have mount points within other mounted partitions. For instance, you could mount a partition at /home, and then another at /home/jason, but /home must be mounted first.
+
+Unmounting is the process of detaching the partition from its mount point, making its data inaccessible from that directory. This is important before removing a device to prevent data loss. If you unmount /home, any files or directories that were hidden by the mount (like /home/sarah) become visible again.
+
+## Cron
 
 **Cron** is the standard time-based job scheduler in Unix-like operating systems. It runs as a background daemon (typically named `cron` or `crond`) that wakes up every minute to check whether any scheduled tasks—known as **cron jobs**—are due to run.
 
@@ -1754,7 +1810,6 @@ Common use cases include:
 - Synchronizing data with external APIs or remote servers.
     
 - Executing periodic health checks and maintenance scripts.
-
 #### how Cron works
 
 - **The Daemon (`cron` / `crond`):** Starts at system boot and remains running in the background. Every minute, it scans system directories and user tables for scheduled jobs.

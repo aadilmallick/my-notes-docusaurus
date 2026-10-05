@@ -247,7 +247,7 @@ minikube delete -p [clusterName]
 ```
 ## `kubectl` basics
 
-#### Declarative vs imperative
+### Declarative vs imperative
 
 You can create resources in kubernetes either imperatively or declaratively:
 
@@ -261,10 +261,22 @@ You can create resources in kubernetes either imperatively or declaratively:
 > - **imperative**: using kubectl CLI to create resources
 > - **declarative**: configuring resources in yaml files and then using two basic commands to manage their creation and deletion.
 
+
+#### Declarative: YAML
+
+When using K8S declaratively, you create **manifest** YAML files that have the **spec** for describing how a resource should be created:
+
+
+
+![](https://i.imgur.com/kZgj3Ia.jpeg)
+
+
 Once you describe the outline for a resource in a yaml file, you have these two basic commands to bring them into and out of existence:
 
-- `kubectl apply -f <yaml-file>` : creates the resource from the specified yaml file
-- `kubectl delete -f <yaml-file>` : deletes the resource that was created from the yaml specification.
+- `kubectl apply -f <yaml-file>` : creates the resource from the specified yaml file by making a request to the API server
+- `kubectl delete -f <yaml-file>` : deletes the resource that was created from the yaml specification a request to the API server
+
+
 
 #### Imperative: CLI
 
@@ -362,7 +374,6 @@ Kubernetes networking model has four main requirements:
 2. **inter-pod communication**: Pods must be able to communicate with other pods, whether within the same node or in different nodes.
 	- Achieved by giving each pod within a node its own private IP address
 3. **intra-cluster communication**: Pods must be able to communicate with services. 
-	- Achieved by moving 
 4. **internet communication**: There must be a way for traffic from the internet to communicate with services inside a Kubernetes cluster. 
 
 Since a node represents a physical machine, you can think of a node as a subnet within an LAN and a cluster, which consists of many nodes, as the LAN itself. Here are the analogies:
@@ -376,6 +387,23 @@ The first three requirements are satisfied by different cluster components assig
 - **How CNIs solve inter-pod communication within the same node**: CNIs (cloud network interfaces) assign unique private IP addresses to pods so that they can communicate with each other in the same node, satisfying inter-pod communication.
 - **How kubeapi solves intra-cluster communication**: the kubeapi component assigns services unique, private IP addresses
 - **How kube controller manager solves inter-pod communication**: The kubcontroller manager component in the control plane assigns unique, private IP addresses the node.
+
+#### Inter-pod communication
+
+Kubernetes is designed so that every pod can communicate with every other pod by default, regardless of which node they are running on. This is achieved through its default flat networking model, which has several key principles:
+
+All pods and nodes are assigned unique IP addresses within a single, flat network. This means there is no need for Network Address Translation (NAT) between pods, and each pod’s IP is visible to all other pods.
+
+This leads to three core consequences:
+    
+1. **Pod-to-Pod Communication**: The network is set up so that any pod can reach any other pod directly using its IP address. This is handled by Kubernetes networking plugins (like Kubenet or Azure CNI), which manage routing and ensure connectivity across nodes.
+    
+2. **No NAT Between Pods**: Since all pods are on the same network, there’s no translation of addresses. The IP a pod sees itself as is the same IP others use to reach it.
+    
+3. **Node-to-Pod Communication**: Nodes can also communicate with any pod, and vice versa, without NAT.
+
+> [!NOTE]
+> Pods can have one or more containers, but all containers in a pod share the same network namespace (same IP and ports).
 
 ### CNI and CNI plugins
 
