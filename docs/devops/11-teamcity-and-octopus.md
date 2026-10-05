@@ -3149,6 +3149,46 @@ object ReactBuild : BuildType({
 
 ### Build types in depth
 
+#### Build type and ID
+
+The simplest build configuration doesn't need a VCS root, triggers, or steps. All it needs is a name and logical ID.
+
+You have two ways of setting this:
+
+- **Method 1 - set name**: if you set the `name` property on a `BuildType` object, the id will be auto-generated from that name.
+	- For example, in this case the usage of the `id()` function call is optional because TeamCity will generate the id based on the class name (`HelloWorld` in our case).
+```kt
+object HelloWorld: BuildType({
+    name = "Hello world"
+    steps {
+        script {
+            scriptContent = "echo 'Hello world!'"
+        }
+    }
+})
+```
+
+- **Method 2 - set name and id**
+
+```kt
+project {
+  buildType {
+    id("HelloWorld")
+    name = "Hello world"
+    steps {
+        script {
+            scriptContent = "echo 'Hello world!'"
+        }
+    }
+  }
+}
+```
+
+
+
+
+
+
 #### VCS roots with build configurations
 
 Due to one of the rules of teamcity projects (see [[#TeamCity projects]]), build configurations inherit settings from the project they are scoped under, such as VCS roots.
@@ -3279,11 +3319,99 @@ object Test : BuildType({
 
 There are three different types of parameters in TeamCity:
 
-1. **configuration parameter**: references the current deployment revision of the build configuration in TeamCity and attaches parameter variables on that deployment.
+1. **configuration parameter**: standard normal parameter you set, which you supply at runtime via the TeamCity UI settings.
 2. **environment variable**: sets an environment variable in the build agent running that build configuration, set during the duration of the run.
 3. **system properties**
 
+Here's an example
 
+```kt
+params {
+    param("gradle.tasks", "test")
+
+    param("env.TEST_ENVIRONMENT", "ci")
+}
+```
+
+Then
+
+```kt
+scriptContent = """
+    echo "Environment: ${'$'}TEST_ENVIRONMENT"
+    ./gradlew %gradle.tasks%
+""".trimIndent()
+```
+
+```
+Kotlin DSL evaluation
+       │
+       ▼
+TeamCity configuration
+       │
+       │ replaces %...%
+       ▼
+shell script
+       │
+       │ expands $...
+       ▼
+actual command
+```
+
+##### Configuration variables
+
+```kt
+params {
+    param("deployment.environment", "staging")
+}
+```
+
+You can then reference in teamcity:
+
+
+```
+%deployment.environment%
+```
+##### Environment variables
+
+Declaring environment variables as team city parameters sets the environment variables within the environment for the build agent during the run duration of the build configuration, which means you can access this environment variable within build configuration steps. 
+
+1. Declare an env var param in the build configuration under the `env` object:
+
+```kt
+params {
+    param("env.DEPLOYMENT_ENVIRONMENT", "staging")
+}
+```
+
+2. You can now access that environment variable in shell code scripts, but make sure to escape the `$`
+
+```bash
+scriptContent = """
+    echo "Environment: ${'$'}DEPLOYMENT_ENVIRONMENT"
+    ./gradlew %gradle.tasks%
+""".trimIndent()
+```
+
+##### Secure parameters
+
+In general, TeamCity processes a DSL parameter as a string. To mark a DSL value as secure, you can assign it to a parameter of the `password` type:
+
+```kt
+params {
+    password("<parameter_name>", "credentialsJSON:<token>")
+}
+```
+
+- `<parameter_name>`: is a unique name which can be used as a key for accessing the secure value via DSL (for example, in the [File Content Replacer](https://www.jetbrains.com/help/teamcity/file-content-replacer.html) build feature)
+- `<token>`: is the token corresponding to the target secure value.
+
+Here's an example:
+
+```kt
+params {
+    password("pass-to-bucket", "credentialsJSON:12a3b456-c7de-890f-123g-4hi567890123")
+}
+```
 #### Build outputs and variable interpolation
 
 In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
@@ -3717,6 +3845,50 @@ projects {
 }
 ```
 
+
+```kt
+project {
+  buildType(Compile)
+  buildType(Test1)
+  buildType(Test2)
+  buildType(Package)
+  buildType(Deploy)
+  buildType(Extra)
+  ...
+
+    sequential  {
+      buildType(Compile)
+      parallel (options = { onDependencyFailure = FailureAction.CANCEL }) { // non-default snapshot dependency options
+        dependsOn(Extra) // extra dependency to be defined in all builds in the parallel block
+        buildType(Test1)
+        buildType(Test2)
+      }
+      buildType(Package)
+      buildType(Deploy)
+    }
+}
+```
+
+
+> [!NOTE]
+> If you define a build chain in a pipeline style, ensure there are no explicit snapshot dependencies defined within the referenced build configurations themselves.
+
+Alternatively, you can register all listed builds after the chain declaration with a simplified syntax:
+
+
+```kt
+project {
+
+ // build chain definition:
+  val buildChain = sequential {
+   ...
+  }
+
+  // register all build configurations, referenced in the chain, in the current project:
+  buildChain.buildTypes().forEach { buildType(it) }
+}
+```
+
 If you want to refactor using functions and classes as abstractions over creating `BuildType` instances, here is what you should do, where now you are using trailing lambda syntax and dynamically registering build types:
 
 ```kts
@@ -3749,11 +3921,30 @@ class Maven(public var name: String, public var goals: String): BuildType({
 ```
 
 
+### Context Parameters
 
+You can customize the DSL generation behavior using context parameters configured in the TeamCity UI. Context parameters are specified as a part of the project [versioned settings](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#SynchronizingSettingswithVCS) in the UI.
+
+With context parameters, it is possible to maintain a single Kotlin DSL code and use it in different projects on the same TeamCity server. Each of these projects can have own values of context parameters, and the same DSL code can produce different settings based on values of these parameters.
+
+For more info, check out [Kotlin DSL | TeamCity On-Premises](https://www.jetbrains.com/help/teamcity/kotlin-dsl.html#Use+Context+Parameters+in+DSL)
 
 ### Patches
 
 In _TeamCity_, when your project configuration is stored as _Kotlin DSL_ in version control, the system tries to automatically commit changes made in the web UI back to your code. 
+
+TeamCity allows editing a project settings via the web interface, even though the project settings are stored in Kotlin DSL. If DSL scripts were not changed manually, that is if they were generated by TeamCity and stay the same way in the repository, then changes via the web UI will be applied directly to these generated files.
+
+But if generated files were changed, then TeamCity will have to produce a patch, since it no longer knows what part of .kt or .kts file should be changed.
+
+In case of portable DSL the patches are placed under the `.teamcity/patches` directory, for example:
+
+```
+patches/projects/<relative project id>.kts
+patches/buildTypes/<relative build configuration id>.kts
+patches/templates/<relative vcs root id>.kts
+patches/vcsRoots/<relative build configuration id>.kts
+```
 
 However, **DSL patches** are created when _TeamCity_ cannot automatically map a UI-driven change to your existing _Kotlin_ code structure.
 
