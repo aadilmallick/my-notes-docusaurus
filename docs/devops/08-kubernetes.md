@@ -405,6 +405,11 @@ This leads to three core consequences:
 > [!NOTE]
 > Pods can have one or more containers, but all containers in a pod share the same network namespace (same IP and ports).
 
+#### Intra-pod communication
+
+Multi-container pods have inter-container communication within a pod very trivially through communication via localhost.
+
+Containers within a multi-container pod can communicate with each other through localhost targeting the exposed ports of each container, since Containers only run on ports, and the pod is what has the IP address.
 ### CNI and CNI plugins
 
 **CNI plugins** in Kubernetes are software packages that set up and manage the cluster's network. They create a private network that allows containers within the same pod to communicate, pods to talk to each other, pods to connect with services, and external traffic to reach services inside the cluster. 
@@ -601,11 +606,22 @@ Here are the commands for the context:
 - `kubectl config use-context [contextName]`: delete the specified context
 ### Namespaces
 
-Kubernetes namespaces let you organize and isolate your workloads.
+Kubernetes namespaces let you organize and isolate your workloads and also offers granular RBAC for accessing resources scoped to a namespace.
 
 > [!NOTE]
 > Once belonging to a namespace, if the namespace gets deleted, all resources belonging to that namespace also get deleted, which is good for cleanup purposes.
 
+Using namespaces in Kubernetes offers several benefits:
+
+1. Organization: Namespaces help organize resources by grouping related pods, services, and other objects together. This makes it easier to manage and locate resources, especially in large clusters.
+    
+2. Conflict Reduction: Namespaces prevent naming conflicts. Resources only need to have unique names within their own namespace, not across the entire cluster. This is useful when multiple teams or projects use the same cluster.
+    
+3. Access Control: Namespaces allow you to apply role-based access control (RBAC) to restrict user access to specific resources within a namespace, improving security and management.
+    
+4. Environment Separation: You can use namespaces to separate environments (like development, testing, and production) within the same cluster, reducing the risk of accidental interference.
+    
+5. Easier Management: With namespaces, you can list, monitor, and manage resources for a specific team or application without affecting others.
 #### Creating namespaces
 
 Here is the declarative way to create a namespace
@@ -735,8 +751,9 @@ The main key to specify when creating a pod resource is the `containers` key, wh
 
 - `image`: the image to build the container from. By default, it pulls from dockerhub or any other external registry, but if you want to build a container from your local image, you need to also include the `imagePullPolicy: never` key.
 - `imagePullPolicy`: describes the pulling behavior of images. You can supply these values:
-    - `always` : pull the image from an external registry
-    - `never`: pull the image from your local images
+    - `always` : always pull the image from an external registry, always pulling on pod creation.
+    - `never`: pull the image from your local images only.
+    - `IfNotPresent`: pull the image only if you don't have it
 - `ports` : runs the container on the specified port. You have these keys to supply:
     - `containerPort`: required, the port number to run the container on.
     - `protocol` : the layer 4 protocol to run on, TCP or UDP
@@ -1179,7 +1196,7 @@ Here is how you can use cron jobs imperatively using the `cj` resource.
 
 ### Services
 
-Services are resources that have persistent DNS names and IP addresses which are designed for creating stable networking for pods and between pods.
+Services are resources that have persistent DNS names and IP addresses which are designed for facilitating inter-pod communication and even extra-cluster communication.
 
 Pods have ephemeral IP addresses, meaning that if you want to connect to another pod in your application logic or through your local machine, you must use a service to have stable port forwarding.
 
@@ -1211,8 +1228,7 @@ Here's a table comparing all these services:
 | `NodePort`     | Yes, forwards traffic directly to `localhost` on the machine.                            | Yes                     |
 
 
-
-**using services declaratively**
+#### Creating services basics
 
 A basic service YAML is like so:
 
@@ -1237,6 +1253,14 @@ Each service should have a selector that points to a corresponding label on a po
 1. On a pod resource YAML, provide a value for `metadata.labels.app`
 2. On a service YAML, use that same pod label value on `spec.selector.app`
 
+Here are the spec properties:
+
+- `ports`: the ports to expose
+    - `port`: the port that the selected pod is listening on
+    - `targetPort`: the port that the selected pod is listening on. This value is not applied if the service type is `NodePort`, so you can just omit this.
+    - `nodePort`: the port to map to on your localhost. This must be a large value between 30000 - 32767, as to not interfere with important ports.
+    - `protocol`: the layer 4 protocol to use, either TCP or UDP
+
 #### ClusterIP
 
 Gives a private fixed IP address for the pod within the cluster, enabling **intra-cluster** communication between pods in different nodes.
@@ -1257,19 +1281,21 @@ Gives a private fixed IP address for the pod within the cluster, enabling **intr
 
 #### NodePort
 
-The `NodePort` extends the `ClusterIP` service by not only giving the pod its own private IP, but also exposing it to the internet on a specific port on the the loopback `localhost`.
+The `NodePort` extends the `ClusterIP` service.
+
+Here's how it works behind the scenes:
+
+1. **node port assignment**: When you create a NodePort service, Kubernetes allocates a static port (from a range, usually 30,000–32,767) on every node in the cluster.
+2. **NodePort service translation**: Any request sent to any node’s IP address on the allocated port will be forwarded to the service, which then routes the request to one of the target pods.
+
+For example, if your webserver pod is exposed via a NodePort service on port 31000, you can access it by sending a request to any node’s IP at port 31000. 
 
 > [!NOTE]
-> A node port service lets you expose a group of pods to the internet directly, forwarding their traffic to certain ports on `localhost` 
-
+> Kubernetes automatically manages the mapping between the NodePort and the pods, even if pods are added or removed.
 
 ![](https://i.imgur.com/2hcFQhF.jpeg)
 
-- `ports`: the ports to expose
-    - `port`: the port that the selected pod is listening on
-    - `targetPort`: the port that the selected pod is listening on. This value is not applied if the service type is `NodePort`, so you can just omit this.
-    - `nodePort`: the port to map to on your localhost. This must be a large value between 30000 - 32767, as to not interfere with important ports.
-    - `protocol`: the layer 4 protocol to use, either TCP or UDP
+
 
 
 #### Loadbalancer
