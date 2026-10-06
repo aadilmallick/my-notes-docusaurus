@@ -1235,7 +1235,10 @@ You can also do this imperatively:
 kubectl autoscale deployment app-tier --max=5 --min=1 --cpu-percent=70
 ```
 
-#### Deployment rollouts
+#### Deployment rollouts and rollbacks
+
+- **rollout**: updating a deployment and its infra to a new version
+- **rollback**: rolling back a deployment and its infra to a previous version
 
 A rollout in Kubernetes is the process of updating or replacing replicas in a deployment with new replicas that match an updated deployment template. 
 
@@ -1248,6 +1251,12 @@ Any change to the deployment’s template triggers a rollout, and there are diff
 - **recreate strategy**: kills all old deployments and then immediately creates the new version, incurring brief downtime but ensuring only the newest version of the app is running at any one time.
 
 ##### `kubectl rollout` CLI
+
+You can roll back deployments imperatively like so:
+
+
+![](https://i.imgur.com/RS9CGVk.jpeg)
+
 
 - **check status of rollout**: since rollouts are triggered automatically on a deployment template update, we can check a rollout's live status with the `kubectl rollout status deployment` CLI
 
@@ -1267,7 +1276,10 @@ kubectl rollout pause deployment <deployment-name>
 kubectl rollout resume deployment <deployment-name>
 ```
 
+These next commands deal with rollbacks, where you can rollback to the immediately previous deployment revision, or look at the deployment history to get a list of all deployment revision history for a specific deployment.
 
+- **rollback**: You can roll back to the previous deployment state with the `kubectl rollout undo deployment` command.
+- **history**: You can get the history of all deployment revisions with the `kubectl rollout history deployment` command.
 ##### rollouts with `RollingUpdate` strategy
 
  By default, Kubernetes uses a rolling update strategy, where replicas are updated in groups rather than all at once, allowing the service to remain available during the update process.
@@ -1327,12 +1339,7 @@ Going more in depth into the rolling update strategy, let’s paint a picture of
 
 
 
-#### Deployment ROllbacks
 
-You can roll back deployments imperatively like so:
-
-
-![](https://i.imgur.com/RS9CGVk.jpeg)
 
 
 #### DaemonSet
