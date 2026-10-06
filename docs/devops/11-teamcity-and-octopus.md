@@ -629,6 +629,17 @@ SUbprojects appear like nested folders in a Teamcity server
 
 ### Build configurations
 
+Build configurations and [pipelines](https://www.jetbrains.com/help/teamcity/create-and-edit-pipelines.html) represent actual CI/CD routines. A build configuration stores a sequence of build steps (basic operations to be performed during a build run), and settings required to execute these steps. These settings include:
+
+- [parameters](https://www.jetbrains.com/help/teamcity/configuring-build-parameters.html) that allow you to quickly alter the configuration behavior;
+    
+- [triggers](https://www.jetbrains.com/help/teamcity/configuring-build-triggers.html) that allow TeamCity to automatically start new builds when certain conditions are met;
+    
+- [build features](https://www.jetbrains.com/help/teamcity/adding-build-features.html) that extend the configuration's functionality;
+    
+- [agent requirements](https://www.jetbrains.com/help/teamcity/configuring-agent-requirements.html) that allow you to run configuration builds on specific build agents;
+    
+
 Think of a build configuration as a collection of these three components working in tandem:
 
 1. **VCS root**: the source code repository to check out that the agent will run the build on
@@ -658,7 +669,71 @@ Can I reuse the same configuration for 20 services?
 
 Configuration as Code solves these problems by representing the configuration as source code.
 
+#### Build configuration types
 
+A TeamCity build configuration can have one of the following types:
+
+- Regular: most control, can publish artifacts as well as be within a build chain.
+    
+- [Deployment](https://www.jetbrains.com/help/teamcity/deployment-build-configuration.html), which deploys artifacts of other builds to some external environment
+    
+- [Composite](https://www.jetbrains.com/help/teamcity/composite-build-configuration.html), which aggregates results from several other builds combined by snapshot dependencies and presents them in a single place
+
+
+To switch a build configuration type, navigate to the Configuration settings | General tab.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/gs-change-bc-type.png)
+
+##### Composite build configurations
+
+Composite build configurations are "step-less" configurations designed to trigger multiple regular build configurations and track the results in a single place.
+
+- Composite configurations do not carry out any actual building routines.
+    
+- Composite configurations aggregate all information from their dependencies and present them in a centralized manner.
+    
+- Composite builds do not occupy build queue slots and do not require agents to run.
+
+
+##### Deployment build configurations
+
+When your project is built and tested, you often need to deploy it to its final infrastructure. For example, upload a package to the NuGet Gallery, deliver a container to a DockerHub repository, or update your documentation website sources. Different CI/CD solutions use different terms for this last step of a pipeline: "deploy" stage, delivery target, release, production, and so on.
+
+In TeamCity, delivery tasks are performed by the same "build configuration" objects that carry out regular building routines. However, since building and delivery are different tasks triggered by different team members, a configuration that deploys a product can be explicitly marked as a Deployment Configuration.
+
+- Deployment configurations do not differ from regular configurations in terms of functionality. They can utilize the same build features, employ same build runners, and so on.
+- Splitting deployment and building/testing configurations into different subprojects is recommended to set up fine-grained user permissions.
+#### Adding VCS roots
+
+Attaching a VCS root to a configuration without repositories enables it to check out remote sources.
+
+1. Create a VCS ROOT
+2. Attach the VCS root(s) to the build configuration
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/attach-and-detatch-vcs-roots.png)
+##### Dealing with multiple VCS roots
+
+All VCS roots download sources into the same [checkout directory](https://www.jetbrains.com/help/teamcity/build-checkout-directory.html), meaning you have to be cognizant of how repos get mapped into the agent checkout filesystem when registering multiple VCS roots for the build configuration.
+
+> [!NOTE]
+> To avoid file conflicts and keep the folder organized it’s best to download each repository’s sources into separate subdirectories using [root checkout rules](https://www.jetbrains.com/help/teamcity/vcs-checkout-rules.html) (see more in [[#Checkout rules]])
+
+Here is an example of using checkout rules to avoid file conflicts between two VCS roots:
+
+```kt
+package _Self.buildTypes
+
+import jetbrains.buildServer.configs.kotlin.*
+
+object MultiRepoBuild : BuildType({
+    name = "Multi-repo build"
+
+    vcs {
+        root(MavenRepoRoot, "+:. => MavenRepo")
+        root(GradleRepoRoot, "+:. => GradleRepo")
+    }
+})
+```
 #### VCS Triggers
 
 VCS triggers in TeamCity are used to automatically initiate a build whenever there's a change in the associated VCS root (e.g., a commit or push to the source code repository).
@@ -718,14 +793,38 @@ You can also add extra advanced trigger rules which include matching on the foll
 You can also exclude certain filepaths from being tracked, and therefore don't trigger builds if they change within the VCS root repo.
 
 ![](https://i.imgur.com/sfKuCxU.jpeg)
-
-#### Scheduled triggers
+#### Triggers
+##### Scheduled triggers
 
 Scheduled triggers let you run build configurations on a cron schedule. 
 
 
 ![](https://i.imgur.com/mFvCnRO.jpeg)
 
+##### Branch remote run trigger
+
+The branch remote run trigger automatically starts a new [personal build](https://www.jetbrains.com/help/teamcity/personal-build.html) each time TeamCity detects changes in particular branches of the VCS roots of the build configuration. Finished personal builds are listed in the [build history](https://www.jetbrains.com/help/teamcity/build-results-page.html#Build+History+in+Classic+UI), but only for the users who initiated them.
+
+A trigger monitors branches with names that match specific patterns.  
+Default patterns are:
+
+- for Git repositories: `refs/heads/remote-run/*`
+
+Following this convention, here is how to trigger a remote build
+
+```
+% cd <your_local_git_repo>
+% git branch
+* master
+% git checkout -b my_feature
+Switched to a new branch 'my_feature'
+//code, commit; code, commit
+% git push origin +HEAD:remote-run/my_feature
+```
+
+**dealing with multiple VCS roots caveat**
+
+If your build configuration has more than one VCS root which support branch remote run, and you push changes to all of them, TeamCity will start one personal build with changes per each VCS root.
 #### Build steps
 
 ##### Setting step execution conditions
@@ -961,6 +1060,113 @@ You also have three additional filtering settings:
 - **filter by authors**: only trigger builds on pull requests by a specific author(s)
 - **filter by source branch**: only trigger builds on pull requests whose source branch match the branch syntax match pattern you provide to this textarea.
 - **filter by target branch**: only trigger builds on pull requests whose target branch match the branch syntax match pattern you provide to this textarea.
+
+##### Build approval
+
+The Build Approval [build feature](https://www.jetbrains.com/help/teamcity/adding-build-features.html) allows users to manually control the build start by using approvals. This build feature ensures that builds will not start unless they are approved by individual users or groups defined in the approval rules.
+
+>If a build is not approved within the specified period of time, it will be cancelled.
+
+Instead of a build automatically continuing to the next step in a pipeline, TeamCity pauses and waits for an authorized person to explicitly approve or reject it.
+
+##### Swabra
+
+Swabra is a bundled TeamCity plugin that allows you to add the Swabra [build feature](https://www.jetbrains.com/help/teamcity/adding-build-features.html) to your build configurations. This build feature allows you to do the following:
+
+- Remove files generated during a build. The feature creates a list of all files in the checkout directory after the sources checkout is complete. After a build finishes (or before the next build starts), files that are not on this list are automatically removed.
+    
+- Detect files modified or deleted during the build. Such files are reported to the build log (however, deleted files are not restored). This allows you to ensure your new builds do not start with certain source files deleted or modified by previous builds, and initiate a clean checkout if this is the case.
+
+
+> [!NOTE]
+> **Swabra** is TeamCity's built-in **Build Files Cleaner** feature. Its job is to keep build agents clean and predictable by detecting or removing files that previous builds leave behind.
+> 
+> If you've ever had a build pass on one agent but fail on another because some old file was lying around, Swabra is designed to catch that kind of problem.
+
+The issue with leaving stale checkout out files on a build agent is that leftover logs, caches, and build outputs can cause flaky builds, stale artifacts, and false positives.
+
+Here's the main principle behind how Swabra works:
+
+>Swabra tracks what existed immediately after source checkout and identifies what was added, modified, or deleted later
+
+1. When teamcity checks out a VCS root, swabra makes a snapshot
+2. After the build configuration finishes, swabra makes another snapshot
+3. Swabra compares the before build and after build snapshots to see what changed.
+
+It can then:
+
+- remove new files
+- report modified files
+- report deleted files
+- force a clean checkout if the workspace is no longer trustworthy
+
+> [!IMPORTANT]
+> Swabra is compatible with any build configuration regardless of its build steps. However, it should be used only when the checkout mode is set to [automatic checkout](https://www.jetbrains.com/help/teamcity/vcs-checkout-mode.html) because when configured, Swabra runs before the first build step to record the file tree after the sources checkout and to restore it after the build finishes.
+
+##### File content replacer
+
+
+The **File Content Replacer** build feature is essentially TeamCity's built-in way to **modify text files immediately before a build runs and then restore them afterward**.
+
+Think of it as:
+
+```
+Checkout source
+      ↓
+Modify file(s)
+      ↓
+Run build
+      ↓
+Restore original file(s)
+```
+
+> [!NOTE]
+> Why is this useful?
+> ***
+> This lets you inject build-specific values without permanently committing them to Git, which is useful in the case of injecting secrets at runtime.
+
+The feature runs **before the first build step** and requires **Automatic Checkout** mode. TeamCity:
+
+1. Finds matching files.
+2. Searches for text using a regex or fixed string.
+3. Replaces matching content.
+4. Runs the build.
+5. Restores the original contents afterward
+
+Here's an example:
+
+Imagine we want to replace the hardcoded version with the `%build.number%` parameter.
+
+```
+[assembly: AssemblyVersion("1.0.0.0")]
+```
+
+```
+Find:
+1.0.0.0
+
+Replace:
+%build.number%
+```
+
+Here are the steps to do so:
+
+1. Specify the file patterns to search via Ant-style wildcards
+2. Specify the specific regex pattern to match on
+3. Specify what to replace the text with
+
+Here's an example in Kotlin DSL:
+
+```kt
+features {
+    replaceContent {
+        fileRules = "**/*"
+        pattern = "(?iu)the\h+pattern\h+to\h+search\h+for"
+        regexMode = FileContentReplacer.RegexMode.REGEX_MIXED
+        replacement = """%\teamcity.agent.work.dir%\nd_r\bin\isf"""
+    }
+}
+```
 #### Build chains
 
 You can consider build configurations within a project as individual pipelines/jobs, and then if you want to do what github actions does in parallelizing and adding jobs as dependencies of each other, then you can look to **build chains**, where you can create a directed dependency graph of builds that depend upon other builds.
@@ -969,6 +1175,7 @@ In teamcity, you can specify two behaviors when it comes to build chains:
 
 - **sequential execution**: specify that a build needs another build to finish, so it executes sequentially after.
 - **parallel execution**: specify that a build can run in parallel with another build.
+
 
 ##### Dependencies
 
@@ -1103,6 +1310,14 @@ Those right-hand values are TeamCity's **logical branch names**.
 > [!NOTE]
 > when a logical branch exists for one VCS root but not another, the root missing that branch uses its default branch
 
+#### Templates
+
+[Templates](https://www.jetbrains.com/help/teamcity/build-configuration-template.html) allow you to quickly spawn multiple configurations with identical settings. After a configuration is created, you can override its settings.
+
+1. Create a template [manually](https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html#-d36z8w_340) in the TeamCity UI or [extract the template](https://www.jetbrains.com/help/teamcity/creating-and-editing-build-configurations.html#-d36z8w_341) from an existing build configuration
+2. When creating a build configuration, you can create it from a template or you can base it on a template like so:
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-confBasedOnTemplate.png)
 ### Build steps
 
 #### Recipes
@@ -4231,6 +4446,25 @@ class Maven(public var name: String, public var goals: String): BuildType({
 })
 ```
 
+#### Agent requirements
+
+```kt
+object MyBuildConfig : BuildType({
+requirements {
+      exists("DotNetCoreSDK5.0_Path")
+      startsWith("teamcity.agent.jvm.os.name", "Windows")
+   }
+})
+```
+
+You can also require environment variable parameters to exist on a build agent for it to be selected.
+
+```kt
+requirements {
+    exists("env.JDK_17_0")
+    exists("env.JDK_21_0")
+}
+```
 #### Build features
 
 Build features are specified through the `features {}` block on a build configuration.
