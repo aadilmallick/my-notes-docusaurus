@@ -906,14 +906,17 @@ Each of these probes has a suitable, appropriate test you can configure, which c
 ![](https://i.imgur.com/yDGoI7c.jpeg)
 
 
-Are here are the test types for each different type of probe:
+Are here are the recommended test types for each different type of probe:
 
 - `startupProbe`: Usually, running a command through the exec test is a good indicator for a container being started.
 	- **test type**: use `ExecAction`
+	- **function**: used for custom logic to check if a pod is in a correct state to start doing its intended purpose.
 - `readinessProbe`: the readiness probe test should try seeing if a container is listening/running on a certain port before declaring that the container is ready to receive network traffic
 	- **test type**: use `TCPSocketAction`
+	- **function**: Used to check when a pod is ready to handle traffic. Readiness probes set the pod's ready condition. Service only send traffic to ready pods.
 - `livenessProbe`: the liveness probe test runs a continuous test to see if the container is still running.
 	- **test type**: use `HTTPGetAction`
+	- **function**: detects when a pod enters a broken state with the purpose of alerting Kubernetes about it. Kubernetes will restart the pod for you if a pod is broken.
 
 Each probe has these same properties that influence the frequency of the probe and when to declare failure:
 
@@ -925,6 +928,11 @@ There are different behaviors that K8 takes whenever you fail one of the probes:
 
 - **failing readinessProbe**: if you fail a readiness probe, the container stops accepting traffic.
 - **failing startupProbe**: if you fail a startup probe, the entire pod restarts.
+
+> [!IMPORTANT]
+> All container probes must pass for the pod to pass.
+
+Probes are declared at the container level.
 
 ```yaml
 apiVersion: v1
@@ -957,7 +965,46 @@ spec:
       periodSeconds: 10
 ```
 
+```yaml
+apiVersion: apps/v1 # apps API group
+kind: Pod
+metadata:
+    name: data-tier
+	spec: # Pod spec
+	  containers:
+	  - name: redis
+		image: redis:latest
+		imagePullPolicy: IfNotPresent
+		ports:
+		  - containerPort: 6379
+			name: redis
+		livenessProbe:
+		  tcpSocket:
+			port: redis # named port
+		  initialDelaySeconds: 15
+		readinessProbe:
+		  exec:
+			command:
+			- redis-cli
+			- ping
+		  initialDelaySeconds: 5
+```
+
+```yaml
+livenessProbe:
+  httpGet:
+	path: /probe/liveness
+	port: server
+  initialDelaySeconds: 5
+readinessProbe:
+  httpGet:
+	path: /probe/readiness
+	port: server
+  initialDelaySeconds: 3
+```
 ##### init containers
+
+Init containers are containers that run every time a pod is registered for creation, before its containers are created via containerd.
 
 Init containers are a way to spin up containers and deal with dependencies, like checking database connection is ready before starting your express app.
 
@@ -966,8 +1013,57 @@ You specify your init containers under the `initContainers` key at the same leve
 - If an init container fails, it restarts repeatedly until it succeeds, unless `restartPolicy: never` is set on these containers.
 - Probes like `livenessProbe`, `readinessProbe`, and `startupProbe` are not supported on init containers.
 
-As soon as all the init containers finish, the normal containers specified under `containers` are allowed to run.
+Here are the rules of init containers:
+
+1. Pods can declare any number of init containers
+2. If an init container fails, the default behavior is that it restarts repeatedly until it succeeds, but you can change that through the `restartPolicy` property on an init container.
+3. Init containers run sequentially in the order they are defined in the YAML
+4. As soon as all the init containers finish, the normal containers specified under `containers` are allowed to run.
+5. init containers cannot contain probes, since init containers are ephemeral, meant to be deleted after they successfully run once.
+
+
+
+![](https://i.imgur.com/AYmIHuM.jpeg)
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-tier
+  labels:
+    app: microservices
+    tier: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: app
+  template:
+    metadata:
+      labels:
+        app: microservices
+        tier: app
+    spec:
+      containers:
+	      - name: server
+	        image: lrakai/microservices:server-v1
+	        ports:
+	          - containerPort: 8080
+	            name: server
+      initContainers:
+        - name: await-redis
+          image: lrakai/microservices:server-v1
+          env:
+          - name: REDIS_URL
+            value: redis://$(DATA_TIER_SERVICE_HOST):$(DATA_TIER_SERVICE_PORT_REDIS)
+          command:
+            - npm
+            - run-script
+            - await-redis
+```
 #### Imperative pods
+
+##### Pod management
 
 **create pods**
 
@@ -1005,6 +1101,8 @@ kubectl delete pod $POD
 kubectl delete pod $POD -n $NAMESPACE
 ```
 
+##### Pod-container interaction
+
 **interactive mode**
 
 You can check out the logs of a pod or execute commands in it interactively with this command, to go into its shell:
@@ -1023,7 +1121,7 @@ kubectl logs <podname>
 
 **multi-container pods**
 
-When dealing with multi container pods, you often have to specify the cdesired container you want to work with using the `-c <container-name>` option:
+When dealing with multi container pods, you often have to specify the desired container you want to work with using the `-c <container-name>` option:
 
 ```bash
 kubectl logs <podname> -c <container_name> # get logs from container
@@ -1037,6 +1135,7 @@ kubectl exec -it <podname> -c <container_name> -- /bin/sh
 
 
 ![](https://i.imgur.com/nPy3mm5.jpeg)
+
 
 ### Workloads
 
@@ -1718,6 +1817,135 @@ To delete a deployment, use the `kubectl delete deployment` command, which will 
 kubectl delete deployment DEPLOYMENT_NAME_HERE
 ```
 
+### Volumes
+
+There are three types of volume resources that are used in kubernetes:
+
+- **volumes**: these are normal pod-specific volumes that are tied to a pod and their lifecycle, meant for storing data across containers within a pod and surviving pod and container restarts.
+- **PersistentVolumes**: volumes that are available throughout the cluster and can be attached to any pod but only through a Persistent Volume Claim.
+- **PersistentVolumeClaims**: PVCs for short, these are one-to-one mappings of PersistentVolumes to filepaths on a container. Pods use PVCs in order to use a volume in their container(s).
+
+#### Volumes
+
+Volumes are attached to a single pod and are intended as persistent data storage for all containers within the same pod.
+
+Once a pod is deleted, the volume also gets deleted.
+
+These are the available volume types:
+
+- `emptyDir`: the default. This creates an empty directory on the node the pod lives in, and all data is persisted to that folder on the node.
+	- **con**: data gets lost if pod is rescheduled to a different node.
+
+#### Persistent volumes
+
+Persistent volumes are independent of a pod's lifetime.
+
+PersistentVolumes are the actual volume resources you have to create before you can use PVCs to actually claim storage from those volumes and use them in your pods.
+
+
+
+![](https://i.imgur.com/B70o7lT.jpeg)
+
+Here are the possible keys you have in the yaml definition:
+
+- `accessModes`: determines the behavior of the pods reading and writing to the volume: **This must match the PVC access mode behavior.**
+    - `ReadWriteMany`: the volume can be mounted by many pods, and all of them have read and write access to the volume
+    - `ReadMany`: the volume can be mounted by many pods, and all of them have read-only access to the volume
+    - `ReadWriteOnce`: the volume can be mounted by many pods, but only one of them will have read and write access to the volume while the rest will have read-only access.
+- `hostPath`: allows you to host the volume in your local laptop through docker desktop, although this will nto work in production, and instead you should use a cloud-provided storage plugin.
+- `storageClassName`: how the data will be stored. `ssd` is for local storage.
+- `persistentVolumeReclaimPolicy`: determines the behavior of what happens to the data
+
+PVs can't be used with PVCs, so the way to connect them is through labels and selectors:
+
+
+![](https://i.imgur.com/aVHGVHa.jpeg)
+
+
+#### PVCs
+
+Besides just being a way for pods to use PersistentVolumes, PVCs are claims on certain amounts and thresholds of storage, and can be released.
+
+PVCs describe a pod's request for a persistent volume storage, which includes details like storage amount, type of storage, and access mode.
+
+There are 4 possible states a PVC can be in related to the PV it wants to claim (via labels):
+
+- **`Available`**: the volume is not yet bound to a claim
+- **`Bound`**: the volume is bound to a claim
+- **`Released`**: the claim is deleted, but the resource is not yet reclaimed by the cluster
+- **`Failed`**: PV has failed its automatic reclamation
+
+There are all policies for what happens to the volume data mounted in a pod when a PVC is released
+
+- **delete:** deletes the data from the pod once the PVC is released. This is the default, so be careful.
+- **retain**: this retains the data in the pod even if the PVC is released.
+
+Here is how to use PVCs declaratively:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-health-dashboard-pvc
+  namespace: health-dashboard
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-local-path
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+- `accessModes`: determines the behavior of the pods reading and writing to the underlying volume of the claim:
+    - `ReadWriteMany`: the volume can be mounted by many pods, and all of them have read and write access to the volume
+    - `ReadMany`: the volume can be mounted by many pods, and all of them have read-only access to the volume
+    - `ReadWriteOnce`: the volume can be mounted by many pods, but only one of them will have read and write access to the volume while the rest will have read-only access.
+- `storageClassName`: the storage class name (if exists) to bind the PVC to
+
+##### Connecting Pods to PVC
+
+Once you create a PVC, a PVC is useless without allowing pods to access that PVC and by extension the underlying PV the PVC has claimed. Once pods gain access to a PVC, the containers within those pods will be able to use the underlying volume for storage.
+
+To connect a PVC to a pod so its containers can use the volume, you would do something like this, specifying the `volumes` key on the pod spec:
+
+
+
+![](https://i.imgur.com/XgaMpPn.jpeg)
+
+
+In summary, here are the steps to allow pods to access a PVC:
+
+1. Create a persistent volume claim with a unique name
+2. In the pod template in your deployment, create a `volumes` key, where you can specify volumes based on two keys:
+    - `name`: the name of the volume you are going to create.
+    - `persistentVolumeClaim`: takes in a `claimName` property, which should be set to the name of the PVC you want to use.
+3. In the `containers` specification, you can mount volumes in each container through the `volumeMounts` property, which takes in these two keys to mount a volume:
+    - `name`: the volume name to use, defined in the `volumes` key in a deployment.
+    - `mountPath`: where to mount the volume in the container’s filesystem.
+
+#### Storage classes
+
+Storage classes are things that your admin or cloud provider creates that are abstractions over persistent volumes, allowing you to connect your PVC to a storage class rather than creating a PersistentVolume, provisioning a certain amount of data, and connecting to that PV.
+
+Here is the basic flow of using storage classes with PVCs instead of PVs with PVCs:
+
+1. Define a storage class or use one created by your provider
+2. In your PVC definition, use `storageClassName` to request storage from the storage class rather than the PV.
+3. Use the PVC as normal in your pods.
+
+
+![](https://i.imgur.com/cqcDgxi.jpeg)
+
+##### Declarative storage classes
+
+
+![](https://i.imgur.com/7yS9DBX.jpeg)
+
+
+##### Imperative storage classes
+
+You can also imperatively manage storage classes through the `sc` resource:
 ## K8S practice
 
 ### Level 1 - Basic microservices
