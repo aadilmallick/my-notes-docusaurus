@@ -1084,6 +1084,8 @@ Here is how you can declaratively define replica set behavior:
     - `Recreate` : kills all existing pods before creating new ones
 - `template` : you create the pod declaratively here, specifying the containers to run, the env variables, the volumes, etc. It’s just a `pod.yaml` essentially.
 
+#### Deployment scaling
+
 ##### Deployment imperative scaling
 
 As long as pods are stateless (don't have anything stateful like websockets), you can scale them horizontally via replicas.
@@ -1232,14 +1234,100 @@ You can also do this imperatively:
 ```bash
 kubectl autoscale deployment app-tier --max=5 --min=1 --cpu-percent=70
 ```
-##### `RollingUpdate` strategy
+
+#### Deployment rollouts
+
+A rollout in Kubernetes is the process of updating or replacing replicas in a deployment with new replicas that match an updated deployment template. 
+
+This can involve changes to configurations, such as environment variables or labels, or code changes like updating the image version.
+
+Any change to the deployment’s template triggers a rollout, and there are different rollout strategies you can set on the deployment:
+
+- **rolling update strategy**: replicas are updated in groups rather than all at once, allowing the service to remain available during the update process. 
+	- This is the default.
+- **recreate strategy**: kills all old deployments and then immediately creates the new version, incurring brief downtime but ensuring only the newest version of the app is running at any one time.
+
+##### `kubectl rollout` CLI
+
+- **check status of rollout**: since rollouts are triggered automatically on a deployment template update, we can check a rollout's live status with the `kubectl rollout status deployment` CLI
+
+```bash
+kubectl rollout status deployment <deployment-name>
+```
+
+- **pause rollout**: You can pause a rollout with the `kubectl rollout pause deployment` command, whereby afterwards deployments will not be automatically updated, meaning no new replicas will be created after a paused rollout
+
+```bash
+kubectl rollout pause deployment <deployment-name>
+```
+
+- **resume rollout**: You can resume a paused rollout with the `kubectl rollout resume deployment` command
+
+```bash
+kubectl rollout resume deployment <deployment-name>
+```
+
+
+##### rollouts with `RollingUpdate` strategy
+
+ By default, Kubernetes uses a rolling update strategy, where replicas are updated in groups rather than all at once, allowing the service to remain available during the update process.
+ 
+- **pro**: Keeps application available while gradually rolling out new version of the deployment in groups.
+- **con**: since both old and new versions of the deployment will be running simultaneously for a brief period of time, you need to gracefully handle different application versions in your codebase.
+
+
+Here is the spec for a rolling update strategy on a deployment:
+
+- `strategy.rollingUpdate.maxSurge`: This defines how many extra pods (above the desired number of replicas) can be created during a rollout. 
+	- For example, if you have 10 replicas and maxSurge is set to 25%, up to 2 or 3 extra pods can be created temporarily while updating. 
+	- This helps ensure new pods are ready before old ones are removed, minimizing downtime.
+	
+- `strategy.rollingUpdate.maxUnavailable`: This specifies how many pods can be unavailable during the update. 
+	- If set to 25%, up to 2 or 3 pods can be taken down at once while new ones are being created. 
+	- This setting helps balance availability and rollout speed.
+
+```yaml
+apiVersion: apps/v1 # apps API group
+kind: Deployment
+metadata:
+  name: data-tier
+  labels:
+    app: microservices
+    tier: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: data
+  # override RollingUpdate strategy
+  strategy:
+	  type: RollingUpdate
+	  rollingUpdate:
+		  maxSurge: 25%
+		  maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: microservices
+        tier: data
+    spec: # Pod spec
+      containers:
+      - name: redis
+        image: redis:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 6379
+            name: redis
+```
 
 Going more in depth into the rolling update strategy, let’s paint a picture of having a replica set of 3 pods, and the following stretegy values:
 
 - **max surge = 33%**: have one additional pod as backup ready to substitute in at any time.
-- **maxc unavailable 66%**: Allow two pods (2/3 = 66%) out of the desired 3 pods to be killed or unavailable before you ask for the rolling update feature to trigger.
+- **max unavailable 66%**: Allow two pods (2/3 = 66%) out of the desired 3 pods to be killed or unavailable before you ask for the rolling update feature to trigger.
 
-##### Imperative rollbacks
+
+
+#### Deployment ROllbacks
 
 You can roll back deployments imperatively like so:
 
