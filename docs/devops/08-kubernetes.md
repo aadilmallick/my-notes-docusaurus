@@ -1084,6 +1084,154 @@ Here is how you can declaratively define replica set behavior:
     - `Recreate` : kills all existing pods before creating new ones
 - `template` : you create the pod declaratively here, specifying the containers to run, the env variables, the volumes, etc. It’s just a `pod.yaml` essentially.
 
+##### Deployment imperative scaling
+
+As long as pods are stateless (don't have anything stateful like websockets), you can scale them horizontally via replicas.
+
+You can scale an individual deployment by adding more replicas, via the `kubectl scale deployment` command:
+
+```
+kubectl scale deployment <deployment-name> --replicas=<n>
+
+kubectl scale --namespace <namespace> deployment <deployment-name> --replicas=<n>
+```
+
+Let's create deployments:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-tier
+  labels:
+    app: microservices
+spec:
+  ports:
+  - port: 6379
+    protocol: TCP # default 
+    name: redis # optional when only 1 port
+  selector:
+    tier: data 
+  type: ClusterIP # default
+---
+apiVersion: apps/v1 # apps API group
+kind: Deployment
+metadata:
+  name: data-tier
+  labels:
+    app: microservices
+    tier: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: data
+  template:
+    metadata:
+      labels:
+        app: microservices
+        tier: data
+    spec: # Pod spec
+      containers:
+      - name: redis
+        image: redis:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 6379
+```
+
+
+We can scale this deployment as much as we want, since a server is stateless.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-tier
+  labels:
+    app: microservices
+spec:
+  ports:
+  - port: 8080
+  selector:
+    tier: app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-tier
+  labels:
+    app: microservices
+    tier: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: app
+  template:
+    metadata:
+      labels:
+        app: microservices
+        tier: app
+    spec:
+      containers:
+      - name: server
+        image: lrakai/microservices:server-v1
+        ports:
+          - containerPort: 8080
+        env:
+          - name: REDIS_URL
+            # Environment variable service discovery
+            # Naming pattern:
+            #   IP address: <all_caps_service_name>_SERVICE_HOST
+            #   Port: <all_caps_service_name>_SERVICE_PORT
+            #   Named Port: <all_caps_service_name>_SERVICE_PORT_<all_caps_port_name>
+            value: redis://$(DATA_TIER_SERVICE_HOST):$(DATA_TIER_SERVICE_PORT_REDIS)
+            # In multi-container example value was
+            # value: redis://localhost:6379 
+```
+
+##### Autoscaling
+
+Autoscaling adjusts the number of deployment replicas based on CPU usage or custom metrics, with specified minimum and maximum limits for the number of replicas that you can configure.
+
+Here is an example of setting the limit with CPU utilization:
+
+1. **set metric threshold**: Set target threshold CPU utilization to 70%
+2. **set replica bounds**: set minimum and maximum number of replicas to maintain
+	- minimum replicas should be 1
+	- minimum replicas should be 5
+
+Now if the CPU utilization threshold of 70% is breached on any of the pods in the deployment, the number of replicas increases up to the maximum 5 replicas gradually.
+
+Here is the example declaratively using the `HorizontalPodAutoscaler` resource:
+
+```yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-tier
+  labels:
+    app: microservices
+    tier: app
+spec:
+  # 1. threshold and bounds
+  maxReplicas: 5
+  minReplicas: 1
+  targetCPUUtilizationPercentage: 70
+  
+  # 2. define what deployment to autoscale for
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app-tier
+```
+
+You can also do this imperatively:
+
+```bash
+kubectl autoscale deployment app-tier --max=5 --min=1 --cpu-percent=70
+```
 ##### `RollingUpdate` strategy
 
 Going more in depth into the rolling update strategy, let’s paint a picture of having a replica set of 3 pods, and the following stretegy values:
