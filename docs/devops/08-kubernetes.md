@@ -1728,13 +1728,15 @@ Here is how you can use cron jobs imperatively using the `cj` resource.
 
 ### Services
 
-Services are resources that have persistent DNS names and IP addresses which are designed for facilitating inter-pod communication and even extra-cluster communication.
+Services have two core features:
 
-Pods have ephemeral IP addresses, meaning that if you want to connect to another pod in your application logic or through your local machine, you must use a service to have stable port forwarding.
+- **stable IP address**: Services are resources that have persistent DNS names and IP addresses which are designed for facilitating inter-pod communication and even extra-cluster communication.
+	- Pods have ephemeral IP addresses, meaning that if you want to connect to another pod in your application logic or through your local machine, you must use a service to have stable port forwarding.
+- **allow ingress traffic from internet**: services are the only component that allows ingress traffic to come in to your k8s cluster from the internet.
 
-Let’s go over some basic use cases:
+Let’s go over some basic use cases of services:
 
-- **connecting to [localhost](http://localhost):** you have a pod runnign a server and you want a service that forwards that pod’s IP address to localhost on your laptop.
+- **connecting to [localhost](http://localhost):** you have a pod running a server and you want a service that forwards that pod’s IP address to localhost on your laptop.
 - **inter-pod communication**: You have one server pod and one database pod, and you want to expose the database pod on a service for a persistent communication so that the server pod can access the database.
 
 
@@ -1745,10 +1747,11 @@ Let’s go over some basic use cases:
 
 There are four types of services you can have:
 
-- `ClusterIP` : the default, which gives the service an IP address that is accessible only from within the cluster. (only other pods within the cluster can communicate with the service, but not from localhost).
+- `ClusterIP` : the default, which gives the service a public IP address that is accessible only from within the cluster.
+	- Only other pods within the cluster can communicate with the service, but not from localhost.
 - `LoadBalancer` : load balances requests from the service to all matching pods it has from its `selector` property. It operates at **layer 4**, meaning it uses the TCP protocol.
 - `Ingress`: a load balancer but operates at the **layer 7** level, meaning it uses intelligent protocols like HTTP and SMTP and can make intelligent load balancing decisions based on the contents of the web packets.
-- `NodePort` : exposes the service’s IP address to the local machine on localhost.
+- `NodePort` :  exposes pods to external traffic by allocating an exposed port accepting ingress traffic on each node in the cluster, then the service uses the node's IP address for receiving ingress traffic.
 
 Here's a table comparing all these services:
 
@@ -1757,7 +1760,7 @@ Here's a table comparing all these services:
 | -------------- | ---------------------------------------------------------------------------------------- | ----------------------- |
 | `ClusterIP`    | No, only accessible within cluster.                                                      | Yes                     |
 | `LoadBalancer` | Yes, also creates external IP address using cloud provider to provision a load balancer. | Yes                     |
-| `NodePort`     | Yes, forwards traffic directly to `localhost` on the machine.                            | Yes                     |
+| `NodePort`     | Yes, forwards traffic directly to `localhost` (the loopback) on the node.                | Yes                     |
 
 
 #### Creating services basics
@@ -1818,17 +1821,62 @@ The `NodePort` extends the `ClusterIP` service.
 Here's how it works behind the scenes:
 
 1. **node port assignment**: When you create a NodePort service, Kubernetes allocates a static port (from a range, usually 30,000–32,767) on every node in the cluster.
-2. **NodePort service translation**: Any request sent to any node’s IP address on the allocated port will be forwarded to the service, which then routes the request to one of the target pods.
+2. **access via IP address**: The NodePort service can be accessed using the IP address of any node in the cluster along with the allocated port. This means that users can connect to your application using any worker node’s IP address and the NodePort.
+3. **NodePort service translation**: Any request sent to any node’s IP address on the allocated port will be forwarded to the service, which then routes the request to one of the target pods.
+	- Kubernetes uses kube-proxy to route incoming requests on the NodePort to the appropriate pods. When a request hits the node on the NodePort, kube-proxy forwards the traffic to one of the pods that are part of the service.
 
-For example, if your webserver pod is exposed via a NodePort service on port 31000, you can access it by sending a request to any node’s IP at port 31000. 
+For example, if your webserver pod is exposed via a NodePort service on port 30001, you can access it by sending a request to any node’s IP at port 30001:
+
+1. **Define a Pod**: Let's say you have a simple web application running in a pod defined by the following YAML, where the exposed port of the container in the pod is port 80.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-web-app
+spec:
+  containers:
+    - name: web
+      image: nginx
+      ports:
+        - containerPort: 80
+```
 
 > [!NOTE]
 > Kubernetes automatically manages the mapping between the NodePort and the pods, even if pods are added or removed.
 
+
+2. **Create a NodePort Service**: Next, you create a NodePort service like this:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-web-app-service
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30001  # Optional; Kubernetes can choose an available port
+  selector:
+    app: my-web-app
+```
+
+3. **Access the Application**: Once the service is created, you can access your application by going to `http://<NodeIP>:30001`. `<NodeIP>` is the IP address of any node in your cluster.
+
 ![](https://i.imgur.com/2hcFQhF.jpeg)
 
 
+Here are the disadvantages:
 
+1. **multiple IP addresses**: since `NodePort` allows redirecting traffic to any node in the cluster, that means the IP address can change to different nodes' IP addresses depending on the which pod you want to request ingress traffic for, and which node that pod lives in.
+2. **No Load Balancing**: NodePort does not provide any built-in load balancing. Traffic directed to the NodePort is sent to one of the pods, but it does not distribute incoming requests evenly across multiple pod replicas. This can lead to uneven traffic distribution and potential performance issues, especially under heavy load.
+3. **Manual Management**: Exposing services via NodePort can require more manual management. You must know the IP of the nodes in your cluster and the NodePort to access the service, which can complicate the client experience and require workarounds for dynamic situations.
+4. **Security Concerns**: NodePorts open ports on every node in the cluster, which can pose a security risk. If these ports are exposed to the internet, they may be vulnerable to attacks if not properly secured.
+
+> [!NOTE]
+> In summary, while NodePort is straightforward for exposing services, it has limitations regarding port management, traffic distribution, security, and flexibility that make it less ideal for more complex use cases and production environments.
 
 #### Loadbalancer
 
@@ -1841,6 +1889,13 @@ The load balancer service tries to acquire an external IP address for the provis
 
 > [!NOTE]
 > Behind the scenes if you use a load balancer service, a cloud provider like Google Cloud or AWS EKS will actually create a load balancer for you and provision that resource for you with the IP, the port, and traffic rules that you decide on. 
+
+A load balancer service has two main use cases:
+
+1. **accept ingress traffic from the internet**: provisions a load balancer infra with a stable, public IP address that can accept ingress traffic and forward it to the rest of the cluster.
+2. **distributes traffic across pods**: automatically distributes incoming ingress traffic across all available pods no matter which node they live in.
+
+Here are the steps to create a basic load balancer service
 
 1. Run `minikube tunnel` to expose your kubernetes cluster to localhost internet
 2. Create this yaml of a service, targeting the specific pod you want to proxy traffic to via `spec.selector.<selector-tag>` property.
@@ -1860,6 +1915,7 @@ spec:
       targetPort: 3000
   type: LoadBalancer
 ```
+
 3. Create the associated pod and apply the service
 4. Visit `localhost:80` to see your pod running via a service
 
