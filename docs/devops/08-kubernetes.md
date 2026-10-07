@@ -2027,13 +2027,30 @@ spec:
 
 #### Connecting to services
 
-The main advantage of services is that they're sort of like NGINX in that they can create static DNS names for IP addresses so you request the DNS created by a service rather than an ephemeral, changing pod IP.
 
-Here is the basic syntax for how to form a request to a service DNS origin:
+##### Intra-pod / Inter-container communication
+
+Containers within the same pod can request each other through `localhost` on their respective exposed ports since a pod acts like a VM in this case. 
+
+##### Pod to pod communication
+
+If you create a ClusterIP service for a deployment or pod, that Kubernetes will automatically generate environment variables which let you dynamically request the service DNS/IP for connecting to that pod.
+
+The environment variable for the cluster-facing internal service IP is in this format:
 
 ```
+<SERVICE_NAME>_SERVICE_HOST
+```
+
+For connecting to a service DNS, you can use this naming syntax instead:
+
+```
+http://<service-name>.<namespace>
 http://<service-name>.<namespace>.svc.cluster.local
 ```
+
+> [!NOTE]
+> Forwarding ingress traffic to a service via DNS is much more stable than the auto-generated environment variables.
 
 - `service-name`: the name of the service
 - `namespace`: the namespace the service belongs to
