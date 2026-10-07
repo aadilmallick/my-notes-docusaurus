@@ -2048,13 +2048,17 @@ Instead of hard coding environment variables inside each of your deployments, it
 - **configMaps**: store non-sensitive data that can be referenced in pods to extract the the data into environment variables that can be used in containers in a pod.
 - **secrets**: store sensitive data that can be referenced in pods to extract the the secret data into environment variables that can be used in containers in a pod. The secrets can be encrypted on the server side, or obfuscated at the very least.
 
+Here is how you can give pods access to configuration values and secrets:
+
+1. **create config maps and secrets**: create config map and secret k8s resources, which store data in key-value pairs
+2. **connect pods to config maps and secrets**: pods must reference config maps and secrets to use their data
+3. **inject key-value pairs into the containers**: you can inject and store the key-value pairs into the containers via different two ways:
+	- **volume**: attach config map and secrets as volume onto pod, then mount that volume to a container.
+	- **environment variables**: set environment variables on the individual containers of the pod that use the key-value pairs from config maps and secrets to convert them into environment variables.
+
 #### Config maps
 
-You specify all key-value pairs under the `data` key in a config map
-
-![](https://i.imgur.com/FIq2Qom.jpeg)
-
-
+You specify all key-value pairs under the `data` key in a config map.
 
 In a pod, you can extract data from a specified config map by going into the `env` key on a container, and using the `valueFrom` key to specify that you want to extract the environment variable from another K8 resource. 
 
@@ -2063,11 +2067,52 @@ You specify `configMapKeyRef` as telling you want to pull from a config map, whi
 - `name`: the name of the config map resource you want to pull from
 - `key`: the name of the specific key from the key-value pairs in the config map that you want to pull the value of.
 
+Once you connect a config map resource to a pod, there are two methods to actually injecting the configuration values into the containers:
+
+- **env method**: set config map values as environment variables on a container
+
+
+![](https://i.imgur.com/FIq2Qom.jpeg)
+
+- **volume method**: first 1) attach the config map as a volume onto the pod, then 2) mount that volume to a container.
+
+##### Imperative use
+
+**create a config map**
+
+```
+kubectl create configmap 
+```
+
 #### Secrets
+
+Secrets are used the exact same way as config maps except that they obfuscate plain text to base64, intended for storing sensitive data.
+
+
+In Kubernetes Secrets, both stringData and data are used to store key-value pairs, but they work differently:
+
+- `stringData`: This field allows you to provide secret values as plain (unencoded) strings. When you apply the manifest, Kubernetes automatically encodes these values to base64 and stores them in the data field. 
+	- It’s a convenient way to write secrets without manually encoding them.
+    
+- `data`: Here, you must provide values already encoded in base64. Kubernetes stores these values as-is.
+
+> [!NOTE]
+> In summary, stringData is for human-friendly input (plain text), while data is for base64-encoded values. Both end up as base64 in the actual Secret, but stringData saves you the manual encoding step.
+
+
+
+
 
 
 ![](https://i.imgur.com/JQbek7Y.jpeg)
 
+##### Imperative use
+
+Here is how you can create a secret with an unencoded key=value pair:
+
+```bash
+kubectl create secret generic <secret-name> --from-literal=<KEY>=<VALUE>
+```
 ## K8S practice
 
 ### Level 1 - Basic microservices
@@ -2566,7 +2611,30 @@ k8s_resource(
 
 ## Helm
 
-Helm is a tool used in Kubernetes to package, configure, and deploy applications using "charts," which are collections of Kubernetes resource definitions. It simplifies managing complex deployments by letting you define your app and its dependencies in reusable, versioned packages.
+
+### Intro
+
+Helm is the package manager for kubernetes. It simplifies managing complex deployments by letting you define your app and its dependencies in reusable, versioned packages.
+
+
+Helm is a tool used in Kubernetes to package, configure, and deploy applications using **charts**, which are collections of Kubernetes resource definitions. 
+
+
+![](https://i.imgur.com/iJY1QBL.jpeg)
+
+
+
+## Prometheus
+
+Prometheus is an open-source monitoring and alerting system, integrating easily with Kubernetes for extensive metric collection and visualization, often paired with Grafana.
+
+## Kubeflow
+
+Kubeflow simplifies the deployment of machine learning workloads on Kubernetes, offering a complete stack for model building, training, and serving.
+
+## KNative
+
+Knative is a platform for building and managing serverless workloads on Kubernetes, providing portability and avoiding vendor lock-in, supported by major industry players.
 
 ## Kubernetes admin
 
