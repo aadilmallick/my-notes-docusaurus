@@ -1336,11 +1336,28 @@ spec:
     name: app-tier
 ```
 
+
+This is the full workflow to achieve horizontal scaling:
+
+1. Define resource request limits on each container within a pod
+2. Create a `HorizontalPodAutoscaler` resource that targets the deployment whose pods you want to scale, as well as specifying these three components:
+	- **minimum replicas**: the minimum amount of replicas the targeted deployment must maintain
+	- **maximum replicas**: the maximum amount of replicas the targeted deployment must not go over.
+	- **metric**: a custom metric threshold value which determines when to increase or decrease replica count.
+
+
+
+![](https://i.imgur.com/XXEKK2f.jpeg)
+
+
+
 You can also do this imperatively:
 
 ```bash
 kubectl autoscale deployment app-tier --max=5 --min=1 --cpu-percent=70
 ```
+
+![](https://i.imgur.com/nV05D60.jpeg)
 
 #### Deployment rollouts and rollbacks
 
@@ -2635,14 +2652,14 @@ You can install like so:
 choco install lens
 ```
 
-### K9
+### K9s
 
-K9 is a TUI for visualizing your k8s cluster and managing it.
+K9s is a TUI for visualizing your k8s cluster and managing it.
 
 Install like so:
 
 ```bash
-brew install k9
+brew install k9s
 ```
 
 
