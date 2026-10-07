@@ -914,7 +914,6 @@ The main key to specify when creating a pod resource is the `containers` key, wh
 - `command` : a string array of the split string command to override the main container’s entrypoint. Useful for debugging.
 - `env` : provides key value pairs of environment variables to load into the container.
 
-
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -938,7 +937,28 @@ spec:
     args: ["echo ${DBCON}"]
 ```
 
+**example 1: local image**
 
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      containers:
+        - name: user-container
+          image: amallick-users:latest
+          imagePullPolicy: Never
+```
 ##### **compute request**
 
 You can specify the amount of compute (memory and CPU) a container within a pod gets under the `spec.containers.resources` key, specifying both **requests** and **resources**
