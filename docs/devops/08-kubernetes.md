@@ -175,7 +175,6 @@ Key takeaways:
 
 #### The full flow
 
-
 ![](https://i.imgur.com/MFLuZ0x.jpeg)
 
 1. **create kubernetes resources**: You either imperatively or declaratively, create Kubernetes resources, which then make a request to the API server component in the control plane. 
@@ -191,6 +190,51 @@ Key takeaways:
 11. **kubelet monitors pod status and sends to API server**
 12. **API server saves state to etcd**
 
+```
+CONTROL PLANE (Brain)
+┌────────────────────────────────────────────────────────────────────────┐
+│                                                                        │
+│   kubectl apply -f manifest.yaml                                       │
+│          │                                                             │
+│          ▼                                                             │
+│   [kube-apiserver] <─────────> [etcd] (Raft KV store: state/specs)    │
+│     ▲          ▲                                                       │
+│     │          │                                                       │
+│     ▼          ▼                                                       │
+│ [kube-scheduler] [kube-controller-manager]                             │
+│ (Assigns nodes)   (Reconciliation loops: Deployment, ReplicaSet, Node) │
+└─────┬──────────────────────────────────────────────────────────────────┘
+      │
+      │ gRPC / TLS
+      ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ WORKER NODE (Muscle)                                                   │
+│                                                                        │
+│   [kubelet] ──(CRI / gRPC)──> [containerd]                             │
+│   (Node agent & static pods)        │                                  │
+│                                     ▼                                  │
+│   [kube-proxy]               ┌───────────────┐ ┌───────────────┐       │
+│   (iptables / IPVS rules)    │ Express App   │ │ Redis Pod     │       │
+│                              │ 10.244.0.15   │ │ 10.244.0.16   │       │
+│                              └───────┬───────┘ └───────▲───────┘       │
+│                                      │   ClusterIP SVC │ :6379         │
+│   [CoreDNS / CNI (Flannel/Calico)]   └─────────────────┘               │
+│   (Flat /16 Pod Overlay Network)                                       │
+```
+
+- **`kube-apiserver`** ([00:07:30](http://www.youtube.com/watch?v=l57xKN6OBhY)): The stateless REST gateway. Validates payloads, handles authentication/RBAC, and is the **only** component allowed to read/write to `etcd`.
+    
+- **`etcd`** ([00:07:45](http://www.youtube.com/watch?v=l57xKN6OBhY)): A consistent, highly available distributed key-value store using the Raft consensus algorithm. It holds the entire cluster state.
+    
+- **`kube-scheduler`** ([00:08:12](http://www.youtube.com/watch?v=l57xKN6OBhY)): Matches unassigned pods to suitable nodes by evaluating affinity rules, resource requests/limits, taints, and tolerations.
+    
+- **`kube-controller-manager`** ([00:08:35](http://www.youtube.com/watch?v=l57xKN6OBhY)): A collection of reconciliation processes (Node Lifecycle Controller, ReplicaSet Controller, EndpointSlice Controller) running continuous control loops.
+    
+- **`kubelet`** ([00:09:08](http://www.youtube.com/watch?v=l57xKN6OBhY)): The local node supervisor. It watches the API server for PodSpecs assigned to its node and drives the container runtime via CRI (Container Runtime Interface) to spawn containers and monitor health probes.
+    
+- **`kube-proxy`** ([00:09:30](http://www.youtube.com/watch?v=l57xKN6OBhY)): Manages Layer 4 transport rules (`iptables` or `IPVS`) on the node host, translating stable virtual Service IPs (`ClusterIP`) to individual Pod IP endpoints.
+    
+- **CNI Plugin (Container Network Interface)** ([00:13:40](http://www.youtube.com/watch?v=l57xKN6OBhY)): Allocates IP subnets to nodes and creates a flat overlay network where every Pod gets a unique routable IP without host NAT.
 #### Built-in namespaces
 
 In a K8S cluster you have several namespaces that come built-in default to k8s, which contain important resources used to control the cluster:
