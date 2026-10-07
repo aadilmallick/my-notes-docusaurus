@@ -314,6 +314,96 @@ You can delete the default cluster with the `minikube delete` command or delete 
 ```bash
 minikube delete -p [clusterName]
 ```
+
+### Minikube with deployments and pods
+
+Since minikube runs locally and you may not have access to a container registry, minikube offers a local container registry you can push to, so that you can create local images with docker and instead of having to push them up to a registry, you can just build the images locally from a Dockerfile in your codebase.
+
+Minikube allows you to reuse its internal Docker daemon. By building your image directly inside Minikube's environment, Kubernetes can instantly access it
+
+1. Point your terminal's shell to Minikube's Docker daemon:
+
+```bash
+eval $(minikube docker-env)
+
+```
+
+2. Build the image
+
+```bash
+docker build -t my-image:latest .
+
+# or if you already built image
+
+minikube image load my-image:latest
+```
+
+3. Deploy the K8S resource of pod or deployments, make sure `imagePullPolicy` is set to `Never` so that it pulls images locally from the minikube registry
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      containers:
+        - name: user-container
+          image: amallick-users:latest
+          imagePullPolicy: Never
+```
+
+
+### Minikube for services
+
+If you want to test services like a LoadBalancer service locally without provisioning an actual load balancer infra, you can do so with minikube
+
+1. Create the service
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+spec:
+  selector:
+    app: users
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+```
+
+2. Apply the service
+
+```bash
+kubectl apply -f kubernetes/users-service.yaml
+```
+
+3. Give the service a loopback IP address on your local machine via minikube, which can accept ingress traffic for the cluster.
+
+```bash
+minikube service users-service
+```
+
+
+
+![](https://i.imgur.com/srOIK38.jpeg)
+
+4. Now request it from the new private URL:
+
+```bash
+curl -d '{"email" : "test@test.com", "password": "testers"}'  http://192.168.49.2:31367/login
+```
 ## `kubectl` basics
 
 ### Declarative vs imperative
