@@ -17,11 +17,27 @@ Because containers are the most efficient way to use a computer's CPU and memory
 
 ### Why Kubernetes
 
-The issue of container deployments arises from three main problems:
+The issue of container deployments arises from four main problems:
 
 - **container lifecycle management**: it's a difficult problem to replace crashed containers
 - **container scaling**: it's a difficult problem to try and scale the number of containers proportionally to traffic or some other metric.
+- **traffic distribution**: there should be rules concerning ingress traffic distribution and how to distribute that across container instances.
+- **server hardening**: you still have to harden server configuration, update server hardware, and harden security for the server you're running the containers on.
 
+
+![](https://i.imgur.com/KZhPLRv.jpeg)
+
+
+Kubernetes solves the first three problems through a cloud-provider agnostic framework that applies to any infra, but you're still left with maintaining the infra that kubernetes runs on.
+
+
+![](https://i.imgur.com/sXkjQyh.jpeg)
+
+
+
+
+
+The 4th problem of server hardening and maintenance is solved via a cloud-managed kubernetes cluster like EKS.
 ### How kubernetes works
 
 Kubernetes exists because when you're dealing with a container orchestration system where you orchestrate many containers among many different hosts, you have to deal with things like termination, graceful failover, and auto-scaling. Those things are extremely difficult to manually implement because there are so many things that can go wrong when creating your own auto-scaling microservice system between containers. 
@@ -584,7 +600,7 @@ By default, pods can only respond to requests that come from other pods within t
 
 If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster.
 
-We do that by adding an **Ingress** and an **Ingress controller** K8S object:
+We do that by adding an **Ingress** and an **Ingress controller** K8S resource:
 
 - **Ingress**: A Kubernetes ingress object is a resource that defines rules for routing external HTTP or HTTPS traffic to services within your cluster. It essentially specifies how requests should be directed based on hostnames or paths.
 - **Ingress Controller**: The ingress controller, on the other hand, is the software that enforces these rules. It acts as a reverse proxy and load balancer, receiving incoming traffic and routing it according to the ingress object’s rules. 
@@ -601,7 +617,7 @@ Here's how an ingress request to your cluster works:
 2. The ingress object sends that traffic to the ingress controller.
 3. The ingress controller checks the list of rules that you set up on your ingress, and routes traffic to the appropriate pod.
 
-#### Creating an ingress and ingress controller
+#### Creating an ingress and ingress controller with nginx
 
 The `Ingress` object in kubernetes allows you to define the ingress rules as well as the specific third-party ingress controller to use for the reverse proxy functionality of the ingress controller.
 
@@ -631,6 +647,43 @@ spec:
                   number: 8080
 ```
 
+
+#### AWS load balancer ingress
+
+IngressClass and IngressClassParams are Kubernetes resources that define how incoming traffic (ingress) should be handled in your cluster. 
+
+In this setup, they are essential because they tell the AWS Load Balancer Controller how to manage and route external traffic to your applications. 
+
+- Specifically, IngressClass links your ingress resources to the AWS Load Balancer Controller
+- while IngressClassParams provide configuration details the controller needs to create and manage the correct AWS Elastic Load Balancer
+
+> [!NOTE]
+> Without these, the controller wouldn't know how to connect your Kubernetes ingress to the AWS load balancer, so they are key to making your application accessible from the internet.
+
+Here's an example:
+
+```yaml
+---
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: IngressClassParams
+metadata:
+  labels:
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: alb
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: alb
+spec:
+  controller: ingress.k8s.aws/alb
+  parameters:
+    apiGroup: elbv2.k8s.aws
+    kind: IngressClassParams
+    name: alb
+```
 ### Service meshes
 
 A service mesh in Kubernetes is software you install in your cluster that manages all internal service-to-service communication. 
@@ -740,7 +793,54 @@ When a node is added to the cluster, these three tools are installed, which are 
 
 ### Labels and selectors
 
-Labels and selectors within kubernetes are ways to reference resources and even assign them to specific nodes.
+Labels and selectors within kubernetes are ways to tag resources and then reference them in other resources.
+
+Each resource in kubernetes can have multiple labels, which you specify through the `spec.template.metadata.labels` object
+
+```yaml
+spec:
+  template:
+    metadata: 
+      labels:
+        app: second-app
+        tier: backend
+```
+
+Then you target specific resources by their labels via the `spec.selector.matchLabels` object:
+
+```yaml
+spec:
+  selector:
+    matchLabels:
+      app: second-app
+      tier: backend
+```
+
+Here is the full example of a deployment targeting pods to include in its deployment via the label-selector method:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: second-app-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: second-app
+      tier: backend
+  template:
+    metadata: 
+      labels:
+        app: second-app
+        tier: backend
+    spec: 
+      containers:
+        - name: second-node
+          image: academind/kub-first-app:2
+```
+
+##### CLI
 
 We can target resources using the `--selector` option or the `--label` option
 
@@ -1897,15 +1997,136 @@ There are three types of volume resources that are used in kubernetes:
 
 #### Volumes
 
-Volumes are attached to a single pod and are intended as persistent data storage for all containers within the same pod.
+Volumes are attached to a single pod, coupled with the pod lifecycle, and are intended as persistent data storage for all containers within the same pod.
 
-Once a pod is deleted, the volume also gets deleted.
+
+![](https://i.imgur.com/UwhXGgD.jpeg)
+
+Here are the rules:
+
+1. Volumes live at the pod-level, so they survive container restarts and removals, but not pod destruction. Once a pod is deleted, the volume also gets deleted.
+
+
+Kubernetes volumes are different than Docker volumes in terms of their flexibility and use cases:
+
+
+|                   | Kubernetes volumes                                            | Docker volumes                                   |
+| ----------------- | ------------------------------------------------------------- | ------------------------------------------------ |
+| Storage types     | Supports many different drivers and types, like cloud storage | Supports only local storage on a host filesystem |
+| Persistence       | Volumes persist for pod lifetime                              | Volumes persist until manually cleared           |
+| Container storage | Volumes survive container restarts and removals               | Volumes survive container restarts and removals  |
+
 
 These are the available volume types:
 
-- `emptyDir`: the default. This creates an empty directory on the node the pod lives in, and all data is persisted to that folder on the node.
-	- **con**: data gets lost if pod is rescheduled to a different node.
+- `emptyDir`: the default. This creates an empty directory on the node the pod lives in, and all data is persisted to that folder on the node, but only for the lifecycle of the pod.
+	- **tradeoff**: is simple, but is temporary storage that is node-specific and pod-specific (lives only during the lifetime of a single pod)
+- `csi`: the CSI (container storage interface) is an abstraction over concrete storage classes like AWS EBS, EFS, etc.
+- `hostPath`: The `hostPath` volume option mounts a file or directory from the host node's filesystem into your pod
+	- **tradeoff**: provides persistent storage that multiple pods can access if they live in the same node, but data is node-specific, and is not shared across pods in different nodes.
 
+> [!NOTE]
+> `emptyDir` vs `hostPath`
+> ***
+> - Use `emptyDir` for temporary storage that is only needed for the lifecycle of a single pod.
+> - Use `hostPath` for accessing and sharing specific files or directories from the host machine, useful for multiple pods using the same volume.
+
+##### `emptyDir`
+
+
+1. **Definition**: An `emptyDir` volume is created when a pod is assigned to a node and lasts for the duration of that pod's lifecycle.
+2. **Storage Location**: It is stored on the node’s filesystem, but it is temporary and only exists as long as the pod is running.
+3. **Use Case**: Ideal for data that needs to be shared among containers in a pod or temporary data that should not persist beyond the pod's lifecycle (e.g., scratch space for container processes).
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: story-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: story
+  template:
+    metadata:
+      labels:
+        app: story
+    spec:
+      containers:
+        - name: story-container
+          image: academind/kub-first-app:2
+          # 2. mount volume to container at path
+          volumeMounts:
+	        # 3. set this to the WORKDIR of your docker file
+		    - mountPath: /app/story
+	# 1. attach volume to pod
+      volumes:
+        - name: story-volume
+          emptyDir: {}
+```
+
+##### `hostPath`
+
+The `hostPath` volume option mounts a file or directory from the host node's filesystem into your pod.
+
+1. **Definition**: The `hostPath` volume mounts a file or directory from the host node’s filesystem into the pod.
+2. **Storage Location**: It directly uses the path on the host's filesystem, allowing pods to access or store data there.
+3. **Use Case**: Useful for scenarios where you want to share data between the host and the pod, or if you need access to specific files on the host system. However, using `hostPath` can lead to portability issues if the paths differ across environments.
+
+
+> [!NOTE]
+> You can think of `hostPath` as a bind mount from a node's filesystem into your container.
+
+> [!WARNING]
+> `hostPath` only stores data on a single node, so be aware of that, that this approach will break on multi-node clusters.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: story-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: story
+  template:
+    metadata:
+      labels:
+        app: story
+    spec:
+      containers:
+        - name: story-container
+          image: academind/kub-first-app:2
+          # 2. mount volume to container at path
+          volumeMounts:
+	        # 3. set this to the WORKDIR of your docker file
+		    - mountPath: /app/story
+	# 1. attach volume to pod
+      volumes:
+        - name: story-volume
+          hostPath:
+	          path: /data # persist to /data path on node's filesystem
+	          type: DirectoryOrCreate # upsert directory
+```
+
+
+##### `nfs`
+
+The `nfs` storage type lets you use a separate network file system as a volume.
+
+##### `csi`
+
+
+The CSI (container storage interface) is an abstraction over storage volume types that you can implement a concrete provider for.
+
+> [!NOTE]
+> CSI was created to streamline the integration of various storage providers into Kubernetes. Instead of continually adding new built-in volume types for every storage solution, Kubernetes exposes a standard interface that any storage provider can implement.
+
+With CSI, you can use any storage system that has a CSI driver developed for it. This includes cloud storage solutions like Amazon Elastic File System (EFS), Google Cloud Persistent Disks, and many others.
+
+Developers can create their own CSI drivers to integrate their specific storage solutions with Kubernetes, enhancing the system's versatility.
 #### Persistent volumes
 
 Persistent volumes are independent of a pod's lifetime.

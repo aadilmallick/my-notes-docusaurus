@@ -1691,10 +1691,15 @@ The AWS Load Balancer Controller is a component that manages AWS Elastic Load Ba
 
 It helps your Kubernetes services handle incoming internet traffic by automatically creating and configuring load balancers in your AWS environment. 
 
+1. It watches the Kubernetes API server for ingress resources—these define how external traffic should reach your applications. 
+2. When it detects an ingress, it automatically creates or updates the corresponding AWS load balancer to route traffic properly. It relies on Cert Manager to handle TLS certificates, enabling secure HTTPS traffic.
+
 > [!NOTE]
 > This controller ensures that your applications are accessible and that traffic is properly balanced across your Kubernetes pods, which is crucial for reliability and scalability in cloud deployments.
 
-Setting up the AWS load balancer controller requires two core components:
+The controller also requires specific IAM policies to have permission to create and manage AWS resources, and it uses tags on your VPC subnets to know where to place load balancers.
+
+Therefore, setting up the AWS load balancer controller requires two core components:
 
 1. **IAM policy**: An IAM policy for the AWS Load Balancer Controller is essential because it grants the controller the necessary permissions to create, manage, and delete AWS Elastic Load Balancers on your behalf.
 2. **tagging**: for correct networking, it needs to identify the right subnets in your cluster's Virtual Private Cloud (VPC) using specific tags.
@@ -1969,10 +1974,11 @@ kubectl apply \
     -f https://github.com/jetstack/cert-manager/releases/download/v1.5.4/cert-manager.yaml
 ```
 
-5. Verify that the `aws-load-balancer-controller` service account was added
+5. Verify that the `aws-load-balancer-controller` service account was added and that the certificate manager pods were added
 
 ```bash
 kubectl get sa -n kube-system
+kubectl get pods -n cert-manager
 ```
 
 ##### Installation
