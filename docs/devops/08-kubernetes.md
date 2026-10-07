@@ -1842,9 +1842,17 @@ Persistent volumes are independent of a pod's lifetime.
 
 PersistentVolumes are the actual volume resources you have to create before you can use PVCs to actually claim storage from those volumes and use them in your pods.
 
+There are two ways to create/user persistent volumes:
+
+- Static provisioning for Persistent Volumes (PVs) means that a cluster administrator manually creates and configures the storage resources ahead of time.
+- Dynamic provisioning, on the other hand, allows Kubernetes to automatically create a new PV when a PVC is made, if there isn’t already a suitable PV available.
+##### Declarative
+
 
 
 ![](https://i.imgur.com/B70o7lT.jpeg)
+
+
 
 Here are the possible keys you have in the yaml definition:
 
@@ -1852,15 +1860,13 @@ Here are the possible keys you have in the yaml definition:
     - `ReadWriteMany`: the volume can be mounted by many pods, and all of them have read and write access to the volume
     - `ReadMany`: the volume can be mounted by many pods, and all of them have read-only access to the volume
     - `ReadWriteOnce`: the volume can be mounted by many pods, but only one of them will have read and write access to the volume while the rest will have read-only access.
-- `hostPath`: allows you to host the volume in your local laptop through docker desktop, although this will nto work in production, and instead you should use a cloud-provided storage plugin.
-- `storageClassName`: how the data will be stored. `ssd` is for local storage.
 - `persistentVolumeReclaimPolicy`: determines the behavior of what happens to the data
+- `storageClassName`: how the data will be stored. `ssd` is for local storage.
 
-PVs can't be used with PVCs, so the way to connect them is through labels and selectors:
+Then you have these different volume types:
 
-
-![](https://i.imgur.com/aVHGVHa.jpeg)
-
+- **node volume storage**: persisting data to the node's filesystem (the node that the pod lives in)
+	- `hostPath`: allows you to host the volume in your local laptop through docker desktop, although this will nto work in production, and instead you should use a cloud-provided storage plugin.
 
 #### PVCs
 
@@ -1874,6 +1880,9 @@ There are 4 possible states a PVC can be in related to the PV it wants to claim 
 - **`Bound`**: the volume is bound to a claim
 - **`Released`**: the claim is deleted, but the resource is not yet reclaimed by the cluster
 - **`Failed`**: PV has failed its automatic reclamation
+
+> [!NOTE]
+> If dynamic provisioning isn’t enabled and no suitable static PV exists, the PVC will remain in a pending state until a matching PV is available.
 
 There are all policies for what happens to the volume data mounted in a pod when a PVC is released
 
@@ -1907,8 +1916,21 @@ spec:
 
 Once you create a PVC, a PVC is useless without allowing pods to access that PVC and by extension the underlying PV the PVC has claimed. Once pods gain access to a PVC, the containers within those pods will be able to use the underlying volume for storage.
 
-To connect a PVC to a pod so its containers can use the volume, you would do something like this, specifying the `volumes` key on the pod spec:
+To attach a persistent volume for use to a pod, follow these steps:
 
+1. Create a PV with static provisioning or dynamic provisioning
+2. Create a PVC that targets a PV for use
+
+
+![](https://i.imgur.com/aVHGVHa.jpeg)
+
+
+
+3. To connect a PVC to a pod so its containers can use the volume, add the `volumes` key on the pod spec so you get this flow:
+
+```
+POD uses PVC uses PV
+```
 
 
 ![](https://i.imgur.com/XgaMpPn.jpeg)
@@ -1923,6 +1945,78 @@ In summary, here are the steps to allow pods to access a PVC:
 3. In the `containers` specification, you can mount volumes in each container through the `volumeMounts` property, which takes in these two keys to mount a volume:
     - `name`: the volume name to use, defined in the `volumes` key in a deployment.
     - `mountPath`: where to mount the volume in the container’s filesystem.
+
+Here's the YAML:
+
+1. Create a persistent volume
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-tier-volume
+spec:
+  capacity:
+    storage: 1Gi # 1 gibibyte
+  accessModes:
+    - ReadWriteOnce
+  awsElasticBlockStore: 
+    volumeID: INSERT_VOLUME_ID # replace with actual ID
+```
+
+2. Create a persistent volume claim for that volume
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-tier-volume-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 128Mi # 128 mebibytes 
+```
+
+3. Create a deployment whose pods request that PVC for use
+
+```yaml
+apiVersion: apps/v1 # apps API group
+kind: Deployment
+metadata:
+  name: data-tier
+  labels:
+    app: microservices
+    tier: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: data
+  template:
+    metadata:
+      labels:
+        app: microservices
+        tier: data
+    spec: # Pod spec
+      containers:
+      - name: redis
+        image: redis:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 6379
+            name: redis
+        # 2. mount volume from pod to /data on container
+        volumeMounts:
+          - mountPath: /data
+            name: data-tier-volume
+      # 1. attach PVC to pod
+      volumes:
+      - name: data-tier-volume
+        persistentVolumeClaim:
+          claimName: data-tier-volume-claim
+```
 
 #### Storage classes
 
@@ -1946,6 +2040,34 @@ Here is the basic flow of using storage classes with PVCs instead of PVs with PV
 ##### Imperative storage classes
 
 You can also imperatively manage storage classes through the `sc` resource:
+
+### Config maps, secrets, environment variables
+
+Instead of hard coding environment variables inside each of your deployments, it is best practice to separate configuration from implementation. For these purposes we have **configMaps** and **secrets** resources in kubernetes:
+
+- **configMaps**: store non-sensitive data that can be referenced in pods to extract the the data into environment variables that can be used in containers in a pod.
+- **secrets**: store sensitive data that can be referenced in pods to extract the the secret data into environment variables that can be used in containers in a pod. The secrets can be encrypted on the server side, or obfuscated at the very least.
+
+#### Config maps
+
+You specify all key-value pairs under the `data` key in a config map
+
+![](https://i.imgur.com/FIq2Qom.jpeg)
+
+
+
+In a pod, you can extract data from a specified config map by going into the `env` key on a container, and using the `valueFrom` key to specify that you want to extract the environment variable from another K8 resource. 
+
+You specify `configMapKeyRef` as telling you want to pull from a config map, which needs two properties:
+
+- `name`: the name of the config map resource you want to pull from
+- `key`: the name of the specific key from the key-value pairs in the config map that you want to pull the value of.
+
+#### Secrets
+
+
+![](https://i.imgur.com/JQbek7Y.jpeg)
+
 ## K8S practice
 
 ### Level 1 - Basic microservices
