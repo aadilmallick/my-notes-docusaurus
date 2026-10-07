@@ -33,11 +33,21 @@ Kubernetes solves the first three problems through a cloud-provider agnostic fra
 
 ![](https://i.imgur.com/sXkjQyh.jpeg)
 
-
-
-
-
 The 4th problem of server hardening and maintenance is solved via a cloud-managed kubernetes cluster like EKS.
+
+#### No vendor lockin
+
+Kubernetes is a standard that is provider-agnostic, meaning you're never locked in
+
+Kubernetes provides one API for every environment (laptop, cloud, on-prem). You can declare resources once, and each environment knows how to run them. The same manifests work in a Kind cluster locally and a cloud cluster in production, eliminating the need for separate configurations like ECS, Google Compute, or Azure-specific setups.
+
+
+Kubernetes makes multi-cloud deployment easy by providing a consistent interface across cloud providers. Instead of maintaining separate configurations for Amazon ECS, Google Compute, Azure, etc., you can deploy Kubernetes clusters in each cloud environment and manage everything identically using the same resource declarations.
+
+The same API, different infra:
+
+- **local infra**: In a local cluster (like on a laptop), the control plane, worker nodes, storage, and gateway all run on one machine, typically as containers. 
+- **cloud infra**: In a cloud cluster, the control plane is managed and highly available, worker nodes run as true isolated VMs rather than containers, and components are distributed across multiple cloud resources for reliability and scalability.
 ### How kubernetes works
 
 Kubernetes exists because when you're dealing with a container orchestration system where you orchestrate many containers among many different hosts, you have to deal with things like termination, graceful failover, and auto-scaling. Those things are extremely difficult to manually implement because there are so many things that can go wrong when creating your own auto-scaling microservice system between containers. 
@@ -252,11 +262,9 @@ CONTROL PLANE (Brain)
 - **`kube-proxy`** ([00:09:30](http://www.youtube.com/watch?v=l57xKN6OBhY)): Manages Layer 4 transport rules (`iptables` or `IPVS`) on the node host, translating stable virtual Service IPs (`ClusterIP`) to individual Pod IP endpoints.
     
 - **CNI Plugin (Container Network Interface)** ([00:13:40](http://www.youtube.com/watch?v=l57xKN6OBhY)): Allocates IP subnets to nodes and creates a flat overlay network where every Pod gets a unique routable IP without host NAT.
-#### Built-in namespaces
 
-In a K8S cluster you have several namespaces that come built-in default to k8s, which contain important resources used to control the cluster:
 
-- `kube-system`: contains pods of the control plane.
+
 
 ## Minikube basics
 
@@ -403,6 +411,20 @@ minikube service users-service
 
 ```bash
 curl -d '{"email" : "test@test.com", "password": "testers"}'  http://192.168.49.2:31367/login
+```
+
+## `kind`
+
+`kind` is a CLI tool for managing local k8s clusters just like Minikube.
+
+### Cluster management
+
+**creating clusters**
+
+```bash
+kind create cluster
+# or
+kind create cluster --name <cluster-name>
 ```
 ## `kubectl` basics
 
@@ -818,6 +840,19 @@ Using namespaces in Kubernetes offers several benefits:
 4. Environment Separation: You can use namespaces to separate environments (like development, testing, and production) within the same cluster, reducing the risk of accidental interference.
     
 5. Easier Management: With namespaces, you can list, monitor, and manage resources for a specific team or application without affecting others.
+
+#### Speical namespaces and default namespace
+
+In a K8S cluster you have several namespaces that come built-in default to k8s, which contain important resources used to control the cluster:
+
+- `kube-system`: contains pods of the control plane.
+- `default`: the default namespace to work in, created by k8s.
+
+What if you want to see a resource type across all namespaces? You can do so with the `--all-namespaces` option:
+
+```bash
+kubectl get pods --all-namespaces
+```
 #### Creating namespaces
 
 Here is the declarative way to create a namespace
