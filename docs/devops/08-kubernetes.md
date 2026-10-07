@@ -65,19 +65,16 @@ Here is how K8S orchestrates node failure and recovery
 The control plane is what handles the orchestration of pods across worker nodes and other things like networking between nodes.
 
 
-
-
-
 #### The control plane
 
-Think of the Kubernetes control plane as kind of an air traffic controller that determines and directs where pods are created on different worker nodes. 
+Think of the Kubernetes control plane (also called master node) as kind of an air traffic controller node that determines and directs where pods are created on different worker nodes. 
 
 
 ![](https://i.imgur.com/CuBhJQ1.jpeg)
 
 Here are the different control plane components:
 
-- **API server:** a server that exposes a REST API to control K8S resources
+- **API server:** a server that exposes a REST API to control K8S resources, only component that communicates with etcd
 - **etcd**: Highly-available key value store that lives in the control plane to store all data about the current state of the cluster.
 - **kube scheduler**: runs in a loop, identifies newly created pods which have not been assigned a worker node and then assigns them a node for the pod to run on.
 - **kube controller manager**: manages worker nodes and ensures that they are up and running and deploys self-healing operations to keep them up.
@@ -99,6 +96,12 @@ kubectl -n kube-system get pods
 All K8S resources like pods, deployments, and horizontal pod autoscaler have API endpoints.
 
 The **API server** component on K8S exposes a REST API interface to control all of these resources, and CLI tools like `kubectl` use the API server REST API under the hood to control k8s resources via HTTP requests.
+
+Here are the key takewaways:
+
+- REST interface
+- only component that saves state directly to etcd
+- All clients interact with the API server, never directly to etcd
 
 To see all the K8S resources that have available API endpoints to control their provisioning, run this command:
 
@@ -137,7 +140,10 @@ Each worker node has three components:
 
 Kubelet is an agent that runs on each node in a Kubernetes cluster, ensuring containers in a pod are running and healthy while communicating with the API server in the control plane to maintain the desired state of the node.
 
+Key takeaways:
 
+- manages a pod's lifecycle
+- ensures that the containers described in the pod are running and healthy
 ##### Container Runtime
 
 The container runtime uses a container engine to run containers within a pod, and the kubelet communicates with the CRI (container runtime interface) to control the container runtime and request container management operations to be executed.
@@ -145,6 +151,8 @@ The container runtime uses a container engine to run containers within a pod, an
 ##### Kube proxy
 
 The kube-proxy component is a network proxy on each node. It maintains network rules to allow communication to your pods, which is the basis of the service resource in Kubernetes. 
+
+Key takeaways:
 
 
 #### Core objects
@@ -2113,6 +2121,11 @@ Here is how you can create a secret with an unencoded key=value pair:
 ```bash
 kubectl create secret generic <secret-name> --from-literal=<KEY>=<VALUE>
 ```
+
+
+
+
+![](https://i.imgur.com/iS71gGz.jpeg)
 ## K8S practice
 
 ### Level 1 - Basic microservices
@@ -2608,6 +2621,33 @@ k8s_resource(
 ```
 
 - `run(command: str)`: lets you run a linux command that will persist in the shell session.
+
+## Kubernetes add-ons
+
+### K8S Lens IDE
+
+The K8S Lens IDE offers a dashboard GUI way to manage a k8s cluster, whether you're running it locally or on the cloud.
+
+You can install like so:
+
+```bash
+# windows
+choco install lens
+```
+
+### K9
+
+K9 is a TUI for visualizing your k8s cluster and managing it.
+
+Install like so:
+
+```bash
+brew install k9
+```
+
+
+![](https://i.imgur.com/hBZJ87J.jpeg)
+
 
 ## Helm
 
