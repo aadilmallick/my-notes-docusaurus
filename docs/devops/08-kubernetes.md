@@ -17,9 +17,10 @@ Because containers are the most efficient way to use a computer's CPU and memory
 
 ### Why Kubernetes
 
-Before Docker Swarm, Docker was only able to deploy and manage containers on one server at a time.
+The issue of container deployments arises from three main problems:
 
-Kubernetes is a good container orchestration tool, that's why.
+- **container lifecycle management**: it's a difficult problem to replace crashed containers
+- **container scaling**: it's a difficult problem to try and scale the number of containers proportionally to traffic or some other metric.
 
 ### How kubernetes works
 
@@ -2745,6 +2746,60 @@ Because Kubernetes is pretty heavy, each machine that runs a Kubernetes cluster 
 
 - 2 GB RAM per machine
 - 2 vCPUs for the control-plane node
+
+### Machine setup
+
+To run both the control plane and workloads, provision an EC2 instance meeting the video’s minimum requirements:
+
+- **AMI**: Ubuntu Server 24.04 LTS or 22.04 LTS
+    
+- **Instance Type**: `t3.medium` minimum (2 vCPUs, 4 GiB RAM; `kubeadm` will abort on fewer than 2 vCPUs)
+    
+- **Storage**: 20–30 GiB gp3
+    
+- **Security Group Inbound Rules**:
+    
+    - `22/TCP` (SSH from your IP)
+        
+    - `6443/TCP` (Kubernetes API server)
+        
+    - `80/TCP` & `443/TCP` (HTTP/HTTPS web traffic)
+        
+    - `30000-32767/TCP` (NodePort range, if exposing directly via NodePort)
+
+#### Enable modules on boot
+
+SSH into your instance (`ssh -i key.pem ubuntu@<EC2_PUBLIC_IP>`). Kubernetes requires bridge networking packet traversal and the overlay filesystem
+
+```bash
+# Enable modules on boot
+sudo tee /etc/modules-load.d/k8s.conf <<EOF
+overlay
+br_netfilter
+EOF
+
+# Load immediately into running kernel
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# Enable bridge netfilter and IPv4 packet forwarding for CNI routing
+sudo tee /etc/sysctl.d/k8s.conf <<EOF
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sudo sysctl --system
+```
+
+#### disable swap
+
+`kubelet` requires swap memory to be disabled so resource limits and QoS classes remain strictly deterministic
+
+```bash
+sudo swapoff -a
+sudo sed -i '/swap/d' /etc/fstab
+```
 
 ## Kubernetes security
 

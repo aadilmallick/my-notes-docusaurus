@@ -1598,6 +1598,8 @@ Create a new task definition
 
 The `eksctl` CLI tool allows you to control your EKS cluster via the command line.
 
+#### Installation
+
 **windows install**
 
 ```bash
@@ -1629,6 +1631,353 @@ brew tap weaveworks/tap
 brew install weaveworks/tap/eksctl
 ```
 
+#### Cluster creation
+
+You can create a cluster via IaC by applying the `eksctl` CLI on YAML file configurations of the EKS cluster you want to create. 
+
+> [!NOTE]
+> Under the hood, this creates a cloud formation template and uploads it to AWS to create the EKS cluster.
+
+1. Create a YAML file that creates an EKS cluster configuration and creates one node in that cluster:
+
+```yaml title="cluster.yaml"
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: lil-eks  # cluster name
+  region: us-east-1
+  tags:
+    project: linkedin-learning
+
+nodeGroups:
+  - name: worker-node  # node name
+    instanceType: m5.large
+    desiredCapacity: 1 # number of duplicate instances
+```
+
+2. Apply the YAML file to create the cluster:
+
+```bash
+eksctl create cluster -f cluster.yaml
+```
+#### Cluster management
+
+- **list clusters**:
+
+```bash
+eksctl get cluster
+
+```
+
+- **list nodegroups in a cluster**
+
+```bash
+eksctl get nodegroup --cluster=<cluster-name>
+```
+
+- **delete cluster**
+
+```bash
+eksctl delete cluster -f cluster.yaml
+```
+
+
+### Creating an EKS app
+
+#### AWS load balancer controller
+
+The AWS Load Balancer Controller is a component that manages AWS Elastic Load Balancers for your Kubernetes cluster on AWS (EKS).
+
+It helps your Kubernetes services handle incoming internet traffic by automatically creating and configuring load balancers in your AWS environment. 
+
+> [!NOTE]
+> This controller ensures that your applications are accessible and that traffic is properly balanced across your Kubernetes pods, which is crucial for reliability and scalability in cloud deployments.
+
+Setting up the AWS load balancer controller requires two core components:
+
+1. **IAM policy**: An IAM policy for the AWS Load Balancer Controller is essential because it grants the controller the necessary permissions to create, manage, and delete AWS Elastic Load Balancers on your behalf.
+2. **tagging**: for correct networking, it needs to identify the right subnets in your cluster's Virtual Private Cloud (VPC) using specific tags.
+
+##### Setup
+
+**setting up tagging**
+
+Tagging your VPC subnets is essential because the AWS Load Balancer Controller uses these tags to identify which subnets it should use to create Elastic Load Balancers.
+
+- Without the correct tags, the controller can't find the right subnets in your cluster's VPC, which means it won't be able to set up load balancing for your applications properly. 
+- Essentially, tagging tells the controller where to direct traffic, enabling your Kubernetes services to be accessible and balanced across the network.
+
+**setting up the IAM policy**
+
+This policy defines which AWS services and actions the controller can perform, ensuring it operates securely and with the right level of access. 
+
+Without this policy, the controller wouldn't be able to set up load balancing for your Kubernetes applications, which is key to making your services accessible and scalable in the AWS environment.
+
+Here are the steps:
+
+1. Create the policy
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateServiceLinkedRole"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeAccountAttributes",
+                "ec2:DescribeAddresses",
+                "ec2:DescribeAvailabilityZones",
+                "ec2:DescribeInternetGateways",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeVpcPeeringConnections",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeInstances",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DescribeTags",
+                "ec2:GetCoipPoolUsage",
+                "ec2:DescribeCoipPools",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeLoadBalancerAttributes",
+                "elasticloadbalancing:DescribeListeners",
+                "elasticloadbalancing:DescribeListenerCertificates",
+                "elasticloadbalancing:DescribeSSLPolicies",
+                "elasticloadbalancing:DescribeRules",
+                "elasticloadbalancing:DescribeTargetGroups",
+                "elasticloadbalancing:DescribeTargetGroupAttributes",
+                "elasticloadbalancing:DescribeTargetHealth",
+                "elasticloadbalancing:DescribeTags"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cognito-idp:DescribeUserPoolClient",
+                "acm:ListCertificates",
+                "acm:DescribeCertificate",
+                "iam:ListServerCertificates",
+                "iam:GetServerCertificate",
+                "waf-regional:GetWebACL",
+                "waf-regional:GetWebACLForResource",
+                "waf-regional:AssociateWebACL",
+                "waf-regional:DisassociateWebACL",
+                "wafv2:GetWebACL",
+                "wafv2:GetWebACLForResource",
+                "wafv2:AssociateWebACL",
+                "wafv2:DisassociateWebACL",
+                "shield:GetSubscriptionState",
+                "shield:DescribeProtection",
+                "shield:CreateProtection",
+                "shield:DeleteProtection"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:AuthorizeSecurityGroupIngress",
+                "ec2:RevokeSecurityGroupIngress"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateSecurityGroup"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateTags"
+            ],
+            "Resource": "arn:aws:ec2:*:*:security-group/*",
+            "Condition": {
+                "StringEquals": {
+                    "ec2:CreateAction": "CreateSecurityGroup"
+                },
+                "Null": {
+                    "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+            ],
+            "Resource": "arn:aws:ec2:*:*:security-group/*",
+            "Condition": {
+                "Null": {
+                    "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
+                    "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:AuthorizeSecurityGroupIngress",
+                "ec2:RevokeSecurityGroupIngress",
+                "ec2:DeleteSecurityGroup"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "Null": {
+                    "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:CreateLoadBalancer",
+                "elasticloadbalancing:CreateTargetGroup"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "Null": {
+                    "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:CreateListener",
+                "elasticloadbalancing:DeleteListener",
+                "elasticloadbalancing:CreateRule",
+                "elasticloadbalancing:DeleteRule"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:AddTags",
+                "elasticloadbalancing:RemoveTags"
+            ],
+            "Resource": [
+                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+                "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+            ],
+            "Condition": {
+                "Null": {
+                    "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
+                    "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:AddTags",
+                "elasticloadbalancing:RemoveTags"
+            ],
+            "Resource": [
+                "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
+                "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
+                "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+                "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:ModifyLoadBalancerAttributes",
+                "elasticloadbalancing:SetIpAddressType",
+                "elasticloadbalancing:SetSecurityGroups",
+                "elasticloadbalancing:SetSubnets",
+                "elasticloadbalancing:DeleteLoadBalancer",
+                "elasticloadbalancing:ModifyTargetGroup",
+                "elasticloadbalancing:ModifyTargetGroupAttributes",
+                "elasticloadbalancing:DeleteTargetGroup"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "Null": {
+                    "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:RegisterTargets",
+                "elasticloadbalancing:DeregisterTargets"
+            ],
+            "Resource": "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:SetWebAcl",
+                "elasticloadbalancing:ModifyListener",
+                "elasticloadbalancing:AddListenerCertificates",
+                "elasticloadbalancing:RemoveListenerCertificates",
+                "elasticloadbalancing:ModifyRule"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+2. Create the policy in your AWS account via the CLI, store the ARN
+
+```bash
+aws iam create-policy \
+    --policy-name AWSLoadBalancerControllerIAMPolicy \
+    --policy-document file://iam_policy.json
+```
+
+3. Have `eksctl` attach that IAM policy as a kubernetes service account to the EKS cluster
+
+```bash
+eksctl utils associate-iam-oidc-provider --cluster lil-eks --approve
+
+eksctl create iamserviceaccount \
+    --cluster=lil-eks \
+    --name=aws-load-balancer-controller \
+    --namespace=kube-system \
+    --attach-policy-arn=arn:aws:iam::xxxxxxxxxxxx:policy/AWSLoadBalancerControllerIAMPolicy \
+    --approve
+```
+
+4. Add certificate management, which you need to handle HTTPS traffic
+
+```bash
+kubectl apply \
+    --validate=false \
+    -f https://github.com/jetstack/cert-manager/releases/download/v1.5.4/cert-manager.yaml
+```
+
+5. Verify that the `aws-load-balancer-controller` service account was added
+
+```bash
+kubectl get sa -n kube-system
+```
+
+##### Installation
+
+The AWS load balancer controller is a k8s plugin you can install that watches for any ingress traffic coming in towards the API server
 ## Lambda 
 
 ### Lambda configuration
