@@ -218,3 +218,39 @@ availableSecrets:
   - versionName: projects/$PROJECT_ID/secrets/AWS_SECRET_ACCESS_KEY/versions/latest
     env: 'AWS_SECRET_ACCESS_KEY'
 ```
+
+## GKE
+
+### Basics
+
+#### Enabling google cloud kubernetes API
+
+1. Go to google cloud and go to **APIs + services**
+2. Enable the **Kubernetes engine API** service, which requires a billing account
+3. Activate the cloud shell in the browser, which gives you a terminal with the `gcloud` CLI already installed.
+
+#### Creating the cluster
+
+Once you have enabled the Google Cloud Kubernetes Engine API service, you will now be able to use and create Kubernetes clusters with the `gcloud` CLI on your account. 
+
+1. Create the cluster with the `gcloud` CLI, picking the geographical zone with the `--zone` flag.
+
+```bash
+gcloud container clusters create [clusterName] --zone us-east4-a
+```
+
+2. Get the credentials to remotely connect to your cluster:
+
+```bash
+gcloud container clusters get-credentials [clusterName] --zone us-east4-a
+```
+
+3. Get info about the context:
+
+```bash
+kubectl config current-context
+```
+
+4. Create a K8S deployment that deploys a pod  with a running container process on a certain exposed port and a `LoadBalancer` service that forwards traffic from port 80 to that pod on the specified exposed port.
+5. Once the service and deployment are running, grab the external IP of the created load balancer and then view it on the internet.
+

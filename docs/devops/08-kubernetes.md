@@ -48,6 +48,12 @@ The same API, different infra:
 
 - **local infra**: In a local cluster (like on a laptop), the control plane, worker nodes, storage, and gateway all run on one machine, typically as containers. 
 - **cloud infra**: In a cloud cluster, the control plane is managed and highly available, worker nodes run as true isolated VMs rather than containers, and components are distributed across multiple cloud resources for reliability and scalability.
+
+
+![](https://i.imgur.com/WC9hZ4a.jpeg)
+
+
+
 ### How kubernetes works
 
 Kubernetes exists because when you're dealing with a container orchestration system where you orchestrate many containers among many different hosts, you have to deal with things like termination, graceful failover, and auto-scaling. Those things are extremely difficult to manually implement because there are so many things that can go wrong when creating your own auto-scaling microservice system between containers. 
@@ -65,7 +71,7 @@ Here is how K8S orchestrates node failure and recovery
 1. The master control plane decides what is the desired state for the cluster
 2. The master scheduler is continuously monitoring for failures and scaling requests to process them and notifies the master control plane if there are any changes that must be made to achieve the desired state.
 
-### Terminology
+#### Terminology
 
 - **node** : a single virtual machine that can deploy and run multiple pods and replicas of those pods. Think of docker desktop being a node.
     - **worker node:** A specific type of node whose sole purpose is to run pods. It can be local (docker desktop) or remote (EC2 instance)
@@ -85,6 +91,17 @@ Here is how K8S orchestrates node failure and recovery
 > When deploying Kubernetes apps, you deploy a single cluster, which is made from many nodes that can be scaled horizontally to adapt to server traffic. 
 > 
 > Kubernetes deploys **nodes**, which you can think of as each node being a single virtual machine, and in each node you can have multiple **pods**, where a pod can run multiple containers at once together.
+
+#### The loop
+
+K8S follows a self-healing loop where you describe the desired state, and then K8S performs actions to arrive at that state, and that loop continues forever.
+
+- Desired state: what you declare you want
+- Actual state: what the cluster reads as real
+- Reconciliation: it closes the gap, forever
+
+
+![](https://i.imgur.com/Qt24luZ.jpeg)
 
 
 ### K8S architecture
@@ -421,11 +438,34 @@ curl -d '{"email" : "test@test.com", "password": "testers"}'  http://192.168.49.
 
 **creating clusters**
 
-```bash
-kind create cluster
-# or
-kind create cluster --name <cluster-name>
+
+Cluster management is handled declaratively and imperatively, where to create a cluster, you apply kind to a **cluster yaml definition** like so:
+
+1. Create a cluster yaml manifest
+
+```yaml title="kind-cluster.yaml"
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+  - role: worker
+  - role: worker
 ```
+
+2. Imperatively create the cluster
+
+```bash
+kind create cluster --config kind-cluster.yaml --name <cluster-name>
+```
+
+
+
+![](https://i.imgur.com/ugHBNRT.jpeg)
+
 ## `kubectl` basics
 
 ### Declarative vs imperative
@@ -479,9 +519,16 @@ The crud methods are as follows:
 - READ: the `describe` keyword inspects a single resource, or use `get` to list many resources.
 - DELETE: the `delete` keyword deletes a resource
 
+**getting multiple resources**
+
 > [!NOTE]
 > You can get a bird’s eye view of everything running with the `kubectl get all` command.
 
+You can also request multiple resources at once via comma separation:
+
+```bash
+kubectl get deployments,pods,services
+```
 ### kubectl YAML basics
 
 All k8s YAML files must have these two keys:
@@ -845,7 +892,15 @@ Using namespaces in Kubernetes offers several benefits:
 
 In a K8S cluster you have several namespaces that come built-in default to k8s, which contain important resources used to control the cluster:
 
-- `kube-system`: contains pods of the control plane.
+- `kube-system`: contains pods of the components of the control plane. It contains:
+	- CoreDNS (DNS resolution)
+	- etcd (state storage)
+	- kindnet (networking)
+	- API server
+	- Controller manager
+	- kube-proxy
+	- Scheduler
+	- Local path provisioner (for local storage)
 - `default`: the default namespace to work in, created by k8s.
 
 What if you want to see a resource type across all namespaces? You can do so with the `--all-namespaces` option:
@@ -853,6 +908,9 @@ What if you want to see a resource type across all namespaces? You can do so wit
 ```bash
 kubectl get pods --all-namespaces
 ```
+
+
+
 #### Creating namespaces
 
 Here is the declarative way to create a namespace
@@ -2908,38 +2966,120 @@ spec:
 11. **Open Browser to Localhost:** Access the service via `http://localhost:<local-port>` to see the combined frontend and backend response.
 
 
-### Kubernetes + Google Cloud
+### Level 2 - containerizing frontend
 
-#### Enabling google cloud kubernetes API
+To containerize a Vite React app using Nginx and deploy it as a pod in Kubernetes, you can follow these general steps:
 
-1. Go to google cloud and go to **APIs + services**
-2. Enable the **Kubernetes engine API** service, which requires a billing account
-3. Activate the cloud shell in the browser, which gives you a terminal with the `gcloud` CLI already installed.
+1. **Use a Multi-Stage Build**:
+    - Build your application with Vite in one stage.
+    - Use a second stage to serve the built files with Nginx.
 
-#### Creating the cluster
+```Dockerfile
+# Stage 1: Build the React app
+FROM node:14 AS build
+WORKDIR /app
+COPY package.json yarn.lock ./
+RUN yarn install
+COPY . .
+RUN yarn build
 
-Once you have enabled the Google Cloud Kubernetes Engine API service, you will now be able to use and create Kubernetes clusters with the `gcloud` CLI on your account. 
-
-1. Create the cluster with the `gcloud` CLI, picking the geographical zone with the `--zone` flag.
-
-```bash
-gcloud container clusters create [clusterName] --zone us-east4-a
+# Stage 2: Serve with Nginx
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 ```
 
-2. Get the credentials to remotely connect to your cluster:
+2. **nginx configuration**: Create an `nginx.conf` file in the frontend directory to configure Nginx to serve your React application. 
+	- Via the dockerfile, this will get copied to the system nginx config in the container, thus serving your frontend on port 80, rewriting all `/*` matched routes to the frontend.
 
-```bash
-gcloud container clusters get-credentials [clusterName] --zone us-east4-a
+```nginx
+server {
+    listen 80;
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+}
 ```
 
-3. Get info about the context:
+3. **build the docker image and push it to a registry**: In order for K8S to use your image, you must build it and then push it to a registry.
 
 ```bash
-kubectl config current-context
+docker build -t your-image-name .
+docker push your-image-name
 ```
 
-4. Create a K8S deployment that deploys a pod  with a running container process on a certain exposed port and a `LoadBalancer` service that forwards traffic from port 80 to that pod on the specified exposed port.
-5. Once the service and deployment are running, grab the external IP of the created load balancer and then view it on the internet.
+4. **create a deployment for the image**: Create a deployment for the frontend pod.
+	- nginx runs on port 80, so let that be the exposed port.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: your-image-name
+        ports:
+        - containerPort: 80
+```
+
+5. **make the frontend public**: to make the frontend publicly accessible from the internet, create a `LoadBalancer` service that targets your frontend deployment
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: frontend
+```
+
+6. **Apply the resources**
+
+```bash
+kubectl apply -f frontend-deployment.yaml
+kubectl apply -f frontend-service.yaml
+```
+
+#### Adding reverse proxy
+
+If you want to create a fullstack app instead of just frontend with NGINX, you should use the `proxy_pass` reverse proxy functionality in NGINX, and give that the highest priority.
+
+For example, an example `nginx.conf` could be this:
+
+1. **api rules**: anything that matches `/api*` should be given the highest priority, and proxy pass to a service.
+2. **catch all rules**: anything else that is not an API request should be redirected to the react frontend app.
+
+```nginx
+server {
+    listen 80;
+    
+    location /api/ {
+	    proxy_pass "http://<service_name>.<namespace>:80/"
+    }
+    
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html =404;
+    }
+}
+```
 
 ## Kustomize and advanced K8S Yaml
 
