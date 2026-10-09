@@ -1594,6 +1594,39 @@ Create a new task definition
 
 ## AWS EKS
 
+### Intro EKS
+
+Amazon EKS (Elastic Kubernetes Service) simplifies running Kubernetes on AWS by managing the control plane and allowing users to focus on deploying and managing applications. Here are key points regarding how EKS works, its availability, and management roles:
+
+- **worker nodes**: worker nodes are represented as EC2 instances you can either self-manage or let AWS manage for you.
+	- You can configure your EKS cluster to use multiple worker nodes in different AZs for fault tolerance and load balancing.
+	- Nodes can be provisioned either as EC2 instances or through AWS Fargate, which offers a serverless compute option.
+- **control plane**: AWS-managed service that creates multiple EC2 instances, each with the control plane software installed for high availability.
+	- The control plane is highly available by default, as AWS automatically sets it up across multiple Availability Zones (AZs).
+	-  AWS manages the Kubernetes control plane, which includes the API server and etcd. This reduces the overhead for developers in managing the Kubernetes infrastructure.
+
+Kubernetes handles the orchestration of containers and ensures that if a worker node fails, the pods are rescheduled to other available nodes, thus maintaining application availability.
+
+**auto mode**
+
+EKS auto mode lets you extend AWS management beyond just the control plane and extend it to the **data plane** (worker nodes) as well.
+
+In auto mode, here is what EKS additionally manages:
+
+- **auto-scaling**: EKS manages horixontal and vertical scaling of the worker node instances based on workload and traffic demand
+- **OS management**: EKS auto made 
+
+
+#### **shared responsibility prinicple**
+
+
+- **AWS Responsibilities**: AWS handles the maintenance, availability, and scaling of the control plane. This includes automatic updates, scaling of the control plane, and ensuring security best practices are followed.
+- **Developer Responsibilities**: Developers manage worker nodes, deploy applications using Kubernetes manifests, monitor application performance, and configure networking using services like the VPC CNI plugin. They also define and manage deployments, which control the number of pod replicas and their lifecycle.
+
+#### networking
+
+Each pod, which is a group of related containers, receives its own IP address and can utilize the VPC for networking. The pods are orchestrated by Kubernetes to ensure high availability and efficient resource management.
+
 ### eksctl
 
 The `eksctl` CLI tool allows you to control your EKS cluster via the command line.
