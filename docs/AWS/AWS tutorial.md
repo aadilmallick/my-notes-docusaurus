@@ -1614,13 +1614,45 @@ Kubernetes handles the orchestration of containers and ensures that if a worker 
 
 #### **auto mode**
 
+[Amazon EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) simplifies cluster management by automating routine tasks like block storage, networking, load balancing, and compute autoscaling. During setup, it handles creating nodes with EC2 managed instances, application load balancers, and EBS volumes.
+
 EKS auto mode lets you extend AWS management beyond just the control plane and extend it to the **data plane** (worker nodes) as well.
 
 In auto mode, here is what EKS additionally manages:
 
-- **auto-scaling**: EKS manages horixontal and vertical scaling of the worker node instances based on workload and traffic demand
-- **OS management**: EKS auto made 
+- **auto-scaling**: EKS manages horizontal and vertical scaling of the worker node instances based on workload and traffic demand
+	- **adding nodes**: If a pod gets created and there are no nodes, EKS auto mode will create and provision a node for that deployment.
+	- **terminating nodes**: EKS auto mode polls every 30 seconds to see if pods are running, and if a node has no pods running, then that node gets terminated.
+- **OS management**: EKS auto mode handles patching and updates for the OS of the underlying EC2 instances.
 
+The biggest advantage of auto mode is the ability to just start applying kubernetes manifests, where worker nodes will be automatically provisioned by just applying the k8s resource. This is made possible through **node pools**, which contain nodes.
+
+```bash
+kubectl get nodepools
+```
+
+
+![](https://i.imgur.com/LfOWblu.jpeg)
+
+Node pools refer to collections of worker nodes that are automatically managed by AWS to support your Kubernetes workloads.
+
+Here's how they work:
+
+1. **Automatic Node Provisioning**: When you create an EKS cluster in Auto Mode, a default node pool (called "general purpose") is automatically created. This pool includes the necessary resources to handle workloads.
+    
+2. **Resource Management**: EKS Auto Mode automatically provisions and scales the nodes based on the demand of your application. For example, when you deploy a workload, EKS will allocate the required compute resources by creating new nodes if necessary.
+    
+3. **Node Lifecycle Management**: If a workload scales down or is deleted, EKS monitors the usage and will terminate any nodes that are no longer needed. This helps optimize costs and manage resources effectively.
+
+There are two types of node pools:
+
+- **general purpose**: the default node pool where new worker nodes are allocated to.
+- **system**: the node pool which contains only control plane instances.
+
+
+What if you want to use more node pools besides the default one?
+
+While Auto Mode offers a default node pool, you also have the flexibility to create additional node pools with specific configurations, such as different instance types or resource optimizations.
 
 #### **shared responsibility prinicple**
 
@@ -1632,6 +1664,13 @@ In auto mode, here is what EKS additionally manages:
 
 - **pod**: Each pod, which is a group of related containers, receives its own private IP address within the cluster VPC via the VPC CNI plugin.
 - **load balancer service**: a load balancer can be configured with a public DNS name and public IP address that can then route traffic to a pod.
+
+#### Cluster creation basics
+
+Here are the EKS specific core components:
+
+- **Cluster IAM role**: IAM role to give the control plane EC2 instances permissions to manage AWS resources on your behalf
+- **Node IAM role**: IAM role to give the worker node EC2 instances permissions to manage and access AWS resources on your behalf
 
 ### eksctl
 
@@ -1722,8 +1761,45 @@ eksctl delete cluster -f cluster.yaml
 ```
 
 
-### Creating an EKS app
+### Basics
 
+#### Creating from console and cluster connection
+
+
+
+1. Add a Cluster IAM role by **create recommended role**
+
+
+
+![](https://i.imgur.com/6nqP8m3.jpeg)
+
+2. Add a Node IAM role by **create recommended role**
+
+![](https://i.imgur.com/UkkMgcK.jpeg)
+
+After the cluster gets created, you can connect to it in two different ways:
+
+
+- **local machine**: connect from your local machine by adding that remote EKS context to your local kube config:
+	- By default, this creates or updates the kubeconfig file at `~/.kube/config`. 
+	- You can specify a different path with the `--kubeconfig` option
+
+```bash
+aws eks update-kubeconfig --region region-code --name my-cluster
+```
+
+- **EKS console**: If you prefer not to set up locally, you can connect directly from the AWS Management Console using AWS CloudShell
+
+**Connecting via EKS console**
+
+1. Open the Amazon EKS console and choose your cluster.
+2. On the cluster details page, choose **Connect** from the top-right action bar.
+3. AWS CloudShell opens with kubectl pre-configured for your cluster.
+
+> [!NOTE]
+> CloudShell sessions include kubectl, the AWS CLI, and standard CloudShell utilities.
+
+### Production
 #### AWS load balancer controller
 
 The AWS Load Balancer Controller is a component that manages AWS Elastic Load Balancers for your Kubernetes cluster on AWS (EKS).
