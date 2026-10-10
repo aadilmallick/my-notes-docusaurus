@@ -1270,7 +1270,7 @@ If you want aliases to persist, put them in the `.bashrc` or `.bash_profile` fil
 
 ## Connecting to remote servers
 
-### How SSH works
+### SSH
 
 SSH lives on TCP protocol 22 and it is a way to connect to a remote server without a password. 
 
@@ -1403,7 +1403,23 @@ The reason why we supply `~/.ssh/gh_key` as the `IdentityFile` in the `~/.ssh/co
 > [!NOTE]
 > You can use the same SSH key as much as you want to connect to different hosts and applications, since SSH keys are not application specific, they're only machine specific. It's totally up to your comfort for security.
 
+#### Changing SSH password keys
 
+Short answer:
+
+```
+$ ssh-keygen -p
+```
+
+This will then prompt you to enter the keyfile location, the old passphrase, and the new passphrase (which can be left blank to have no passphrase).
+
+---
+
+If you would like to do it all on one line without prompts do:
+
+```
+$ ssh-keygen -p [-P old_passphrase] [-N new_passphrase] [-f keyfile]
+```
 ### FTP
 
 FTP is the insecure version of SFTP

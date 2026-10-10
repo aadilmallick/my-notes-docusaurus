@@ -3496,12 +3496,147 @@ brew install k9s
 Helm is the package manager for kubernetes. It simplifies managing complex deployments by letting you define your app and its dependencies in reusable, versioned packages.
 
 
-Helm is a tool used in Kubernetes to package, configure, and deploy applications using **charts**, which are collections of Kubernetes resource definitions. 
+Helm is a tool used in Kubernetes to package, configure, and deploy applications using **charts**, which are collections of Kubernetes YAML manifests. 
 
 
 ![](https://i.imgur.com/iJY1QBL.jpeg)
 
 
+> [!NOTE]
+> Helm is the package manager for k8s, which lets you install a **chart** - package of k8s manifests - to create resources with a single command from a single chart.
+
+### Installation
+
+1. install
+
+```bash
+brew install helm
+```
+
+2. View verison
+
+```bash
+helm version
+```
+
+
+### CLI
+
+Here is a brief reference:
+
+- `helm search`: search for charts
+- `helm pull`: download a chart to your local directory to view the manifests of that chart.
+- `helm install`: install a specific chart and apply it to your cluster
+- `helm list`: list the charts you have
+- `helm delete`
+
+Most commands will deal with a specific chart, which you can specify in different ways:
+
+- **OCI url**: a unique URL with a `OCI` protocol that lets you install a chart via a URL
+- **repo with chart**: specified uniquely in a `<repo>/<chart>` syntax where:
+	- `repo` refers to the specific github or artifact hub repo
+	- `chart` refers to the chart name
+
+
+
+#### `helm install`
+
+Installs and applies a chart, giving it a custom **release name** if you want.
+
+```bash
+helm install [RELEASE_NAME] <repo>/<chart>
+```
+
+
+
+Here are the flags:
+
+- `--namespace/-n <namespace>`: specify the namespace to apply helm to.
+- `--version <version>`: specify the version of the chart you want to install
+
+#### `helm delete`
+
+To uninstall/delete the `cert-manager` deployment:
+
+```bash
+helm delete cert-manager --namespace cert-manager
+```
+
+#### `helm upgrade`
+
+This is how you upgrade a chart to a specific version:
+
+```bash
+helm upgrade cert-manager <repo-name>/<chart-name> --version <version>
+```
+
+#### `helm env`
+
+Helm has a bunch of environment variables prefixed with `HELM_` which configure the behavior of Helm.
+
+You can list the current values of these env vars with the `helm env` command:
+
+```bash
+helm env
+```
+
+
+![](https://i.imgur.com/4dtCcje.jpeg)
+
+### Installing charts
+
+#### Basics
+
+Here's a quick guide:
+
+```bash
+helm install \
+  cert-manager oci://quay.io/jetstack/charts/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.21.2 \
+  --set crds.enabled=true
+```
+
+Here's a step-by-step guide to install cert-manager using Helm:  
+  
+
+1. **Add the Jetstack Helm repository:**  
+    Run `helm repo add jetstack https://charts.jetstack.io` to add the repository that contains the cert-manager chart.  
+      
+    
+2. **Update your Helm repositories:**  
+    Run `helm repo update` to ensure you have the latest charts.  
+      
+    
+3. **Create a namespace for cert-manager (optional but recommended):**  
+    Run `kubectl create namespace cert-manager`.  
+      
+    
+4. **Install the cert-manager Helm chart:**  
+    Run `helm install cert-manager jetstack/cert-manager --namespace cert-manager --version <version>`  
+    Replace `<version>` with the desired cert-manager chart version or omit it to use the latest.  
+      
+    
+5. **Verify the installation:**  
+    Use `helm list -n cert-manager` to see the installed release.  
+    Also, check the pods with `kubectl get pods -n cert-manager` to ensure they are running.
+
+#### editing values
+
+
+
+
+The `values.yaml` file in a Helm chart is a YAML-formatted configuration file that holds default settings and parameters for the application you want to deploy on Kubernetes. It defines values that Kubernetes will use to create objects like pods, services, and configurations.
+
+- For example, it can include settings like enabling RBAC, priority class names, and probes for liveness and readiness.
+- This file is the main way to tailor a Helm chart to your specific Kubernetes environment.
+
+How to see the values of a chart you installed:
+
+```bash
+helm show value <repo-name>/<chart-name>
+```
 
 ## Prometheus
 

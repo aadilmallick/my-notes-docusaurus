@@ -1933,233 +1933,101 @@ eksctl get cluster --name <cluster-name>
 eksctl delete cluster -f cluster.yaml
 ```
 
-### Networking Annotations
+### Manual Networking
 
-From this ingress manifest:
+#### Load balancer services vs ingress in AWS
 
-```yaml
-kind: Ingress
-metadata:
-  name: app
-```
+You can either accept ingress with load balancer services or ingress k8s resources, but they have different implementations when deploying to EKS:
 
-EKS knows:
+- **load balancer services**: services of type `LoadBalancer` have drop-in support in AWS where if you deploy a load balancer service, it automatically provisions an ALB for you and routes according to how your service routes.
+	- **Use Case**: Simple applications that require direct exposure without complex routing.
+	- **Tradeoff**: A separate load balancer is created for each service, which can be more costly and less efficient for large applications.
+- **ingress services**: an ingress resource in EKS requires you to attach an AWS ALB controller to it, which you can either do manually with many steps or easily with EKS auto mode.
+	- **Use Case**: More complex applications or microservices architectures where multiple services need to be exposed through a single entry point.
+	- **Tradeoff**: Requires additional configuration and management of the Ingress Controller, which adds complexity.
 
-> "Create an ALB"
-
-But doesn't know:
-
-- Internal or public?
-- HTTP or HTTPS?
-- Which certificate?
-- IP targets or instance targets?
-
-Annotations answer these questions.
+In summary, choose LoadBalancer services for ease of use when exposing single services and Ingress for advanced traffic management across multiple services.
 
 > [!NOTE]
-> **Annotations** are special Kubernetes metadata that give instructions to the ALB controller (or EKS Auto Mode ALB integration). Think of them as AWS-specific configuration attached to an Ingress.
+> LoadBalancer services and Ingress are used to expose applications to external traffic, but they operate differently:
 
-#### ALB annotations
+**load balancer service**
 
-ALB annotations let you configure specific behavior for the ALB provisioned by EKS for a load balancer service or public ingress.
+1. **Provisioning**:
+    
+    - When you create a service with the type `LoadBalancer`, EKS automatically provisions an AWS Elastic Load Balancer (ELB) for you.
+    - This ELB is responsible for distributing incoming traffic to the underlying pods.
+ 
+2. **Networking**:
+    
+    - The LoadBalancer has its own public IP address and directly exposes the service to the internet.
+    - You handle routing at the service level.
 
-Here's a real production example:
+3. **Code Example**:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: my-app
+```
+
+**Ingress**
+
+1. **Provisioning**:
+    
+    - An Ingress resource does not provision a load balancer directly; instead, it requires an Ingress Controller (like NGINX or AWS ALB) to be deployed in your cluster which then handles the traffic.
+    - Ingress Controllers can manage multiple services and their routes through a single load balancer.
+
+2. **Networking**:
+    
+    - Ingress provides more advanced routing capabilities, such as path-based or host-based routing.
+    - It can handle SSL termination and allow for centralized management of your routing rules.
+
+3. **Code Example**:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: eks.amazonaws.com/alb
+---
+# 5. create an ingress resource for rules
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: frontend
+  namespace: game-2048
+  name: ingress-2048
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
+    # reroute traffic to IP addresses
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:...
-    alb.ingress.kubernetes.io/healthcheck-path: /health
 spec:
+  # use controller from ingress class with name 'alb'
   ingressClassName: alb
   rules:
-  - host: app.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend-service
-            port:
-              number: 80
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            # on HTTP /* match, reroute to service
+            service:
+              name: service-2048
+              port:
+                number: 80
 ```
-
-##### **`scheme`**
-
-`scheme` defines if the load balancer should be public or private. 
-
-- If set to `internet-facing`, then AWS assigns the ALB a public DNS name and IP address.
-
-```yaml
-annotations:
-  alb.ingress.kubernetes.io/scheme: internet-facing
-```
-
-- If set to `internal`, then it acts like an internal load balancer with a private IP and no public internet access
-
-```yaml
-annotations:
-  alb.ingress.kubernetes.io/scheme: internal
-```
-
-##### **`target-type`**
-
-`target-type` defines whether to target IP addresses or EC2 instances.
-
-- `instance`: The ALB registers the EC2 instance worker nodes as targets, and can only route traffic to pods through a `NodePort` service, since `NodePort` services allow you to route traffic to pods by running a pod as an exposed process on a node, targeting a specific origin on the node.
-	- Longer path, more complexity, more latency if nodes redirect to other nodes.
-
-```yaml
-alb.ingress.kubernetes.io/target-type: instance
-```
-
-```
-Target, 31000 = NodePort
-------
-10.0.1.10:31000
-10.0.2.15:31000
-```
-
-```
-User
- |
-ALB
- |
-EC2 Node
- |
-NodePort
- |
-Pod
-```
-
-- `ip`: the ALB registers IP addresses as targets. It can route traffic to pods directly via a service, since pods have their own IP addresses.
-
-```yaml
-alb.ingress.kubernetes.io/target-type: ip
-```
-
-```
-ALB
- |
- +--> 192.168.1.10
- |
- +--> 192.168.3.22
- |
- +--> 192.168.4.15
-```
-
-```
-Internet
-   |
-   v
- ALB
-   |
-   v
- Pod
-```
-
-
-> [!NOTE]
-> IP address targeting is the recommended mode for EKS and is what AWS demonstrates in their Auto Mode examples.
-
-IP address targeting is the easiest networking option since every pod gets its own VPC IP through the AWS VPC CNI.
-
-```
-Pod A -> 10.0.1.45
-Pod B -> 10.0.2.81
-Pod C -> 10.0.3.96
-```
-
-Because pods have real VPC addresses, the ALB can directly route traffic to them without requiring a node port.
-
-```
-ALB
- |
- +--> Pod IP
-```
-
-> [!NOTE]
-> Modern EKS deployments and EKS Auto Mode typically prefer `ip` because it provides a more direct path and better integration with the AWS VPC networking model
-
-##### `listen-ports`
-
-The `listen-ports` ALB annotation defines the listening ports on the ALB, like for HTTP and HTTPS:
-
-```
-alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
-```
-
-This actually provisions the listener infra on the ALB:
-
-```
-ALB
- |
- +--> 80
- |
- +--> 443
-```
-
-You can also add an SSL redirect upgrade:
-
-```yaml
-alb.ingress.kubernetes.io/ssl-redirect: '443'
-```
-
-Which achieves this:
-
-```
-http://app.com
-       |
-       v
-301 Redirect
-       |
-       v
-https://app.com
-```
-##### `certificate-arn`
-
-If we want our load balancer to be reachable via HTTPS, we must add a certifiacte for SSL termination, since pod traffic only works through HTTP, not HTTPS.
-
-```yaml
-annotations:
-  alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789:certificate/abc
-```
-
-This lets the ALB terminate TLS:
-
-```
-User HTTPS  
-
-|  
-
-v  
-
-ALB decrypts  
-
-|  
-
-v  
-
-Pods
-```
-
-##### `healthcheck-path`
-
-```yaml
-alb.ingress.kubernetes.io/healthcheck-path: /health
-```
-
-The ALB will send a `GET /health` to the pods it targets via services as a health check to see whether to keep or remove the targets.
-
-### Manual Networking
-
 
 #### AWS load balancer controller
 
@@ -2536,6 +2404,233 @@ Configures listeners
       v
 Registers targets
 ```
+
+
+### Networking Annotations
+
+From this ingress manifest:
+
+```yaml
+kind: Ingress
+metadata:
+  name: app
+```
+
+EKS knows:
+
+> "Create an ALB"
+
+But doesn't know:
+
+- Internal or public?
+- HTTP or HTTPS?
+- Which certificate?
+- IP targets or instance targets?
+
+Annotations answer these questions.
+
+> [!NOTE]
+> **Annotations** are special Kubernetes metadata that give instructions to the ALB controller (or EKS Auto Mode ALB integration). Think of them as AWS-specific configuration attached to an Ingress.
+
+#### ALB annotations
+
+ALB annotations let you configure specific behavior for the ALB provisioned by EKS for a load balancer service or public ingress.
+
+Here's a real production example:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:...
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  ingressClassName: alb
+  rules:
+  - host: app.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+```
+
+##### **`scheme`**
+
+`scheme` defines if the load balancer should be public or private. 
+
+- If set to `internet-facing`, then AWS assigns the ALB a public DNS name and IP address.
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/scheme: internet-facing
+```
+
+- If set to `internal`, then it acts like an internal load balancer with a private IP and no public internet access
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/scheme: internal
+```
+
+##### **`target-type`**
+
+`target-type` defines whether to target IP addresses or EC2 instances.
+
+- `instance`: The ALB registers the EC2 instance worker nodes as targets, and can only route traffic to pods through a `NodePort` service, since `NodePort` services allow you to route traffic to pods by running a pod as an exposed process on a node, targeting a specific origin on the node.
+	- Longer path, more complexity, more latency if nodes redirect to other nodes.
+
+```yaml
+alb.ingress.kubernetes.io/target-type: instance
+```
+
+```
+Target, 31000 = NodePort
+------
+10.0.1.10:31000
+10.0.2.15:31000
+```
+
+```
+User
+ |
+ALB
+ |
+EC2 Node
+ |
+NodePort
+ |
+Pod
+```
+
+- `ip`: the ALB registers IP addresses as targets. It can route traffic to pods directly via a service, since pods have their own IP addresses.
+
+```yaml
+alb.ingress.kubernetes.io/target-type: ip
+```
+
+```
+ALB
+ |
+ +--> 192.168.1.10
+ |
+ +--> 192.168.3.22
+ |
+ +--> 192.168.4.15
+```
+
+```
+Internet
+   |
+   v
+ ALB
+   |
+   v
+ Pod
+```
+
+
+> [!NOTE]
+> IP address targeting is the recommended mode for EKS and is what AWS demonstrates in their Auto Mode examples.
+
+IP address targeting is the easiest networking option since every pod gets its own VPC IP through the AWS VPC CNI.
+
+```
+Pod A -> 10.0.1.45
+Pod B -> 10.0.2.81
+Pod C -> 10.0.3.96
+```
+
+Because pods have real VPC addresses, the ALB can directly route traffic to them without requiring a node port.
+
+```
+ALB
+ |
+ +--> Pod IP
+```
+
+> [!NOTE]
+> Modern EKS deployments and EKS Auto Mode typically prefer `ip` because it provides a more direct path and better integration with the AWS VPC networking model
+
+##### `listen-ports`
+
+The `listen-ports` ALB annotation defines the listening ports on the ALB, like for HTTP and HTTPS:
+
+```
+alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+```
+
+This actually provisions the listener infra on the ALB:
+
+```
+ALB
+ |
+ +--> 80
+ |
+ +--> 443
+```
+
+You can also add an SSL redirect upgrade:
+
+```yaml
+alb.ingress.kubernetes.io/ssl-redirect: '443'
+```
+
+Which achieves this:
+
+```
+http://app.com
+       |
+       v
+301 Redirect
+       |
+       v
+https://app.com
+```
+##### `certificate-arn`
+
+If we want our load balancer to be reachable via HTTPS, we must add a certifiacte for SSL termination, since pod traffic only works through HTTP, not HTTPS.
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789:certificate/abc
+```
+
+This lets the ALB terminate TLS:
+
+```
+User HTTPS  
+
+|  
+
+v  
+
+ALB decrypts  
+
+|  
+
+v  
+
+Pods
+```
+
+##### `healthcheck-path`
+
+```yaml
+alb.ingress.kubernetes.io/healthcheck-path: /health
+```
+
+The ALB will send a `GET /health` to the pods it targets via services as a health check to see whether to keep or remove the targets.
+
 
 ### Storage
 
