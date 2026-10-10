@@ -757,7 +757,12 @@ spec:
 
 By default, pods can only respond to requests that come from other pods within the same cluster, meaning that by default, the highest amount of networking power is **intra-cluster communication**.
 
-If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster.
+If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster or use a load balancer service.
+
+> [!NOTE]
+> You only should use ingress if you have more than one public load balancer service in your cluster, which makes forwarding ingress traffic to the cluster better by acting as a single entrypoint for the cluster, removing the need for multiple load balancer services within your cluster.
+
+
 
 We do that by adding an **Ingress** and an **Ingress controller** K8S resource:
 
