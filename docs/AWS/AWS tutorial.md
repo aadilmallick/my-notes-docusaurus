@@ -1724,6 +1724,39 @@ nodeGroups:
 eksctl create cluster -f cluster.yaml
 ```
 
+
+#### auto mode cluster creation
+
+Here is an example of the cluster configuration that allows you to create an auto mode cluster with the name `web-quickstart`:
+
+1. Create a cluster yaml manifest with `autoModeConfig.enable` set to `true` in order to enable EKS auto mode on the cluster.
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: web-quickstart
+  region: us-east-1
+
+autoModeConfig:
+  enabled: true
+```
+
+2. Create the EKS cluster using the `cluster-config.yaml`:
+
+```bash
+eksctl create cluster -f cluster-config.yaml
+```
+
+#### Fargate mode cluster creation
+
+If you want to create an EKS fargate cluster, you can do so with `eksctl`:
+
+```bash
+eksctl create cluster --name AadilFargate --fargate
+```
+
 #### Cluster management
 
 - **list clusters**:
@@ -2383,6 +2416,9 @@ In auto mode, here is what EKS additionally manages:
 - **OS management**: EKS auto mode handles patching and updates for the OS of the underlying EC2 instances.
 - **networking**: EKS auto mode creates the AWS load balancer controller connection to ingress and automatically provisions load balancers for you and the correct ingress routing rules without you having to manually do anything.
 
+> [!NOTE]
+> When Kubernetes attempts to schedule those pods but finds no existing nodes with enough resources to accommodate them, that’s when Auto Mode steps in to provision a new node.
+
 #### node pools
 
 The biggest advantage of auto mode is the ability to just start applying kubernetes manifests, where worker nodes will be automatically provisioned by just applying the k8s resource. This is made possible through **node pools**, which contain nodes.
@@ -2528,7 +2564,7 @@ Once you apply the ingress class and then ingress in your cluster, here are the 
 3. Via the ALB controller, EKS auto mode creates an ALB set with defaults like receiving HTTP traffic on port 80 and HTTPS traffic on port 443 and handling all reverse proxy routing rules specified by any `Ingress` resources.
 
 
-#### `eksctl` with auto mode setup
+#### creating a cluster with auto mode
 
 You can use eksctl to create an EKS cluster with auto mode, which will soon become the default.
 
@@ -2543,28 +2579,6 @@ You can use eksctl to create an EKS cluster with auto mode, which will soon beco
 > [!WARNING]
 > If you do not use eksctl to create the cluster, you need to manually tag the VPC subnets. See [[#AWS load balancer controller]]
 
-
-Here is an example of the cluster configuration that allows you to create an auto mode cluster with the name `web-quickstart`:
-
-1. Create a cluster yaml manifest with `autoModeConfig.enable` set to `true` in order to enable EKS auto mode on the cluster.
-
-```yaml
-apiVersion: eksctl.io/v1alpha5
-kind: ClusterConfig
-
-metadata:
-  name: web-quickstart
-  region: us-east-1
-
-autoModeConfig:
-  enabled: true
-```
-
-2. Create the EKS cluster using the `cluster-config.yaml`:
-
-```bash
-eksctl create cluster -f cluster-config.yaml
-```
 
 Now let's go into the resources:
 
@@ -2653,6 +2667,112 @@ spec:
                 number: 80
 ```
 
+1. Create a deployment and then an internal service that routes to the pods of the deployment:
+
+```yaml
+---
+# 1. create a namespace for easy deletion
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: game-2048
+---
+# 2. create a deployment with a pod
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: game-2048
+  name: deployment-2048
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-2048
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-2048
+    spec:
+      containers:
+	  # creates a container from an ECR image.
+      - image: public.ecr.aws/l6m2t8p7/docker-2048:latest
+        imagePullPolicy: Always
+        name: app-2048
+        ports:
+        - containerPort: 80
+---
+# 3. create a service you can route to via DNS name
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: game-2048
+  name: service-2048
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  type: NodePort
+  selector:
+	# service targets pods with label "app-2048" on port 80
+    app.kubernetes.io/name: app-2048
+```
+
+2. Create an ingress class that will provision an internet-facing ALB to handle ingress traffic
+
+```yaml
+# 4. Create ingress class to register AWS ALB controller
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  # now ALB will be provisioned to handle ingress
+  controller: eks.amazonaws.com/alb
+```
+
+3. Create an ingress that supplies for the rules for how the ingress controller should route ingress traffic and how the ALB should be created:
+
+```yaml
+# 5. create an ingress resource for rules
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: game-2048
+  name: ingress-2048
+  annotations:
+    # create public load balancer
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # reroute traffic to IP addresses, target pods directly
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  # use controller from ingress class with name 'alb'
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            # on HTTP /* match, reroute to service
+            service:
+              name: service-2048
+              port:
+                number: 80
+```
+
+Once you apply all these resources, you should perform these troubleshooting steps:
+
+1. Wait for the load balancer to be provisioned, view the ingress:
+
+```bash
+kubectl get ingress --all-namespaces
+```
+
+2. Check the target group of the ALB once provisioned
+3. Add a health check annotation to understand when the pod stops working and does not become a viable target for
 #### Storage in auto mode
 
 Here's the high level overview of creating persistent storage for your cluster pods:
@@ -2743,6 +2863,76 @@ spec:
 kubectl apply -f ebs-deployment.yaml
 ```
 
+### EKS with Fargate
+
+Fargate is a serverless option for running containers, thus it's pay-for-usage cost vs EC2 instances pay-for-running cost.
+
+Therefore, if your cluster does not have steady, predictable traffic, EKS with fargate may save you some money, because now you won't have to pay for resources you don't actually use.
+
+> [!NOTE]
+> Fargate will handle all fo the underlying compute infrastructure, and now you only have to pay for exactly the vCPU and memory a pod uses up, and scale up those pods in a replicaset via application autoscaling.
+
+What Fargate manages:
+
+- Manages control plane (EKS already does this)
+- Manages EC2 worker nodes completely
+
+What you manage:
+
+- Pod deployment
+
+#### EKS auto mode vs EKS fargate
+
+- **when to use EKS auto mode**: when you want more control over the instance types of worker nodes and need persistent workloads (server that handles consistent traffic). It's best for:
+	- AI/ML workloads
+	- persistent workloads
+	- applications with specific instance type requirements
+- **when to use EKS fargate**: when you want to pay for only what you use and you want more simplicity and not having to manage EC2 instance worker nodes. It's best for:
+	- Microservices and event-driven workloads
+	- lightweight applications
+	- burstable workloads (workloads that need to scale up and down dynamically)
+
+#### Creating a fargate cluster
+
+See [[#Fargate mode cluster creation]] for how to create a fargate cluster with `eksctl`.
+
+A **Fargate profile** allow you to define which namespaces get fargate compute and will be able to deploy resources to the fargate cluster.
+
+Here are the three key properties of fargate profiles:
+
+1. **Namespace Association**: You can define which Kubernetes namespaces will use Fargate for scheduling pods. This allows for clear segregation between different environments, such as development, staging, and production.
+    
+2. **IAM Role Integration**: Different Fargate profiles can be associated with different IAM roles. This means you can assign varying permissions to pods based on their requirements. For example, some pods may need access to an S3 bucket while others might not.
+    
+3. **Management Simplification**: With Fargate, you do not need to manage the underlying EC2 instances. It abstracts the infrastructure and automatically handles scaling, patching, and provisioning of compute resources based on the needs of your applications.
+
+Here's the hierachy in a nutshell: 
+
+>One namespace has many fargate profiles, you deploy resources to namespaces.
+
+We can use `eksctl` to create a fargate profile:
+
+```bash
+eksctl create fargateprofile --cluster <cluster-name> --name <profile-name> --namespace <namespace-name>
+```
+
+So after creating a cluster, here are the general steps to deploy an app to EKS fargate:
+
+1. Create namespaces.
+2. Create fargate profiles in those namespaces via `eksctl`
+
+```bash
+eksctl create fargateprofile --cluster <cluster-name> --name <profile-name> --namespace <namespace-name>
+```
+
+3. Create K8S resources in the namespaces that have fargate profiles associated with it.
+
+#### Autoscaling in Fargate
+
+Fargate lets you scale yoru deployments via built-in scaling methods via a `HorizontalPodAutoscaler` resource.
+
+1. Create your pods, deployments, whatever, scoped to a namespace that has a fargate profile associated with it
+2. Create a `HorizontalPodAutoscaler` resource within the same namespace you want to scale the pods in.
 ## Lambda 
 
 ### Lambda configuration
