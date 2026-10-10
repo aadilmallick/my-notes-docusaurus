@@ -1739,6 +1739,12 @@ eksctl get cluster
 eksctl get nodegroup --cluster=<cluster-name>
 ```
 
+- **get specific cluster info**
+
+```bash
+eksctl get cluster --name <cluster-name>
+```
+
 - **delete cluster**
 
 ```bash
