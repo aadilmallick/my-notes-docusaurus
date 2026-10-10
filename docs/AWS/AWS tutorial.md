@@ -1612,55 +1612,13 @@ Kubernetes handles the orchestration of containers and ensures that if a worker 
 ![](https://i.imgur.com/mPP05Kr.jpeg)
 
 
-#### **auto mode**
-
-[Amazon EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) simplifies cluster management by automating routine tasks like block storage, networking, load balancing, and compute autoscaling. During setup, it handles creating nodes with EC2 managed instances, application load balancers, and EBS volumes.
-
-EKS auto mode lets you extend AWS management beyond just the control plane and extend it to the **data plane** (worker nodes) as well.
-
-In auto mode, here is what EKS additionally manages:
-
-- **auto-scaling**: EKS manages horizontal and vertical scaling of the worker node instances based on workload and traffic demand
-	- **adding nodes**: If a pod gets created and there are no nodes, EKS auto mode will create and provision a node for that deployment.
-	- **terminating nodes**: EKS auto mode polls every 30 seconds to see if pods are running, and if a node has no pods running, then that node gets terminated.
-- **OS management**: EKS auto mode handles patching and updates for the OS of the underlying EC2 instances.
-
-The biggest advantage of auto mode is the ability to just start applying kubernetes manifests, where worker nodes will be automatically provisioned by just applying the k8s resource. This is made possible through **node pools**, which contain nodes.
-
-```bash
-kubectl get nodepools
-```
-
-
-![](https://i.imgur.com/LfOWblu.jpeg)
-
-Node pools refer to collections of worker nodes that are automatically managed by AWS to support your Kubernetes workloads.
-
-Here's how they work:
-
-1. **Automatic Node Provisioning**: When you create an EKS cluster in Auto Mode, a default node pool (called "general purpose") is automatically created. This pool includes the necessary resources to handle workloads.
-    
-2. **Resource Management**: EKS Auto Mode automatically provisions and scales the nodes based on the demand of your application. For example, when you deploy a workload, EKS will allocate the required compute resources by creating new nodes if necessary.
-    
-3. **Node Lifecycle Management**: If a workload scales down or is deleted, EKS monitors the usage and will terminate any nodes that are no longer needed. This helps optimize costs and manage resources effectively.
-
-There are two types of node pools:
-
-- **general purpose**: the default node pool where new worker nodes are allocated to.
-- **system**: the node pool which contains only control plane instances.
-
-
-What if you want to use more node pools besides the default one?
-
-While Auto Mode offers a default node pool, you also have the flexibility to create additional node pools with specific configurations, such as different instance types or resource optimizations.
-
-#### **shared responsibility prinicple**
+**shared responsibility**
 
 
 - **AWS Responsibilities**: AWS handles the maintenance, availability, and scaling of the control plane. This includes automatic updates, scaling of the control plane, and ensuring security best practices are followed.
 - **Developer Responsibilities**: Developers manage worker nodes, deploy applications using Kubernetes manifests, monitor application performance, and configure networking using services like the VPC CNI plugin. They also define and manage deployments, which control the number of pod replicas and their lifecycle.
 
-#### networking
+**networking**
 
 - **pod**: Each pod, which is a group of related containers, receives its own private IP address within the cluster VPC via the VPC CNI plugin.
 - **load balancer service**: a load balancer can be configured with a public DNS name and public IP address that can then route traffic to a pod.
@@ -1671,6 +1629,32 @@ Here are the EKS specific core components:
 
 - **Cluster IAM role**: IAM role to give the control plane EC2 instances permissions to manage AWS resources on your behalf
 - **Node IAM role**: IAM role to give the worker node EC2 instances permissions to manage and access AWS resources on your behalf
+
+
+#### Cluster connection
+
+After the cluster gets created, you can connect to it in two different ways:
+
+
+- **local machine**: connect from your local machine by adding that remote EKS context to your local kube config:
+	- By default, this creates or updates the kubeconfig file at `~/.kube/config`. 
+	- You can specify a different path with the `--kubeconfig` option
+
+```bash
+aws eks update-kubeconfig --region region-code --name my-cluster
+```
+
+- **EKS console**: If you prefer not to set up locally, you can connect directly from the AWS Management Console using AWS CloudShell
+
+**Connecting via EKS console**
+
+1. Open the Amazon EKS console and choose your cluster.
+2. On the cluster details page, choose **Connect** from the top-right action bar.
+3. AWS CloudShell opens with kubectl pre-configured for your cluster.
+
+> [!NOTE]
+> CloudShell sessions include kubectl, the AWS CLI, and standard CloudShell utilities.
+
 
 ### eksctl
 
@@ -1740,40 +1724,6 @@ nodeGroups:
 eksctl create cluster -f cluster.yaml
 ```
 
-#### `eksctl` with auto mode
-
-You can use eksctl to create an EKS cluster with auto mode, which will soon become the default.
-
-- **VPC Configuration**: When using the eksctl cluster template that follows, eksctl automatically creates an IPv4 Virtual Private Cloud (VPC) for the cluster. By default, eksctl configures a VPC that addresses all networking requirements, in addition to creating both public and private endpoints.
-    
-- **Instance Management**: EKS Auto Mode dynamically adds or removes nodes in your EKS cluster based on the demands of your Kubernetes applications.
-    
-- **Data Persistence**: Use the block storage capability of EKS Auto Mode to ensure the persistence of application data, even in scenarios involving pod restarts or failures.
-    
-- **External App Access**: Use the load balancing capability of EKS Auto Mode to dynamically provision an Application Load Balancer (ALB).
-
-
-Here is an example of the cluster configuration that allows you to create an auto mode cluster with the name `web-quickstart`:
-
-1. Create a cluster yaml manifest with `autoModeConfig.enable` set to `true` in order to enable EKS auto mode on the cluster.
-
-```yaml
-apiVersion: eksctl.io/v1alpha5
-kind: ClusterConfig
-
-metadata:
-  name: web-quickstart
-  region: us-east-1
-
-autoModeConfig:
-  enabled: true
-```
-
-2. Create the EKS cluster using the `cluster-config.yaml`:
-
-```bash
-eksctl create cluster -f cluster-config.yaml
-```
 #### Cluster management
 
 - **list clusters**:
@@ -1795,10 +1745,9 @@ eksctl get nodegroup --cluster=<cluster-name>
 eksctl delete cluster -f cluster.yaml
 ```
 
+### Manual mode
 
-### Basics
-
-#### Creating from console and cluster connection
+#### Creating from console 
 
 
 
@@ -1812,56 +1761,7 @@ eksctl delete cluster -f cluster.yaml
 
 ![](https://i.imgur.com/UkkMgcK.jpeg)
 
-After the cluster gets created, you can connect to it in two different ways:
 
-
-- **local machine**: connect from your local machine by adding that remote EKS context to your local kube config:
-	- By default, this creates or updates the kubeconfig file at `~/.kube/config`. 
-	- You can specify a different path with the `--kubeconfig` option
-
-```bash
-aws eks update-kubeconfig --region region-code --name my-cluster
-```
-
-- **EKS console**: If you prefer not to set up locally, you can connect directly from the AWS Management Console using AWS CloudShell
-
-**Connecting via EKS console**
-
-1. Open the Amazon EKS console and choose your cluster.
-2. On the cluster details page, choose **Connect** from the top-right action bar.
-3. AWS CloudShell opens with kubectl pre-configured for your cluster.
-
-> [!NOTE]
-> CloudShell sessions include kubectl, the AWS CLI, and standard CloudShell utilities.
-
-### Networking
-
-#### Ingress
-
-An **Ingress** is simply a Kubernetes object that describes:
-
-> "How should external traffic reach my application?"
-
-It's used when you have more than one load balancer controller
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: game-ingress
-spec:
-  rules:
-  - host: game.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: service-2048
-            port:
-              number: 80
-```
 #### AWS load balancer controller
 
 The challenge is:
@@ -1880,12 +1780,18 @@ It helps your Kubernetes services handle incoming internet traffic by automatica
 > [!NOTE]
 > This controller ensures that your applications are accessible and that traffic is properly balanced across your Kubernetes pods, which is crucial for reliability and scalability in cloud deployments.
 
+> [!IMPORTANT]
+> A controller watches for Ingresses and turns them into real infrastructure.
+
 The controller also requires specific IAM policies to have permission to create and manage AWS resources, and it uses tags on your VPC subnets to know where to place load balancers.
 
 Therefore, setting up the AWS load balancer controller requires two core components:
 
 1. **IAM policy**: An IAM policy for the AWS Load Balancer Controller is essential because it grants the controller the necessary permissions to create, manage, and delete AWS Elastic Load Balancers on your behalf.
 2. **tagging**: for correct networking, it needs to identify the right subnets in your cluster's Virtual Private Cloud (VPC) using specific tags.
+
+> [!NOTE]
+> Manually setting this up can be challenging, so `eksctl` with an EKS auto mode clsuter automates all of this setup for you. See [[#Networking in auto mode]] for more info.
 
 ##### Setup
 
@@ -2170,6 +2076,237 @@ kubectl get pods -n cert-manager
 ##### Installation
 
 The AWS load balancer controller is a k8s plugin you can install that watches for any ingress traffic coming in towards the API server
+
+#### AWS load balancer ingress
+
+IngressClass and IngressClassParams are Kubernetes resources that define how incoming traffic (ingress) should be handled in your cluster. 
+
+In this setup, they are essential because they tell the AWS Load Balancer Controller how to manage and route external traffic to your applications. 
+
+- Specifically, IngressClass links your ingress resources to the AWS Load Balancer Controller
+- while IngressClassParams provide configuration details the controller needs to create and manage the correct AWS Elastic Load Balancer
+
+> [!NOTE]
+> Without these, the controller wouldn't know how to connect your Kubernetes ingress to the AWS load balancer, so they are key to making your application accessible from the internet.
+
+Here's an example:
+
+```yaml
+---
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: IngressClassParams
+metadata:
+  labels:
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: alb
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: alb
+spec:
+  controller: ingress.k8s.aws/alb
+  parameters:
+    apiGroup: elbv2.k8s.aws
+    kind: IngressClassParams
+    name: alb
+```
+
+#### Full networking flow
+
+Here are the main components facilitating networking in an EKS cluster:
+
+- **ingress**: set of routing rules acting like a reverse proxy for ingress traffic to the cluster
+- **AWS load balancer controller**: watches for Ingresses and turns them into real infrastructure.
+- **AWS load balancer service**: alternative to ingresses, if you only need one public load balancer for your cluster.
+
+```
+Ingress YAML
+      |
+      v
+Controller notices it
+      |
+      v
+Creates AWS ALB
+      |
+      v
+Configures listeners
+      |
+      v
+Registers targets
+```
+
+### **auto mode**
+
+[Amazon EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) simplifies cluster management by automating routine tasks like block storage, networking, load balancing, and compute autoscaling. During setup, it handles creating nodes with EC2 managed instances, application load balancers, and EBS volumes.
+
+EKS auto mode lets you extend AWS management beyond just the control plane and extend it to the **data plane** (worker nodes) as well.
+
+In auto mode, here is what EKS additionally manages:
+
+- **auto-scaling**: EKS manages horizontal and vertical scaling of the worker node instances based on workload and traffic demand
+	- **adding nodes**: If a pod gets created and there are no nodes, EKS auto mode will create and provision a node for that deployment.
+	- **terminating nodes**: EKS auto mode polls every 30 seconds to see if pods are running, and if a node has no pods running, then that node gets terminated.
+- **OS management**: EKS auto mode handles patching and updates for the OS of the underlying EC2 instances.
+- **networking**: EKS auto mode creates the AWS load balancer controller connection to ingress and automatically provisions load balancers for you and the correct ingress routing rules without you having to manually do anything.
+
+#### node pools
+
+The biggest advantage of auto mode is the ability to just start applying kubernetes manifests, where worker nodes will be automatically provisioned by just applying the k8s resource. This is made possible through **node pools**, which contain nodes.
+
+```bash
+kubectl get nodepools
+```
+
+
+![](https://i.imgur.com/LfOWblu.jpeg)
+
+Node pools refer to collections of worker nodes that are automatically managed by AWS to support your Kubernetes workloads.
+
+Here's how they work:
+
+1. **Automatic Node Provisioning**: When you create an EKS cluster in Auto Mode, a default node pool (called "general purpose") is automatically created. This pool includes the necessary resources to handle workloads.
+    
+2. **Resource Management**: EKS Auto Mode automatically provisions and scales the nodes based on the demand of your application. For example, when you deploy a workload, EKS will allocate the required compute resources by creating new nodes if necessary.
+    
+3. **Node Lifecycle Management**: If a workload scales down or is deleted, EKS monitors the usage and will terminate any nodes that are no longer needed. This helps optimize costs and manage resources effectively.
+
+There are two types of node pools:
+
+- **general purpose**: the default node pool where new worker nodes are allocated to.
+- **system**: the node pool which contains only control plane instances.
+
+
+> [!NOTE]
+> What if you want to use more node pools besides the default one?
+> ***
+> While Auto Mode offers a default node pool, you also have the flexibility to create additional node pools with specific configurations, such as different instance types or resource optimizations.
+
+
+#### Networking in auto mode
+
+EKS auto mode creates networking resources automatically to facilitate ingress to the cluster, like creating an AWS load balancer controller with the appropriate service accounts and upgrades.
+
+Here's the key differences:
+
+- **auto mode (new way)**: AWS manages the controller-like functionality by managing these 4 responsibilities for you.
+	- Create IAM roles
+	- Create service accounts
+	- Manage upgrades
+	- Maintain compatibility
+- **manual mode (old way)**: you have to manually set up all the infrastructure and IAM policies yourself.
+
+```
+EKS Cluster
+|
++-- AWS Load Balancer Controller
+       |
+       +-- Watches Ingresses
+       |
+       +-- Creates ALBs
+       |
+       +-- Registers Pod IPs
+```
+
+
+**subnet tagging**
+
+In order for EKS to do networking correctly across subnets within a VPC, you must manually tag those subnets. EKS auto mode changes that:
+
+- **manual mode (old way)**: you must manually tag subnets created from an EKS cluster
+- **EKS auto mode (new way)**: you can use `eksctl` to create an EKS auto mode cluster, which then skips this manual tagging and does it for you programmatically.
+
+**ingress**
+
+Create a Kubernetes `IngressClass` for EKS Auto Mode. 
+
+- The IngressClass defines how EKS Auto Mode handles Ingress resources. 
+- This step configures the load balancing capability of EKS Auto Mode. 
+
+When you create Ingress resources for your applications, EKS Auto Mode uses this IngressClass to automatically provision and manage load balancers, integrating your Kubernetes applications with AWS load balancing services.
+
+Here's an example ingress class which specifies the ALB controller as the controller to process ingress traffic.
+
+- `spec.controller`: which controller to use to process ingress traffic. You can have multiple controllers, like an NGINX ingress controller, or an ALB controller.
+	- `controller: eks.amazonaws.com/alb` means "Let EKS Auto Mode manage this ALB for me."
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: eks.amazonaws.com/alb
+```
+
+Once you apply this ingress in your cluster, here are the steps that happen:
+
+1. The ingress appears in K8S
+2. EKS auto mode detects it
+3. Via the ALB controller, EKS auto mode creates an ALB set with defaults like receiving HTTP traffic on port 80 and HTTPS traffic on port 443 and handling all reverse proxy routing rules specified by any `Ingress` resources.
+#### `eksctl` with auto mode
+
+You can use eksctl to create an EKS cluster with auto mode, which will soon become the default.
+
+- **VPC Configuration**: When using the eksctl cluster template that follows, eksctl automatically creates an IPv4 Virtual Private Cloud (VPC) for the cluster. By default, eksctl configures a VPC that addresses all networking requirements, in addition to creating both public and private endpoints.
+    
+- **Instance Management**: EKS Auto Mode dynamically adds or removes nodes in your EKS cluster based on the demands of your Kubernetes applications.
+    
+- **Data Persistence**: Use the block storage capability of EKS Auto Mode to ensure the persistence of application data, even in scenarios involving pod restarts or failures.
+    
+- **External App Access**: Use the load balancing capability of EKS Auto Mode to dynamically provision an Application Load Balancer (ALB).
+
+> [!WARNING]
+> If you do not use eksctl to create the cluster, you need to manually tag the VPC subnets. See [[#AWS load balancer controller]]
+
+
+Here is an example of the cluster configuration that allows you to create an auto mode cluster with the name `web-quickstart`:
+
+1. Create a cluster yaml manifest with `autoModeConfig.enable` set to `true` in order to enable EKS auto mode on the cluster.
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: web-quickstart
+  region: us-east-1
+
+autoModeConfig:
+  enabled: true
+```
+
+2. Create the EKS cluster using the `cluster-config.yaml`:
+
+```bash
+eksctl create cluster -f cluster-config.yaml
+```
+
+3. Add an ingress class
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: eks.amazonaws.com/alb
+```
+
+4. Apply the `IngressClass` resource to your cluster:
+
+```bash
+kubectl apply -f ingressclass.yaml
+```
+
+
+
 ## Lambda 
 
 ### Lambda configuration

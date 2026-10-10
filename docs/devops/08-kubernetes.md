@@ -762,7 +762,37 @@ If you want external internet traffic to be able to request resources in your cl
 > [!NOTE]
 > You only should use ingress if you have more than one public load balancer service in your cluster, which makes forwarding ingress traffic to the cluster better by acting as a single entrypoint for the cluster, removing the need for multiple load balancer services within your cluster.
 
+An **Ingress** is simply a Kubernetes object that describes:
 
+> "How should external traffic reach my application?"
+
+> [!NOTE]
+> It's used when you have more than one load balancer service, where you want more granular routing rules to route ingress traffic to different services.
+
+> [!NOTE]
+> One important thing to note is that an `Ingress` is NOT a load balancer service. It simply is a collection of routing rules, like a reverse proxy
+
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: game-ingress
+spec:
+  rules:
+  - host: game.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: service-2048
+            port:
+              number: 80
+```
+
+****
 
 We do that by adding an **Ingress** and an **Ingress controller** K8S resource:
 
@@ -812,42 +842,6 @@ spec:
 ```
 
 
-#### AWS load balancer ingress
-
-IngressClass and IngressClassParams are Kubernetes resources that define how incoming traffic (ingress) should be handled in your cluster. 
-
-In this setup, they are essential because they tell the AWS Load Balancer Controller how to manage and route external traffic to your applications. 
-
-- Specifically, IngressClass links your ingress resources to the AWS Load Balancer Controller
-- while IngressClassParams provide configuration details the controller needs to create and manage the correct AWS Elastic Load Balancer
-
-> [!NOTE]
-> Without these, the controller wouldn't know how to connect your Kubernetes ingress to the AWS load balancer, so they are key to making your application accessible from the internet.
-
-Here's an example:
-
-```yaml
----
-apiVersion: elbv2.k8s.aws/v1beta1
-kind: IngressClassParams
-metadata:
-  labels:
-    app.kubernetes.io/name: aws-load-balancer-controller
-  name: alb
----
-apiVersion: networking.k8s.io/v1
-kind: IngressClass
-metadata:
-  labels:
-    app.kubernetes.io/name: aws-load-balancer-controller
-  name: alb
-spec:
-  controller: ingress.k8s.aws/alb
-  parameters:
-    apiGroup: elbv2.k8s.aws
-    kind: IngressClassParams
-    name: alb
-```
 ### Service meshes
 
 A service mesh in Kubernetes is software you install in your cluster that manages all internal service-to-service communication. 
