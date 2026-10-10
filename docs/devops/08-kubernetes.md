@@ -2439,7 +2439,7 @@ The `hostPath` volume option mounts a file or directory from the host node's fil
 > You can think of `hostPath` as a bind mount from a node's filesystem into your container.
 
 > [!WARNING]
-> `hostPath` only stores data on a single node, so be aware of that, that this approach will break on multi-node clusters.
+> `hostPath` only stores data on a single node, so be aware of that, that this approach will break on multi-node clusters, because if your pod gets reschedule to a different node, it will read data from a different node filesystem and thus different volume.
 
 ```yaml
 apiVersion: apps/v1
@@ -2687,6 +2687,49 @@ Here is the basic flow of using storage classes with PVCs instead of PVs with PV
 
 ![](https://i.imgur.com/7yS9DBX.jpeg)
 
+Here's an example of using an AWS EFS CSI storage class to create an EFS persistent volume:
+
+1. Create and apply an EFS storage class in your cluster
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+```
+
+2. Create and apply a PV and PVC targeting the EFS storage class you created.
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-pv
+spec:
+  capacity: 
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-59d14521
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 5Gi
+---
+```
 
 ##### Imperative storage classes
 

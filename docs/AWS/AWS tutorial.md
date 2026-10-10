@@ -1623,12 +1623,66 @@ Kubernetes handles the orchestration of containers and ensures that if a worker 
 - **pod**: Each pod, which is a group of related containers, receives its own private IP address within the cluster VPC via the VPC CNI plugin.
 - **load balancer service**: a load balancer can be configured with a public DNS name and public IP address that can then route traffic to a pod.
 
-#### Cluster creation basics
+#### Manual cluster creation basics
 
 Here are the EKS specific core components:
 
 - **Cluster IAM role**: IAM role to give the control plane EC2 instances permissions to manage AWS resources on your behalf
 - **Node IAM role**: IAM role to give the worker node EC2 instances permissions to manage and access AWS resources on your behalf
+- **VPC**: a VPC with correct subnets and networking and tagging suitable for creating the EKS cluster in.
+
+And here's how to do manual creation manual mode EKS
+
+1. Add a Cluster IAM role by **create recommended role**
+
+
+
+![](https://i.imgur.com/6nqP8m3.jpeg)
+
+2. Add a Node IAM role by **create recommended role**
+
+![](https://i.imgur.com/UkkMgcK.jpeg)
+
+3. Create a VPC with public and private subnets via this [Cloudformation template](https://s3.us-west-2.amazonaws.com/amazon-eks/cloudformation/2020-10-29/amazon-eks-vpc-sample.yaml).
+	- **Stack name**: Choose a stack name for your AWS CloudFormation stack. For example, you can call it `amazon-eks-vpc-sample`. The name can contain only alphanumeric characters (case-sensitive) and hyphens. It must start with an alphanumeric character and can’t be longer than 100 characters. The name must be unique within the AWS Region and AWS account that you’re creating the cluster in.
+    
+	- **VpcBlock**: Choose a CIDR block for your VPC. Each node, Pod, and load balancer that you deploy is assigned an `IPv4` address from this block. The default `IPv4` values provide enough IP addresses for most implementations, but if it doesn’t, then you can change it. For more information, see [VPC and subnet sizing](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html#VPC_Sizing) in the Amazon VPC User Guide. You can also add additional CIDR blocks to the VPC once it’s created.
+	    
+	- **Subnet01Block**: Specify a CIDR block for subnet 1. The default value provides enough IP addresses for most implementations, but if it doesn’t, then you can change it.
+	    
+	- **Subnet02Block**: Specify a CIDR block for subnet 2. The default value provides enough IP addresses for most implementations, but if it doesn’t, then you can change it.
+	    
+	- **Subnet03Block**: Specify a CIDR block for subnet 3. The default value provides enough IP addresses for most implementations, but if it doesn’t, then you can change it.
+
+
+![](https://i.imgur.com/Z9cyUFz.jpeg)
+
+
+
+![](https://i.imgur.com/iAXJmhF.jpeg)
+
+
+4. Specify the VPC to use for the cluster as the one you just created. Make sure to include at least one public subnet and one private subnet.
+
+
+![](https://i.imgur.com/6R3woKC.jpeg)
+
+5. Configure cluster endpoint access to be **public and private** so that you can have public-facing ingress and load balancer resources as well as private cluster resources.
+
+
+![](https://i.imgur.com/MXZQLCj.jpeg)
+
+6. Create a **node group**, which defines configuration for a node pool of  EC2 instance worker nodes. You should supply this info:
+	- **node IAM role**: the IAM role to give EC2 instance worker nodes so they can access certain AWS services (whatever their pods need to access)
+	- **AMI**: the AMI or launch template used to specify the configuration of the instance type and compute requirements.
+	- **node group scaling configuration**: the auto-scaling bounds of the worker nodes
+
+
+
+![](https://i.imgur.com/M5v6tRV.jpeg)
+
+![](https://i.imgur.com/Mcv0dYr.jpeg)
+
 
 
 #### Cluster connection
@@ -1655,7 +1709,102 @@ aws eks update-kubeconfig --region region-code --name my-cluster
 > [!NOTE]
 > CloudShell sessions include kubectl, the AWS CLI, and standard CloudShell utilities.
 
-#### Networking overview
+#### Simple app deployment
+
+Load balancer services work out of the box for internet-facing ingress handling when trying to deploy them to EKS, as long as you've configured the VPC settings correctly as per [[#Manual cluster creation basics]].
+
+> [!NOTE]
+> For more advanced networking with ingress and ingress classes, you have much more setup to do, where you can follow along in [[#Manual Networking]] or look at [[#auto mode]].
+
+Once you have created a cluster manually via the console and set up the correct netowrking, you can deploy a simple app that uses one public load balancer service.
+
+Connect to the cluster and then deploy these resources:
+
+1. Basic deployment with `ClusterIP` service directing traffic to that deployment.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  template:
+    metadata:
+      labels:
+        app: auth
+    spec:
+      containers:
+        - name: auth-api
+          image: academind/kub-dep-auth:latest
+          env:
+            - name: TOKEN_KEY
+              value: 'shouldbeverysecure'
+```
+
+2. Create a load balancer service that is exposed on HTTP port 80, routes traffic to a deployment via labels and selectors.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+spec:
+  selector:
+    app: users
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: users
+  template:
+    metadata:
+      labels:
+        app: users
+    spec:
+      containers:
+        - name: users-api
+          image: academind/kub-dep-users:latest
+          env:
+            - name: MONGODB_CONNECTION_URI
+              value: 'someconnectionuri'
+            - name: AUTH_API_ADDRESSS
+              value: 'auth-service.default:3000'
+          volumeMounts:
+            - name: efs-vol
+              mountPath: /app/users
+      volumes:
+        - name: efs-vol
+          persistentVolumeClaim: 
+            claimName: efs-pvc
+```
+
 ### eksctl
 
 The `eksctl` CLI tool allows you to control your EKS cluster via the command line.
@@ -2009,21 +2158,7 @@ alb.ingress.kubernetes.io/healthcheck-path: /health
 
 The ALB will send a `GET /health` to the pods it targets via services as a health check to see whether to keep or remove the targets.
 
-### Manual mode
-
-#### Creating from console 
-
-
-
-1. Add a Cluster IAM role by **create recommended role**
-
-
-
-![](https://i.imgur.com/6nqP8m3.jpeg)
-
-2. Add a Node IAM role by **create recommended role**
-
-![](https://i.imgur.com/UkkMgcK.jpeg)
+### Manual Networking
 
 
 #### AWS load balancer controller
@@ -2402,7 +2537,157 @@ Configures listeners
 Registers targets
 ```
 
-### **auto mode**
+### Storage
+
+#### EBS
+
+1. Create and apply an EBS storage class in your cluster
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: auto-ebs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.eks.amazonaws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp3
+  encrypted: "true"
+```
+
+2. Create and apply a PVC targeting the EBS storage class you created.
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: game-data-pvc
+  namespace: game-2048
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: auto-ebs-sc
+```
+#### EFS CSI
+
+The first order of operations is to create an EFS storage and then configure it for k8s networking:
+
+1. Create a security group with an NFS inbound rule with the CIDR range being the cluster's VPC CIDR range.
+
+
+![](https://i.imgur.com/y6D7VI2.jpeg)
+
+2. Go to EFS, create a filesystem, put it in the cluster's VPC, then click on **customize**.
+
+
+![](https://i.imgur.com/d9FHFjs.jpeg)
+
+
+3. Select all private subnets and mount the EFS drive on there; attach the security group you created for mount targets
+
+
+
+![](https://i.imgur.com/cK5g2Ug.jpeg)
+
+
+Now we can attach that EFS to a pod:
+
+
+1. Create and apply an EFS storage class in your cluster
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+```
+
+2. Create and apply a PV and PVC targeting the EFS storage class you created.
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-pv
+spec:
+  capacity: 
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-59d14521
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 5Gi
+---
+```
+
+3. Attach the PVC to a pod as a volume, mount that volume to a container:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+spec:
+  selector:
+    app: users
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: users
+  template:
+    metadata:
+      labels:
+        app: users
+    spec:
+      containers:
+        - name: users-api
+          image: academind/kub-dep-users:latest
+          env:
+            - name: MONGODB_CONNECTION_URI
+              value: 'mongodb+srv://maximilian:wk4nFupsbntPbB3l@cluster0.ntrwp.mongodb.net/users?retryWrites=true&w=majority'
+            - name: AUTH_API_ADDRESSS
+              value: 'auth-service.default:3000'
+          volumeMounts:
+            - name: efs-vol
+              mountPath: /app/users
+      volumes:
+        - name: efs-vol
+          persistentVolumeClaim: 
+            claimName: efs-pvc
+```
+
+### auto mode
 
 [Amazon EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) simplifies cluster management by automating routine tasks like block storage, networking, load balancing, and compute autoscaling. During setup, it handles creating nodes with EC2 managed instances, application load balancers, and EBS volumes.
 
