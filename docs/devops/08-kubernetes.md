@@ -2478,7 +2478,6 @@ The `nfs` storage type lets you use a separate network file system as a volume.
 
 ##### `csi`
 
-
 The CSI (container storage interface) is an abstraction over storage volume types that you can implement a concrete provider for.
 
 > [!NOTE]
@@ -2512,7 +2511,8 @@ Here are the possible keys you have in the yaml definition:
     - `ReadMany`: the volume can be mounted by many pods, and all of them have read-only access to the volume
     - `ReadWriteOnce`: the volume can be mounted by many pods, but only one of them will have read and write access to the volume while the rest will have read-only access.
 - `persistentVolumeReclaimPolicy`: determines the behavior of what happens to the data
-- `storageClassName`: how the data will be stored. `ssd` is for local storage.
+- `storageClassName`: the StorageClass resource to target to specify the storage driver.
+- ``
 
 Then you have these different volume types:
 
@@ -2671,7 +2671,7 @@ spec:
 
 #### Storage classes
 
-Storage classes are things that your admin or cloud provider creates that are abstractions over persistent volumes, allowing you to connect your PVC to a storage class rather than creating a PersistentVolume, provisioning a certain amount of data, and connecting to that PV.
+Storage classes are things that your admin or cloud provider creates that are abstractions over persistent volumes, allowing you to connect your PVC to a storage class directly rather than having to create a PersistentVolume.
 
 Here is the basic flow of using storage classes with PVCs instead of PVs with PVCs:
 
@@ -2687,9 +2687,7 @@ Here is the basic flow of using storage classes with PVCs instead of PVs with PV
 
 ![](https://i.imgur.com/7yS9DBX.jpeg)
 
-Here's an example of using an AWS EFS CSI storage class to create an EFS persistent volume:
-
-1. Create and apply an EFS storage class in your cluster
+Here's an example of using an AWS EFS CSI storage class:
 
 ```yaml
 kind: StorageClass
@@ -2699,7 +2697,10 @@ metadata:
 provisioner: efs.csi.aws.com
 ```
 
-2. Create and apply a PV and PVC targeting the EFS storage class you created.
+Once you create a storage class, that now provides a common interface for creating PVs and PVCs with the same syntax. Here's an example:
+
+- **creating `PersistentVolume` resources with a storage class**: You can create a storage class on the fly via this approach through the `spec.csi` object.
+	- This specific example uses the EFS CSI driver with the specific EFS storage block with id `fs-59d14521` to create a storage class called `efs-sc`, then creates a persistent volume claiming data from that storage class.
 
 ```yaml
 apiVersion: v1
@@ -2716,6 +2717,16 @@ spec:
   csi:
     driver: efs.csi.aws.com
     volumeHandle: fs-59d14521
+```
+
+- **creating `PersistentVolume` resources with a storage class**: you first create a storage class resource then you can create a PVC resource that directly uses that storage class
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -2728,7 +2739,6 @@ spec:
   resources:
     requests:
       storage: 5Gi
----
 ```
 
 ##### Imperative storage classes
@@ -2812,6 +2822,65 @@ kubectl create secret generic <secret-name> --from-literal=<KEY>=<VALUE>
 
 
 ![](https://i.imgur.com/iS71gGz.jpeg)
+
+## Kubernetes security
+
+### Basic tips
+
+#### Tip 1 - use `securityContext`
+
+In terms of pods running containers, there is a huge attack surface on how the containers are running themselves, usually on two fronts:
+
+- **root access**: any container that allows root access means that it can be compromised since root can basically do anything. 
+- **write filesystem**: allowing the container to have its file system written to and having the user be root means that root can basically delete the entire container. We want to prevent writing on the container file system, even if we're root. 
+
+So here is how we do that on YAML via the `spec.containers.securityContext` object, which has these boolean flags.
+
+- `allowPrivilegeEscalation`: allow users to use `sudo` to assume root access.
+- `runAsNonRoot`: if set to `true`, does not allow running container as a root user to start off with.
+- `readOnlyRootFilesystem`: if set to `true`, the root user can only read files in the container filesystem, not being able to write anything.
+
+```yaml
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-info-deployment
+  namespace: development
+  labels:
+    app: pod-info
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pod-info
+  template:
+    metadata:
+      labels:
+        app: pod-info
+    spec:
+      containers:
+      - name: pod-info-container
+        image: kimschles/pod-info-app:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+        ports:
+        - containerPort: 3000
+```
+
+#### Tip 2 - use `snyk` CLI
+
+`snyk` is a static vulnerability analysis tool that also offers a CLI that lets you find out any vulnerabilities of code files.
+
+```
+snyk iac test <k8s-yaml-file>
+```
+
 ## K8S practice
 
 ### Level 1 - Basic microservices
@@ -3507,60 +3576,3 @@ sudo swapoff -a
 sudo sed -i '/swap/d' /etc/fstab
 ```
 
-## Kubernetes security
-
-### Basic tips
-
-#### Tip 1 - use `securityContext`
-
-In terms of pods running containers, there is a huge attack surface on how the containers are running themselves, usually on two fronts:
-
-- **root access**: any container that allows root access means that it can be compromised since root can basically do anything. 
-- **write filesystem**: allowing the container to have its file system written to and having the user be root means that root can basically delete the entire container. We want to prevent writing on the container file system, even if we're root. 
-
-So here is how we do that on YAML via the `spec.containers.securityContext` object, which has these boolean flags.
-
-- `allowPrivilegeEscalation`: allow users to use `sudo` to assume root access.
-- `runAsNonRoot`: if set to `true`, does not allow running container as a root user to start off with.
-- `readOnlyRootFilesystem`: if set to `true`, the root user can only read files in the container filesystem, not being able to write anything.
-
-```yaml
---- 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pod-info-deployment
-  namespace: development
-  labels:
-    app: pod-info
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: pod-info
-  template:
-    metadata:
-      labels:
-        app: pod-info
-    spec:
-      containers:
-      - name: pod-info-container
-        image: kimschles/pod-info-app:latest
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          capabilities:
-            drop:
-              - ALL
-          readOnlyRootFilesystem: true
-        ports:
-        - containerPort: 3000
-```
-
-#### Tip 2 - use `snyk` CLI
-
-`snyk` is a static vulnerability analysis tool that also offers a CLI that lets you find out any vulnerabilities of code files.
-
-```
-snyk iac test <k8s-yaml-file>
-```
