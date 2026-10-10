@@ -2510,9 +2510,11 @@ Here are the possible keys you have in the yaml definition:
     - `ReadWriteMany`: the volume can be mounted by many pods, and all of them have read and write access to the volume
     - `ReadMany`: the volume can be mounted by many pods, and all of them have read-only access to the volume
     - `ReadWriteOnce`: the volume can be mounted by many pods, but only one of them will have read and write access to the volume while the rest will have read-only access.
-- `persistentVolumeReclaimPolicy`: determines the behavior of what happens to the data
+- `persistentVolumeReclaimPolicy`: determines the behavior of what happens to the data upon the `PersistentVolume` K8S resource deletion
+	- `Retain`: even if the `PersistentVolume` K8S resource
 - `storageClassName`: the StorageClass resource to target to specify the storage driver.
-- ``
+- `volumeMode`: the data storage type of the volume
+	- `FileSystem`: stores data in a hierarchical filesystem manner.
 
 Then you have these different volume types:
 
