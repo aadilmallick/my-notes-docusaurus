@@ -1655,7 +1655,7 @@ aws eks update-kubeconfig --region region-code --name my-cluster
 > [!NOTE]
 > CloudShell sessions include kubectl, the AWS CLI, and standard CloudShell utilities.
 
-
+#### Networking overview
 ### eksctl
 
 The `eksctl` CLI tool allows you to control your EKS cluster via the command line.
@@ -1750,6 +1750,231 @@ eksctl get cluster --name <cluster-name>
 ```bash
 eksctl delete cluster -f cluster.yaml
 ```
+
+### Networking Annotations
+
+From this ingress manifest:
+
+```yaml
+kind: Ingress
+metadata:
+  name: app
+```
+
+EKS knows:
+
+> "Create an ALB"
+
+But doesn't know:
+
+- Internal or public?
+- HTTP or HTTPS?
+- Which certificate?
+- IP targets or instance targets?
+
+Annotations answer these questions.
+
+> [!NOTE]
+> **Annotations** are special Kubernetes metadata that give instructions to the ALB controller (or EKS Auto Mode ALB integration). Think of them as AWS-specific configuration attached to an Ingress.
+
+#### ALB annotations
+
+ALB annotations let you configure specific behavior for the ALB provisioned by EKS for a load balancer service or public ingress.
+
+Here's a real production example:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:...
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  ingressClassName: alb
+  rules:
+  - host: app.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+```
+
+##### **`scheme`**
+
+`scheme` defines if the load balancer should be public or private. 
+
+- If set to `internet-facing`, then AWS assigns the ALB a public DNS name and IP address.
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/scheme: internet-facing
+```
+
+- If set to `internal`, then it acts like an internal load balancer with a private IP and no public internet access
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/scheme: internal
+```
+
+##### **`target-type`**
+
+`target-type` defines whether to target IP addresses or EC2 instances.
+
+- `instance`: The ALB registers the EC2 instance worker nodes as targets, and can only route traffic to pods through a `NodePort` service, since `NodePort` services allow you to route traffic to pods by running a pod as an exposed process on a node, targeting a specific origin on the node.
+	- Longer path, more complexity, more latency if nodes redirect to other nodes.
+
+```yaml
+alb.ingress.kubernetes.io/target-type: instance
+```
+
+```
+Target, 31000 = NodePort
+------
+10.0.1.10:31000
+10.0.2.15:31000
+```
+
+```
+User
+ |
+ALB
+ |
+EC2 Node
+ |
+NodePort
+ |
+Pod
+```
+
+- `ip`: the ALB registers IP addresses as targets. It can route traffic to pods directly via a service, since pods have their own IP addresses.
+
+```yaml
+alb.ingress.kubernetes.io/target-type: ip
+```
+
+```
+ALB
+ |
+ +--> 192.168.1.10
+ |
+ +--> 192.168.3.22
+ |
+ +--> 192.168.4.15
+```
+
+```
+Internet
+   |
+   v
+ ALB
+   |
+   v
+ Pod
+```
+
+
+> [!NOTE]
+> IP address targeting is the recommended mode for EKS and is what AWS demonstrates in their Auto Mode examples.
+
+IP address targeting is the easiest networking option since every pod gets its own VPC IP through the AWS VPC CNI.
+
+```
+Pod A -> 10.0.1.45
+Pod B -> 10.0.2.81
+Pod C -> 10.0.3.96
+```
+
+Because pods have real VPC addresses, the ALB can directly route traffic to them without requiring a node port.
+
+```
+ALB
+ |
+ +--> Pod IP
+```
+
+> [!NOTE]
+> Modern EKS deployments and EKS Auto Mode typically prefer `ip` because it provides a more direct path and better integration with the AWS VPC networking model
+
+##### `listen-ports`
+
+The `listen-ports` ALB annotation defines the listening ports on the ALB, like for HTTP and HTTPS:
+
+```
+alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+```
+
+This actually provisions the listener infra on the ALB:
+
+```
+ALB
+ |
+ +--> 80
+ |
+ +--> 443
+```
+
+You can also add an SSL redirect upgrade:
+
+```yaml
+alb.ingress.kubernetes.io/ssl-redirect: '443'
+```
+
+Which achieves this:
+
+```
+http://app.com
+       |
+       v
+301 Redirect
+       |
+       v
+https://app.com
+```
+##### `certificate-arn`
+
+If we want our load balancer to be reachable via HTTPS, we must add a certifiacte for SSL termination, since pod traffic only works through HTTP, not HTTPS.
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789:certificate/abc
+```
+
+This lets the ALB terminate TLS:
+
+```
+User HTTPS  
+
+|  
+
+v  
+
+ALB decrypts  
+
+|  
+
+v  
+
+Pods
+```
+
+##### `healthcheck-path`
+
+```yaml
+alb.ingress.kubernetes.io/healthcheck-path: /health
+```
+
+The ALB will send a `GET /health` to the pods it targets via services as a health check to see whether to keep or remove the targets.
 
 ### Manual mode
 
@@ -2195,7 +2420,7 @@ There are two types of node pools:
 
 EKS auto mode creates networking resources automatically to facilitate ingress to the cluster, like creating an AWS load balancer controller with the appropriate service accounts and upgrades.
 
-Here's the key differences:
+Here's the key differences between auto mode and the manual mode:
 
 - **auto mode (new way)**: AWS manages the controller-like functionality by managing these 4 responsibilities for you.
 	- Create IAM roles
@@ -2216,6 +2441,21 @@ EKS Cluster
        +-- Registers Pod IPs
 ```
 
+| Component     | Responsibility       |
+| ------------- | -------------------- |
+| Pod           | Runs app             |
+| Service       | Finds pods           |
+| Ingress       | Routing rules        |
+| ALB           | Internet entry point |
+| EKS Auto Mode | Creates/manages ALB  |
+
+Here's how networking works with EKS auto mode at a high level
+
+
+1. An Ingress defines HTTP routing rules in Kubernetes. 
+2. In EKS Auto Mode, an IngressClass with `eks.amazonaws.com/alb` tells EKS to automatically provision and manage an AWS Application Load Balancer. 
+3. When an Ingress is created, EKS creates the ALB, configures listeners and routing rules, and registers pod IPs as targets. 
+4. Traffic flows from the ALB to Kubernetes Services and then to Pods
 
 **subnet tagging**
 
@@ -2237,6 +2477,8 @@ Here's an example ingress class which specifies the ALB controller as the contro
 
 - `spec.controller`: which controller to use to process ingress traffic. You can have multiple controllers, like an NGINX ingress controller, or an ALB controller.
 	- `controller: eks.amazonaws.com/alb` means "Let EKS Auto Mode manage this ALB for me."
+- `annotations`: Annotations are special Kubernetes metadata that give instructions to the ALB controller (or EKS Auto Mode ALB integration).
+	- Think of them as AWS-specific configuration attached to an Ingress.
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -2249,12 +2491,44 @@ spec:
   controller: eks.amazonaws.com/alb
 ```
 
-Once you apply this ingress in your cluster, here are the steps that happen:
+After creating an ingress class, you must create an ingress to have actual routing rules.
+
+```yaml
+# 5. create an ingress resource for rules
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: game-2048
+  name: ingress-2048
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # reroute traffic to IP addresses
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  # use controller from ingress class with name 'alb'
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            # on HTTP /* match, reroute to service
+            service:
+              name: service-2048
+              port:
+                number: 80
+```
+
+
+Once you apply the ingress class and then ingress in your cluster, here are the steps that happen:
 
 1. The ingress appears in K8S
 2. EKS auto mode detects it
 3. Via the ALB controller, EKS auto mode creates an ALB set with defaults like receiving HTTP traffic on port 80 and HTTPS traffic on port 443 and handling all reverse proxy routing rules specified by any `Ingress` resources.
-#### `eksctl` with auto mode
+
+
+#### `eksctl` with auto mode setup
 
 You can use eksctl to create an EKS cluster with auto mode, which will soon become the default.
 
@@ -2292,9 +2566,57 @@ autoModeConfig:
 eksctl create cluster -f cluster-config.yaml
 ```
 
-3. Add an ingress class
+Now let's go into the resources:
 
 ```yaml
+---
+# 1. create a namespace for easy deletion
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: game-2048
+---
+# 2. create a deployment with a pod 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: game-2048
+  name: deployment-2048
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-2048
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-2048
+    spec:
+      containers:
+	  # creates a container from an ECR image.
+      - image: public.ecr.aws/l6m2t8p7/docker-2048:latest
+        imagePullPolicy: Always
+        name: app-2048
+        ports:
+        - containerPort: 80
+---
+# 3. create a service you can route to via DNS name
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: game-2048
+  name: service-2048
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  type: NodePort
+  selector:
+	# service targets pods with label "app-2048" on port 80
+    app.kubernetes.io/name: app-2048
+---
+# 4. Create ingress class to register AWS ALB controller
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
@@ -2302,16 +2624,124 @@ metadata:
   annotations:
     ingressclass.kubernetes.io/is-default-class: "true"
 spec:
+  # now ALB will be provisioned to handle ingress
   controller: eks.amazonaws.com/alb
+---
+# 5. create an ingress resource for rules
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: game-2048
+  name: ingress-2048
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # reroute traffic to IP addresses
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  # use controller from ingress class with name 'alb'
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            # on HTTP /* match, reroute to service
+            service:
+              name: service-2048
+              port:
+                number: 80
 ```
 
-4. Apply the `IngressClass` resource to your cluster:
+#### Storage in auto mode
+
+Here's the high level overview of creating persistent storage for your cluster pods:
+
+1. Create storage classes that use EBS as the driver
+2. Create a persistent volume and a persistent volume claim that uses the EBS storage class you created
+3. Connect the PVC you created to a pod, then mount that volume on the containers within that pod.
+
+Here's an example:
+
+1. Create a storage class
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: auto-ebs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.eks.amazonaws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp3
+  encrypted: "true"
+```
 
 ```bash
-kubectl apply -f ingressclass.yaml
+kubectl apply -f storage-class.yaml
 ```
 
+2. Create a PVC for the storage class
 
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: game-data-pvc
+  namespace: game-2048
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: auto-ebs-sc
+```
+
+```yaml
+kubectl apply -f ebs-pvc.yaml
+```
+
+3. Attach the PVC to a pod, mount it on the container.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: game-2048
+  name: deployment-2048
+spec:
+  replicas: 3 
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-2048
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-2048
+    spec:
+      containers:
+        - name: app-2048
+          image: public.ecr.aws/l6m2t8p7/docker-2048:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          # 2. mount PV on container at directory
+          volumeMounts:
+            - name: game-data
+              mountPath: /var/lib/2048
+      # 1. attach PV to pod from PVC
+      volumes:
+        - name: game-data
+          persistentVolumeClaim:
+            claimName: game-data-pvc
+```
+
+```bash
+kubectl apply -f ebs-deployment.yaml
+```
 
 ## Lambda 
 

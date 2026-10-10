@@ -757,21 +757,27 @@ spec:
 
 By default, pods can only respond to requests that come from other pods within the same cluster, meaning that by default, the highest amount of networking power is **intra-cluster communication**.
 
-If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster or use a load balancer service.
+If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster, which can be achieved in two possible ways:
 
-> [!NOTE]
-> You only should use ingress if you have more than one public load balancer service in your cluster, which makes forwarding ingress traffic to the cluster better by acting as a single entrypoint for the cluster, removing the need for multiple load balancer services within your cluster.
+- **Method 1 - Ingress with ingress controller**: ingress defines the routing reverse proxy rules, ingress controller provisions load balancer or public IP infra to handle public ingress and then distributing it via the ingress rules.
+- **Method 2 - Load balancer service**: 
 
 An **Ingress** is simply a Kubernetes object that describes:
 
 > "How should external traffic reach my application?"
 
+
 > [!NOTE]
 > It's used when you have more than one load balancer service, where you want more granular routing rules to route ingress traffic to different services.
 
-> [!NOTE]
-> One important thing to note is that an `Ingress` is NOT a load balancer service. It simply is a collection of routing rules, like a reverse proxy
+One important thing to note is that an `Ingress` is NOT a load balancer service. It simply is a collection of routing rules, like a reverse proxy
 
+- **when to use ingress**: You only should use ingress if you have more than one public load balancer service in your cluster, which makes forwarding ingress traffic to the cluster better by acting as a single entrypoint for the cluster, removing the need for multiple load balancer services within your cluster.
+
+
+We can achieve the ingress method by adding an **Ingress** and an **Ingress controller** K8S resource:
+
+- **Ingress**: A Kubernetes ingress object is a resource that defines rules for routing external HTTP or HTTPS traffic to services within your cluster. It essentially specifies how requests should be directed based on hostnames or paths.
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -792,12 +798,7 @@ spec:
               number: 80
 ```
 
-****
-
-We do that by adding an **Ingress** and an **Ingress controller** K8S resource:
-
-- **Ingress**: A Kubernetes ingress object is a resource that defines rules for routing external HTTP or HTTPS traffic to services within your cluster. It essentially specifies how requests should be directed based on hostnames or paths.
-- **Ingress Controller**: The ingress controller, on the other hand, is the software that enforces these rules. It acts as a reverse proxy and load balancer, receiving incoming traffic and routing it according to the ingress object’s rules. 
+- **Ingress Controller**: The ingress controller, on the other hand, is the software that enforces these rules. It provisions the infra to act as a reverse proxy and load balancer, receiving incoming traffic and routing it according to the ingress object’s rules. 
 
 > [!NOTE]
 > While ingress objects are built into Kubernetes, ingress controllers are separate, pluggable components that you need to install (like Ingress-Nginx or Traefik).
@@ -805,12 +806,96 @@ We do that by adding an **Ingress** and an **Ingress controller** K8S resource:
 > [!NOTE]
 > So, the ingress object sets the rules, and the ingress controller makes those rules happen by managing the traffic flow into your cluster.
 
-Here's how an ingress request to your cluster works:
+
+Here's how an ingress request to your cluster works at a high level
 
 1. An external HTTP request sends ingress traffic to a cluster IP address the **Ingress** object made.
 2. The ingress object sends that traffic to the ingress controller.
 3. The ingress controller checks the list of rules that you set up on your ingress, and routes traffic to the appropriate pod.
 
+**example**
+
+Let's create a real production examples based on three microservices: 1) frontend 2) orders 3) payments, trying to achieve this routing scheme:
+
+```
+https://app.example.com
+        |
+        +--> /
+        |      -> frontend-service
+        |
+        +--> /orders
+        |      -> orders-service
+        |
+        +--> /payments
+               -> payments-service
+```
+
+
+1. Create an ingress with the appropriate routing rules:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          service:
+            name: frontend
+
+      - path: /orders
+        backend:
+          service:
+            name: orders
+
+      - path: /payments
+        backend:
+          service:
+            name: payments
+```
+
+#### Services vs ingress
+
+- **services**: used primarily for internal load balancing between pods, providing stable IP and DNS addressing for inter-pod and intra-cluster communication.
+
+```
+Pod1
+Pod2
+Pod3
+  ^
+  |
+Service
+```
+
+- **ingress**: Handles external ingress traffic and then routing that via reverse proxy. It sits above services.
+
+```
+Internet
+   |
+   v
+Ingress
+   |
+   v
+Service
+   |
+   v
+Pods
+```
+
+- **load balancer service**: a special type of service which provisions a load balancer infra with a public IP, enabling it to receive ingress traffic and then reroute it via intracluster traffic to pods that are targeted by that service.
+
+```
+Pod1
+Pod2
+Pod3
+  ^
+  |
+Load balancer Service <---- internet ingress traffic
+```
 #### Creating an ingress and ingress controller with nginx
 
 The `Ingress` object in kubernetes allows you to define the ingress rules as well as the specific third-party ingress controller to use for the reverse proxy functionality of the ingress controller.
