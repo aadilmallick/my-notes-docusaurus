@@ -1739,6 +1739,41 @@ nodeGroups:
 ```bash
 eksctl create cluster -f cluster.yaml
 ```
+
+#### `eksctl` with auto mode
+
+You can use eksctl to create an EKS cluster with auto mode, which will soon become the default.
+
+- **VPC Configuration**: When using the eksctl cluster template that follows, eksctl automatically creates an IPv4 Virtual Private Cloud (VPC) for the cluster. By default, eksctl configures a VPC that addresses all networking requirements, in addition to creating both public and private endpoints.
+    
+- **Instance Management**: EKS Auto Mode dynamically adds or removes nodes in your EKS cluster based on the demands of your Kubernetes applications.
+    
+- **Data Persistence**: Use the block storage capability of EKS Auto Mode to ensure the persistence of application data, even in scenarios involving pod restarts or failures.
+    
+- **External App Access**: Use the load balancing capability of EKS Auto Mode to dynamically provision an Application Load Balancer (ALB).
+
+
+Here is an example of the cluster configuration that allows you to create an auto mode cluster with the name `web-quickstart`:
+
+1. Create a cluster yaml manifest with `autoModeConfig.enable` set to `true` in order to enable EKS auto mode on the cluster.
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: web-quickstart
+  region: us-east-1
+
+autoModeConfig:
+  enabled: true
+```
+
+2. Create the EKS cluster using the `cluster-config.yaml`:
+
+```bash
+eksctl create cluster -f cluster-config.yaml
+```
 #### Cluster management
 
 - **list clusters**:
@@ -1799,8 +1834,41 @@ aws eks update-kubeconfig --region region-code --name my-cluster
 > [!NOTE]
 > CloudShell sessions include kubectl, the AWS CLI, and standard CloudShell utilities.
 
-### Production
+### Networking
+
+#### Ingress
+
+An **Ingress** is simply a Kubernetes object that describes:
+
+> "How should external traffic reach my application?"
+
+It's used when you have more than one load balancer controller
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: game-ingress
+spec:
+  rules:
+  - host: game.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: service-2048
+            port:
+              number: 80
+```
 #### AWS load balancer controller
+
+The challenge is:
+
+> Kubernetes knows about Pods and Services, but AWS knows about ALBs.
+
+Something needs to connect the two worlds. That "something" is traditionally the **AWS Load Balancer Controller**.
 
 The AWS Load Balancer Controller is a component that manages AWS Elastic Load Balancers for your Kubernetes cluster on AWS (EKS).
 
@@ -1827,6 +1895,9 @@ Tagging your VPC subnets is essential because the AWS Load Balancer Controller u
 
 - Without the correct tags, the controller can't find the right subnets in your cluster's VPC, which means it won't be able to set up load balancing for your applications properly. 
 - Essentially, tagging tells the controller where to direct traffic, enabling your Kubernetes services to be accessible and balanced across the network.
+
+> [!TIP]
+> It's easy to mess up these tags when doing it manually. You should instead automate this on the cluster creation manifest with `eksctl` or by using the AWS CLI.
 
 **setting up the IAM policy**
 
