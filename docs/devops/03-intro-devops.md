@@ -356,7 +356,7 @@ favicon: ""
 aspectRatio: "50"
 ```
 
-### Basics?
+### Basics
 
 - **CI (continuous integration)**: the practice of automating the integration of code changes from multiple contributors into a single software project while maintaining code quality and app stability.
 - **CD (continuous delivery)**: the practice of automating the deployment of code changes made via CI and deploying the app to a staging environment
@@ -436,13 +436,20 @@ Continuous deployment takes this further by automatically releasing every change
 > [!NOTE]
 > So, continuous deployment is like continuous delivery plus automatic release to production, making the process faster and more automated.
 
+> [!NOTE]
+> To do continuous deployment the best, you should make sure that the way you deploy to testing and to production are as similar as possible. 
+> 
+> - Using one mechanism for test and another for production guarantees you will have production issues.
+> - Deploy to similar environments for the highest likelihood of success.
+
 Continuous deployment implementations need an opinionated system that also satisfies these core qualities:
 
 1. **safe**: changes do not break anything in prod. 
 2. **reversible**: easy to rollback to different prod versions, no lingering state
 3. **no down time**: does not affect users and data in prod.
 
-There are two types of deployment strategies you can do for continuous deployment:
+
+There are three types of deployment strategies you can do for continuous deployment:
 
 1. **blue-green deployment**: provision infra with the new version of your code and direct the production load balancer to direct traffic towards the infra with the new code.
 
@@ -1734,6 +1741,14 @@ pipelines:
           - make testdeployment URL=$PRODUCTION_URL VERSION=$BITBUCKET_COMMIT
 ```
 
+### Artifact repositories
+
+An artifact repository is a centralized storage system for your build outputs—like compiled applications, packages, and dependencies. It acts like a library where you keep tested and versioned software components. 
+
+Using one ensures that what you test is exactly what gets deployed, improving reliability and security. 
+
+- It also helps track versions, manage access, and makes it easier to roll back to previous versions if needed. 
+- This is key in continuous integration and delivery pipelines to maintain consistency and control over your software releases.
 ## Observability and monitoring
 
 - **observability**: uncovers both known and unknown problems
