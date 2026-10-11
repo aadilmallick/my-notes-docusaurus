@@ -1759,7 +1759,7 @@ Using one ensures that what you test is exactly what gets deployed, improving re
 **Observability** is a measure of how well the internal states of a system can be inferred from knowledge of its external output. 
 
 > [!NOTE]
-> Good observability is when by looking at the logs and metrics of our system, we can tell what is going on.
+> Therefore we get good observability when by looking at the logs and metrics of our system, we can tell what is going on.
 
 There are four pillars of observability:
 
@@ -1809,7 +1809,15 @@ The observability architecture models how companies usually implement observabil
 There are two types of architecture:
 
 - **vendor-based observability**: using third-party vendors in each stage of the pipeline
+
+
+![](https://i.imgur.com/gyLRG03.jpeg)
+
+
 - **open-source observability**: using open-source, self-hosted vendors in each stage of the pipeline
+
+> [!NOTE]
+> The main tradeoff here is that vendor-based observability is quick and easy, but costly, while open source observability is free, but difficult to maintain as your architecture grows.
 
 #### OpenTelemetry
 
@@ -1820,6 +1828,8 @@ The main innovation here is that it replaces the need to use custom or different
 - **OTel instrumentation**: language-specific libraries and SDKs that help with gathering, processing, and exporting data.
 - **OTel collector**: open source collector that receives data, processes it, and exports it to different backends. Many vendors support this and collect data with OTel collector.
 - **OTel exporter**: sends data to the third-party vendor or backend
+- **Otel extensions**: OpenTelemetry (OTel) extensions are optional components that you can add to the OpenTelemetry collector to enhance its capabilities without needing to create a separate version of the collector.
+	- Extensions provide additional features like security, health monitoring, or other custom functionalities to improve how the collector operates.
 
 
 
@@ -1883,6 +1893,184 @@ This is what makes for good metrics. They have these properties:
 - **actionable**: alerts your team and drives change
 - **improvable**: able to be improved upon after action
 - **multidimensional**: adds tags to your metrics for more info, like which stage the environment is in.
+
+### OpenTelemetry
+
+#### OTel Collector
+
+The OpenTelemetry Collector offers a vendor-agnostic implementation of how to receive, process and export telemetry data. It removes the need to run, operate, and maintain multiple agents/collectors. This works with improved scalability and supports open source observability data formats (e.g. Jaeger, Prometheus, Fluent Bit, etc.) sending to one or more open source or commercial backends.
+
+- _Usability_: Reasonable default configuration, supports popular protocols, runs and collects out of the box.
+- _Performance_: Highly stable and performant under varying loads and configurations.
+- _Observability_: An exemplar of an observable service.
+- _Extensibility_: Customizable without touching the core code.
+- _Unification_: Single codebase, deployable as an agent or collector with support for traces, metrics, and logs.
+### Prometheus
+
+Prometheus is a key tool in the observability landscape focused on collecting and storing metrics—numerical data that represent the performance and health of your system. It fits alongside other observability tools that handle logs, traces, and events to give you a comprehensive view of your application.
+
+To implement Prometheus in your server app for observability:  
+  
+
+- **Instrument your app:** Add code (using client libraries like the Prometheus client for Node.js) to expose metrics such as request counts, latencies, or custom events.
+- **Expose a metrics endpoint:** Create an HTTP endpoint (commonly `/metrics`) where Prometheus can scrape these metrics.
+- **Set up a collector:** Use tools like the OpenTelemetry collector configured with a Prometheus receiver to gather metrics from your app.
+- **Export and visualize:** Send the collected metrics to a backend like Grafana Cloud to analyze and visualize them.
+
+#### Metrics
+
+1. **import the prometheus client library**
+
+```js
+const client = require('prom-client');
+```
+
+2. **create a registry and collect default metrics**: This sets up default Node.js metrics like memory and CPU usage.
+
+```js
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+```
+
+3. **define a custom counter metric**: This counter will track how many times products are viewed, labeled by product ID.
+
+```js
+const productViews = new client.Counter({
+  name: 'product_views_total',
+  help: 'Count of product views',
+  labelNames: ['productId']
+});
+register.registerMetric(productViews);
+```
+
+4. **create a `/metrics` endpoint**: This endpoint exposes the metrics for Prometheus to scrape.
+
+```js
+const express = require('express');
+const app = express();
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+```
+
+
+> [!NOTE]
+> Prometheus does not receive pushed data. That's why we need to create a `/metrics` endpoint so Prometheus can scrape that endpoint for metrics.
+
+Now whenever one of our observable metrics change, like how we manually increment the counter in the product view handler, the following sequence of events will happen:
+
+1. Prometheus gets notified of the metric change
+2. Now whenever prometheus scrapes the `/metrics` endpoint, the `register.metrics()` method is returning the freshest, newest metrics values.
+
+```js
+app.get('/product/:id', (req, res) => {
+  const productId = req.params.id;
+  productViews.labels(productId).inc();
+  res.send(`Product ${productId} viewed`);
+});
+```
+
+
+Here's the complete app:
+
+```js
+const client = require('prom-client');
+
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const productViews = new client.Counter({
+  name: 'product_views_total',
+  help: 'Count of product views',
+  labelNames: ['productId']
+});
+register.registerMetric(productViews);
+
+const express = require('express');
+const app = express();
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
+app.get('/product/:id', (req, res) => {
+  const productId = req.params.id;
+  productViews.labels(productId).inc();
+  res.send(`Product ${productId} viewed`);
+});
+
+app.listen(3000)
+```
+
+### Grafana Cloud
+
+### Observability app
+
+Observability answers three questions, and we have different tools to solve those questions:
+
+| Question                        | Signal  | Tool                      |
+| ------------------------------- | ------- | ------------------------- |
+| Is my system healthy?           | Metrics | Prometheus                |
+| What happened during a request? | Traces  | OpenTelemetry             |
+| What exactly was logged?        | Logs    | Winston, filelog receiver |
+
+Here are examples of what signals we should measure for each question:
+
+- **metrics**: "How many times was product 123 viewed?"
+- **traces**: "What services participated in the request? And how long did each take?" 
+- **logs**: "What was the exact error?"
+
+#### Observability architectures
+
+There are three common approaches to implementing observability in your app:
+
+1. **prometheus to grafana**: save metrics to a `/metrics` endpoint on your server, let Prometheus scrape those metrics and then send them to Grafana for visualization.
+	- **pro**: simple and easy
+	- **con**: tracks metrics only, no traces, logs are separate
+
+```
+Application
+    │
+    ▼
+/metrics endpoint
+    │
+    ▼
+Prometheus
+    │
+    ▼
+Grafana
+```
+
+2. **approach 2 - direct to grafana**: Application exports directly to grafana cloud via API
+	- **pro**: simple
+	- **con**: harder to manage
+
+```
+Application
+    │
+    ▼
+Grafana Cloud
+```
+
+3. **approach 3 - use Otel collector**: use the OTel collector to collect metrics, traces, and logs, and then send them to grafana cloud.
+
+```
+App
+ │
+ ├── Metrics
+ ├── Traces
+ └── Logs
+      │
+      ▼
+OTel Collector
+      │
+      ▼
+Grafana Cloud
+```
+
 ## Site Reliability Engineering
 
 ### Reliability Engineering
