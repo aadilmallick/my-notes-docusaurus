@@ -3544,7 +3544,7 @@ Most commands will deal with a specific chart, which you can specify in differen
 Installs and applies a chart, giving it a custom **release name** if you want.
 
 ```bash
-helm install [RELEASE_NAME] <repo>/<chart>
+helm install [RELEASE_NAME] <chart>
 ```
 
 
@@ -3564,11 +3564,17 @@ helm delete cert-manager --namespace cert-manager
 
 #### `helm upgrade`
 
-This is how you upgrade a chart to a specific version:
+```bash
+helm upgrade [RELEASE_NAME] <chart>
+```
+
+This is how you upgrade a chart from artifact hub to a specific version:
 
 ```bash
 helm upgrade cert-manager <repo-name>/<chart-name> --version <version>
 ```
+
+
 
 #### `helm env`
 
@@ -3583,9 +3589,28 @@ helm env
 
 ![](https://i.imgur.com/4dtCcje.jpeg)
 
-### Installing charts
+#### `helm lint`
 
-#### Basics
+Used for linting chart files
+
+```bash
+helm lint <chart-name>
+```
+#### `helm template`
+
+The `helm template` command shows you the changes that have been made in your files.
+
+```bash
+helm template <chart-name>
+```
+
+You can also add these additional flags:
+
+- `--debug`: adds debugging
+- `--validate`: validates that chart config is correct
+### Chart management
+
+#### Installation quick guide
 
 Here's a quick guide:
 
@@ -3638,6 +3663,95 @@ How to see the values of a chart you installed:
 helm show value <repo-name>/<chart-name>
 ```
 
+#### rolling back charts
+
+What if you want to roll back a chart to a specific version or release? 
+
+First, check the history of that chart:
+
+```bash
+helm history <chart-name>
+```
+
+
+![](https://i.imgur.com/GJVusbT.jpeg)
+
+
+Now you have these options for actually rolling back the chart:
+
+- **rollback to the immediately previous revision**
+
+```bash
+helm rollback  <chart-name>
+```
+
+- **rollback to a specific revision**: specify a revision number to roll back to.
+
+```bash
+helm rollback  <chart-name> <revision-number>
+```
+
+### Creating helm charts
+
+You can create custom helm charts and then upload them to artifact hub.
+
+First, create boilerplate helm chart files:
+
+```bash
+helm create <chart-name>
+```
+
+This creates a new directory with the following files and folders:
+
+```
+<chart-name>
+├── Chart.yaml
+├── charts
+├── templates
+│   ├── NOTES.txt
+│   ├── _helpers.tpl
+│   ├── deployment.yaml
+│   ├── hpa.yaml
+│   ├── httproute.yaml
+│   ├── ingress.yaml
+│   ├── service.yaml
+│   ├── serviceaccount.yaml
+│   └── tests
+│       └── test-connection.yaml
+└── values.yaml
+```
+
+- `Chart.yaml`: This is the package.json equivalent for helm, where you can configure the version and name of the package
+- `values.yaml`: configure the resources the chart creates
+	- `templates`: stores K8S resources that make up the chart, and will be processed through the Helm templating engine to inject values from the `values.yaml` at chart installation time.
+
+You can delete all the K8S resources from the `templates/` folder, and then to start fresh, you can then add the K8S resources you want to add to the chart within the `templates/` folder.
+
+```yaml title="templates/config_map.yaml"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: first-chart-configmap
+data:
+  port: "8080"
+  allowTesting: "true"
+```
+
+
+#### Local testing
+
+You can then perform local testing by installing the chart directory:
+
+```bash
+helm install [RELEASE_NAME] <path-to-chart-dir>
+```
+
+You can then update for local testing using `helm upgrade` in the same way:
+
+```bash
+helm upgrade [RELEASE_NAME] <path-to-chart-dir>
+```
 ## Prometheus
 
 Prometheus is an open-source monitoring and alerting system, integrating easily with Kubernetes for extensive metric collection and visualization, often paired with Grafana.
