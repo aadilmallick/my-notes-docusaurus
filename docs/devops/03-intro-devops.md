@@ -1754,6 +1754,10 @@ Using one ensures that what you test is exactly what gets deployed, improving re
 - **observability**: uncovers both known and unknown problems
 - **monitoring**: extracting info targeting known problems
 
+
+![](https://i.imgur.com/QqFyuX5.jpeg)
+
+
 ### Observability 
 
 **Observability** is a measure of how well the internal states of a system can be inferred from knowledge of its external output. 
@@ -1768,6 +1772,18 @@ There are four pillars of observability:
 2. **logs**: text records that get outputted from either infra or apps, lets devs know what is going on and leaves and audit trail.
 3. **traces**: show the lifecycle of a request as it passes through services and infra, show the entire path of a request and how it flows throughout a distributed service
 4. **events**: events are emitted when something of note happens or changes within your infrastructure. 
+
+Metrics, traces, and logs are the key pillars we want to track.
+
+1. **Metrics**: These are numeric aggregates that offer a high-level overview of a system’s health and performance. Metrics help track overall trends but may not provide detailed insights into specific issues since they represent data in aggregate form.
+    
+2. **Logs**: Logs are discrete events that provide detailed information about what happened in the system at specific times. They include contextual information and exact error messages, which are crucial for troubleshooting and understanding specific events.
+    
+3. **Traces**: Traces track the flow of requests or operations through a system, allowing for visualization of the entire journey of a request (or other units of work). They help understand the interactions between different parts of a system and can reveal performance bottlenecks and other issues.
+
+
+![](https://i.imgur.com/YCN0u3u.jpeg)
+
 
 There are 5 areas of observability:
 
@@ -1841,9 +1857,17 @@ OTel changes the observability architecture by replacing third-party paid vendor
 
 ![](https://i.imgur.com/QfmpHrU.jpeg)
 
-### Metrics
+### Observability fundamentals
 
-#### Metric types
+
+
+#### Metrics
+
+##### Metric types
+
+
+![](https://i.imgur.com/K6nKkKT.jpeg)
+
 
 - **counters**: simple increment-only metrics that keep track of the number of occurrences of a specific event or activity 
 	- **examples**: API requests, error occurrences, system restarts
@@ -1854,13 +1878,15 @@ OTel changes the observability architecture by replacing third-party paid vendor
 - **histograms**: measure the distribution and frequency of time durations for specific events, and then group those numeric values into categorical buckets 
 	- **example**: classifying a continuous numeric value like request duration into a bucket like fast or slow 
 
+
+
 Each of the metrics has a purpose:
 
 - **counters**: used for capacity planning, so you can track load and traffic through counting API requests, error occurences, etc. happen, and then plan for what you recorded.
 - **gauges**: used for performance optimization
 - **histograms**: used for end users to understand the metrics better
 
-#### Metric aggregation
+##### Metric aggregation
 
 - **sums**: summing metrics is useful when you want to track the total count or quantity of events over a period. 
 - **rates**: rates are useful when you want to measure how something changes over time. 
@@ -1871,6 +1897,8 @@ $$rate = quantity/time$$
 - **percentile**: used to understand the distribution of data and to identify outliers 
 	- **example**: for example the 90th percentile of response times can help you understand what 90% of your users experience. 
 
+##### Averages and percentiles
+
 
 ![](https://i.imgur.com/L7YxxCP.jpeg)
 
@@ -1878,7 +1906,19 @@ $$rate = quantity/time$$
 ![](https://i.imgur.com/A3Vdg3m.jpeg)
 
 
-#### Google's four golden signals
+- If P50 = 1ms, it means that the other 50% of the requests took longer than 1ms to complete
+- If P90 = 2ms, it means that 90% of requests took less than 2ms to complete, while the other 10% of the requests took longer than 2ms to complete
+
+We also use percentile notation for histograms:
+
+- For $x$ in P$x$ percentile, as $x$ increases, the value $Y$ shifts to the right to make the CDF larger.
+
+
+![](https://i.imgur.com/O0cWbce.jpeg)
+
+
+
+##### Google's four golden signals
 
 Google's four golden signals are a good foundation for defining which metrics you should track in your application. 
 
@@ -1893,6 +1933,118 @@ This is what makes for good metrics. They have these properties:
 - **actionable**: alerts your team and drives change
 - **improvable**: able to be improved upon after action
 - **multidimensional**: adds tags to your metrics for more info, like which stage the environment is in.
+
+#### Logs
+
+logs should answer these 4 questions:
+
+1. what happened
+2. when did it happen
+3. where did it happen
+4. what was involved
+
+
+![](https://i.imgur.com/FmcqQM9.jpeg)
+
+Here are the different log level semantics you should stick to:
+
+
+![](https://i.imgur.com/rBgDQGj.jpeg)
+
+
+> [!NOTE]
+> In production, we only filter to listen to log levels of `INFO` and above to cut out debug noise.
+
+#### Traces
+
+Traces track the complete journey of a request through a system, so we can visualize it and see what went wrong.
+
+![](https://i.imgur.com/hW3OkXr.jpeg)
+
+Within tracing, there are two important objects to keep track of:
+
+- **trace**: complete journey of a single request, tagged with a unique trace ID that follows the request everywhere it goes. Here are the components:
+	- Trace ID
+	- Span IDs
+	- Timestamps: store start and end time of the trace
+	- Attributes
+- **span**: a single operation within a trace which cannot be decomposed any further. Each service handling the request creates one or more spans.
+	- Span ID
+	- Parent Span ID: store spawning span
+	- Attributes (key-value pair context)
+	- Timestamps: store start and end time of the span
+
+
+![](https://i.imgur.com/tJ37PFl.jpeg)
+
+
+Here is how we identify traces and spans:
+
+- **how to identify traces**: with a unique trace ID for the request
+- **how to identify spans**: store the spawning span parent ID and a unique ID for the current span.
+
+#### Debugging with the three signals
+
+The three signals of metrics, logs, and traces in observability should be tracked for any application.
+
+Here is how they work in tandem to help you debug an error
+
+1. Metrics alert you
+2. Traces show you where an error happened
+3. Logs explain why the error occurred
+
+Here is what happens if you skimp out on any one of these signals:
+
+- **skipping metrics**: you will never be alerted of the error.
+- **skipping traces**: without traces it will be considerably harder for us to understand which specific component caused the failure in the system. 
+- **skipping logs**: without logs it will be considerably harder to understand the exact reason why the error occurred in that specific component. 
+
+#### SLI, SLO, SLA
+
+SLIs (service level indicators) are metrics that are particularly relevant to the UX a client experiences, where if you improve upon SLI metrics, that has a direct cause to improve the UX of a customer.
+
+![](https://i.imgur.com/NSr3OPl.jpeg)
+
+> [!NOTE]
+> Service Level Indicators (SLIs) are metrics that reflect the performance and reliability of a service from the user's perspective.
+
+It's essential for SLIs to represent the entire experience of the user because:
+
+1. **User-Centric Focus**: SLIs must be user-facing, meaning they should reflect metrics that the user directly interacts with or is affected by. This ensures that the indicators provide a relevant context for the user's experience.
+    
+2. **Comprehensive Insights**: When SLIs encompass the complete user experience, they allow teams to identify and understand issues that might impact user satisfaction. If SLIs focus only on specific technical metrics (like CPU usage), they can provide a misleading picture of service performance, potentially overlooking what matters most to users.
+    
+3. **Measurability**: SLIs should be objective and quantifiable, enabling teams to set clear benchmarks and improve service quality based on user feedback. A good SLI can help organizations understand whether they are meeting their user experience goals and how improvements can be made.
+
+A **SLO** is a business target value for an SLI, basically a promise you make about service quality and the benchmark you want to hit for your key SLIs.
+
+
+![](https://i.imgur.com/I6bfdXq.jpeg)
+
+An **SLA** is a contractual agreement with your customers to maintain specific SLI benchmarks throughout the year, like 99.999% availability.
+
+> [!NOTE]
+> SLAs should always be less than SLOs because SLOs are the ideal benchmark you want to hit while SLAs are the minimum you can guarantee and commit to.
+
+
+> [!NOTE]
+> Each additional notch in an SLO requires exponentially more effort to achieve, so choose your SLOs and SLAs wisely and consider the trade-offs between implementing those improvements to hit those SLAs and just maintaining the status quo. 
+
+
+
+![](https://i.imgur.com/JQX6AMl.jpeg)
+
+#### Error budget
+
+The error budget is how much you can afford to fail based on your SLO. 
+
+You can consider it as the difference between 100% success for an SLI and the SLO success percentage you set for that SLI.
+
+> [!NOTE]
+> Based on the time your error budget allocates for you, you can use that time in experimentation and to push risky features faster.
+
+
+![](https://i.imgur.com/nitRzT9.jpeg)
 
 ### OpenTelemetry
 
