@@ -1863,6 +1863,15 @@ OTel changes the observability architecture by replacing third-party paid vendor
 
 #### Metrics
 
+##### What makes a good metric
+
+This is what makes for good metrics. They have these properties:
+
+- **understandable**: perfectly clear and give insight into a characteristic of a specific system
+- **actionable**: alerts your team and drives change
+- **improvable**: able to be improved upon after action
+- **multidimensional**: adds tags to your metrics for more info, like which stage the environment is in.
+
 ##### Metric types
 
 
@@ -1923,16 +1932,16 @@ We also use percentile notation for histograms:
 Google's four golden signals are a good foundation for defining which metrics you should track in your application. 
 
 - **errors**: rate of unsuccessful events or requests within a service or infra
-- **throughput**: How much volume of requests or events being received by a service or infra
+- **throughput/traffic**: How much volume of requests or events being received by a service or infra
 - **latency**: the amount of time taken for a request or event to be completed 
 - **saturation**: the measure of how a service or infrastructure's limited resources are utilized, like CPU utilization
 
-This is what makes for good metrics. They have these properties:
+> [!NOTE]
+> If all of these 4 golden signals look good, then your system is probably working as expected.
 
-- **understandable**: perfectly clear and give insight into a characteristic of a specific system
-- **actionable**: alerts your team and drives change
-- **improvable**: able to be improved upon after action
-- **multidimensional**: adds tags to your metrics for more info, like which stage the environment is in.
+
+![](https://i.imgur.com/WDhCelB.jpeg)
+
 
 #### Logs
 
@@ -2059,15 +2068,43 @@ The OpenTelemetry Collector offers a vendor-agnostic implementation of how to re
 - _Unification_: Single codebase, deployable as an agent or collector with support for traces, metrics, and logs.
 ### Prometheus
 
-Prometheus is a key tool in the observability landscape focused on collecting and storing metrics—numerical data that represent the performance and health of your system. It fits alongside other observability tools that handle logs, traces, and events to give you a comprehensive view of your application.
+#### Intro
+
+Prometheus is a key tool in the observability landscape focused on collecting and storing metrics—numerical data that represent the performance and health of your system. 
+
+It fits alongside other observability tools that handle logs, traces, and events to give you a comprehensive view of your application.
 
 To implement Prometheus in your server app for observability:  
   
 
 - **Instrument your app:** Add code (using client libraries like the Prometheus client for Node.js) to expose metrics such as request counts, latencies, or custom events.
-- **Expose a metrics endpoint:** Create an HTTP endpoint (commonly `/metrics`) where Prometheus can scrape these metrics.
+- **Expose a metrics endpoint:** Create an HTTP endpoint (commonly `/metrics`) where Prometheus can pull from and scrape these metrics.
 - **Set up a collector:** Use tools like the OpenTelemetry collector configured with a Prometheus receiver to gather metrics from your app.
 - **Export and visualize:** Send the collected metrics to a backend like Grafana Cloud to analyze and visualize them.
+
+Prometheus is under the hood a time-series database designed for storing metrics.
+
+- The core data structure is a unique combination of **labels**, which act like buckets where metric values with timestamps are pushed into those buckets.
+- You can query by these label combinations via the **PromQL** query language.
+
+> [!NOTE]
+> The goal is to choose your labels wisely so your buckets don't have too many or too little metrics.
+
+
+
+![](https://i.imgur.com/l1dj2Fa.jpeg)
+
+#### Local setup
+
+##### `prometheus.yaml`
+
+The `prometheus.yaml` file provides configuration for prometheus settings:
+
+
+
+##### Docker compose
+
+##### Kubernetes
 
 #### Metrics
 
