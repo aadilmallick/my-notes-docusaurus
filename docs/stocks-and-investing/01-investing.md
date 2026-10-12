@@ -86,6 +86,7 @@ In summary, here is why the SP500 is so good:
 
 - **you won't lose that much money**: save for market crashes, you can expect 7-9% consistent annual returns because large companies continue to grow.
 - **the market will never completely crash**: the only chance all 500 companies lose substantial value is in an apocalypse. That will never happen.
+- **it's a self-healing fund**: the SP500 kicks out companies that fall below the market cap of the top 500 companies, meaning that only companies that are doing well will stay in the SP500 and you won't lose your money on any failing company.
 
  
 #### Why you shouldn't try to pick single stocks
@@ -106,7 +107,7 @@ Unless you get really lucky, you will not beat the market and you'll perform low
     
 - **Massive Overlap:** Broad market funds like VOO or VTI already hold Nvidia (~6-7%) and Google (~3-4%) as top holdings. Adding direct NVDA, GOOGL, and FSELX (Fidelity Select Semiconductors, which has ~25% in Nvidia alone) creates massive triple-dipping in tech/semiconductors. You end up with 20%+ of your total wealth in a single sector.
     
-- If you want a small "fun money" or conviction tilt in individual stocks/sectors, keeping it capped at ≤5% total portfolio limits downside risk without impairing your core FIRE baseline.
+>The harsh truth is, I can’t pick winning individual stocks and you can’t either. Nor can the vast majority who claim they can. It is extraordinarily difficult, expensive and a fool’s errand. Having the humility to accept this will do wonders for your ability to accumulate wealth.
 
 
 > [! ]
@@ -132,16 +133,68 @@ So don't realize the loss by buying high and selling low.
 
 Don't try to outsmart the market thinking to sell on one day and then rebuy the next. You'll end up missing the best days in the market, resulting in losses.
 
+>Unfortunately, too many people take this at face value and leap to the conclusion that Mr. Buffett has found a magical way to dance in and out of the market, avoiding the inevitable drops. This is not true and in fact he is on record speaking to the folly of trying: “The Dow started the last century at 66 and ended at 11,400. How could you lose money during a period like that? A lot of people did because they tried to dance in and out.”
+
 
 ![](https://i.imgur.com/EgO0W5T.jpeg)
 
 > [!TIP]
 >  The best days of the market paradoxically happen more often during a market crash, so never sell in a panic.
 
+
+> [!NOTE]
+> The market always goes up and it is always a wild and rocky ride along the way. Since we can’t predict these swings, we need to toughen up mentally and ride them out. 
+
 Thus the actionable tips here are: 
 
 1. **During market turbulence, do nothing.** The SP500 will grow again, and if you sell, then you'll lose out on the best days of the market.
+2. **never panic sell**: The stock market is a powerful wealth-building tool and you should be investing in it. But realize the market and the value of your shares will sometimes drop dramatically. 
+	- This is absolutely normal and to be expected. When it happens, ignore the drops and buy more shares. 
+	- This will be much, much harder than you think. People all around you will panic. The news media will be screaming Sell, Sell, Sell!
+3. **ignore the drops in the market**: Nobody can predict when these drops will happen, even though the media is filled with those who claim they can. They are delusional, trying to sell you something or both. Ignore them.
+4. **It is simply not possible to time the market,** regardless of all the heavily credentialed gurus on CNBC and the like who claim they can.
+
+
+#### DO NOT TRY TO TIME THE MARKET
+
+
+
+> [!NOTE]
+> Market timing is an un-winnable game over time.
+> ***
+> The point is that to play this market timing game well even once, you need to be right twice: First you need to call the high. Then you need to call the low. And you must be able to do this repeatedly. The world is filled with sad investors who got the first right and then sat on the sidelines while the market recovered and marched right on past its old high. 
+
+
+Do not listen to gurus who say they know the timing of the market.
+
+>Nothing, and I mean nothing, would be more profitable than this ability. That’s what makes it so seductive. That’s why gurus constantly claim they can do it, even if only a tiny bit. Nobody can. Not really. Not in any consistently useful way. Believing in Santa Claus is more profitable. Breeding unicorns is more likely.
+
+
+
+#### NEVER EVER SELL
+
+
+Trying to sell in a market crash is all about fear and greed, the two major emotions that drive investors. Fear is perfectly understandable. Nobody wants to lose money. But until you master it, such fear will be deadly to your wealth.
+
+- The curse of fear is that it will drive you to panic and sell when you should be holding.
+- The market is volatile. Crashes, pullbacks and corrections are all absolutely normal. They are all, each and every one, expected parts of the process.
+
+>Everybody makes money when the market is rising. But what determines whether it will make you wealthy or leave you bleeding on the side of the road is what you do during the times it is collapsing.
+
+
+>The market always goes up. Always. Bet no one’s told you that before. But it’s true. Understand this is not to say it is a smooth ride. It’s not. It is most often a wild and rocky road. But it always, and I mean always, goes up. Not every year. Not every month. Not every week and certainly not every day. But take a moment and look again at the chart of the stock market in the last chapter. The trend is relentlessly, through disaster after disaster, up.
+
+>The next 10, 20, 30, 40, 50 years will have just as many collapses, recessions and disasters as in the past. Like the good Professor says, it’s not possible to prevent them. Every time this happens your investments will take a hit. Every time it will be scary as hell. Every time all the smart guys will be screaming: Sell!! And every time only those few with enough nerve will stay the course and prosper.
+>
+>This is why you have to toughen up, learn to ignore the noise and ride out the storm; adding still more money to your investments as you go.
+
+You can expect the largest 500 companies to continue to grow. This is a safe bet.
+
+>Let’s take a moment to review why this is true. Stocks are not just little slips of traded paper. When you own stock you own a piece of a business. Many of these have extensive international operations, allowing you to participate in all the markets across the globe. These are companies filled with people working relentlessly to expand and serve their customer base. They are competing in an unforgiving environment that rewards those who can make it happen and discards those who can’t. It is this intense dynamic that makes stocks and the companies they represent the most powerful and successful investment class in history.
+
 ### Investing tips
+
+#### Tips and philosophies
 
 Tips
 
@@ -153,14 +206,44 @@ Tips
 - **keep your funds in SP500**: invest in SP500 and never sell until the end of your life.
 - **don't day trade**: statistically 90-95% of day traders lose money in the long run. Never try to pick individual stocks. You'll just fail.
 - **never sell**: buy an index fund and never sell. If you sell and miss the best days in the market, you're losing hundreds of thousands of dollars.
+- **save 50% of your income**: this will let you retire early.
 
 Philosophies
 
 - **7% returns is actually good**: You should not expect to double or triple your money. That never happens in the stock market.
 - **no company is too big to fail**: That's why you should always diversify.
+- **stock picking is a sucker's game**: you'll never be good enough to predict individual stocks ballooning.
+- **the market always goes up**: it may not be a smooth ride, but over time the market always goes up.
+- **market crashes will always happen regardless. Stay the course**: the market always rebounds after a market crash. Never sell. Keep investing.
+- **keep investments simple**: Simple is good. Simple is easier. Simple is more profitable.
 
 
+#### Why people lose money
 
+There are these reasons why people lose money when they invest, and how to avoid those mistakes:
+
+1. **they think they can time the market**: We are psychologically unsuited to prosper in a volatile market because we are loss-averse and risk-averse. The reality is that we usually buy high and sell low, panicking when times are tough and buying when the market is soaring.
+
+>Here’s a sobering fact: The vast majority of investors in mutual funds actually manage to get worse returns from their funds than the funds themselves generate and report. Let that little nugget sink in for a moment. How can this be? Our psychology is such that we can’t help trying to “time” the market. We tend to jump in and out, almost always at the wrong times.
+
+
+2. **we think we can pick stocks**: You can’t pick winning stocks. Nor can the overwhelming majority of professionals in the business.
+
+>Even slightly beating the index year after year is incredibly difficult. Only a handful of investors have been able to modestly beat it over time. Doing so makes them superstars. That’s why Warren Buffett, Michael Price and Peter Lynch are household names.
+
+3. **We believe we can pick winning mutual fund managers**: 7% of mutual funds fail per year. The fact is, few fund managers will beat the index over time. 82% failed to outperform the unmanaged index. But 100% of them charged their clients high fees to try.
+
+>Other academic studies suggest that when looking at longer time periods, even an outperformance rate of 18% is wildly optimistic. In the February 2010 issue of The Journal of Finance, Professors Laurant Barras, Olivier Scaillet and Russ Wermers presented their study of 2,076 actively managed U.S. stock funds over the 30 years from 1976 to 2006. Their conclusion? Only 0.6% showed any skill at besting the index or, as the researchers put it, the result was “...statistically indistinguishable from zero.” They are not alone. Brad Barber of UC Davis and Terrance Odean of UC Berkeley found that only about 1% of active traders outperform the market and that the more frequently they trade, the worse they do.
+>
+>There’s lots of money to be made with actively managed funds. Just not by the investors.
+
+4. **we believe day trading works**: day trading is gambling, like the foam that is not the actual value behind a business. This is the market that, if you are smart and want to build wealth over time, you will absolutely ignore.
+
+>When you look at the daily price of a given stock, it is very hard to know how much is foam. This is why a company can plummet in value one day, and soar the next. This is why CNBC routinely features experts, each impressively credentialed, confidently predicting where the market is going next—while consistently contradicting each other. It is all those traders competing to guess how much beer and how much foam is actually in the glass at any particular moment. While this makes for great drama and television, for our purposes it is only the beer that matters. It is the beer that is the real operating money making underlying businesses, beneath all that foam and froth, that over time drives the market ever higher.
+
+#### The simpler, the better
+
+>But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
 ### Which ETFs to invest in
 
 The best ETFs to invest in have these criteria:
@@ -190,18 +273,13 @@ You want to invest in stocks that pay dividends further down the line.
     
 - **Tax Efficiency in Taxable Accounts:** If held in a taxable account, dividends trigger annual taxes (qualified dividend tax rates up to 15%–20%), creating tax drag. Dividend funds are better suited during the _decumulation_ (spending) phase if income generation is needed, not during the rapid wealth-building phase.
 
-#### Stocks to invest in + portfolio composition
-
-
-Your portfolio composition should be as follows:
-
-- **80% ETFS**: VOO, SP500
-- **15% dividend ETFs**:  Vanguard High Dividend Yield ETF
-- **5% individual stocks**: use the remaining 5% to invest in NVIDIA, GOOGL, etc.
+#### Stocks to invest in
 
 **ETFs**
 
 - **VOO (Vanguard S&P 500 ETF)**: very good
+- Vanguard Morningstar Total Stock Market Index Fund Admiral Shares
+- FXAIX
 - **Vanguard FTSE global index fund**: index fund of top 3700 companies across the world.
 
 **Stocks that pay dividends**
@@ -238,7 +316,9 @@ Only do these in tax-retired accounts so you don't pay capital gains tax on divi
     - **Individual Stock / Sector Tilt (Optional):** Capped at max 5% total if desired (e.g., NVDA/GOOGL/FSELX).
 
 
+#### The wealth accumulation strategy
 
+In the wealth accumulation strategy, invest everything in VTSAX and let it sit there forever.
 ## Investment platforms
 
 ### Trading 212
@@ -356,6 +436,19 @@ Think twice before making a purchase that is above 1% of your net worth.
 3. **time**: take advantage of compound interest by never selling. Put your money into an ETF and forget about it.
 4. **ensure no leakage**: make sure to not pay high fees on the ETFs. Invest in a low-cost ETF for a long time.
 
+#### Learn to live on less
+
+>Two close boyhood friends grow up and go their separate ways. One becomes a humble monk, the other a rich and powerful minister to the king. Years later they meet. As they catch up, the portly minister (in his fine robes) takes pity on the thin and shabby monk. 
+>
+>Seeking to help, he says: “You know, if you could learn to cater to the king, you wouldn’t have to live on rice and beans.” 
+>
+>To which the monk replies: “If you could learn to live on rice and beans, you wouldn’t have to cater to the king.” 
+>
+>Most all of us fall somewhere between the two. As for me, it is better to be closer to the monk.
+
+
+
+
 ### Compound interest is the 8th wonder of the world
 
 Time compounding is the biggest factor in wealth increase. 
@@ -394,6 +487,7 @@ To achieve financial freedom by growing a business, keep in mind these principle
 2. **action as a foundation, learning as a supplement**: becoming financially free from a business requires a strong bias to action and then you learn to supplement that action. 
 	- Go first for project-based learning, where you create a business and then you learn as needed on the side.
 3. **find a way to make the journey fun**:  find a way to make the journey to financial freedom fun and you can do that by living authentically and loving what you do 
+4. **choose discipline over regret**: In life, we have to choose between the pain of discipline or the pain of regret. Discipline weighs ounces while regret weighs tons.
 ## FIRE
 
 FIRE is a movement to retire early by saving as much money as possible and then investing all of it in low-cost ETFs and then living off 4% of your yearly returns of your stock portfolio.
