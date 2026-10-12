@@ -3752,9 +3752,6 @@ You can then update for local testing using `helm upgrade` in the same way:
 ```bash
 helm upgrade [RELEASE_NAME] <path-to-chart-dir>
 ```
-## Prometheus
-
-Prometheus is an open-source monitoring and alerting system, integrating easily with Kubernetes for extensive metric collection and visualization, often paired with Grafana.
 
 ## Kubeflow
 
@@ -3763,6 +3760,22 @@ Kubeflow simplifies the deployment of machine learning workloads on Kubernetes, 
 ## KNative
 
 Knative is a platform for building and managing serverless workloads on Kubernetes, providing portability and avoiding vendor lock-in, supported by major industry players.
+
+
+## KOPS
+
+kOps is a cloud-agnostic way to deploy a kubernetes cluster to different cloud providers, like EKS, AKS, or GKE.
+
+Instead of manually setting up virtual machines and installing Kubernetes, kOps automates much of this process, creating the cluster configuration and launching the necessary cloud resources for you
+
+### Installation and setup
+
+1. Install 
+
+```bash
+brew update && brew install kops
+```
+
 
 ## Kubernetes admin
 

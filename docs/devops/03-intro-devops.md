@@ -345,6 +345,50 @@ The main components of a policy as code system are:
 - **Data:** The input that the policy evaluates, like CloudFormation templates or Terraform configuration files.
 - **Query:** The command or trigger that tells the policy engine to start evaluating the policies against the data.
 
+## Configuration management
+
+### Vagrant
+
+Vagrant is a HashiCorp tool that simplifies creating and managing developer environments. It bridges the gap between the host machine (your local computer) and the guest machine (the virtual environment) to ensure seamless integration. 
+
+By using configuration files called `Vagrantfile`, Vagrant automates the setup and configuration process, enabling teams to focus on development rather than environment management.
+
+Vagrant offers several advantages over manually configuring your virtual environment:
+
+- Vagrant ensures consistent and reproducible environments, reducing the “it works on my machine" problem and enabling smoother collaboration.
+- Vagrant environments are portable and shareable, letting teams replicate setups efficiently across projects and infrastructure.
+- Vagrant streamlines interactions with underlying virtualization tools by detecting versions and applying the correct flags. This ensures consistent behavior, even when team members use different versions of the same provider. Vagrant enhances workflows with features like synced folders, automatic networking, and HTTP tunneling, all designed to streamline development.
+
+Vagrant works with providers like VirtualBox, VMware, Docker, and more, giving you the flexibility to tailor environments to your infrastructure and application requirements.
+
+#### CLI
+
+- `vagrant up` — launches the virtual machines and installs Kubernetes.
+- `vagrant status` — shows the state of your VMs.
+- `vagrant ssh <machine-name>` — connects to a specific VM.
+- `vagrant halt` — pauses/shuts down the VMs.
+
+#### `VagrantFile`
+
+```vagrant title="VagrantFile"
+Vagrant.configure("2") do |config|
+  config.vm.define "control-plane" do |cp|
+    cp.vm.box = "ubuntu/bionic64"
+    cp.vm.hostname = "control-plane"
+    # Additional config like network, synced folders
+  end
+
+  config.vm.define "worker-node1" do |node|
+    node.vm.box = "ubuntu/bionic64"
+    node.vm.hostname = "worker-node1"
+  end
+
+  # More nodes as needed
+end
+```
+
+
+
 ## CI/CD
 
 ```embed
