@@ -2029,6 +2029,12 @@ Here's a table comparing all these services:
 | `LoadBalancer` | Yes, also creates external IP address using cloud provider to provision a load balancer. | Yes                     |
 | `NodePort`     | Yes, forwards traffic directly to `localhost` (the loopback) on the node.                | Yes                     |
 
+All services act as process (origins) that then forward to other origins, so you must supply the `spec.port` and `spec.targetPort` properties for all services.
+
+- **port**: In a Kubernetes Service, **port** is the port number that the service listens on — think of it as the front door of the service. When other parts of your cluster want to communicate with the service, they connect to this port. 
+- **targetPort**, on the other hand, is the port on the actual pod where the application is running — the back door where the service forwards the traffic. 
+
+This setup lets you expose a standard port (like 80) on the service while the pod might be listening on a different port (like 8080), providing flexibility in how your app is accessed inside the cluste
 
 #### Creating services basics
 
@@ -2240,7 +2246,7 @@ Services help expose your containers to the outer world via port forwarding, doi
 - `kubectl delete service <service-name>` : deletes the specified service
 - `kubectl describe service <service-name>` : gets detailed info about the specified service.
 
-**port forwarding**
+##### **port forwarding**
 
 ---
 
@@ -2254,6 +2260,7 @@ kubectl port-forward service/<service-name> <nodeport>:<serviceport>
 - `nodeport`: the port number on your local machine you want to forward to
 - `serviceport` : the port on the service that is currently being exposed and that you want to forward.
 
+##### Imperative pod
 
 ### Deployments in depth
 
