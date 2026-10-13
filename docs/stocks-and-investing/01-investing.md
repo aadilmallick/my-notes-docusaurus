@@ -1,6 +1,24 @@
 
 ## Investment basics
 
+### terminology
+
+- **market cap**: the total value of a company in the market, found by multiplying its stock price by the number of shares
+- **index**: A group of preselected investments used to measure the performance of a market sector, like DOW, NASDAQ and SP500
+- **blue chip stock**: a well-established company stock that has reliable performance over decades
+- **penny stock**: a stock you can buy at a low price and is considered high risk
+
+#### What to invest in based on market cap
+
+Based on market cap, you have these categories:
+
+- **micro cap**: companies valued at less than $300M in the stock market
+	- Investing in micro cap companies is high risk high reward
+- **small cap**: companies valued from $300M - $2B in the stock market
+- **large cap**: companies valued over $10B
+	- Investing in large cap companies is low risk low reward, because you will not see much growth from larger companies.
+
+The reason
 ### Investment accounts
 
 There are two types of investment accounts:
