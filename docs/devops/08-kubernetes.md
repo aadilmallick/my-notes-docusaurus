@@ -2260,7 +2260,19 @@ kubectl port-forward service/<service-name> <nodeport>:<serviceport>
 - `nodeport`: the port number on your local machine you want to forward to
 - `serviceport` : the port on the service that is currently being exposed and that you want to forward.
 
-##### Imperative pod
+##### Imperative pod exposing
+
+You can use a single command to expose a pod's port for traffic by creating a service under the hood that forwards to that target port.
+
+Here is an example:
+
+```bash
+kubectl expose pod <podname> --port <target-port> --name <service-name>
+
+kubectl expose pod mypod --port 8080 --name mypod-service
+```
+
+
 
 ### Deployments in depth
 
