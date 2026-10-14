@@ -2029,14 +2029,9 @@ Here's a table comparing all these services:
 | `LoadBalancer` | Yes, also creates external IP address using cloud provider to provision a load balancer. | Yes                     |
 | `NodePort`     | Yes, forwards traffic directly to `localhost` (the loopback) on the node.                | Yes                     |
 
-All services act as process (origins) that then forward to other origins, so you must supply the `spec.port` and `spec.targetPort` properties for all services.
 
-- **port**: In a Kubernetes Service, **port** is the port number that the service listens on — think of it as the front door of the service. When other parts of your cluster want to communicate with the service, they connect to this port. 
-- **targetPort**, on the other hand, is the port on the actual pod where the application is running — the back door where the service forwards the traffic. 
 
-This setup lets you expose a standard port (like 80) on the service while the pod might be listening on a different port (like 8080), providing flexibility in how your app is accessed inside the cluste
-
-#### Creating services basics
+#### Declarative services
 
 A basic service YAML is like so:
 
@@ -2063,11 +2058,25 @@ Each service should have a selector that points to a corresponding label on a po
 
 Here are the spec properties:
 
-- `ports`: the ports to expose
+- `spec.ports`: the ports to expose, which have these properties:
     - `port`: the port that the selected pod is listening on
     - `targetPort`: the port that the selected pod is listening on. This value is not applied if the service type is `NodePort`, so you can just omit this.
     - `nodePort`: the port to map to on your localhost. This must be a large value between 30000 - 32767, as to not interfere with important ports.
     - `protocol`: the layer 4 protocol to use, either TCP or UDP
+- `spec.type`: the service type, which can be of these types:
+	- `ClusterIP`: service gains a private IP address in cluster, facilitates intra-cluster communication.
+	- `LoadBalancer`: service provisions a load balancer infra and gains a public IP address, facilitating both intra-cluster and internet communication
+	- `NodePort`: service communicates with pods by reserving origins for one port on each node, forwards traffic to pods by running pods as an origin on a node.
+
+> [!NOTE]
+> **port vs target port**
+> ***
+> All services act as process (origins) that then forward to other origins, so you must supply the `spec.port` and `spec.targetPort` properties for all services.
+> 
+> - **port**: In a Kubernetes Service, **port** is the port number that the service listens on — think of it as the front door of the service. When other parts of your cluster want to communicate with the service, they connect to this port. 
+> - **targetPort**, on the other hand, is the port on the actual pod where the application is running — the back door where the service forwards the traffic. 
+> 
+> This setup lets you expose a standard port (like 80) on the service while the pod might be listening on a different port (like 8080), providing flexibility in how your app is accessed inside the cluste
 
 #### ClusterIP
 
