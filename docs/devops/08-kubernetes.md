@@ -340,6 +340,29 @@ You can delete the default cluster with the `minikube delete` command or delete 
 minikube delete -p [clusterName]
 ```
 
+#### Multi-node mode
+
+This is how you can create multiple virtual nodes within your minikube cluster:
+
+```bash
+minikube start --nodes=3
+```
+
+So for a node port service, you'll have something like this available:
+
+```
+minikube       192.168.49.2
+minikube-m02   192.168.49.3
+minikube-m03   192.168.49.4
+```
+
+A NodePort service can be reached through **any** of those node IPs:
+
+```
+192.168.49.2:30080
+192.168.49.3:30080
+192.168.49.4:30080
+```
 ### Minikube with deployments and pods
 
 Since minikube runs locally and you may not have access to a container registry, minikube offers a local container registry you can push to, so that you can create local images with docker and instead of having to push them up to a registry, you can just build the images locally from a Dockerfile in your codebase.
@@ -389,7 +412,9 @@ spec:
 
 ### Minikube for services
 
-If you want to test services like a LoadBalancer service locally without provisioning an actual load balancer infra, you can do so with minikube
+If you want to test services like a LoadBalancer service locally without provisioning an actual load balancer infra, you can do so with minikube.
+
+#### `LoadBalancer` service
 
 1. Create the service
 
@@ -429,6 +454,40 @@ minikube service users-service
 ```bash
 curl -d '{"email" : "test@test.com", "password": "testers"}'  http://192.168.49.2:31367/login
 ```
+
+#### `NodePort` service
+
+In minikube, the cluster VM acts itself as a node. The control plane components and any K8S resources you create are all on the same node, which is the one VM minikube provisions to act as the entire local cluster.
+
+The `minikube ip` command. returns the IP of the **primary Minikube node**. It is not a load-balanced virtual IP representing the whole cluster.
+
+So for a `NodePort` service that exposes a port on a node and runs the service as an origin on all nodes within the cluster, you can query the service like so:
+
+```bash
+curl http://$(minikube ip):$NODEPORT
+```
+
+The reason it works is:
+
+1. The IP belongs to a node.
+2. NodePort opens the port on every node.
+3. `kube-proxy` redirects traffic from that node to one of the Service's pod endpoints.
+4. The chosen pod may be on the same node or a different node.
+
+```
+Client
+  ↓
+Primary node IP (from minikube ip)
+  ↓
+NodePort
+  ↓
+kube-proxy rules
+  ↓
+Service endpoint selection
+  ↓
+Target pod
+```
+
 
 ## `kind`
 
@@ -750,181 +809,6 @@ spec:
   - Egress
 ```
 
-#### Fetching network policies
-
-
-### Ingress for cluster
-
-By default, pods can only respond to requests that come from other pods within the same cluster, meaning that by default, the highest amount of networking power is **intra-cluster communication**.
-
-If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster, which can be achieved in two possible ways:
-
-- **Method 1 - Ingress with ingress controller**: ingress defines the routing reverse proxy rules, ingress controller provisions load balancer or public IP infra to handle public ingress and then distributing it via the ingress rules.
-- **Method 2 - Load balancer service**: 
-
-An **Ingress** is simply a Kubernetes object that describes:
-
-> "How should external traffic reach my application?"
-
-
-> [!NOTE]
-> It's used when you have more than one load balancer service, where you want more granular routing rules to route ingress traffic to different services.
-
-One important thing to note is that an `Ingress` is NOT a load balancer service. It simply is a collection of routing rules, like a reverse proxy
-
-- **when to use ingress**: You only should use ingress if you have more than one public load balancer service in your cluster, which makes forwarding ingress traffic to the cluster better by acting as a single entrypoint for the cluster, removing the need for multiple load balancer services within your cluster.
-
-
-We can achieve the ingress method by adding an **Ingress** and an **Ingress controller** K8S resource:
-
-- **Ingress**: A Kubernetes ingress object is a resource that defines rules for routing external HTTP or HTTPS traffic to services within your cluster. It essentially specifies how requests should be directed based on hostnames or paths.
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: game-ingress
-spec:
-  rules:
-  - host: game.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: service-2048
-            port:
-              number: 80
-```
-
-- **Ingress Controller**: The ingress controller, on the other hand, is the software that enforces these rules. It provisions the infra to act as a reverse proxy and load balancer, receiving incoming traffic and routing it according to the ingress object’s rules. 
-
-> [!NOTE]
-> While ingress objects are built into Kubernetes, ingress controllers are separate, pluggable components that you need to install (like Ingress-Nginx or Traefik).
-
-> [!NOTE]
-> So, the ingress object sets the rules, and the ingress controller makes those rules happen by managing the traffic flow into your cluster.
-
-
-Here's how an ingress request to your cluster works at a high level
-
-1. An external HTTP request sends ingress traffic to a cluster IP address the **Ingress** object made.
-2. The ingress object sends that traffic to the ingress controller.
-3. The ingress controller checks the list of rules that you set up on your ingress, and routes traffic to the appropriate pod.
-
-**example**
-
-Let's create a real production examples based on three microservices: 1) frontend 2) orders 3) payments, trying to achieve this routing scheme:
-
-```
-https://app.example.com
-        |
-        +--> /
-        |      -> frontend-service
-        |
-        +--> /orders
-        |      -> orders-service
-        |
-        +--> /payments
-               -> payments-service
-```
-
-
-1. Create an ingress with the appropriate routing rules:
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: microservices-ingress
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /
-        backend:
-          service:
-            name: frontend
-
-      - path: /orders
-        backend:
-          service:
-            name: orders
-
-      - path: /payments
-        backend:
-          service:
-            name: payments
-```
-
-#### Services vs ingress
-
-- **services**: used primarily for internal load balancing between pods, providing stable IP and DNS addressing for inter-pod and intra-cluster communication.
-
-```
-Pod1
-Pod2
-Pod3
-  ^
-  |
-Service
-```
-
-- **ingress**: Handles external ingress traffic and then routing that via reverse proxy. It sits above services.
-
-```
-Internet
-   |
-   v
-Ingress
-   |
-   v
-Service
-   |
-   v
-Pods
-```
-
-- **load balancer service**: a special type of service which provisions a load balancer infra with a public IP, enabling it to receive ingress traffic and then reroute it via intracluster traffic to pods that are targeted by that service.
-
-```
-Pod1
-Pod2
-Pod3
-  ^
-  |
-Load balancer Service <---- internet ingress traffic
-```
-#### Creating an ingress and ingress controller with nginx
-
-The `Ingress` object in kubernetes allows you to define the ingress rules as well as the specific third-party ingress controller to use for the reverse proxy functionality of the ingress controller.
-
-1. Use the NGINX ingress controller
-2. Define the available DNS host for ingress as `lil-microservices.com`
-3. On HTTP requests, accept all `/*` matching routes and redirect that to the `frontend-ui` service.
-
-```yaml
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: example-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
-spec:
-  rules:
-    - host: lil-microservices.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend-ui
-                port:
-                  number: 8080
-```
 
 
 ### Service meshes
@@ -2031,7 +1915,7 @@ Here's a table comparing all these services:
 
 
 
-#### Declarative services
+#### services to pod connection
 
 A basic service YAML is like so:
 
@@ -2056,6 +1940,9 @@ Each service should have a selector that points to a corresponding label on a po
 1. On a pod resource YAML, provide a value for `metadata.labels.app`
 2. On a service YAML, use that same pod label value on `spec.selector.app`
 
+> [!IMPORTANT]
+> The most important thing to understand about pod-targeting with services is that there can be more than one eligible target, and thus traffic is load balanced to all of them for any type of service.
+
 Here are the spec properties:
 
 - `spec.ports`: the ports to expose, which have these properties:
@@ -2078,6 +1965,34 @@ Here are the spec properties:
 > 
 > This setup lets you expose a standard port (like 80) on the service while the pod might be listening on a different port (like 8080), providing flexibility in how your app is accessed inside the cluste
 
+##### Imperative
+
+You can do the same thing imperatively
+
+You can use a single command to expose a pod's port for traffic by creating a service under the hood that forwards to that target port.
+
+Here is an example:
+
+```bash
+kubectl expose pod <podname> --port <target-port> --name <service-name>
+
+kubectl expose pod mypod --port 8080 --name mypod-service
+```
+
+
+##### Declarative
+
+The equivalent of that declaratively is the following:
+
+1. Create a pod that exposes port 8080 and has label `app: blue-green`
+2. Create a `ClusterIP` service with `spec.selector` set to `app: blue-green` to target all pods with that label.
+	- **port**: the service port being 80 means that the service runs as a process on port 80.
+	- **targetPort**: the exposed port on the target pods to forward traffic to.
+
+
+![](https://i.imgur.com/MrkpFYz.jpeg)
+
+Now traffic will be load balanced from the service to all pods with the label `app: blue-green`, to the target port 8080.
 #### ClusterIP
 
 Gives a private fixed IP address for the pod within the cluster, enabling **intra-cluster** communication between pods in different nodes.
@@ -2145,7 +2060,8 @@ spec:
     app: my-web-app
 ```
 
-3. **Access the Application**: Once the service is created, you can access your application by going to `http://<NodeIP>:30001`. `<NodeIP>` is the IP address of any node in your cluster.
+3. **Access the Application**: Once the service is created, you can access your application by going to `http://<NodeIP>:30001`. 
+	- `<NodeIP>` is the IP address of any node in your cluster.
 
 ![](https://i.imgur.com/2hcFQhF.jpeg)
 
@@ -2269,17 +2185,199 @@ kubectl port-forward service/<service-name> <nodeport>:<serviceport>
 - `nodeport`: the port number on your local machine you want to forward to
 - `serviceport` : the port on the service that is currently being exposed and that you want to forward.
 
-##### Imperative pod exposing
+### Ingress for cluster
 
-You can use a single command to expose a pod's port for traffic by creating a service under the hood that forwards to that target port.
+By default, pods can only respond to requests that come from other pods within the same cluster, meaning that by default, the highest amount of networking power is **intra-cluster communication**.
 
-Here is an example:
+If you want external internet traffic to be able to request resources in your cluster like pods via a DNS or IP address, then you need to add **ingress** to the cluster, which can be achieved in two possible ways:
 
-```bash
-kubectl expose pod <podname> --port <target-port> --name <service-name>
+An **Ingress** is simply a Kubernetes object that describes:
 
-kubectl expose pod mypod --port 8080 --name mypod-service
+> "How should external traffic reach my application?"
+
+- **Method 1 - Ingress with ingress controller**: ingress defines the routing reverse proxy rules, ingress controller provisions load balancer or public IP infra to handle public ingress and then distributing it via the ingress rules.
+- **Method 2 - Load balancer service**: provisions a load balancer with a public IP address that then accepts internet ingress traffic and forwards that traffic to targeted pods.
+
+An ingress acts as a reverse proxy for your K8S cluster resources, which provides these benefits:
+
+- **granular routing rules**: forward traffic depending on matching route paths
+- **prevent publicly exposing services**: you can route to cluster-internal services, which in turn forward traffic to private K8S resources.
+- **easier than multiple load balancers**: You should use ingress if you have more than one public load balancer service in your cluster, which makes forwarding ingress traffic to the cluster better by acting as a single entrypoint for the cluster, removing the need for multiple load balancer services within your cluster.
+
+#### Services vs ingress
+
+- **services**: used primarily for internal load balancing between pods, providing stable IP and DNS addressing for inter-pod and intra-cluster communication.
+
 ```
+Pod1
+Pod2
+Pod3
+  ^
+  |
+Service
+```
+
+- **ingress**: Handles external ingress traffic and then routing that via reverse proxy. It sits above services.
+
+```
+Internet
+   |
+   v
+Ingress
+   |
+   v
+Service
+   |
+   v
+Pods
+```
+
+- **load balancer service**: a special type of service which provisions a load balancer infra with a public IP, enabling it to receive ingress traffic and then reroute it via intracluster traffic to pods that are targeted by that service.
+
+```
+Pod1
+Pod2
+Pod3
+  ^
+  |
+Load balancer Service <---- internet ingress traffic
+```
+
+
+Therefore there is a key difference between ingress and services:
+
+- **ingress is a reverse proxy**: One important thing to note is that an `Ingress` is NOT a load balancer service. It simply is a collection of routing rules, like a reverse proxy. It does not do any load balancing across target services.
+- **services load balance**: the only purpose of services is to forward traffic to target pods and load balance the traffic across all targeted pods.
+
+Another key difference:
+
+- **ingresses target services**: Ingresses forward traffic to IP addresses or DNS names, which is suited for targeting services.
+
+Ingress and services work together. 
+
+1. Ingresses act as a reverse proxy to redirect the traffic granularly to target services.
+2. Services act as a load balancer to 
+
+
+
+
+#### Creating an ingress and ingress controller
+
+We can achieve the ingress method by adding an **Ingress** and an **Ingress controller** K8S resource:
+
+- **Ingress**: A Kubernetes ingress object is a resource that defines rules for routing external HTTP or HTTPS traffic to services within your cluster. It essentially specifies how requests should be directed based on hostnames or paths.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: game-ingress
+spec:
+  rules:
+  - host: game.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: service-2048
+            port:
+              number: 80
+```
+
+- **Ingress Controller**: The ingress controller, on the other hand, is the software that enforces these rules. It provisions the infra to act as a reverse proxy and load balancer, receiving incoming traffic and routing it according to the ingress object’s rules. 
+
+> [!NOTE]
+> While ingress objects are built into Kubernetes, ingress controllers are separate, pluggable components that you need to install (like Ingress-Nginx or Traefik).
+
+> [!NOTE]
+> So, the ingress object sets the rules, and the ingress controller makes those rules happen by managing the traffic flow into your cluster.
+
+
+Here's how an ingress request to your cluster works at a high level
+
+1. An external HTTP request sends ingress traffic to a cluster IP address the **Ingress** object made.
+2. The ingress object sends that traffic to the ingress controller.
+3. The ingress controller checks the list of rules that you set up on your ingress, and routes traffic to the appropriate pod.
+
+**example**
+
+Let's create a real production examples based on three microservices: 1) frontend 2) orders 3) payments, trying to achieve this routing scheme:
+
+```
+https://app.example.com
+        |
+        +--> /
+        |      -> frontend-service
+        |
+        +--> /orders
+        |      -> orders-service
+        |
+        +--> /payments
+               -> payments-service
+```
+
+
+1. Create an ingress with the appropriate routing rules:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          service:
+            name: frontend
+
+      - path: /orders
+        backend:
+          service:
+            name: orders
+
+      - path: /payments
+        backend:
+          service:
+            name: payments
+```
+
+
+
+##### WIth NGINX
+
+The `Ingress` object in kubernetes allows you to define the ingress rules as well as the specific third-party ingress controller to use for the reverse proxy functionality of the ingress controller.
+
+1. Use the NGINX ingress controller
+2. Define the available DNS host for ingress as `lil-microservices.com`
+3. On HTTP requests, accept all `/*` matching routes and redirect that to the `frontend-ui` service.
+
+```yaml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - host: lil-microservices.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-ui
+                port:
+                  number: 8080
+```
+
 
 
 
