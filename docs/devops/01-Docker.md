@@ -155,6 +155,11 @@ mount -t sysfs none /sys # filesystem
 mount -t tmpfs none /tmp # filesystem
 ```
 
+The flags represent all the built-in linux namespaces we can add into our own custom namespace:
+
+
+![](https://i.imgur.com/PwYpMTk.jpeg)
+
 #### `cgroup`
 
 Right now, even with jailed processes and namespaces, we have no way for something like a hypervisor would do for resource management, to prevent one jailed process from hogging all the RAM and starving other jailed processes.
@@ -164,7 +169,36 @@ Cgroups (control groups) are a Linux kernel feature for isolating and limiting c
 The `cgroup` command is a command that lets you allocate a predefined amount of resources that a process should have, not allowing it to go beyond that point.
 
 
+### Container runtimes
 
+In the early days of containers (2014/2015), containers were started and managed by a container engine, which has these components:
+
+- **container runner**: a core component that runs the containers
+- **optional daemon**: optional daemon that controls the containers.
+- **command line interface**
+
+Docker and Podman are examples of a container engine.
+
+Nowadays, we package our containers via the OCI (open containers initiative), which describe the standard format for packaging applications into containers.
+
+Container runtimes split off from container engines as separate projects, where a CRI (container runtime interface) provides an abstract interface to implement a container engine.
+
+- **ContainerD**: the common runtime for Docker containers.
+- **CRI-O**: the common runtime for Podman
+- **Runc**: the OCI-standardized container runtime that can run Containerd and Cri-O and all other container runtimes.
+
+Here's how it all fits together.
+
+![](https://i.imgur.com/gPcpEOr.jpeg)
+
+#### `crictl` as the CRI CLI
+
+Since all container runtimes implement the CRI, you can use the same CRI-compatible CLI to interface with any kind of container, be it docker, orb, or podman.
+
+```bash
+# like docker ps
+crictl ps
+```
 
 ## Docker Basics
 
@@ -213,7 +247,7 @@ EXPOSE 8000
 > [!NOTE]
 > The `CMD` command will not be executed when an image is built, but rather when a container is built from the image and spins up.
 
-**Dockerignore**
+#### **Dockerignore**
 
 To avoid copying over or including files and folders you don’t want, docker has a similar concept to git called a `.dockerignore` file. You’ll often put `node_modules` and `.git` in there.
 
@@ -222,7 +256,7 @@ node_modules
 .git
 ```
 
-**Building docker images**
+#### **Building docker images**
 
 The `docker build` command looks for a dockerfile and builds a docker image from that.
 
@@ -240,23 +274,21 @@ docker build --tag <image-name>:<tag-number> .
 - The `image-name` will be the name of your image, and the `tag-number` will be the specific docker tag versioning to fetch a specific container version.
 - The tag number doesn’t really have to be a number, but it’s recommended. In fact, it’s “latest” by default.
 
-**Running docker images**
 
-To run a specific docker image, we need to refer the image by its name, which you should have specified when you created the docker image
-
-```bash
-docker run -it -p <LOCAL_PORT>:<CONTAINER_PORT> <IMAGE_NAME>
-```
-
-The `docker run` command runs the container based on the instructions in the dockerfile. You can then use the `docker ps` command to look at all your currently running containers
-
-- The `-p` command specifies which port mapping behavior we define for running the docker image.
-    - In the docker image, we expose a port for public use. Our application code running in the docker image will use that to create a server.
-    - The `-p` syntax is like `-p <LOCAL_PORT>:<CONTAINER_PORT>` , so if we do a mapping of `3000:8000`, it shows that we want to map the container’s exposed 8000 port to our localhost:3000.
-    - Keep in mind, it only makes sense to map publicly exposed ports in our container.
-- The `-it` command puts you in an interactive container, meaning it gives you some visual feedback.
 
 ### DockerFile
+
+#### CMD vs ENTRYPOINT
+
+There can only be one `ENTRYPOINT` or `CMD` command per Dockerfile.
+
+- `ENTRYPOINT`: the default command to be executed on container startup.
+	- If not specified, the default command is `/bin/sh -c` (opens the bash shell)
+- `CMD`: the command to run on container startup
+	- This is given highest priority.
+
+
+![](https://i.imgur.com/isaXI4X.jpeg)
 
 #### Variables
 
@@ -404,9 +436,22 @@ The most important part here is dependencies. Before copying over any files, we 
 Doing the install early on ensures container caching and faster rebuilding as long as we don’t modify the contents of the package JSON.
 ### Running containers
 
-#### Naming containers
+#### Basics
 
-You can name containers while running them to ensure easy ways to reference them later on. You do this through the `--name` tag.
+To run a specific docker image, we need to refer the image by its name, which you should have specified when you created the docker image
+
+```bash
+docker run -it -p <LOCAL_PORT>:<CONTAINER_PORT> <IMAGE_NAME>
+```
+
+The `docker run` command runs the container based on the instructions in the dockerfile.
+
+- `-p`: specifies which port mapping behavior we define for running the docker image.
+    - In the docker image, we expose a port for public use. Our application code running in the docker image will use that to create a server.
+    - The `-p` syntax is like `-p <LOCAL_PORT>:<CONTAINER_PORT>` , so if we do a mapping of `3000:8000`, it shows that we want to map the container’s exposed 8000 port to our localhost:3000.
+    - Keep in mind, it only makes sense to map publicly exposed ports in our container.
+- `-it`:  puts you in an interactive container, meaning it gives you some visual feedback.
+- `--name`: You can name containers while running them to ensure easy ways to reference them later on. You do this through the `--name` tag.
 
 #### Supplying environment variables
 
@@ -717,7 +762,8 @@ Here are 4 benefits of working with docker networks in multi-container applicati
 - **Service Discovery**: Allows containers to find and connect to other containers by their name or alias within the same network.
 - **Portability**: Networking configurations are defined as part of the container or service definition, making them more portable.
 
-#### How networking works on your laptop
+#### Docker networking theory
+##### How networking works on your laptop
 
 Your laptop typically has one NIC that connects to your network into the switch and has a single IP address (e.g., `172.21.17.78`) that the layer 3 router recognizes.
 
@@ -744,13 +790,20 @@ Containers have their own namespaces. Each container can have its own network na
 ![](https://i.imgur.com/SJiWxV6.jpeg)
 
 
-Docker isolates containers by instructing the OS kernel to carve out independent **Network Namespaces**.
+Docker isolates containers by instructing the OS kernel to carve out independent **Network Namespaces** (using `unshare` with the `--net` flag)
 
 - **Complete Isolation:** When a container is born inside its own network namespace, it cannot see the host's network configuration.
 - **Blank Slate:** Inside its namespace, the container has its own private loopback interface (`127.0.0.1`), its own independent routing table, and its own firewall (`iptables`) rules.
 
-> [!NOTE]
-> Since each container has its own IP address, referencing localhost within a container literally just references the loopback address on that IP address, not your host `localhost`
+Here are the rules:
+
+1. Each container gets its own network namespace.
+2. Because of the network namespace, each container has its own IP address.
+3. Ports need to be unique in the network namespace
+
+Since each container has its own IP address, referencing localhost within a container literally just references the loopback address on that IP address, not your host `localhost`.
+
+To achieve this container-to-host mapping, we must manually map a host port to the container port.
 
 **virtual NICs**
 
@@ -809,11 +862,16 @@ Here's the breakdown:
 4. **lo (Loopback Interface)**:
     
     - **inet 127.0.0.1**: A virtual interface used for internal communication within the host.
-#### How networking works in Docker
+##### How networking works in Docker
 
 **Docker bridge**
 
-If network namespaces are completely isolated, how do they talk to each other or reach the internet? Docker builds a software-defined local area network using a **Virtual Bridge** (usually named `docker0`).
+If network namespaces are completely isolated, how do they talk to each other or reach the internet? Docker builds a software-defined local area network using a **Virtual Bridge** (usually named `docker0`) that creates an **overlay network**.
+
+- **overlay network**: a virtual network that allows containers running on different hosts to communicate.
+- **CNI**: the CNI provides a standard for defining the overlay network
+
+The overlay network through the CNI manages the IP addresses for different containers.
 
 A virtual bridge acts exactly like a physical hardware switch, but it exists purely in your computer's RAM and CPU cycles.
 

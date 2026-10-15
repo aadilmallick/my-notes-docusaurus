@@ -73,6 +73,11 @@ Here is how K8S orchestrates node failure and recovery
 
 #### Terminology
 
+
+
+![](https://i.imgur.com/2vJHYlk.jpeg)
+
+
 - **node** : a single virtual machine that can deploy and run multiple pods and replicas of those pods. Think of docker desktop being a node.
     - **worker node:** A specific type of node whose sole purpose is to run pods. It can be local (docker desktop) or remote (EC2 instance)
     - **master node:** A single node that is also called the control plane, used to manage all worker nodes.
@@ -285,9 +290,17 @@ CONTROL PLANE (Brain)
 
 ## Minikube basics
 
+Minikube allows you to run a kubernetes cluster on your local computer for practice.
+
+Here are the defaults:
+
+- **single worker node**: a single worker node that contains the control plane and data plane all within that node
+
+You can configure all these defaults and change them to provision multiple nodes, different compute settings, etc.
+
 ### Minikube and Kubectl Setup
 
-Minikube allows you to run a kubernetes cluster on your local computer for practice.
+
 
 1. Install on WSL
 
@@ -322,25 +335,66 @@ kubectl get services -A # get all services
 
 ### Minikube management
 
+#### Minikube CLI reference
+
 - `minikube start`: creates a local cluster you can use
 - `minikube tunnel`: proxies internet traffic from your locally running minikube cluster to your local machine on `localhost`, making services able to run on `localhost`.
 - `minikube delete`: deletes the cluster.
+- `minikube status`: returns the status of the cluster
+- `minikube ip`: returns the IP of the primary worker node of the cluster. 
 
 #### starting and deleting clusters
 
-You can start a cluster with the `minikube start` command or even name your cluster with the `-p` flag like so to easily identify it later:
+You can start a cluster with the `minikube start` command
 
 ```bash
-minikube start -p [clusterName]
+minikube start
 ```
 
-You can delete the default cluster with the `minikube delete` command or delete a specific named cluster via the `-p` flag:
+You can delete the default cluster with the `minikube delete` command.
 
 ```bash
-minikube delete -p [clusterName]
+minikube delete
 ```
 
-#### Multi-node mode
+#### `minikube start`
+
+**CPU and memory**
+
+You can define how much CPU cores and memory to give to the cluster.
+
+```bash
+minikube start --cpus=4 --memory=8192
+```
+
+This configuration provides 4 CPUs and 8GB of memory to your Minikube cluster, which can significantly improve performance for resource-intensive applications.
+
+**profiles**
+
+The `-p/--profile` flag lets you create a "profile" for a minikube cluster that you can then reload later to load the cluster with all your settings.
+
+> [!NOTE]
+> This approach allows you to maintain separate development environments for different projects or testing scenarios without interference between them.
+
+```bash
+minikube start -p <profile-name>
+```
+
+You can list all your profiles to see what profiles are available:
+
+```bash
+minikube profile list
+```
+
+To switch between profiles, you can use the profile command:
+
+```bash
+minikube profile minikube
+```
+
+This command switches the active profile to "minikube," reconfiguring kubectl to interact with that cluster.
+
+**multi-node mode**
 
 This is how you can create multiple virtual nodes within your minikube cluster:
 
@@ -362,6 +416,24 @@ A NodePort service can be reached through **any** of those node IPs:
 192.168.49.2:30080
 192.168.49.3:30080
 192.168.49.4:30080
+```
+
+
+### Minikube addons
+
+You can add addons to minikube which include plugins like networking plugins, metrics server, ingress, etc.
+
+To see which add-ons are available and their status:
+
+```bash
+minikube addons list
+```
+#### Metric server
+
+Here is how to enable the metrics server add on
+
+```bash
+minikube addons enable metrics-server
 ```
 ### Minikube with deployments and pods
 
@@ -462,7 +534,12 @@ minikube service users-service
 ```bash
 curl -d '{"email" : "test@test.com", "password": "testers"}'  http://192.168.49.2:31367/login
 ```
+ 
+You can also pass the `--url` option to the `minikube service` command to non-interactively get the public service URL:
 
+```bash
+curl $(minikube service hello-minikube --url)
+```
 #### `NodePort` service
 
 In minikube, the cluster VM acts itself as a node. The control plane components and any K8S resources you create are all on the same node, which is the one VM minikube provisions to act as the entire local cluster.
@@ -675,6 +752,15 @@ The `kubectl wait` command allows you to wait for a specific condition or proper
 ```bash
 kubectl wait --for=condition=Ready pod -l app=webhook
 ```
+
+#### kubectl completion
+
+Run this command to get bash shell completion:
+
+```bash
+source <(kubectl completion bash)
+```
+
 ### Kubectl Config
 
 The `~/.kube/config` file contains configuration about all the k8s clusters and contexts available that you can connect to:
@@ -755,6 +841,11 @@ Kubernetes networking model has four main requirements:
 3. **intra-cluster communication**: Pods must be able to communicate with services. 
 4. **internet communication**: There must be a way for traffic from the internet to communicate with services inside a Kubernetes cluster. 
 
+
+
+![](https://i.imgur.com/d8HJyuc.jpeg)
+
+
 Since a node represents a physical machine, you can think of a node as a subnet within an LAN and a cluster, which consists of many nodes, as the LAN itself. Here are the analogies:
 
 - **cluster**: consider this like a LAN with its cluster IP being a default gateway being some private IP address, but via a local cloud controller manager like `minikube`, we can make the default gateway's public IP address forwarding to `127.0.0.1`.
@@ -779,7 +870,7 @@ This leads to three core consequences:
     
 2. **No NAT Between Pods**: Since all pods are on the same network, there’s no translation of addresses. The IP a pod sees itself as is the same IP others use to reach it.
     
-3. **Node-to-Pod Communication**: Nodes can also communicate with any pod, and vice versa, without NAT.
+3. **Node-to-Pod Communication**: Nodes can also communicate with any pod inside it, and vice versa, without NAT.
 
 > [!NOTE]
 > Pods can have one or more containers, but all containers in a pod share the same network namespace (same IP and ports).
@@ -912,16 +1003,6 @@ spec:
 
 
 
-### Service meshes
-
-A service mesh in Kubernetes is software you install in your cluster that manages all internal service-to-service communication. 
-
-- It handles service discovery, encrypts traffic between pods for security, and provides authentication and authorization options. 
-- Additionally, it offers observability tools to monitor the health of your microservices.
-
-While it simplifies managing complex microservices architectures by taking over network management tasks, it also introduces a new system you need to learn and manage. 
-
-Popular service meshes include Istio, Linkerd, and HashiCorp Consul. 
 
 ## Kubectl constructs
 
@@ -2171,13 +2252,18 @@ Let’s go over some basic use cases of services:
 
 
 
-There are four types of services you can have:
+There are five types of services you can have:
 
 - `ClusterIP` : the default, which gives the service a public IP address that is accessible only from within the cluster.
 	- Only other pods within the cluster can communicate with the service, but not from localhost.
 - `LoadBalancer` : load balances requests from the service to all matching pods it has from its `selector` property. It operates at **layer 4**, meaning it uses the TCP protocol.
-- `Ingress`: a load balancer but operates at the **layer 7** level, meaning it uses intelligent protocols like HTTP and SMTP and can make intelligent load balancing decisions based on the contents of the web packets.
 - `NodePort` :  exposes pods to external traffic by allocating an exposed port accepting ingress traffic on each node in the cluster, then the service uses the node's IP address for receiving ingress traffic.
+- `Headless`: service without an IP address, meant for internal use for multi-container pods performing intra-cluster communication.
+- `ExternalName`: provide a DNS alias for a pod
+
+
+![](https://i.imgur.com/NK1NXTP.jpeg)
+
 
 Here's a table comparing all these services:
 
@@ -2410,7 +2496,15 @@ spec:
 
 #### Connecting to services
 
+##### Accessing ClusterIP services
 
+`ClusterIP` services have private IP addresses within the cluster, so they are not accessible unless you are within the cluster itself.
+
+You can do this by SSHing into the cluster, or if using minikube, just use this command:
+
+```bash
+minikube ssh
+```
 ##### Intra-pod / Inter-container communication
 
 Containers within the same pod can request each other through `localhost` on their respective exposed ports since a pod acts like a VM in this case. 
@@ -2533,11 +2627,6 @@ Ingress and services work together.
 
 1. Ingresses act as a reverse proxy to redirect the traffic granularly to target services.
 2. Services act as a load balancer to distribute traffic among the targeted pods.
-
-
-
-
-
 
 #### Creating an ingress and ingress controller
 
@@ -3291,19 +3380,26 @@ kubectl create secret generic <secret-name> --from-literal=<KEY>=<VALUE>
 
 ### Affinity and pod scheduling
 
+#### Pod scheduling
+
+Pod scheduling refers to how we can control pods being placed in different nodes.
+
+K8S does this automatically via the kube-scheduler component, but we might want extra control as in these use cases:
+
+- **we want a pod to be on a specific node**: some pods running ML work would prefer to be on a node with a GPU.
+- **pod compute requests**: we have specific compute resource requests for a pod that need to be fulfilled by a compatible node that can accomodate that pod's requests.
+- **availability**: we can choose to place pod replicas in separate worker nodes or even availability zones to maximize availability
+- **latency**: we can choose to place pods that communicate with each other in the same worker node or availability zone
+
+To control pod scheduling, we use **pod affinity** and **node affinity**
+
+#### Intro affinity
+
 - **pod affinity**: when one pod has an "affinity" for another pod; it wants to live close to that pod.
 - **node affinity**: when you enable node affinity for a pod, it wants to be scheduled on a specific worker node.
 
 ![](https://i.imgur.com/EzW9IeY.jpeg)
 
-You declare affinity for a pod or node at the pod-level, where you can set the following:
-
-- **pod to pod affinity**: control a pod's affinity or anti-affinity
-
-Every type of affinity or anti-affinity requires you to choose a strictness level for scheduling:
-
-
-#### Pod affinity
 
 Pod affinity matters if two pods communicate with each other over the cluster network.
 
@@ -3533,6 +3629,21 @@ To prevent pods from being scheduled to a node, we use **taints** and **tolerati
 1. Put a taint on a node, which prevents any pod from being scheduled to that node
 2. Put a toleration on a pod to tolerate a specific taint, allowing the pod to be scheduled to that node.
 
+### Service meshes
+
+A service mesh in Kubernetes is software you install in your cluster that manages all internal service-to-service communication. 
+
+- It handles service discovery, encrypts traffic between pods for security, and provides authentication and authorization options. 
+- Additionally, it offers observability tools to monitor the health of your microservices.
+
+> [!NOTE]
+> While it simplifies managing complex microservices architectures by taking over network management tasks, it also introduces a new system you need to learn and manage. 
+
+
+The service mesh interface (SMI) defines a spec of how a service mesh should eb implemented.
+
+Popular service mesh implementations include Istio, Linkerd, and HashiCorp Consul. 
+
 ### RBAC
 
 A Kubernetes service account is a machine user identity that pods run as inside the cluster. 
@@ -3551,7 +3662,7 @@ Here are what pods with the default service account are able to do:
 - **self pod CRUD**: able to view its own pod info
 - **environment info**: able to view environment info like control plane version and the namespace of the pod.
 
-#### Creating custom service accounts
+#### Creating custom service accounts + basic RBAC
 
 > [!NOTE]
 > Creating a custom service account instead of using the default one for all pods is important for security and control. 
@@ -3560,6 +3671,12 @@ Here are what pods with the default service account are able to do:
 > - By creating a custom service account, you can assign only the specific permissions that a particular pod or application needs, following the principle of least privilege.
 
 
+To assign RBAC permissions to a service account, we need to create these K8S resources:
+
+- `Roles`: roles specify a combination of allowed CLI verbs and resources (nouns) to create a list of allowed permissions for that role
+- `RoleBinding`: role bindings attach roles to service accounts
+
+These are the steps to create a service account and assign RBAC permissions to it:
 
 1. Create a service account resource
 
@@ -3699,13 +3816,74 @@ spec:
 snyk iac test <k8s-yaml-file>
 ```
 
+## Kubernetes and cloud native
+
+### What is Cloud Native?
+
+Cloud native is a solution that allows organizations to run scalable applications in the cloud, using these components:
+
+- **microservices and containers**: microservices running as containers for horizontal scaling and decoupling
+- **service meshes**: reverse proxy infra to control traffic flow between different services
+- **declarative APIs and immutable infrastructure**: IaC to declaratively create containers and microservices.
+
+#### 12-factor app
+
+The 12-factor app is a methodology for creating robust cloud-native solutions.
+
+Here is the 12-factor app with kubernetes:
+
+1. **codebase**: one codebase, tracked in version control, with all IaC tracked as well.
+2. **dependencies**: explicitly declare and isolate dependencies of pods with probes and init containers.
+3. **config**: store configuration variables in secrets, environment variables, and config maps
+4. **backing services**: treat backing services like pluggable networking as plugins
+5. **build, release, run**: strictly separate build and run stages
+6. **processes**: execute the app as one or more stateless processes: microservices or containers
+7. **port binding**: export services via port binding
+8. **concurrency and parallelism**: use replica sets to run multiple copies of the same process
+9. **disposability**: maximize robustness with fast startup and graceful shutdown. Use probes.
+10. **dev/prod parity**: keep development, staging, and production as similar as possible via containers and environment variables
+11. **logs**: treat logs as event streams and store them in the orchestration layer, not the application itself.
+12. **admin processes**: run admin/management tasks as one-off processes (ansible playbooks, kubernetes jobs)
+
+#### Cloud native standards
+
+These interface allow abstraction over networking in orchestration systems:
+
+- **SMI (service mesh interface)**: describes how to implement service mesh in orchestrated systems.
+
+These interfaces allow abstraction over container plugin implementation details
+
+- **CNI (container network interface)**: defines how to implement networking for containers
+- **CRI (container runtime interface)**: defines how to implement container runtimes in orchestration systems like Kubernetes
+- **CSI (container storage interface)**: defines how to implement storage for containers in orchestration systems like Kubernetes
+
+Check out [[01-Docker#Container runtimes]] for more info.
+
+
+#### Cloud native DNS
+
+- **service**: a networking component with a stable IP address and DNS name
+- **service registry**: stores the mapping of service DNS name to the IP addresses the service is supposed to forward traffic to
+
+Cloud native systems implementing cloud native DNS should include these components to create a robust service solution:
+
+- API that makes it easy for services to auto-register. 
+- Key-value store that is used to store essential system information and which may be used for service discovery, like Etcd.
+
+#### Cloud native storage
+
+Cloud native storage has two different methods for storing data on containers:
+
+- **ephemeral read-writable layer**: a container is ephemeral, but has a read-writable layer in the working directory specified by the `WORKDIR` directive in a container image. 
+	- All data written to a container within this read-writable layer will be destroyed after a container dies
+- **decoupled volume**: mounting an external volume onto a container and then writing to that volume will persist the data, since the volume is decoupled from the container.
 ## K8S practice
 
 ### Level 1 - Basic microservices
 
 #### Create the deployments
 
-1. Create a deployment that has a web server pod running on port 3000, and a service that proxies the traffic for that pod forwarding port 3000 on that pod to port 80 on the cluster IP address, via the `ClusterIP` service type./
+1. Create a deployment that has a web server pod running on port 3000, and a service that proxies the traffic for that pod forwarding port 3000 on that pod to port 80 on the cluster IP address, via the `ClusterIP` service type.
 
 ```yaml
 --- 

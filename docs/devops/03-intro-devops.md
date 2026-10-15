@@ -1903,11 +1903,30 @@ OTel changes the observability architecture by replacing third-party paid vendor
 
 ### Observability fundamentals
 
+#### Events
 
+Events are anything that is deemed important for business, security, or troubleshooting reasons and can range from user actions, system errors, configuration changes, security breaches, network traffic, performance metrics, to software updates and service statuses.
+
+Some common examples of events include:
+
+- Completing a batch processing job.
+- Triggering scheduled tasks or [cron jobs](https://betterstack.com/community/guides/linux/cron-jobs-getting-started/).
+- Changes in user permissions or roles.
+- Receiving an incoming HTTP request.
+- Database transactions like creating, updating, or deleting records.
+- Executing a function.
+- Registering or authenticating a user.
+- Initiating or terminating a background process.
+- Writing data to a file.
+- Making an HTTP request to some API.
+
+Every event carries its own set of contextual information. For instance, a database query may include details like the query statement, the execution time, the transaction that initiated the query, and the number of affected rows.
+
+Events are divided into metrics, logs, and traces.
 
 #### Metrics
 
-##### What makes a good metric
+##### Intro
 
 This is what makes for good metrics. They have these properties:
 
@@ -1915,6 +1934,13 @@ This is what makes for good metrics. They have these properties:
 - **actionable**: alerts your team and drives change
 - **improvable**: able to be improved upon after action
 - **multidimensional**: adds tags to your metrics for more info, like which stage the environment is in.
+
+Here are the benefits of metrics:
+
+1. **easy to generate alerts**: Metrics offer a more efficient means of generating alerts compared to logs because querying a time-series database is typically much faster than querying log data.
+2. **help in performance auditing**: They are also instrumental in performance optimization and tuning. By tracking response times, throughput, and resource utilization, you can identify bottlenecks and inefficiencies within your systems, helping you make informed decisions about where to allocate resources for maximum impact.
+3. **tracks business value**: Another critical use case for metrics is in business intelligence and decision-making. Numbers related to user engagement, feature usage, and transaction volumes offer valuable insights into customer behavior and preferences.
+4. **help in incident response**: Finally, metrics are fundamental in incident response and post-mortem analysis. When an incident occurs, metrics can help in quickly identifying the scope and impact. After resolving the issue, a detailed analysis of the relevant metrics can reveal the root cause and inform strategies to prevent future occurrences.
 
 ##### Metric types
 
@@ -1970,6 +1996,10 @@ We also use percentile notation for histograms:
 ![](https://i.imgur.com/O0cWbce.jpeg)
 
 
+##### Cardinality
+
+High-cardinality data, like email addresses or transaction IDs, are typically avoided in metrics due to their vast and unpredictable range but low-cardinality data such as Boolean values, response time buckets are much more manageable.
+
 
 ##### Google's four golden signals
 
@@ -2008,6 +2038,29 @@ Here are the different log level semantics you should stick to:
 > [!NOTE]
 > In production, we only filter to listen to log levels of `INFO` and above to cut out debug noise.
 
+Applications generate a variety of logs, each serving a distinct purpose, including but not limited to:
+
+- **Debug logs**: Designed specifically for troubleshooting, these logs provide extensive detail to facilitate quick resolution of issues. Given their voluminous nature, debug logs are typically generated in limited scenarios, such as during a debugging session, rather than continuously, to avoid overwhelming storage and processing capacities.
+    
+- **Error logs**: These logs document the occurrence of unexpected errors within the application's operations. They capture critical information about the error condition, such as the type of error, the location within the application where it occurred, and a timestamp. This helps in diagnosing issues and preventing future occurrences.
+    
+- **Audit logs**: These logs track and record sequential actions or events, offering a transparent trail of activities including user actions, system changes, or data access, making them invaluable for compliance and security.
+    
+- **Application logs**: These are records of significant events at the application level, encompassing business transactions, state changes, and other events critical to the business logic of the application. They're pivotal for understanding the application's behavior in the context of business operations.
+    
+- **Security logs**: Focused on security-related events, these logs are essential for detecting, understanding, and responding to security incidents. They record login attempts, access control activities, and any other actions that could affect the application's security posture.
+
+**Log benefits**
+
+- **quicker troubleshooting**: One of the primary benefits of logs is their role in troubleshooting and debugging. When something goes wrong, logs provide the historical context needed to understand the sequence of events leading up to an issue which effectively decreases the Mean Time To Acknowledgement (MTTA), a crucial metric for evaluating incident response efficiency.
+- **shortens time to detect an issue**: Essentially, by shortening the time to detect an issue, log data allows responders to start addressing the problem sooner, which ultimately minimizes application downtime and reduces the incident's impact on end-users.
+- **security and compliance**: Security and compliance is another area where logs play a critical role. By recording all attempts to access the system, successful or otherwise, these logs can help identify patterns of malicious activity, unauthorized access attempts, and potential vulnerabilities within the system.
+- **ux audit**: Logging is also commonly used to gain insights into user behavior, application performance, and usage patterns. This information is invaluable for strategic decisions, such as where to allocate resources for development, how to improve user experience, and which features or services are most valued by users.
+
+**Log limitations**
+
+- **logging storage**: The impact of logging on system performance can also not be overlooked. Detailed logging can significantly consume resources, affecting application efficiency. Balancing the need for detailed logs while maintaining system efficiency requires careful tuning and consideration.
+- **security leaks**: Another challenge is ensuring the security and privacy of log data. Since logs often contain sensitive information, they must be transmitted and stored securely to [ensure private data isn't leaked](https://betterstack.com/community/guides/logging/sensitive-data/) to the outside world.
 #### Traces
 
 Traces track the complete journey of a request through a system, so we can visualize it and see what went wrong.
@@ -2051,6 +2104,14 @@ Here is what happens if you skimp out on any one of these signals:
 - **skipping metrics**: you will never be alerted of the error.
 - **skipping traces**: without traces it will be considerably harder for us to understand which specific component caused the failure in the system. 
 - **skipping logs**: without logs it will be considerably harder to understand the exact reason why the error occurred in that specific component. 
+
+**metrics with logs**
+
+Metrics are particularly useful for pinpointing performance bottlenecks within an application's subsystems by tracking latency and throughput, which logs, given their detailed and context-rich nature, might struggle to do efficiently.
+
+Once a potential issue is identified through metrics, logs can then provide the detailed context needed to drill down into specific problematic requests or events.
+
+This illustrates the complementary roles of logs and metrics: metrics offer a high-level overview with limited context, ideal for monitoring and performance analysis across broad system components, while logs provide deep, contextual details for thorough investigation of specific events.
 
 #### SLI, SLO, SLA
 
