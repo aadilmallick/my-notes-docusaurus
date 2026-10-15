@@ -1009,6 +1009,12 @@ The `namespace` resource (shorthand `ns`) is used for controlling namespaces via
 
 #### Tying resources to a namespace
 
+There are two types of resources in K8S:
+
+- **namespaced resources**: things like pods, deployments, and configmaps, which are arbitrary constructions and can be sectioned off via namespaces
+- **non-namespaced resources**: things like nodes or ingress resources, which are real infra and thus cannot use namespaces. 
+	- Also namespaces cannot be namespaced
+
 You can tie resources to namespaces in two different ways:
 
 - **imperatively:** Use the `-n <namespace-name>` option to refer to a namespace. Without the `-n` option, all the commands for creating resources will be run in the default namespace.
@@ -1317,6 +1323,9 @@ MONGO_URI="mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@$SE
 
 #### Pod observability
 
+
+
+
 You can perform wellness checks on your pods to see if they are responding correctly, which is good for making sure certain pods are up and running before trying to communicate with them. 
 
 These checks are called probes and there are three of them:
@@ -1327,10 +1336,20 @@ These checks are called probes and there are three of them:
 3. **liveness probe**: indicates whether the code is running or not
 	- A failing liveness probe will restart the container.
 
+##### Pod lifecycle
+
+
 Kubernetes knows to restart a pod when it detects that the pod's container has crashed or exited with a nonzero status code.
 
 1. It continuously monitors the pod's state, and if the container stops unexpectedly, Kubernetes automatically restarts it to keep your application running.
 2. Additionally, Kubernetes uses liveness probes—health checks you define that periodically test if the pod is healthy. If a liveness probe fails, Kubernetes treats the pod as unhealthy and restarts it.
+
+Kubernetes needs to know when a pod is ready to accept traffic. By default, it declares that a pod is unable to receive traffic if:
+
+- the container process of a pod crashes
+- the container process of a pod exits, whether in failure or successfully
+
+If you need more granular control over when to determine if a pod is ready or not (maybe the pod needs a database connection or health check), then you should use a **readiness probe**.
 ##### Probes
 
 Each of these probes has a suitable, appropriate test you can configure, which can be of these three types:
@@ -1781,7 +1800,7 @@ Autoscaling adjusts the number of deployment replicas based on CPU usage or cust
 The Horizontal Pod Autoscaler (HPA) decides to add more pods by monitoring metrics like CPU usage across your current pods. 
 
 1. It looks at the average CPU utilization compared to the CPU requests you've set for your pods.
-2. When this average goes above a target threshold (commonly 80%), the HPA automatically increases the number of pod replicas to handle the load and keep performance stable.
+2. When this average goes above a target threshold (commonly 80%) of the resource requests of a pod, the HPA automatically increases the number of pod replicas to handle the load and keep performance stable.
 
 Here is an example of setting the limit with CPU utilization:
 
@@ -1789,6 +1808,11 @@ Here is an example of setting the limit with CPU utilization:
 2. **set replica bounds**: set minimum and maximum number of replicas to maintain
 	- minimum replicas should be 1
 	- minimum replicas should be 5
+
+
+> [!IMPORTANT] 
+> It's important to always understand that the metric threshold observability is based on the resource `requests` of a pod, not the limits or the average, therefore it's mandatory to set compute requests on a pod if you want to autoscale it.
+
 
 Now if the CPU utilization threshold of 70% is breached on any of the pods in the deployment, the number of replicas increases up to the maximum 5 replicas gradually.
 
@@ -1822,7 +1846,7 @@ This is the full workflow to achieve horizontal scaling:
 2. Create a `HorizontalPodAutoscaler` resource that targets the deployment whose pods you want to scale, as well as specifying these three components:
 	- **minimum replicas**: the minimum amount of replicas the targeted deployment must maintain
 	- **maximum replicas**: the maximum amount of replicas the targeted deployment must not go over.
-	- **metric**: a custom metric threshold value which determines when to increase or decrease replica count.
+	- **metric**: a custom metric threshold value based on the resource request limits, which determines when to increase or decrease replica count.
 
 Here is an example of using a custom metric which is average CPU utilization across the pods.
 
@@ -3109,8 +3133,10 @@ Here is how you can give pods access to configuration values and secrets:
 1. **create config maps and secrets**: create config map and secret k8s resources, which store data in key-value pairs
 2. **connect pods to config maps and secrets**: pods must reference config maps and secrets to use their data
 3. **inject key-value pairs into the containers**: you can inject and store the key-value pairs into the containers via different two ways:
-	- **volume**: attach config map and secrets as volume onto pod, then mount that volume to a container.
-	- **environment variables**: set environment variables on the individual containers of the pod that use the key-value pairs from config maps and secrets to convert them into environment variables.
+	- **volume**: attach config map and secrets as volume onto pod, then mount that volume to a container.  
+		- **how it works**: Each key-value pair becomes a file (key becomes filename, value becomes file content) in the mountpath folder.
+	- **environment variables**: set environment variables on the individual containers of the pod that use the key-value pairs from config maps and secrets to convert them into environment variables. 
+		- **how it works**: Each key-value pair becomes an env var and value pair
 
 #### Config maps
 
@@ -3157,7 +3183,7 @@ spec:
               key: colour
 ```
 
-- **volume method**: first 1) attach the config map as a volume onto the pod, then 2) mount that volume to a container.
+- **volume method**: first 1) attach the config map as a volume onto the pod, then 2) mount that volume to a container
 
 
 ```yaml
@@ -3473,11 +3499,86 @@ To prevent pods from being scheduled to a node, we use **taints** and **tolerati
 
 ### RBAC
 
+A Kubernetes service account is a machine user identity that pods run as inside the cluster. 
+
+A **service account** lives at the pod level, and acts as an IAM role equivalent for pods, containing permissions that decide granularly what a pod process can or can't do when querying the K8S api.
+
+All pods have a default service account with basic RBAC permissions, but you can create new service accounts and attach permissions to those.
+
 > [!NOTE]
-> All pods have a `default` service account which gives them RBAC access to the control plane API.
+> By default, all pods use the "default" service account, but you can create custom service accounts to give specific permissions only to certain pods.
+
+However, by default, this service account has minimal or no permissions to perform actions on the Kubernetes API. This means pods running with the default service account generally cannot create, modify, or delete Kubernetes resources unless explicit permissions are granted.
+
+Here are what pods with the default service account are able to do:
+
+- **self pod CRUD**: able to view its own pod info
+- **environment info**: able to view environment info like control plane version and the namespace of the pod.
+
+> [!NOTE]
+> Creating a custom service account instead of using the default one for all pods is important for security and control. 
+> 
+> - The default service account is shared by all pods that don't specify one, so granting permissions to it would give those permissions to every pod in your cluster — which can be risky. 
+> - By creating a custom service account, you can assign only the specific permissions that a particular pod or application needs, following the principle of least privilege.
+
+
 
 1. Create a service account resource
 
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+	name: myserviceaccount
+```
+
+2. Assign a pod that service account resource you created:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-service-account
+spec:
+  serviceAccount: my-service-account
+  containers:
+    - name: envbin-sa
+      image: mtinside/envbin:latest
+
+```
+
+3. Define a `Role` with specific permissions:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-reader
+# this role gives kubectl get/watch/list pods permissions from within the pod
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+```
+
+4. Bind the role to the service account
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: my-service-account
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
 
 ## Kubernetes security
 
