@@ -612,7 +612,15 @@ Besides that, you have these rules:
 
 ### Kubectl CLI
 
-#### View K8S resource info in YAML
+#### kubectl commands to YAML
+
+You have two important flags that lets you run any kubectl command and get the output in declarative YAML:
+
+- `-o yaml`: outputs the result of the resource created in YAML
+- `--dry-run`: doesn't actually execute the command, just performs a dry run of it. 
+
+> [!TIP]
+> `--dry-run` is useful when paired with `-o yaml` to see what a certain kubectl command would actually output.
 
 The below command works with all resources and lets you view all the info of a specific provisioned resource within your cluster in YAML format:
 
@@ -624,6 +632,7 @@ Here's an example
 
 ```bash
 kubectl get pod my-pod -o yaml
+kubectl create configmap my-configmap --from-file=index.html -o yaml --dry-run
 ```
 
 #### Explain a resource
@@ -803,9 +812,10 @@ A network policy in K8S is a set of rules that allow you to control traffic flow
 > [!NOTE]
 >  By default, all pods can freely communicate, but network policies let you restrict this traffic to enforce security principles like least privilege and zero trust.
 
-When no network policy is in place, all pods within the same node are able to communicate with each other via inter-pod communication and if services are live, intra-cluster communication as well, without any filtering or checking. This violates the principle of least privilege and zero trust.=
+When no network policy is in place, all pods within the same node are able to communicate with each other via inter-pod communication and if services are live, intra-cluster communication as well, without any filtering or checking. This violates the principle of least privilege and zero trust.
 
-To use network policies, your cluster must have a CNI plugin that supports them, such as Calico
+> [!NOTE]
+> One thing to always keep in your mind is that network policies are overkill for many applications, and as such, GKE and minikube don't support network policies and thus applying `NetworkPolicy` resources won't do anything.
 
 **How network policies work**
 
@@ -816,11 +826,19 @@ When defining a network policy for a pod, for each firewall rule you need to def
 - **ingress or egress**: whether the traffic type the rule applies to is ingress traffic or egress traffic.
 - **allow or deny**: whether to allow to deny the traffic of the specific network type.
 
+**using network policies**
+
+1. To use network policies, your cluster must have a CNI plugin that supports them, such as Calico.
+
+2. As soon as you add a network policy to your cluster, you've opted into the granular control that network policies provide, and all traffic gets denied by default. 
+
+3. Then you have to configure your specific network policies to actually change that behavior. 
+
 #### **creating network policies**
 
 There is a special `NetworkPolicy` resource in K8S that allows you to define a network policy for a pod or for multiple pods via the `spec.podSelector` object:
 
-**ingress example**
+##### **ingress example**
 
 For example, what the below network policy is saying is that for the pod with selector `app: echo-server`, only allow ingress traffic to that pod from the pod with selector `app: learning-resources` and on port 80.
 
@@ -843,7 +861,7 @@ spec:
         - port: 80
 ```
 
-**egress example**
+##### **egress example**
 
 The example below allows egress traffic from the pod with selector `app: frontend-ui` to the subnet `172.11.0.0/20`, which is probably a node and all the pods within it.
 
@@ -863,7 +881,7 @@ spec:
         - ipBlock:
             cidr: 172.11.0.0/20
 ```
-#### Deny-all policy
+##### Deny-all policy
 
 This deny all policy basically blocks all traffic from one pod to another pod:
 
@@ -948,7 +966,14 @@ What if you want to see a resource type across all namespaces? You can do so wit
 kubectl get pods --all-namespaces
 ```
 
+##### Default service
 
+The default service in a Kubernetes cluster is called "Kubernetes." It acts as the internal API endpoint for the Kubernetes Control Plane. 
+
+This service is always present, even in an empty cluster, and it allows pods to communicate with the control plane's API. 
+
+- Essentially, it serves as the central point where cluster management commands are handled.
+- While all pods can send requests to this service, they don't have permission to make changes unless explicitly granted, which helps keep the cluster secure.
 
 #### Creating namespaces
 
@@ -1749,9 +1774,14 @@ spec:
             # value: redis://localhost:6379 
 ```
 
-##### Autoscaling
+##### Autoscaling with HPA
 
 Autoscaling adjusts the number of deployment replicas based on CPU usage or custom metrics, with specified minimum and maximum limits for the number of replicas that you can configure.
+
+The Horizontal Pod Autoscaler (HPA) decides to add more pods by monitoring metrics like CPU usage across your current pods. 
+
+1. It looks at the average CPU utilization compared to the CPU requests you've set for your pods.
+2. When this average goes above a target threshold (commonly 80%), the HPA automatically increases the number of pod replicas to handle the load and keep performance stable.
 
 Here is an example of setting the limit with CPU utilization:
 
@@ -1788,12 +1818,43 @@ spec:
 
 This is the full workflow to achieve horizontal scaling:
 
-1. Define resource request limits on each container within a pod
+1. Define resource request limits on each container within a pod, which is mandatory to limit memory and CPU.
 2. Create a `HorizontalPodAutoscaler` resource that targets the deployment whose pods you want to scale, as well as specifying these three components:
 	- **minimum replicas**: the minimum amount of replicas the targeted deployment must maintain
 	- **maximum replicas**: the maximum amount of replicas the targeted deployment must not go over.
 	- **metric**: a custom metric threshold value which determines when to increase or decrease replica count.
 
+Here is an example of using a custom metric which is average CPU utilization across the pods.
+
+```yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-tier
+  labels:
+    app: microservices
+    tier: app
+spec:
+  # 1. threshold and bounds
+  maxReplicas: 5
+  minReplicas: 1
+  metrics:
+	  - type: Resource
+	    resource:
+		    name: cpu
+		    target:
+			    type: Utilization
+			    averageUtilization: 80
+
+  # 2. define what deployment to autoscale for
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app-tier
+```
+
+> [!NOTE]
+> You can also configure it to scale based on memory or custom metrics if you use advanced monitoring tools like Prometheus
 
 
 ![](https://i.imgur.com/XXEKK2f.jpeg)
@@ -3055,6 +3116,15 @@ Here is how you can give pods access to configuration values and secrets:
 
 You specify all key-value pairs under the `data` key in a config map.
 
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+	name: color-config
+data:
+	color: pink
+```
+
 In a pod, you can extract data from a specified config map by going into the `env` key on a container, and using the `valueFrom` key to specify that you want to extract the environment variable from another K8 resource. 
 
 You specify `configMapKeyRef` as telling you want to pull from a config map, which needs two properties:
@@ -3069,26 +3139,66 @@ Once you connect a config map resource to a pod, there are two methods to actual
 
 ![](https://i.imgur.com/FIq2Qom.jpeg)
 
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pink
+spec:
+  containers:
+    - name: pink
+      image: mtinside/blue-green:blue
+      env:
+        - name: COLOUR
+          valueFrom:
+            configMapKeyRef:
+              name: colour-config
+              key: colour
+```
+
 - **volume method**: first 1) attach the config map as a volume onto the pod, then 2) mount that volume to a container.
+
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pink
+spec:
+  containers:
+    - name: pink
+      image: mtinside/blue-green:blue
+      volumeMounts:
+	      - name: color-volume
+	        mountPath: /usr/share/nginx/html
+  volumes:
+    - name: color-volume
+      configmap:
+	      name: colour-config
+```
 
 ##### Imperative use
 
 **create a config map**
 
-```
-kubectl create configmap 
+```bash
+kubectl create configmap website --from-file=index.html --dry-run -o yaml
 ```
 
 #### Secrets
 
-Secrets are used the exact same way as config maps except that they obfuscate plain text to base64, intended for storing sensitive data.
+Secrets are used the exact same way as config maps except that they obfuscate plain text to base64, intended for storing sensitive data. Here are the rules:
+
+1. **The control plane encrypts secrets**: Kubernetes enhances the security of data in Secrets by encrypting the data at rest within its control plane database, so the sensitive information isn't stored in plain text.
+2. **Secrets are never written to disk on the worker node**: When Secrets are mounted as files in pods, the data is never written to the worker node's disk, which helps prevent unauthorized access.
+3. **secrets are obfuscated with base64**: Additionally, Secrets are stored and retrieved in Base64 encoding, adding a layer of obfuscation.
 
 
 In Kubernetes Secrets, both stringData and data are used to store key-value pairs, but they work differently:
 
 - `stringData`: This field allows you to provide secret values as plain (unencoded) strings. When you apply the manifest, Kubernetes automatically encodes these values to base64 and stores them in the data field. 
 	- It’s a convenient way to write secrets without manually encoding them.
-    
 - `data`: Here, you must provide values already encoded in base64. Kubernetes stores these values as-is.
 
 > [!NOTE]
@@ -3154,6 +3264,15 @@ The `topologyKey` defines the _domain_ or boundary where you don't want pods to 
 - **`topology.kubernetes.io/zone`:** Keeps pods in different Availability Zones (highly recommended for production clouds like EKS).
 - **`kubernetes.io/hostname`:** Keeps pods on different physical/virtual nodes. If you have 3 replicas, each will go to a different server.
 
+**in summary**
+
+| Feature Property           | Traditional Pod Anti-Affinity                                                                                               | Topology Spread Constraints                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Primary Goal**           | Total separation; ensuring pods **do not live together** on a domain.                                                       | Even distribution; balancing workloads **proportionally** across domains.                   |
+| **Granularity Control**    | None. It is binary (allowed vs. not allowed).                                                                               | High. Uses `maxSkew` to set the exact maximum difference in pod counts between zones.       |
+| **Unsatisfiable Behavior** | Strict failure (`Pending`) or complete fallback choice.                                                                     | `ScheduleAnyway` balances as much as possible before dropping constraints safely.           |
+| **Typical Production Fit** | Best for small single-instance setups (e.g., ensuring a primary database and secondary database run on different hardware). | Best for large autoscaling stateless services running dozens of nodes across public clouds. |
+
 ##### Pod affinity example
 
 Here is an example of manually setting a pod's affinity for another:
@@ -3204,20 +3323,32 @@ To set up pod anti-affinity declaratively, follow these steps:
 
 
 ```yaml
+apiVersion: apps/v1
 kind: Deployment
-...
-  replicas: 10
-...
-    containers:
-      - name: web
-        image: nginx
-    topologySpreadConstraints:
-      - labelSelector:
-          matchLabels:
-            app: web
-        topologyKey: topology.kubernetes.io/zone
-        maxSkew: 1
-        whenUnsatisfiable: ScheduleAnyway
+metadata:
+  name: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: web
+          image: nginx:alpine
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: frontend # Avoid other instances of myself
+              # Distribute across separate availability zones
+              topologyKey: "topology.kubernetes.io/zone" 
+              maxSkew: 1
 ```
 
 - `maxSkew: 1`: even out the pod replicas in each availability zone, make sure they all have an equal amount of replicas.
@@ -3226,6 +3357,20 @@ kind: Deployment
 ![](https://i.imgur.com/0U380iR.jpeg)
 
 - `topologyKey: topology.kubernetes.io/zone`: organize pods across availability zones
+
+Here's another example:
+
+```yaml
+spec:
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule # Alternative to ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app: web
+
+```
 
 Here's another example:
 
@@ -3265,6 +3410,74 @@ Node affinity in Kubernetes is a scheduling feature that lets you specify which 
 > 
 > - For example, you can tell Kubernetes to schedule machine learning pods only on nodes with GPUs by using node affinity. 
 > - This helps optimize resource usage by matching pods to the right nodes, breaking the usual abstraction where Kubernetes treats all nodes as a uniform pool.
+
+##### Node affinity examples
+
+If you have nodes in your company network explicitly labeled with `hardware-tier=high-mem` to handle heavy resource pools, you can mandate that a database pod only run there.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-db
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cache-db
+  template:
+    metadata:
+      labels:
+        app: cache-db
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+      affinity:
+        nodeAffinity:
+          # Hard rule enforcement
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: hardware-tier
+                    operator: In
+                    values:
+                      - high-mem
+```
+
+To save costs on non-critical web apps, you can tell the scheduler to favor cheap EC2 Spot nodes, but fall back to baseline On-Demand nodes if Spot capacity is empty.
+
+```yaml
+spec:
+  affinity:
+    nodeAffinity:
+      # Soft rule enforcement
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100 # Highest preference weight (1-100)
+          preference:
+            matchExpressions:
+              - key: ://amazonaws.com
+                operator: In
+                values:
+                  - SPOT
+
+```
+##### Node anti-affinity
+
+Node anti-affinity is useful when you want pods to stay of certain nodes, like wanting a web server pod to not be on a ML node.
+
+To prevent pods from being scheduled to a node, we use **taints** and **tolerations**
+
+1. Put a taint on a node, which prevents any pod from being scheduled to that node
+2. Put a toleration on a pod to tolerate a specific taint, allowing the pod to be scheduled to that node.
+
+### RBAC
+
+> [!NOTE]
+> All pods have a `default` service account which gives them RBAC access to the control plane API.
+
+1. Create a service account resource
+
 
 ## Kubernetes security
 
