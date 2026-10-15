@@ -409,7 +409,15 @@ spec:
           imagePullPolicy: Never
 ```
 
+### Minikube dashboard visualizations
 
+The `minikube dashboard` command lets you visualize a GUI over your K8S resources in your minikube cluster
+
+```bash
+minikube dashboard
+```
+
+This command runs the local dashboard server in the cluster as a Pod, talking to the local control plane.
 ### Minikube for services
 
 If you want to test services like a LoadBalancer service locally without provisioning an actual load balancer infra, you can do so with minikube.
@@ -588,6 +596,9 @@ You can also request multiple resources at once via comma separation:
 ```bash
 kubectl get deployments,pods,services
 ```
+
+
+
 ### kubectl YAML basics
 
 All k8s YAML files must have these two keys:
@@ -595,10 +606,54 @@ All k8s YAML files must have these two keys:
 - `apiVersion`: should be set to v1
 - `kind`: the type of resource this YAML is
 
-Basides that, you have these rules:
+Besides that, you have these rules:
 
 - **can have multiple resources in one YAML**: it's possible to have multiple resources defined in one YAML by separating the resources with a `---` fence.
 
+### Kubectl CLI
+
+#### View K8S resource info in YAML
+
+The below command works with all resources and lets you view all the info of a specific provisioned resource within your cluster in YAML format:
+
+```bash
+kubectl get <resource> <resource-name> -o yaml
+```
+
+Here's an example
+
+```bash
+kubectl get pod my-pod -o yaml
+```
+
+#### Explain a resource
+
+```bash
+kubectl explain <resource>
+```
+
+This command explains everything you can do with pods
+
+```bash
+kubectl explain pod
+```
+
+
+#### Get diff of YAML file
+
+Shows a diff of a YAML file from the current unapplied changes compared to the previously applied changes.
+
+```bash
+kubectl diff -f blue-green.yaml
+```
+
+#### Watch a command
+
+The `watch kubectl` command allows you to watch any kubectl command in real time and get live updates:
+
+```bash
+watch kubectl get pods
+```
 ### Kubectl Config
 
 The `~/.kube/config` file contains configuration about all the k8s clusters and contexts available that you can connect to:
@@ -645,6 +700,22 @@ users:
     token: some-bullshit
 
 ```
+
+
+### Kubectl `krew`
+
+`kubectl krew` is a k8s package manager that ships with kubectl. It provides additional commands/packages you can download to do extra things on top of the kubectl CLI.
+
+Here's an example:
+
+```bash
+kubectl krew install tree
+kubectl tree deployment blue-green
+```
+
+
+
+![](https://i.imgur.com/I4TAe2i.jpeg)
 
 
 
@@ -991,7 +1062,7 @@ spec:
           image: academind/kub-first-app:2
 ```
 
-##### CLI
+#### Targeting labels with CLI
 
 We can target resources using the `--selector` option or the `--label` option
 
@@ -999,6 +1070,10 @@ We can target resources using the `--selector` option or the `--label` option
 kubectl get pods --selector=myapp
 ```
 
+```bash
+kubectl logs --label app=blue-green
+kubectl logs -l app=blue-green
+```
 
 #### Labels
 
@@ -1112,12 +1187,22 @@ spec:
 ```
 ##### **compute request**
 
+It's important to specify available compute limits for a pod to avoid the **noisy neighbor** problem of a pod hogging too much RAM on a node.
+
 You can specify the amount of compute (memory and CPU) a container within a pod gets under the `spec.containers.resources` key, specifying both **requests** and **resources**
 
 - `spec.containers.resources.requests`: the requests for the minimum amount of compute that should be available for use.
 - `spec.containers.resources.limits`: the requests for the maximum amount of compute that a container can use up.
 
-For both 
+For both of those objects, you have these fields:
+
+- `memory`: the amount in megabytes of gigabytes to allocate for the RAM of the pod. 
+	- Examples are `64Mi` or `1Gi`.
+- `cpu`: the amount of CPU cores of a node to reserve for the pod.
+	- Examples are `1`, which refers to a full CPU core. Another example is something like `100m`, which is 100 millicores
+
+> [!NOTE]
+> If a pod has compute requests far above what is available at the time, that pod will not be scheduled onto a node and it will continue to sit in the queue until space frees up so it can fit onto a node that can accommodate its compute requests.
 
 ```yaml
 --- 
@@ -1162,6 +1247,15 @@ spec:
 		  fieldRef:
 			fieldPath: status.podIP
 ```
+
+> [!NOTE]
+> How to measure CPU compute
+> ***
+> In Kubernetes, CPU resources are measured in cores. When you see **1** CPU, it means the pod can use one full CPU core — that's a lot of processing power. On the other hand, **100m** means 100 millicores, or 0.1 of a CPU core (10%). So, 100m is just a fraction of a full core.  
+>   
+> This lets you allocate CPU very precisely. For example, if your app only needs a small amount of CPU, you might request 100m. If it needs more power, you might request 1 or more cores. Also, pods can burst above their requested CPU if limits allow, but they can never exceed the set limit.  
+>   
+> Think of it like reserving a slice of CPU time: 1 is a full slice, and 100m is a tenth of that slice.
 
 #### Multi-container pods
 
@@ -1208,6 +1302,10 @@ These checks are called probes and there are three of them:
 3. **liveness probe**: indicates whether the code is running or not
 	- A failing liveness probe will restart the container.
 
+Kubernetes knows to restart a pod when it detects that the pod's container has crashed or exited with a nonzero status code.
+
+1. It continuously monitors the pod's state, and if the container stops unexpectedly, Kubernetes automatically restarts it to keep your application running.
+2. Additionally, Kubernetes uses liveness probes—health checks you define that periodically test if the pod is healthy. If a liveness probe fails, Kubernetes treats the pod as unhealthy and restarts it.
 ##### Probes
 
 Each of these probes has a suitable, appropriate test you can configure, which can be of these three types:
@@ -1250,11 +1348,12 @@ Each probe has these same properties that influence the frequency of the probe a
 
 There are different behaviors that K8 takes whenever you fail one of the probes:
 
-- **failing readinessProbe**: if you fail a readiness probe, the container stops accepting traffic.
+- **failing readinessProbe**: if you fail a readiness probe, the pod stops accepting traffic.
 - **failing startupProbe**: if you fail a startup probe, the entire pod restarts.
+- **failing `livenessProbe`**: if you fail a liveness probe, the pod restarts.
 
 > [!IMPORTANT]
-> All container probes must pass for the pod to pass.
+> All container probes must pass for the pod to pass and be considered ready to receive traffic.
 
 Probes are declared at the container level.
 
@@ -1385,6 +1484,10 @@ spec:
             - run-script
             - await-redis
 ```
+
+
+
+
 #### Imperative pods
 
 ##### Pod management
@@ -1434,6 +1537,9 @@ You can check out the logs of a pod or execute commands in it interactively with
 ```bash
 kubectl exec -it <podname> -- sh
 ```
+
+- `-i`: interactive
+- `-t`: with tty
 
 **checking logs**
 
@@ -1495,6 +1601,7 @@ Deployments manage a single pod template and can also manage replica sets, abstr
 ![](https://i.imgur.com/m9yoJeB.jpeg)
 
 
+
 Here is how you can declaratively define replica set behavior:
 
 
@@ -1507,6 +1614,32 @@ Here is how you can declaratively define replica set behavior:
     - `Recreate` : kills all existing pods before creating new ones
 - `template` : you create the pod declaratively here, specifying the containers to run, the env variables, the volumes, etc. It’s just a `pod.yaml` essentially.
 
+Here's an example of a deployment YAML:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blue-green
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blue-green
+  template:
+    metadata:
+      labels:
+        app: blue-green
+    spec:
+      containers:
+        - name: blue-green
+          image: mtinside/blue-green:blue
+```
+
+Deployment know which pods to manage via label-selector syntax:
+
+1. Specify deployment template to have pods with label `app: blue-green`
+2. Make deployment target pods with label `app: blue-green` in the `spec.selector.matchLabels` object.
 #### Deployment scaling
 
 ##### Deployment imperative scaling
@@ -1686,8 +1819,7 @@ This can involve changes to configurations, such as environment variables or lab
 
 Any change to the deployment’s template triggers a rollout, and there are different rollout strategies you can set on the deployment:
 
-- **rolling update strategy**: replicas are updated in groups rather than all at once, allowing the service to remain available during the update process. 
-	- This is the default.
+- **rolling update strategy**: replicas are updated in groups or one at a time rather than all at once, allowing the service to remain available during the update process. This is the default.
 - **recreate strategy**: kills all old deployments and then immediately creates the new version, incurring brief downtime but ensuring only the newest version of the app is running at any one time.
 
 ##### `kubectl rollout` CLI
@@ -1726,6 +1858,15 @@ These next commands deal with rollbacks, where you can rollback to the immediate
  
 - **pro**: Keeps application available while gradually rolling out new version of the deployment in groups.
 - **con**: since both old and new versions of the deployment will be running simultaneously for a brief period of time, you need to gracefully handle different application versions in your codebase.
+
+> [!NOTE]
+> A rolling update in Kubernetes is a way to update your application pods gradually, one at a time, without causing downtime. 
+> 
+> Instead of stopping all old pods and starting new ones at once—which could make your service unavailable—Kubernetes replaces pods incrementally. 
+> 
+> This means it terminates one old pod and starts a new one before moving on to the next, ensuring your application stays available throughout the update.
+> 
+> You can also pause or roll back the update if something goes wrong, making deployments safer and smoother.
 
 
 Here is the spec for a rolling update strategy on a deployment:
@@ -1788,6 +1929,9 @@ A DaemonSet workload is used to ensure all nodes run exactly one instance of a p
 
 It makes sure that as new nodes are added to the cluster, specified pods are automatically replicated and added to those nodes and run.
 
+- **use case**: This is useful for running services like caches or monitoring agents that need to be present on all nodes to provide fast, local access. 
+- **main property**: Unlike other Kubernetes resources that manage pods more abstractly, DaemonSets directly tie pods to nodes, making sure each node has its own instance of the pod.
+
 Here are the rules:
 
 - **one pod per node**: daemonsets place one pod per node for all nodes in a cluster,
@@ -1815,18 +1959,21 @@ You can also create DaemonSets imperatively through the `ds` resource:
 
 #### StatefulSet
 
-Containers are stateless by design, but StatefulSets offer stateful approaches
+Containers are stateless by design, but StatefulSets offer stateful approaches.
 
-A StatefulSet workload is like a deployment that maintains the ids for each pod, making them have the same persistent reference/identifier even across runs.
+A StatefulSet in Kubernetes is a resource designed to manage stateful applications, like databases, where each pod needs a unique identity and stable storage. 
+
+Unlike Deployments that create identical, interchangeable pods for stateless apps, StatefulSets treat each pod individually, allowing them to coordinate with each other—such as managing leaders and followers in a database cluster. 
 
 > [!NOTE]
-> A statefulSet is an object that lets an updated Kubernetes application communicate with the same volume as the previous pod.
+> This makes StatefulSets essential for running applications that require persistent state and ordered, stable deployment.
+
 
 Here are the rules:
 
-- If a pod dies, it is replaced with a new one with the exact same identifier and IP address.
-- Pods are added in sequence, and deletes pods in sequence
-- New pods after old ones die will share the same attached volumes, meaning data persists across pod deaths.
+1. If a pod dies, it is replaced with a new one with the exact same identifier and IP address.
+2. Pods are added in sequence, and deletes pods in sequence
+3. New pods after old ones die will share the same attached volumes, meaning data persists across pod deaths.
 
 
 
@@ -1841,7 +1988,13 @@ Here are the CLI commands to create stateful sets imperatively using the `sts` r
 - `kubectl delete sts <sts-name>`: delete a specific stateful set
 #### Job
 
-Jobs are workloads for short-lived tasks that run pods, get a termination status, and then cleanup themselves. Think of them like jobs from github actions - just there to do some task and then end. 
+Jobs are workloads for short-lived tasks that run pods, get a termination status, and then cleanup themselves. 
+
+> [!IMPORTANT]
+> We cannot use pods for one-off containers that execute a command and then exit, because if a pod exits a process and stops executing and does not have a container that runs on a port, Kubernetes thinks that the pod is in `CrashLoopBackoff` and will continuously try to restart the pod, leading to infinite restarts.
+
+> [!NOTE]
+> Think of them like jobs from github actions - just there to do some task and then end. 
 
 - **job success criteria**: You control the metrics for whether the job should succeed or fail.
 - **job execution behavior**: Jobs are run sequentially by default. You have to specify parallelism.
@@ -1855,6 +2008,7 @@ Here are the important keys concerned with declaratively creating a job:
 - `parallelism`: if this key is specified, you need to provide the number of containers in the pod you want to run in parallel.
 - `completions`: The number of pods that should successfully run and exit in order for a job to be considered successfully completed.
 - `template.spec`: the pod template that should be run in a job, where you define your short-lived containers that do some command and then exit.
+	- `restartPolicy`: set this to `Never` to make sure the job only tries to run once.
 
 ##### Imperative job control
 
@@ -2252,11 +2406,14 @@ Therefore there is a key difference between ingress and services:
 Another key difference:
 
 - **ingresses target services**: Ingresses forward traffic to IP addresses or DNS names, which is suited for targeting services.
+- **services target pods**: services target pods via labels and selectors and load-balance distribute the traffic to those pods.
 
 Ingress and services work together. 
 
 1. Ingresses act as a reverse proxy to redirect the traffic granularly to target services.
-2. Services act as a load balancer to 
+2. Services act as a load balancer to distribute traffic among the targeted pods.
+
+
 
 
 
@@ -2294,6 +2451,13 @@ spec:
 > [!NOTE]
 > So, the ingress object sets the rules, and the ingress controller makes those rules happen by managing the traffic flow into your cluster.
 
+> [!NOTE]
+> An Ingress controller in Kubernetes is a reverse proxy deployed inside your cluster that manages and routes HTTP traffic coming into the cluster. It acts like a gatekeeper, directing requests based on rules. 
+> 
+> The Ingress resource, on the other hand, is a Kubernetes API object where you define those routing rules—such as which paths or hostnames should route to which services. 
+> 
+> Essentially, the Ingress resource specifies the desired traffic routing, and the Ingress controller enforces those rules by handling the actual traffic flow. This setup allows you to manage complex HTTP routing for multiple services through a single external entry point.
+
 
 Here's how an ingress request to your cluster works at a high level
 
@@ -2301,7 +2465,7 @@ Here's how an ingress request to your cluster works at a high level
 2. The ingress object sends that traffic to the ingress controller.
 3. The ingress controller checks the list of rules that you set up on your ingress, and routes traffic to the appropriate pod.
 
-**example**
+##### Declarative ingress basics
 
 Let's create a real production examples based on three microservices: 1) frontend 2) orders 3) payments, trying to achieve this routing scheme:
 
@@ -2318,8 +2482,7 @@ https://app.example.com
                -> payments-service
 ```
 
-
-1. Create an ingress with the appropriate routing rules:
+Create an ingress with the appropriate routing rules:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -2950,6 +3113,30 @@ kubectl create secret generic <secret-name> --from-literal=<KEY>=<VALUE>
 
 
 ![](https://i.imgur.com/iS71gGz.jpeg)
+
+
+## Advanced K8S
+
+### Affinity and pod scheduling
+
+- **pod affinity**: when one pod has an "affinity" for another pod; it wants to live close to that pod.
+
+![](https://i.imgur.com/EzW9IeY.jpeg)
+
+#### Pod affinity
+
+Pod affinity matters if two pods communicate with each other over the cluster network.
+
+Pod affinity has two possible use cases:
+
+- **low latency, different nodes**:  two pods are scheduled within the same availability zone in different nodes, lowering network latency.
+- **same node**: two pods are scheduled in the same node, lowering network latency.
+
+Here is an example of manually setting a pod's affinity for another.
+
+
+![](https://i.imgur.com/Xjq98E9.jpeg)
+
 
 ## Kubernetes security
 
