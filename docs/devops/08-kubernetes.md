@@ -4107,15 +4107,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: health-dashboard
 resources:
-  # - secrets.yaml
-  # - hsd-namespace.yaml
   - mongo-deployment.yaml
   - server-deployment.yaml
 ```
 
 Here are the general steps for integrating `kustomize` into your workflow:
 
-1. Run the `kustomize <dir>` command, which looks for a `kustomization.yaml` file in the directory, and if found, outputs the contents of all the yaml files concatenated.
+1. Run the `kubectl kustomize <dir>` command, which looks for a `kustomization.yaml` file in the directory, and if found, outputs the contents of all the yaml files concatenated.
 2. Pipe the output of the `kustomize` command into a file.
 3. Run that file manually with `kubectl apply -f` to create resources, and to delete resources, use `kubectl delete -f`
 
@@ -4125,9 +4123,7 @@ You can also just do it the declarative way where by naming the file as `kustomi
 - `kubectl apply -k <dir>`: Looks in the specified directory for a `kustomization.yaml`, and if found, creates or updates all k8s resources specified in that file.
 - `kubectl delete -k <dir>`: Looks in the specified directory for a `kustomization.yaml`, and if found, deletes all k8s resources specified in that file.
 
-### Best folder structure for `kustomize`
-
-TODO: add tree, auth with github
+### Base and overlays
 
 All yaml should be in a top-level folder called `kustomize`, and that should have two subfolders:
 
@@ -4563,10 +4559,14 @@ tls:
 Then you can create the helm template YAML with the specific values file you select injecting those variables and baking them into the YAML:
 
 ```bash
-hel template -f values-dev.yaml <chart-dirpath>
+helm template -f values-dev.yaml <chart-dirpath>
 ```
 
+Then after that, you can install the chart with the baked in values:
 
+```bash
+helm install -f values-dev.yaml [RELEASE_NAME] <chart-dirpath>
+```
 
 #### Templates
 
