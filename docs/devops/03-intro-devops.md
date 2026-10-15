@@ -2175,9 +2175,12 @@ The OpenTelemetry Collector offers a vendor-agnostic implementation of how to re
 
 #### Intro
 
-Prometheus is a key tool in the observability landscape focused on collecting and storing metrics—numerical data that represent the performance and health of your system. 
+Prometheus is a time-series database designed for storing and querying metrics. Unlike push-based systems, Prometheus uses a **pull model**: it scrapes metrics from target endpoints at regular intervals.
 
-It fits alongside other observability tools that handle logs, traces, and events to give you a comprehensive view of your application.
+> [!NOTE]
+> Prometheus is a key tool in the observability landscape focused on collecting and storing metrics—numerical data that represent the performance and health of your system. 
+> 
+> It fits alongside other observability tools that handle logs, traces, and events to give you a comprehensive view of your application.
 
 To implement Prometheus in your server app for observability:  
   
