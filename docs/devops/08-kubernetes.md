@@ -663,6 +663,18 @@ The `watch kubectl` command allows you to watch any kubectl command in real time
 ```bash
 watch kubectl get pods
 ```
+
+
+#### Waiting for a condition
+
+The `kubectl wait` command allows you to wait for a specific condition or property value on a K8S resource.
+
+> [!NOTE]
+> This is effective when combined with label selectors via the `-l` flag.
+
+```bash
+kubectl wait --for=condition=Ready pod -l app=webhook
+```
 ### Kubectl Config
 
 The `~/.kube/config` file contains configuration about all the k8s clusters and contexts available that you can connect to:
@@ -926,6 +938,30 @@ Here are the commands for the context:
 - `kubectl config get-contexts`: lists all contexts
 - `kubectl config use-context [contextName]`: set the current context to a different context
 - `kubectl config use-context [contextName]`: delete the specified context
+
+#### Setting namespace for current context
+
+Here is how you can set the default namespace for the current context:
+
+```bash
+kubectl config set-context --current --namespace=team1
+```
+
+You can also use the `kubectx` third-party package for easy context and namespace management:
+
+1. Install `kubectx`
+
+```bash
+brew install kubectx
+```
+
+2. Switch current namespace with `kubens`
+
+```bash
+kubens # opens TUI to select namespace
+kubens <namespace-name> # non-interactively switch default namespace
+```
+
 ### Namespaces
 
 Kubernetes namespaces let you organize and isolate your workloads and also offers granular RBAC for accessing resources scoped to a namespace.
@@ -3515,6 +3551,8 @@ Here are what pods with the default service account are able to do:
 - **self pod CRUD**: able to view its own pod info
 - **environment info**: able to view environment info like control plane version and the namespace of the pod.
 
+#### Creating custom service accounts
+
 > [!NOTE]
 > Creating a custom service account instead of using the default one for all pods is important for security and control. 
 > 
@@ -3580,6 +3618,29 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
+#### AWS IAM with K8S
+
+### Sidecar
+
+For decoupled and performant microservices, often multi-container pods are the way to go.
+
+#### Sidecar with service mesh
+
+Adding Linkerd as a sidecar to a pod enables advanced networking features by intercepting all network traffic in and out of that pod. This lets you monitor detailed metrics like request rates, success rates, and latency through dashboards such as Linkerd's own and Grafana.
+
+1. Install linkerd
+
+```bash
+linkerd install | kubectl apply -f
+```
+
+2. Check if worked
+
+```bash
+linkerd check
+```
+
+3. 
 ## Kubernetes security
 
 ### Basic tips
@@ -4479,6 +4540,35 @@ This creates a new directory with the following files and folders:
 - `Chart.yaml`: This is the package.json equivalent for helm, where you can configure the version and name of the package
 - `values.yaml`: configure the resources the chart creates
 	- `templates`: stores K8S resources that make up the chart, and will be processed through the Helm templating engine to inject values from the `values.yaml` at chart installation time.
+
+#### `Chart.yaml`
+
+```yaml
+apiVersion: v2
+name: blue-green
+description: my first chart
+version: 1.0.0 # chart version
+```
+
+#### Values
+
+You can create semantically-named `values-dev.yaml` and `values-prod.yaml` for environment-specific injecting different values for the same variables.
+
+```yaml title="values-dev.yaml"
+host: dev.example.com
+tls:
+	enabled: false
+```
+
+Then you can create the helm template YAML with the specific values file you select injecting those variables and baking them into the YAML:
+
+```bash
+hel template -f values-dev.yaml <chart-dirpath>
+```
+
+
+
+#### Templates
 
 You can delete all the K8S resources from the `templates/` folder, and then to start fresh, you can then add the K8S resources you want to add to the chart within the `templates/` folder.
 
