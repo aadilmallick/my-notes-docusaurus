@@ -3120,8 +3120,16 @@ kubectl create secret generic <secret-name> --from-literal=<KEY>=<VALUE>
 ### Affinity and pod scheduling
 
 - **pod affinity**: when one pod has an "affinity" for another pod; it wants to live close to that pod.
+- **node affinity**: when you enable node affinity for a pod, it wants to be scheduled on a specific worker node.
 
 ![](https://i.imgur.com/EzW9IeY.jpeg)
+
+You declare affinity for a pod or node at the pod-level, where you can set the following:
+
+- **pod to pod affinity**: control a pod's affinity or anti-affinity
+
+Every type of affinity or anti-affinity requires you to choose a strictness level for scheduling:
+
 
 #### Pod affinity
 
@@ -3132,11 +3140,131 @@ Pod affinity has two possible use cases:
 - **low latency, different nodes**:  two pods are scheduled within the same availability zone in different nodes, lowering network latency.
 - **same node**: two pods are scheduled in the same node, lowering network latency.
 
-Here is an example of manually setting a pod's affinity for another.
+**The Scheduling Rule Type (Strict vs. Preferred)**
+
+You must choose how strictly Kubernetes should enforce your rule using one of these two fields:
+
+- **`requiredDuringSchedulingIgnoredDuringExecution` (Strict):** This is a hard rule. The scheduler **must** separate the pods. If no separate infrastructure is available, the pod will remain stuck in a `Pending` state.
+- **`preferredDuringSchedulingIgnoredDuringExecution` (Soft):** This is a best-effort rule. The scheduler will _try_ to separate the pods. If it cannot (e.g., you only have one node left), it will break the rule and schedule the pod anyway.
+
+**`topologyKey` (The Boundary Layer)**
+
+The `topologyKey` defines the _domain_ or boundary where you don't want pods to co-exist. Kubernetes looks at the labels on your cluster's nodes to determine this.
+
+- **`topology.kubernetes.io/zone`:** Keeps pods in different Availability Zones (highly recommended for production clouds like EKS).
+- **`kubernetes.io/hostname`:** Keeps pods on different physical/virtual nodes. If you have 3 replicas, each will go to a different server.
+
+##### Pod affinity example
+
+Here is an example of manually setting a pod's affinity for another:
+
+- **topology key**: defines the affinity level
+	- `kubernetes.io/hostname` to put the pods in the same worker node
+	- `kubernetes.io/zone` to put the pods in the same availability zone, but in different worker nodes.
 
 
 ![](https://i.imgur.com/Xjq98E9.jpeg)
 
+1. **Label the pods you want to relate**: Assign a label to the pod(s) you want other pods to be close to. For example, label your Redis cache pod with `app=cache`.  
+      
+    
+2. **Define the affinity in your pod spec**: In the pod that should be scheduled near the labeled pod, add an `affinity` section specifying `podAffinity`.  
+      
+    
+3. **Use a label selector to find the target pods**: Inside `podAffinity`, use `labelSelector` with `matchLabels` to select pods with the label you assigned (e.g., `app=cache`).  
+      
+    
+4. **Set the topology key**: Specify a `topologyKey` such as `kubernetes.io/hostname` to ensure both pods are scheduled on the same node, or use `kubernetes.io/zone` to place them in the same availability zone.  
+      
+    
+5. **Apply the configuration**: Deploy your pods with these affinity rules. Kubernetes will then try to schedule the pods close together based on your affinity settings.
+
+##### Pod anti-affinity
+
+Pod anti-affinity refers to placing pods as far away from each other, where the main use case is to place one pod per availability zone for maximum availability.
+
+
+To set up pod anti-affinity declaratively, follow these steps:  
+  
+
+1. **Label the pods you want to avoid colocating**: Assign a label to the pods that you want other pods to stay away from, for example, `app=web`.  
+      
+    
+2. **Add an `affinity` section with `podAntiAffinity` in your pod spec**: This tells Kubernetes that the pod should avoid being scheduled near pods with certain labels.  
+      
+    
+3. **Use a `labelSelector` inside `podAntiAffinity` to select the pods to avoid**: For example, select pods with the label `app=web`.  
+      
+    
+4. **Set the `topologyKey`**: Use keys like `kubernetes.io/hostname` to avoid scheduling on the same node, or `kubernetes.io/zone` to avoid the same availability zone.  
+      
+    
+5. **Apply the configuration**: Deploy your pods with these anti-affinity rules. Kubernetes will try to schedule pods so they are spread out according to your rules.
+
+
+
+```yaml
+kind: Deployment
+...
+  replicas: 10
+...
+    containers:
+      - name: web
+        image: nginx
+    topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app: web
+        topologyKey: topology.kubernetes.io/zone
+        maxSkew: 1
+        whenUnsatisfiable: ScheduleAnyway
+```
+
+- `maxSkew: 1`: even out the pod replicas in each availability zone, make sure they all have an equal amount of replicas.
+
+
+![](https://i.imgur.com/0U380iR.jpeg)
+
+- `topologyKey: topology.kubernetes.io/zone`: organize pods across availability zones
+
+Here's another example:
+
+```yaml
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      affinity:
+        podAntiAffinity:
+          # 1. Enforcement Level: Strict/Hard rule
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  # 3. Label Selector: Target other "web" pods
+                  - key: app
+                    operator: In
+                    values:
+                      - web
+              # 2. Topology Key: Avoid sharing the same individual machine
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: nginx
+          image: nginx:latest
+
+```
+
+#### Node affinity
+
+Node affinity in Kubernetes is a scheduling feature that lets you specify which nodes your pods should run on based on node labels.
+
+> [!NOTE]
+> It allows you to give Kubernetes hints or strict rules about pod placement, especially useful when certain pods need special hardware like GPUs or fast SSDs. 
+> 
+> - For example, you can tell Kubernetes to schedule machine learning pods only on nodes with GPUs by using node affinity. 
+> - This helps optimize resource usage by matching pods to the right nodes, breaking the usual abstraction where Kubernetes treats all nodes as a uniform pool.
 
 ## Kubernetes security
 
