@@ -1907,6 +1907,9 @@ OTel changes the observability architecture by replacing third-party paid vendor
 
 Events are anything that is deemed important for business, security, or troubleshooting reasons and can range from user actions, system errors, configuration changes, security breaches, network traffic, performance metrics, to software updates and service statuses.
 
+> [!NOTE]
+> Events validate that an expected action happened.
+
 Some common examples of events include:
 
 - Completing a batch processing job.
@@ -2016,6 +2019,45 @@ Google's four golden signals are a good foundation for defining which metrics yo
 
 ![](https://i.imgur.com/WDhCelB.jpeg)
 
+##### Metric collection
+
+In a real-world application, you need software that performs metric collection, like Prometheus or Open Telemetry.
+
+Metric collection has two possible methods:
+
+- **push method**: pushing the metrics to a server endpoint that you host on your app.
+- **pull method**: your application hosts an endpoint that provides APIs for the time series database to read the metrics. Then a tool like Prometheus will scrape the metrics from that endpoint.
+
+###### **pull method**
+
+> [!NOTE]
+> **Use Cases:** Ideal for environments with static endpoints or where components are known for consistent uptime.
+
+**Advantages:**
+
+1. **Controlled Data Collection**: The monitoring system (like Prometheus) actively requests metrics from targets, which ensures data consistency and control over polling intervals.
+2. **Dynamic Targeting**: It easily adapts to changes in the infrastructure. When new services are added, the monitoring system can automatically scrape them if configured correctly.
+3. **Simpler Error Handling**: In case of a communication problem, the pull method typically allows the monitoring system to detect issues directly.
+
+**Cons:**
+
+1. **Overhead**: The polling mechanism may generate extra network traffic and may lead to overhead if the scraping happens too frequently.
+2. **Complexity with Disparate Services**: When dealing with numerous instances or IoT devices in varying locations, setting up scraping can get complex.
+
+###### Push method
+
+**Advantages:**
+
+1. **Immediate Metric Availability**: Services can send their metrics in real-time, making them available as soon as they are generated.
+2. **Ease of Use for Short-lived Services**: Particularly useful for ephemeral applications like microservices, where instances may come and go rapidly.
+
+**Cons:**
+
+1. **Lack of Control**: There's less control over how often metrics are sent, potentially leading to data overload or gaps if a service fails to push metrics.
+2. **Temporary Storage Requirement**: Requires a push gateway for managing the pushed metrics, which adds another component that needs maintenance.
+
+> [!NOTE]
+> **Use Cases:** Best suited for scenarios where applications are short-lived or when real-time monitoring is crucial.
 
 #### Logs
 
