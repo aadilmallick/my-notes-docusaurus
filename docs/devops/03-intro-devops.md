@@ -2468,6 +2468,97 @@ Here are the core principles behind the mindset you should have when conducting 
 1. There is no root cause: everything happens as a degradation over time.
 2. Postmortems should be blameles
 3. Use transparent communication when communicating outages.
+
+
+## Jenkins
+
+### Intro
+
+Self-hosted jenkins consists of two components, both of which should be separate servers:
+
+- **master server**: controls pipelines, schedules builds, and orchestrates minions
+- **agents/minions**: checkout the VCS code and runs the build
+	- **permanent agents**: dedicated server instances you own for running jobs. These should have the relevant build tools installed, as well as java.
+	- **cloud agents**: ephemeral/dynamic agents spun up on demand, like a Docker image Jenkin spins up to provision a build agent.
+
+There are two types of build configurations:
+
+- **freestyle build**: the simplest method to create a build which feels like shell scripting.
+- **pipelines**: use the groovy syntax to break up a build into several stages and then run those stages as per the pipeline.
+
+### Installation and setup
+
+1. Pull the docker image
+
+```bash
+docker pull jenkins/jenkins
+```
+
+2. Create a [bridge network](https://docs.docker.com/network/bridge/) in Docker using the following [`docker network create`](https://docs.docker.com/engine/reference/commandline/network_create/) command:
+
+```bash
+docker network create jenkins
+```
+
+3. Run this command
+
+```bash
+docker run --name jenkins-docker --rm --detach \
+  --privileged --network jenkins --network-alias docker \
+  --env DOCKER_TLS_CERTDIR=/certs \
+  --volume jenkins-docker-certs:/certs/client \
+  --volume jenkins-data:/var/jenkins_home \
+  --publish 2376:2376 \
+  docker:dind --storage-driver overlay2
+```
+
+4. Create a docker image to customize the jenkins image you pulled
+
+```bash
+FROM jenkins/jenkins:2.580.1-jdk21
+USER root
+RUN apt-get update && apt-get install -y lsb-release ca-certificates curl && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+    https://download.docker.com/linux/debian $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" \
+    | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && apt-get install -y docker-ce-cli && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+USER jenkins
+RUN jenkins-plugin-cli --plugins "docker-workflow json-path-api"
+```
+
+5. Build an image from this Dockerfile
+
+```
+docker build -t myjenkins:2.580.1-1 .
+```
+
+6. Run the container
+
+```bash
+docker run \
+  --name jenkins \
+  --restart=on-failure \
+  --detach \
+  --network jenkins \
+  --env DOCKER_HOST=tcp://docker:2376 \
+  --env DOCKER_CERT_PATH=/certs/client \
+  --env DOCKER_TLS_VERIFY=1 \
+  --publish 8080:8080 \
+  --publish 50000:50000 \
+  --volume jenkins-data:/var/jenkins_home \
+  --volume jenkins-docker-certs:/certs/client:ro \
+  myjenkins:2.580.1-1
+```
+
+7. When prompted for the password, run this command to get the password from the running container
+
+```bash
+docker exec <container-id> cat /var/jenkins_home/secrets/initialAdminPassword
+```
 ## Source control tools
 
 ### Subversion 
