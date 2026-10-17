@@ -487,6 +487,11 @@ There are three important numbers to track:
 
 If you are able to track these three numbers over time, your financial position will improve year by year.
 
+> [!TIP]
+> You cannot improve what you don't track. So track your expenses
+
+
+
 #### Tracking expenses
 
 Your expenses should be categorized as follows:
