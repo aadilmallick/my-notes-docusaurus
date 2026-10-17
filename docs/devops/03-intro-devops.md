@@ -2559,6 +2559,10 @@ docker run \
 ```bash
 docker exec <container-id> cat /var/jenkins_home/secrets/initialAdminPassword
 ```
+
+
+
+
 ## Source control tools
 
 ### Subversion 
