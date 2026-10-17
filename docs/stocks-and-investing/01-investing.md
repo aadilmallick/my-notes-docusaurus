@@ -52,11 +52,22 @@ The main difference between after-tax Roth IRA and a normal brokerage account is
 
 #### Tax-sheltered accounts
 
-Both Pre-Tax (Traditional) and Post-Tax (Roth) retirement accounts enjoy **tax-sheltered growth** while invested—meaning you pay $0 in capital gains, dividend, or interest taxes year over year in both account types. T
+Both Pre-Tax (Traditional) and Post-Tax (Roth) retirement accounts enjoy **tax-sheltered growth** while invested—meaning you pay $0 in capital gains, dividend, or interest taxes year over year in both account types. 
 
 he fundamental difference between them is not how fast they grow, but **when you pay income tax**: upfront today (Roth) versus upon withdrawal in retirement (Pre-Tax).
 
-- **when to use pre-tax**: When your current tax bracket is significantly higher than your expected tax bracket in retirement, **Pre-Tax contributions yield higher net gains and overall wealth**.
+How much tax you pay on the withdrawals from a pre-tax retirement account is dependent on your current tax bracket when you withdraw the money.
+
+For example, if when you retire and have no income, you are in the 10% tax bracket, thus you have to pay a 10% fee on whatever you withdraw from your account.
+
+- **when to use pre-tax**: When your current tax bracket is significantly higher than your expected tax bracket in retirement, *Pre-Tax contributions yield higher net gains and overall wealth*.
+- **when to use post-tax**: when you have a high income after 65, then you want tax-free withdrawals.
+
+Withdrawing from tax-sheltered accounts before 59.5 years of age results in a 10% penalty on whatever you withdraw, on top of income tax if not in a Roth account.
+
+- **example**: if you're 20 years old, in a 22% federal tax bracket, an early withdrawal of 10K from a pre-tax retirement account will cost you $3200, resulting from the 10% early penalty fee and the 22% tax bracket combining to be a 32% tax on your withdrawal.
+
+
 
 
 
