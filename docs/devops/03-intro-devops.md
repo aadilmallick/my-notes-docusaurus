@@ -2565,6 +2565,10 @@ docker exec <container-id> cat /var/jenkins_home/secrets/initialAdminPassword
 
 #### Setting up VCS
 
+For a complete guide, go here:
+
+
+
 VCS has git option, and to authenticate with git, follow these steps:
 
 1. Select **git** in source code management, and then click to add a new credential
@@ -2572,12 +2576,83 @@ VCS has git option, and to authenticate with git, follow these steps:
 ![](https://i.imgur.com/NWEGSrm.jpeg)
 
 
-2. Authenticate with github app
+2. Select authenticate with github app
 
 
 ![](https://i.imgur.com/hEbdK6F.jpeg)
 
+Now go to [Github app creation](https://github.com/settings/apps/new) to create a new github application.
+
+1. **fill out fields**: The only fields you need to fill out (currently) are:
+	
+	- **Github App name** - i.e. `Jenkins - <team name>`
+	- **Homepage URL** - your company domain or a github repository
+	- **Webhook URL** - your jenkins instance, i.e. `https://<jenkins-host>/github-webhook/`, if using local jenkins instance, make sure to use tunneling via ngrok to get an HTTPS url.
+	- **redirect URI**: optional, do not set.
+
+
+![](https://i.imgur.com/VuH3Asw.jpeg)
+
+
+
+![](https://i.imgur.com/Uh0iKgz.jpeg)
+
+
+2. Then you need to fill out the permissions
+
+	- **Commit statuses** - Read and Write
+	- **Contents**: Read-only (to read the `Jenkinsfile` and the repository content during `git fetch`). You may need "Read & write" to update the repository such as tagging releases
+	- **Metadata**: Read-only
+	- **Pull requests**: Read-only
+
+3. **subscribe to all events**: fill out all the checkboxes to subscribe to all events
+
+
+![](https://i.imgur.com/YJEaLwn.jpeg)
+
+
+
+4. **create the github app**: click on the button to finally create the app.
+5. **generate a private key**: to actually install the app, you must generate a private key
+
+![](https://i.imgur.com/02JIFGE.png)
+
+
+
+
+6. **convert the key into a different format jenkins can use**: run this command on the downloaded key:
+
+```bash
+openssl pkcs8 -topk8 -inform PEM -outform PEM -in key-in-your-downloads-folder.pem -out converted-github-app.pem -nocrypt
+```
+
+Now once you have this private key secret generated and converted into a Jenkins compatible format, you can finish up the github app connection in the Jenkins UI by filling out this info:
+
+- **app ID**: copy and paste the github app ID from the application settings
+
+
+![](https://i.imgur.com/k7oeCyo.jpeg)
+
+
+- **key**: fill in the key by copying the contents of the converted private key.
+
+
+
+![](https://i.imgur.com/23Wy8Gf.jpeg)
+
 #### Build triggers
+
+
+There are 5 types of build triggers:
+
+- **trigger build remotely**: allows the jenkins webhook to be invoked, meaning you can send HTTP requests to the jenkins webhook to start a build programmatically.
+- **build periodically**: schedule the build via cron job syntax
+- **poll SCM**: do short-polling to constantly check if there's a new commit in the VCS, and if so, then start the build.
+- **github hook triggering**: This is often the preferred approach for many teams. You configure _GitHub_ (or other providers) to send a signal directly to your _Jenkins_ server whenever code is pushed. This requires your _Jenkins_ instance to be reachable via the network to receive the incoming webhook
+
+
+![](https://i.imgur.com/ZJ1XgGK.jpeg)
+
 
 ## Source control tools
 
