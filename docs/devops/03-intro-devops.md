@@ -2486,7 +2486,11 @@ There are two types of build configurations:
 - **freestyle build**: the simplest method to create a build which feels like shell scripting.
 - **pipelines**: use the groovy syntax to break up a build into several stages and then run those stages as per the pipeline.
 
+
+
 ### Installation and setup
+
+#### Docker installation
 
 1. Pull the docker image
 
@@ -2560,16 +2564,27 @@ docker run \
 docker exec <container-id> cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
+#### Locally hosted jenkins
+
+Within a locally hosted jenkins instance on Linux, you can explore the filesystem by sshing into the k8s jenkin pod or docker container.
+
+All Jenkins-related data is stored in `/var/jenkins_home`:
+
+
+- `/var/jenkins_home/secrets/initialAdminPassword`: stores the initial admin password when logging into Jenkins for the first time.
+- `/var/jenkins_home/workspace`: the folder that contains all jobs, where each job is a folder.
+
+> [!WARNING]
+> When creating a job in jenkins, make sure to never include spaces in the name, because the job name corresponds to the folder name within the `/var/jenkins_home/workspace` directory.
+
 
 ### First job (freestyle build)
 
 #### Setting up VCS
 
-For a complete guide, go here:
+You can clone down a git repo easily in Jenkins, and you only have to authenticate with git if trying to clone a private repo.
 
-
-
-VCS has git option, and to authenticate with git, follow these steps:
+To authenticate with git for the purpose of cloning a private repo, follow these steps:
 
 1. Select **git** in source code management, and then click to add a new credential
 
@@ -2652,6 +2667,191 @@ There are 5 types of build triggers:
 
 
 ![](https://i.imgur.com/ZJ1XgGK.jpeg)
+
+**Poll SCM**
+
+Here's an example of configuring Poll SCM to look at a github repo every 5 minutes for changes (it uses cron syntax).
+
+
+![](https://i.imgur.com/k7uRNDz.jpeg)
+
+#### Build environment
+
+The build environment setting controls the build agent configuration when checking out the source code and what to do after. Here are the options you have:
+
+- **delete workspace before build starts**: agents do not automatically delete checkout out source code or created files during a job. Checking this option will give you a clean slate each time, which is what you want.
+
+
+![](https://i.imgur.com/I9vMYRy.jpeg)
+
+
+#### Build steps
+
+Here are the different types of build steps you can do:
+
+- **shell**: run shell commands in this build agent. You have access to all the Jenkins-injected environment variables.
+
+##### Environment variables
+
+In the shell build step, you have access to all these environment variables that Jenkins injects into the build agent:
+
+- **BRANCH_NAME**: For a multibranch project, this will be set to the name of the branch being built, for example in case you wish to deploy to production from master but not from feature branches; if corresponding to some kind of change request, the name is generally arbitrary (refer to CHANGE_ID and CHANGE_TARGET).
+- **BRANCH_IS_PRIMARY**: For a multibranch project, if the SCM source reports that the branch being built is a primary branch, this will be set to "true"; else unset. Some SCM sources may report more than one branch as a primary branch while others may not supply this information.
+- **CHANGE_ID**: For a multibranch project corresponding to some kind of change request, this will be set to the change ID, such as a pull request number, if supported; else unset.
+- **CHANGE_URL**: For a multibranch project corresponding to some kind of change request, this will be set to the change URL, if supported; else unset.
+- **CHANGE_TITLE**: For a multibranch project corresponding to some kind of change request, this will be set to the title of the change, if supported; else unset.
+- **CHANGE_AUTHOR**: For a multibranch project corresponding to some kind of change request, this will be set to the username of the author of the proposed change, if supported; else unset.
+- **CHANGE_AUTHOR_DISPLAY_NAME**: For a multibranch project corresponding to some kind of change request, this will be set to the human name of the author, if supported; else unset.
+- **CHANGE_AUTHOR_EMAIL**: For a multibranch project corresponding to some kind of change request, this will be set to the email address of the author, if supported; else unset.
+- **CHANGE_TARGET**: For a multibranch project corresponding to some kind of change request, this will be set to the target or base branch to which the change could be merged, if supported; else unset.
+- **CHANGE_BRANCH**: For a multibranch project corresponding to some kind of change request, this will be set to the name of the actual head on the source control system which may or may not be different from BRANCH_NAME. For example in GitHub or Bitbucket this would have the name of the origin branch whereas BRANCH_NAME would be something like PR-24.
+- **CHANGE_FORK**: For a multibranch project corresponding to some kind of change request, this will be set to the name of the forked repo if the change originates from one; else unset.
+- **TAG_NAME**: For a multibranch project corresponding to some kind of tag, this will be set to the name of the tag being built, if supported; else unset.
+- **TAG_TIMESTAMP**: For a multibranch project corresponding to some kind of tag, this will be set to a timestamp of the tag in milliseconds since Unix epoch, if supported; else unset.
+- **TAG_UNIXTIME**: For a multibranch project corresponding to some kind of tag, this will be set to a timestamp of the tag in seconds since Unix epoch, if supported; else unset.
+- **TAG_DATE**: For a multibranch project corresponding to some kind of tag, this will be set to a timestamp in the format as defined by java.util.Date#toString() (e.g., Wed Jan 1 00:00:00 UTC 2020), if supported; else unset.
+- **JOB_DISPLAY_URL**: URL that will redirect to a Job in a preferred user interface
+- **RUN_DISPLAY_URL**: URL that will redirect to a Build in a preferred user interface
+- **RUN_ARTIFACTS_DISPLAY_URL**: URL that will redirect to Artifacts of a Build in a preferred user interface
+- **RUN_CHANGES_DISPLAY_URL**: URL that will redirect to Changelog of a Build in a preferred user interface
+- **RUN_TESTS_DISPLAY_URL**: URL that will redirect to Test Results of a Build in a preferred user interface
+- **CI**: Statically set to the string "true" to indicate a "continuous integration" execution environment.
+- **BUILD_NUMBER**: The current build number, such as "153".
+- **BUILD_ID**: The current build ID
+- **BUILD_DISPLAY_NAME**: The display name of the current build, which is something like "#153" by default.
+- **JOB_NAME**: Name of the project of this build, such as "foo" or "foo/bar".
+- **JOB_BASE_NAME**: Short Name of the project of this build stripping off folder paths, such as "foo" for "bar/foo".
+- **BUILD_TAG**: String of "`jenkins-${JOB_NAME}-${BUILD_NUMBER}`". All forward slashes ("/") in the JOB_NAME are replaced with dashes ("-"). Convenient to put into a resource file, a jar file, etc for easier identification.
+- **EXECUTOR_NUMBER**: The unique number that identifies the current executor (among executors of the same machine) that’s carrying out this build. This is the number you see in the "build executor status", except that the number starts from 0, not 1.
+- **NODE_NAME**: Name of the agent if the build is on an agent, or "built-in" if run on the built-in node (or "master" until Jenkins 2.306).
+- **NODE_LABELS**: Whitespace-separated list of labels that the node is assigned.
+- **WORKSPACE**: The absolute path of the directory assigned to the build as a workspace.
+- **WORKSPACE_TMP**: A temporary directory near the workspace that will not be browsable and will not interfere with SCM checkouts. May not initially exist, so be sure to create the directory as needed (e.g., mkdir -p on Linux). Not defined when the regular workspace is a drive root.
+- **JENKINS_HOME**: The absolute path of the directory assigned on the controller file system for Jenkins to store data.
+- **JENKINS_URL**: Full URL of Jenkins, like http://server:port/jenkins/ (note: only available if Jenkins URL set in system configuration).
+- **BUILD_URL**: Full URL of this build, like http://server:port/jenkins/job/foo/15/ (Jenkins URL must be set).
+- **JOB_URL**: Full URL of this job, like http://server:port/jenkins/job/foo/ (Jenkins URL must be set).
+- **GIT_COMMIT**: The commit hash being checked out.
+- **GIT_PREVIOUS_COMMIT**: The hash of the commit last built on this branch, if any.
+- **GIT_PREVIOUS_SUCCESSFUL_COMMIT**: The hash of the commit last successfully built on this branch, if any.
+- **GIT_BRANCH**: The remote branch name, if any.
+- **GIT_LOCAL_BRANCH**: The local branch name being checked out, if applicable.
+- **GIT_CHECKOUT_DIR**: The directory that the repository will be checked out to. This contains the value set in Checkout to a sub-directory, if used.
+- **GIT_URL**: The remote URL. If there are multiple, will be GIT_URL_1, GIT_URL_2, etc.
+- **GIT_COMMITTER_NAME**: The configured Git committer name, if any, that will be used for FUTURE commits from the current workspace. It is read from the Global Config user.name Value field of the Jenkins Configure System page.
+- **GIT_AUTHOR_NAME**: The configured Git author name, if any, that will be used for FUTURE commits from the current workspace. It is read from the Global Config user.name Value field of the Jenkins Configure System page.
+- **GIT_COMMITTER_EMAIL**: The configured Git committer email, if any, that will be used for FUTURE commits from the current workspace. It is read from the Global Config user.email Value field of the Jenkins Configure System page.
+- **GIT_AUTHOR_EMAIL**: The configured Git author email, if any, that will be used for FUTURE commits from the current workspace. It is read from the Global Config user.email Value field of the Jenkins Configure System page.
+
+### Build agents
+
+Jenkins needs build agents in order to actually run your build.
+
+> [!NOTE]
+> if running Jenkins locally, by default the container or K8S pod running jenkins acts as both the master server and a build agent with all tools already installed.
+
+> [!TIP]
+> It's always recommended to offload the actual build work to a separate build agent rather than having the master server be both the orchestrator and minion. 
+
+There are two types of build agents you can create.
+
+- **cloud**: you can configure EC2 instances, docker containers, and K8S pods as build agents
+- **node**: a machine you own, like your own laptop or an EC2 instance.
+
+
+#### Docker cloud
+
+To add Docker containers as a build agent option, you add them as a **docker cloud** option, and a docker cloud has many **build agent templates** to choose from for creating the build agent environment.
+
+A build agent template has these important components:
+
+- **label**: used to uniquely identify a build agent template to use for a build.
+- **image configuration**: settings for choosing the base image of the build agent template, along with container configuration.
+
+One Docker cloud has many build agent templates.
+##### Creating a docker cloud
+
+To do this, we'll first create a new docker cloud:
+
+
+![](https://i.imgur.com/8IlFwXU.jpeg)
+
+
+![](https://i.imgur.com/LoINdQI.jpeg)
+
+When prompted for the docker host URI, you need to create a new container that will proxy the connection between jenkins and other containers. Follow these steps:
+
+1. Run this command to create an alpine linux container that port forwards the Docker process to another port, basically forking it.
+
+```bash
+# create container that proxies Docker TCP process
+$CONTAINER_ID = $(docker run -d --restart=always -p 127.0.0.1:2377:2375 --network jenkins -v /var/run/docker.sock:/var/run/docker.sock alpine/socat tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock)
+
+# get the IP address of that container
+docker inspect $CONTAINER_ID | grep IPAddress
+```
+
+2. Now add the TCP process for that IP as the docker host URI as per the syntax below, and then test the connection.
+
+```
+tcp://<container-ip>:2375
+```
+
+
+
+![](https://i.imgur.com/SKYhvjN.jpeg)
+
+
+##### Creating a build template
+
+Now we can move on to actually configuring the build template for container build agents that will be created.
+
+Here are the important fields you need to consider and fill out:
+
+- **labels**: labels are used for the master to determine which agent should run the current build (sort of like agent requirements in teamcity).
+- **image**: the base image to pull down to create the build agent from.
+- **instance capacity**: the max number of container build agents that can be running simultaneously.
+- **remote file system root**: This is the root directory within your image for the Jenkins user to use. Think of this as the workspace directory within the build agent environment that will contain all jobs/builds created.
+	- The default should be `/home/jenkins`
+
+Here are the steps:
+
+1. Fill out label, name, and image:
+
+![](https://i.imgur.com/wChbRGS.jpeg)
+
+2. Fill out the instance settings:
+	- **remote file system root**: set this to `/home/jenkins`
+
+
+Now once the docker build agent template has been created, you can now use it within your builds to specify that a build should run on a docker build agent using that build agent template:
+
+Go to the configuration settings of a job and check the **restrict where this build can run** option, then select the label of the docker build agent template you created.
+
+
+![](https://i.imgur.com/SCdNHH6.jpeg)
+
+
+What this option does is restrict the build to only run on build agents with that specific label.
+
+##### Creating a custom build agent image
+
+1. Create a dockerfile that builds off an existing jenkins build agent base image:
+
+```bash
+FROM jenkins/agent:alpine-jdk21
+USER root
+RUN apk add python3
+RUN apk add py3-pip
+RUN apk add nodejs
+RUN apk add npm
+USER jenkins
+```
+
+2. Build an image from this dockerfile and upload it to a public registry.
+3. Use the created image as the base image for a docker build agent template.
+
+### Declarative pipelines
 
 
 ## Source control tools
