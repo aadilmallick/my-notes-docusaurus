@@ -481,12 +481,6 @@ The best proportion for a monthly budget is the 50-30-20 rule, where you divvy u
 
 
 
-The basic rules for how you should partition your budget are as follows:
-
-- **rent**: max 30% of your post-tax income should go to rent.
-- **insurance, debt**: max 10% of your post-tax income should go to paying down insurance or other debts
-
-
 ### What to track
 
 There are three important numbers to track:
@@ -596,7 +590,7 @@ The 4 best tips to achieve your goals are as follows:
 2. **Set up automated savings**
 3. **Write down your goals and break them down into subgoals**. People who write down their goals are more likely to achieve them.
 4. **put your goals somewhere visible**: having your goals somewhere on a sticky note will make it more likely to achieve them.
-### Avoiding lifestyle creep
+### Avoiding lifestyle creep and overspending
 
 You could have 500K income but still live paycheck to paycheck because of lifestyle creep.
 
@@ -605,7 +599,13 @@ You could have 500K income but still live paycheck to paycheck because of lifest
 
 To become rich, you need to keep your spending habits the same while trying to increase your income.
 
-### 1% rule
+To practically implement avoiding overspending, use these techniques:
+
+- **1% rule**: Think twice before making a purchase that is above 1% of your net worth.  Take a day to think about it before making the purchase.
+- **"wait for it rule"**: if you want to buy something above $50, make yourself wait for a week and then buy it if you really want to.
+- **something in, something out**: if you want to buy something, then you must also prepare to donate something.
+
+#### 1% rule
 
 Think twice before making a purchase that is above 1% of your net worth. 
 
