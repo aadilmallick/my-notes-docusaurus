@@ -13,7 +13,7 @@
 Based on market cap, you have these categories:
 
 - **micro cap**: companies valued at less than $300M in the stock market
-	- Investing in micro cap companies is high risk high reward
+	- Investing in micro cap companies is high risk high reward, since they're considered as penny stocks.
 - **small cap**: companies valued from $300M - $2B in the stock market
 - **large cap**: companies valued over $10B
 	- Investing in large cap companies is low risk low reward, because you will not see much growth from larger companies.
@@ -38,6 +38,16 @@ There are two types of investment accounts:
 | **Roth IRA**                     | $7,500 (shared with Trad)                          | **No** (Direct limit phaseout $150k–$165k; bypassed via Backdoor Roth) | **Yes**                                           | **Yes**                                  | **0% penalty on principal contributions**; 10% penalty + tax on _earnings_                |
 | **Health Savings Account (HSA)** | $4,400 (Individual) / $8,750 (Family)              | **Yes** (FICA + Federal + State tax exempt via payroll)                | **Yes**                                           | **Yes** (For qualified medical expenses) | 20% penalty + ordinary income tax for non-medical (after 65: 0% penalty, taxed like 401k) |
 | **Taxable Brokerage**            | Unlimited                                          | **No**                                                                 | **No** (Annual tax on dividends & realized gains) | **No** (Capital gains tax when sold)     | **None** (100% liquid anytime)                                                            |
+
+
+The main difference between after-tax Roth IRA and a normal brokerage account is in two places:
+
+- **capital gains**: 
+	- **brokerage**: in a brokerage account, you have to pay a 15% capital gains tax on the interest earned from each stock you sell
+	- **roth**: No capital gains, tax-free withdrawal in retirment
+	- **pretax**: No capital gains, but pay tax in income tax bracket when wirthdrawing in retirement.
+
+![](https://i.imgur.com/xKzl04h.jpeg)
 
 
 #### Tax-sheltered accounts
@@ -262,6 +272,22 @@ There are these reasons why people lose money when they invest, and how to avoid
 #### The simpler, the better
 
 >But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
+
+
+### how to choose individual stocks
+
+Look at these 5 indicators to decide whether investing in an individual stock is worth it:
+
+1. **revenue**: how much revenue is the stock making?
+2. **net income**: how much profit is the company making?
+3. **price to earnings ratio**: what is the P/E ratio of the stock, meaning how much are the investors willing to pay for $1 of the company's earnings?
+	- high P/E reflects optimism about company's growth, but it can also represent overevaluation
+	- low P/E reflects slower growth potential or undervaluation of a company
+
+
+![](https://i.imgur.com/F4mwIDk.jpeg)
+
+
 ### Which ETFs to invest in
 
 The best ETFs to invest in have these criteria:
