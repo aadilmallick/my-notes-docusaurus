@@ -2561,7 +2561,23 @@ docker exec <container-id> cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 
+### First job (freestyle build)
 
+#### Setting up VCS
+
+VCS has git option, and to authenticate with git, follow these steps:
+
+1. Select **git** in source code management, and then click to add a new credential
+
+![](https://i.imgur.com/NWEGSrm.jpeg)
+
+
+2. Authenticate with github app
+
+
+![](https://i.imgur.com/hEbdK6F.jpeg)
+
+#### Build triggers
 
 ## Source control tools
 
