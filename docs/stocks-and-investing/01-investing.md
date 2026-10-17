@@ -76,23 +76,37 @@ The main difference between after-tax Roth IRA and a normal brokerage account is
 
 Both Pre-Tax (Traditional) and Post-Tax (Roth) retirement accounts enjoy **tax-sheltered growth** while invested—meaning you pay $0 in capital gains, dividend, or interest taxes year over year in both account types. 
 
-he fundamental difference between them is not how fast they grow, but **when you pay income tax**: upfront today (Roth) versus upon withdrawal in retirement (Pre-Tax).
+The fundamental difference between them is not how fast they grow, but **when you pay income tax**: upfront today (Roth) versus upon withdrawal in retirement (Pre-Tax).
+
+
+- **when to use pre-tax**: When your current tax bracket is significantly higher than your expected tax bracket in retirement, *Pre-Tax contributions yield higher net gains and overall wealth*.
+- **when to use post-tax**: when you have a high income after 65, then you want tax-free withdrawals.
+
+##### Pre-tax (Traditional)
 
 How much tax you pay on the withdrawals from a pre-tax retirement account is dependent on your current tax bracket when you withdraw the money.
 
 For example, if when you retire and have no income, you are in the 10% tax bracket, thus you have to pay a 10% fee on whatever you withdraw from your account.
-
-- **when to use pre-tax**: When your current tax bracket is significantly higher than your expected tax bracket in retirement, *Pre-Tax contributions yield higher net gains and overall wealth*.
-- **when to use post-tax**: when you have a high income after 65, then you want tax-free withdrawals.
 
 Withdrawing from tax-sheltered accounts before 59.5 years of age results in a 10% penalty on whatever you withdraw, on top of income tax if not in a Roth account.
 
 - **example**: if you're 20 years old, in a 22% federal tax bracket, an early withdrawal of 10K from a pre-tax retirement account will cost you $3200, resulting from the 10% early penalty fee and the 22% tax bracket combining to be a 32% tax on your withdrawal.
 
 
+##### Post-tax (Roth)
 
+The Roth IRA contribution limit in 2026 is $7500/yr, and you can only contribute to it if you make less than $168K/yr.
 
+However, if you want to contribute to a Roth IRA, you can instead open up a **traditional Roth** account, contribute to it, and then convert it into a normal Roth IRA via a **Backdoor Roth** account.
 
+A **backdoor Roth IRA** is a financial strategy used by high-income earners who exceed the IRS income limits for making direct contributions to a Roth IRA.
+
+Here's how it works:
+
+- **Nondeductible Contribution:** Since you earn too much to contribute directly, you first contribute after-tax money to a traditional IRA.
+- **Conversion:** Once the funds are in the traditional IRA, you convert them into a Roth IRA.
+
+Because the contribution to the traditional IRA is made with after-tax dollars (nondeductible), you effectively bypass the income restrictions that normally prevent high earners from utilizing a Roth IRA.
 #### Taxable brokerage account
 
 You invest after-tax money and then you pay **capital gains tax** on the interest you earned in the stock market.
@@ -285,8 +299,20 @@ Philosophies
 - **keep investments simple**: Simple is good. Simple is easier. Simple is more profitable. Embrace simplicity
 - **past performance does not indicate future performance**: do not stock pick based on historical performance of the stock. There is no way to predict how it will grow.
 
+#### The simpler, the better
 
-#### Why people lose money - investing mistakes
+>But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
+
+### Investing mistakes
+
+#### Don't pick too many ETFs
+
+Investing in too many ETFs on the SP500 is stupid because most of them are just overlapping.
+
+> [!TIP]
+> Just pick a maximum of 3 ETFs.
+
+#### Why people lose money on stock picking
 
 There are these reasons why people lose money when they invest, and how to avoid those mistakes:
 
@@ -310,10 +336,6 @@ There are these reasons why people lose money when they invest, and how to avoid
 >When you look at the daily price of a given stock, it is very hard to know how much is foam. This is why a company can plummet in value one day, and soar the next. This is why CNBC routinely features experts, each impressively credentialed, confidently predicting where the market is going next—while consistently contradicting each other. It is all those traders competing to guess how much beer and how much foam is actually in the glass at any particular moment. While this makes for great drama and television, for our purposes it is only the beer that matters. It is the beer that is the real operating money making underlying businesses, beneath all that foam and froth, that over time drives the market ever higher.
 
 5. **we are overconfident**: Most people confident in their stock picking abilities actually underperform the market.
-#### The simpler, the better
-
->But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
-
 
 ### how to choose individual stocks
 
@@ -352,6 +374,25 @@ The best ETFs to invest in have these criteria:
 
 - **expense fee < 0.1%**:  you want to invest in ETFs with a low expense fee rate
 - **no load fee**
+
+
+**ETFs**
+
+- **VOO (Vanguard S&P 500 ETF)**: very good, first choice, 0.03% expense fee and has 1.78% dividend yield.
+- **VTSAX**: Vanguard Morningstar Total Stock Market Index Fund Admiral Shares
+- FXAIX
+- FZROX
+- **VTI (vanguard total stock market ETF)**
+- **VEU (vanguard global etf excluding US)**: good for international ETFs
+- **Vanguard FTSE global index fund**: index fund of top 3700 companies across the world.
+
+**ETF Stocks that pay dividends**
+
+Only do these in tax-retired accounts so you don't pay capital gains tax on dividends.
+
+- Vanguard High Dividend Yield ETF
+- Schwab US Dividend Equity ETF
+- VOO: very good, also has 1.75% dividend yields
 #### ETF fees
 
 ETFs have a percentage fee per year which they take from all your investment money in that fund, ranging from 0.03% - 1% of your holdings.
@@ -366,22 +407,7 @@ But in reality, a higher fee does **not** equal higher performance.
 - **High fees actively erode compounding wealth from day one.** On a $100,000 balance, a 1% fee costs $1,000 _every single year_ just in management fees, regardless of whether the fund goes up or down. Over a 10-year FIRE horizon, that fee drag compounded destroys tens of thousands of dollars in gains.
 
 
-#### Stocks to invest in
 
-**ETFs**
-
-- **VOO (Vanguard S&P 500 ETF)**: very good
-- Vanguard Morningstar Total Stock Market Index Fund Admiral Shares
-- FXAIX
-- **Vanguard FTSE global index fund**: index fund of top 3700 companies across the world.
-
-**ETF Stocks that pay dividends**
-
-Only do these in tax-retired accounts so you don't pay capital gains tax on dividends.
-
-- Vanguard High Dividend Yield ETF
-- Schwab US Dividend Equity ETF
-- VOO: very good, also has 1.75% dividend yields
 
 
 ### Investment strategy
@@ -443,11 +469,23 @@ The best proportion for a monthly budget is the 50-30-20 rule, where you divvy u
 - 30% wants
 - 20% savings
 
+
+
 The basic rules for how you should partition your budget are as follows:
 
 - **rent**: max 30% of your post-tax income should go to rent.
 - **insurance, debt**: max 10% of your post-tax income should go to paying down insurance or other debts
 
+
+### What to track
+
+There are three important numbers to track:
+
+1. Savings / savings rate
+2. Expenses
+3. Net worth
+
+If you are able to track these three numbers over time, your financial position will improve year by year.
 
 #### Tracking expenses
 
@@ -587,7 +625,16 @@ Think twice before making a purchase that is above 1% of your net worth.
 >
 >Most all of us fall somewhere between the two. As for me, it is better to be closer to the monk.
 
+>" If your goal is to become financially secure, you'll likely attain it but if your goal is to make money to spend money on the good life, you're never going to make it."
 
+Live below your means, and you'll become a millionaire.
+
+Follow these rules which actually make the abstract concrete:
+
+- **If you have less than $100K**: If you have less than $100K in your bank accounts, follow these rules
+	- **no eating out**: discount groceries only
+	- **no designer clothes**: goodwill only
+- **Don't fly first class unless you have $5M in net worth**
 #### Income matters more than cutting costs
 
 Increasing income will always be your biggest lever towards wealth, not aggressively saving.
