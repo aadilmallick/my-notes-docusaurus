@@ -130,7 +130,7 @@ In summary, here is why the SP500 is so good:
  
 #### Why you shouldn't try to pick single stocks
 
-Your insight is never as good as you think.  
+Your insight is never as good as you think.
 
 To get a winning single stock, not only do you have to know which company will do well and which company will not go bankrupt, but you also have to predict the stock's growth graph over many years to come (because you don't want to be stuck selling early and you don't want to be stuck selling too late)
 
@@ -147,6 +147,12 @@ Unless you get really lucky, you will not beat the market and you'll perform low
 - **Massive Overlap:** Broad market funds like VOO or VTI already hold Nvidia (~6-7%) and Google (~3-4%) as top holdings. Adding direct NVDA, GOOGL, and FSELX (Fidelity Select Semiconductors, which has ~25% in Nvidia alone) creates massive triple-dipping in tech/semiconductors. You end up with 20%+ of your total wealth in a single sector.
     
 >The harsh truth is, I can’t pick winning individual stocks and you can’t either. Nor can the vast majority who claim they can. It is extraordinarily difficult, expensive and a fool’s errand. Having the humility to accept this will do wonders for your ability to accumulate wealth.
+
+
+Even though research shows that most people are not good stock pickers, for some reason we always consider ourselves to be the exception. This is due to the **disposition effect trap** cognitive bias, which arises from regret avoidance and loss aversion, which leads to these two effects:
+
+- Most investors sell winning stocks too early
+- Most investors hold losing stocks for way too long.
 
 
 > [! ]
@@ -254,10 +260,11 @@ Philosophies
 - **stock picking is a sucker's game**: you'll never be good enough to predict individual stocks ballooning.
 - **the market always goes up**: it may not be a smooth ride, but over time the market always goes up.
 - **market crashes will always happen regardless. Stay the course**: the market always rebounds after a market crash. Never sell. Keep investing.
-- **keep investments simple**: Simple is good. Simple is easier. Simple is more profitable.
+- **keep investments simple**: Simple is good. Simple is easier. Simple is more profitable. Embrace simplicity
+- **past performance does not indicate future performance**: do not stock pick based on historical performance of the stock. There is no way to predict how it will grow.
 
 
-#### Why people lose money
+#### Why people lose money - investing mistakes
 
 There are these reasons why people lose money when they invest, and how to avoid those mistakes:
 
@@ -280,6 +287,7 @@ There are these reasons why people lose money when they invest, and how to avoid
 
 >When you look at the daily price of a given stock, it is very hard to know how much is foam. This is why a company can plummet in value one day, and soar the next. This is why CNBC routinely features experts, each impressively credentialed, confidently predicting where the market is going next—while consistently contradicting each other. It is all those traders competing to guess how much beer and how much foam is actually in the glass at any particular moment. While this makes for great drama and television, for our purposes it is only the beer that matters. It is the beer that is the real operating money making underlying businesses, beneath all that foam and froth, that over time drives the market ever higher.
 
+5. **we are overconfident**: Most people confident in their stock picking abilities actually underperform the market.
 #### The simpler, the better
 
 >But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
@@ -404,6 +412,17 @@ The best proportion for a monthly budget is the 50-30-20 rule, where you divvy u
 - 30% wants
 - 20% savings
 
+The basic rules for how you should partition your budget are as follows:
+
+- max 30% of your income should go to rent.
+
+#### Tracking expenses
+
+Your expenses should be categorized as follows:
+
+- **fixed or variable**: fixed expenses are constant from month to month, like subscriptions or rent, while variable expenses vary, like groceries or eating out.
+- **necessity or discretionary**: do you need this expense or not?
+
 ### Rules of budgeting
 
 
@@ -457,6 +476,40 @@ Then to achieve those short term goals, do the following:
 Here are example of SMART short term goals:
 
 - I want to buy a $3600 macbook pro in the next three months
+
+
+#### WOOP Method
+
+People using the WOOP goals method spend way more time working on their goals compared to regular goal setting. 
+
+WOOP uses **mental contrasting** to visualize the desired outcome and all possible obstacles in the way of that outcome, then plan how to overcome those barriers.
+
+- **Wish**: ask yourself, "what is your wish that is challenging, yet feels achievable?"
+	- Answer it in a systems-thinking, like "I want to go to the gym everyday for 1 hour"
+- **Outcome**: picture yourself experiencing the desired outcome
+	- The outcome of going to the gym for 1 hour every day is a ripped body at the end with a 6 pack.
+- **Obstacle**: think about potential obstacles you might face on your way to the outcome and write them down.
+- **Plan**: plan to overcome obstacles with this syntax: "If `obstacle` occurs, then I will `action` to overcome it."
+
+Thinking about the obstacles provides these three benefits:
+
+1. It gives you energy to tackle challenges
+2. It helps you find creative solutions
+3. It gets your brain working on solutions automatically
+
+#### Automate savings
+
+The best way to achieve your financial goals is to automate savings towards them.
+
+
+#### In summary
+
+The 4 best tips to achieve your goals are as follows:
+
+1. **Use the WOOP method**
+2. **Set up automated savings**
+3. **Write down your goals and break them down into subgoals**. People who write down their goals are more likely to achieve them.
+4. **put your goals somewhere visible**: having your goals somewhere on a sticky note will make it more likely to achieve them.
 ### Avoiding lifestyle creep
 
 You could have 500K income but still live paycheck to paycheck because of lifestyle creep.
@@ -502,8 +555,19 @@ Think twice before making a purchase that is above 1% of your net worth.
 >Most all of us fall somewhere between the two. As for me, it is better to be closer to the monk.
 
 
+#### Income matters more than cutting costs
 
+Increasing income will always be your biggest lever towards wealth, not aggressively saving.
 
+There are three ways to reliably increase income:
+
+1. job hop
+2. Learn a new skill
+3. Get education and certifications
+
+The best investors are usually the most boring ones who just try to spend all their energy increasing their income and then investing it in ETFs.
+
+That's you best path to wealth.
 ### Compound interest is the 8th wonder of the world
 
 Time compounding is the biggest factor in wealth increase. 
