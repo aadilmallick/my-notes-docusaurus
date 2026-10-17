@@ -412,13 +412,17 @@ Now here are the actionable tips:
 
 #### Emergency fund
 
-Save up enough money in your bank account for an emergency fund worth 3-6 months of income.
+Save up enough money in your bank account for an emergency fund worth 3-6 months of expenses.
 
-This is typically 
+For example, if you spend $4000/month, then save $24K for a 6 months emergency fund.
 
 ### Financial Goals
 
+There are different levels of financial goals based on their timeframe:
 
+- **short-term goals**: goals that take 1-3 years
+- **medium-term goals**: goals that take 3-5 years
+- **long-term goals**: goals that take 5+ years
 
 To create short-term budgeting goals for things that you want to save for or buy, you should create SMART goals following this format:
 
@@ -432,10 +436,11 @@ To create short-term budgeting goals for things that you want to save for or buy
 	- **example**: completely realistic to save for a $3.6K macbook in three months if you save $1000/month and you earn $5000/month after tax.
 - **time-bound**: put a timeframe on it.
 
+#### Short-term goals
+
 Here are the rules for short-term goals:
 
 - **convert expensive wants to short-term goals**: You should create SMART short term goals from expensive wants in your budget or financial goals you want to reach. use the 1% rule to classify whether a "want" should be transferred into a short-term goal rather than an impulsive purchase.
-- **short-term goals are achievable in less than 3 years**: A short-term financial goal is something you can achieve in less than 3 years.
 - **short-term goals should have liquid savings**: to save for a short-term goal, you must save into liquid assets like checking accounts.
 
 Then to achieve those short term goals, do the following:
