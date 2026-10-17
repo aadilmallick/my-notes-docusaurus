@@ -109,13 +109,23 @@ Here's how it works:
 Because the contribution to the traditional IRA is made with after-tax dollars (nondeductible), you effectively bypass the income restrictions that normally prevent high earners from utilizing a Roth IRA.
 #### Taxable brokerage account
 
-You invest after-tax money and then you pay **capital gains tax** on the interest you earned in the stock market.
+When investing in a taxable brokerage account, you often pay taxes on the stocks you own:
 
-- **Capital Gains Tax:** This is a tax on the profit made when you sell an asset (like a stock) for more than you paid for it, basically a tax on the gains you made on a stock, including dividends.
+- **capital gains tax**: when you sell a stock, you pay a tax on interest you earned from that stock, which is a tax on the profit made when you sell an asset (like a stock) for more than you paid for it, basically a tax on the gains you made on a stock.
+- **stock dividends tax**: when you earn dividends from a stock, you get taxed on those earnings based on how long you've held that stock.
 
-Here is how to reduce capital gains tax:
 
-- **hold the stocks for longer**: holding stocks for **longer than a year** can qualify you for lower, long-term capital gains tax rates
+Capital gains get taxed based on how long you hold the investment.
+
+- **less than one year**: if you hold a stock for less than one year before selling it, you will pay taxes on those gains equal to the tax rate of the tax bracket you're currently in
+- **more than one year**: if you hold a stock for at least one year before selling it, you will pay a special reduced capital gains tax rate, which is like 15%
+
+Stock dividends also get taxed based on how long you hold the investment:
+
+- **less than 60 days**: if a stock paying dividends is held for less than 60 days, you will pay taxes on those dividends equal to the tax rate of the tax bracket you're currently in 
+- **more than 60 days**: if a stock paying dividends is held for more than 60 days, you will pay a special reduced dividend tax rate
+
+Therefore, to reduce both dividends tax and capital gains tax, you must **hold the stocks for longer**, since holding stocks for **longer than a year** can qualify you for lower, long-term capital gains tax rates and dividends rates.
 
 #### Tax efficiency
 
