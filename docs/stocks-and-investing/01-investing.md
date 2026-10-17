@@ -414,7 +414,9 @@ The best proportion for a monthly budget is the 50-30-20 rule, where you divvy u
 
 The basic rules for how you should partition your budget are as follows:
 
-- max 30% of your income should go to rent.
+- **rent**: max 30% of your post-tax income should go to rent.
+- **insurance, debt**: max 10% of your post-tax income should go to paying down insurance or other debts
+- 
 
 #### Tracking expenses
 
