@@ -2459,14 +2459,10 @@ Here are examples of exporters you can target:
 > [!TIP]
 > You can go to http://localhost:9100/metrics if running a local node exporter to view all the metrics being outputted by your machine.
 
-#### Local setup
-
-
-##### Docker compose
-
-##### Kubernetes
 
 #### PromQL
+
+
 
 ##### Primitive data types
 
@@ -2515,12 +2511,38 @@ Maybe this will make it more clear:
 
 ![](https://i.imgur.com/Dybqreg.jpeg)
 
+**graphing vectors**
+
+You can also choose to instant vectors as a graph:
+
+
+
+![](https://i.imgur.com/SGV3atk.jpeg)
+
+
+> [!IMPORTANT]
+> One important thing to note is that graphing only works for instant vectors, not range vectors.
+
+
+**in summary**
 
 There are two key differences between instant vectors and range vectors:
 
 - **Timeframe**: Instant vectors capture metric values at a single point in time, while range vectors capture metric values over a period of time.
 - **Usage**: Instant vectors are typically used when you want real-time values or snapshots, whereas range vectors are useful for understanding trends and patterns over time.
 
+##### Querying
+
+Basic querying is done by labels, which are key-value pairs:
+
+
+![](https://i.imgur.com/fTBjm0x.jpeg)
+
+You have these operators for querying on labels:
+
+- `=` for exact match
+- `!=`: for not equals
+- `=~`: for regex matching on string values, where for the specified label, the value must match the regex expression (on the right)
 ##### Operators
 
 **arithmetic operators**
@@ -2569,6 +2591,135 @@ Set binary operators are boolean keyword operators that can only be applied to i
 
 ![](https://i.imgur.com/7Z9kCnR.jpeg)
 
+
+##### Time offsets
+
+You can get instant vectors offset by time, like finding metrics from 10 minutes ago, using the `offset` keyword.
+
+Here's the syntax:
+
+```
+<Instant vector> offset <timespan>
+```
+
+This returns a new instant vector.
+##### **aggregation operators** and functions
+
+Aggregation operators aggregate the elements of a single instant vector, which results in a new instant vector with aggregated values.
+
+Here is the basic syntax for using aggregation operators:
+
+```
+<aggregation operator>(<instant vector>)
+
+# filter by label
+<aggregation operator>(<instant vector>) by (<label list>)
+
+# exclude by label
+<aggregation operator>(<instant vector>) without (<label list>)
+```
+
+You have these aggregation operators:
+
+- `sum`: returns sum of all entries in the vector
+- `min`: returns the minimum of all entries in the vector
+- `max`: returns the maximum of all entries in the vector
+- `avg`: returns the average of all entries in the vector
+- `stddev`: returns the standard deviation of all entries in the vector
+- `stdvar`: returns the variance of all entries in the vector
+- `count`: returns the number of entries in the vector
+- `group`: groups entries together, the value by entry key is 1 for all entries. 
+- `count_values`: counts the number of elements with the same values
+- `topk`: returns the $k$ largest entries by value from the vector
+- `bottomk`: returns the $k$ smallest entries by value from the vector
+
+![](https://i.imgur.com/Ufkoj5s.jpeg)
+
+The `by` and `without` keywords are used for groupby operations before running aggregation:
+
+- **(level 1) average with `by`**: here we group entries by unique values of the `code` label, then average over those buckets:
+
+
+![](https://i.imgur.com/IWCVjox.jpeg)
+
+
+- **(level 2) average with `by` and time offset**: Here we first perform the time offset to get an instant vector, then we group entries by unique values of the `code` label, then average over those buckets:
+
+
+![](https://i.imgur.com/QsJTIcN.jpeg)
+
+**range vector variants**
+
+You also have the range vector variants for all of these aggregation operators:
+
+
+
+![](https://i.imgur.com/kKcXSOe.jpeg)
+
+
+##### Vector functions
+
+Here are the basic vector functions:
+
+- `absent(<instant_vector>)`: returns an instance vector with the key being the metric-label-value combination you queried by and the value being a boolean, true if not found and false if exists.
+
+
+![](https://i.imgur.com/m9HLDu3.jpeg)
+
+- `absent_over_time(<range_vector>)`: returns an instance vector with the key being the range vector you queried by and the value being a boolean, true if not found and false if exists.
+
+
+![](https://i.imgur.com/jkN5ZUk.jpeg)
+
+- `abs(<instant_vector>)`: applies absolute value to all entries of the vector
+- `log2(<instant_vector>)`: applies log2 to all entries of the vector
+- `log10(<instant_vector>)`: applies log10 to all entries of the vector
+- `ln(<instant_vector>)`: applies ln to all entries of the vector
+- `ceil(<instant_vector>)`: applies ceiling function to all entries of the vector
+- `floor(<instant_vector>)`: applies floor function to all entries of the vector
+
+
+Then you have these transformation/mapping vector functions:
+
+- `sort(<instant_vector>)`: returns the vector in ascending order of values
+- `sort_desc(<instant_vector>)`: returns the vector in descending order of values
+- `timestamp(<instant_vector>)`: for each entry, returns the timestamp of when it was recorded.
+
+You also have these clamping functions which filter instant vectors:
+
+- `clamp(<instant_vector>, min, max)`: includes only the values in an instant vector that are within the specified range
+- `clamp_min(<instant_vector>, min)`: includes only the values in an instant vector that are above the specified minimum bound.
+- `clamp_max(<instant_vector>, max)`: includes only the values in an instant vector that are below the specified maximum bound.
+
+
+
+![](https://i.imgur.com/lmapN9m.jpeg)
+
+
+You also have the `delta` and `idelta` functions for getting differences between range vectors over a period of time:
+
+
+![](https://i.imgur.com/9ksQYV0.jpeg)
+
+- `delta(<range_vector>)`: This function calculates the difference between the first and last values of an instantaneous vector over a specified time range. 
+	- **use case**: It is essential for gauge metrics that can go up and down.
+	- **Example**: If you want to find the change in CPU temperature over the last two hours, you would use:
+
+```
+delta(nodes_cpu_temp[2h])
+```
+
+- `idelta(<range_vector>)`: Similar to `delta`, but `idelta` specifically looks at the change in the last and first samples, treating them as if they are counters that only increase. 
+	- **use case**: Use this when you want to eliminate negative changes, which is ideal for counters that only increment.
+	- **Example**: If you want to analyze the rate of requests to a service where the value only increases, such as in a web server metrics, you might write:
+
+```
+idelta(http_requests_total[5m])
+```
+
+
+> [!NOTE]
+> `delta` can show both increases and decreases, while `idelta` only captures increases (treating it as if negative deltas don’t exist).
 
 #### NodeJS with Prometheus
 
@@ -2660,7 +2811,51 @@ app.get('/product/:id', (req, res) => {
 app.listen(3000)
 ```
 
-### Grafana Cloud
+### Grafana
+
+#### Grafana Installation
+
+##### ubuntu installation
+
+If you want to install Grafana on an Ubuntu machine, follow these instructions:
+
+
+```embed
+title: "Download Grafana"
+image: "https://a-us.storyblok.com/f/567658451994139/10x10/5c4e34db6b/icon-grafana-nav-promo-dot-purple.svg"
+description: "Overview of how to download and install different versions of Grafana on different operating systems."
+url: "https://grafana.com/grafana/download"
+favicon: ""
+aspectRatio: "100"
+```
+
+Or just run this script:
+
+```bash
+sudo update 
+sudo apt-get install -y adduser libfontconfig1 musl
+wget https://dl.grafana.com/oss/release/grafana_10.2.2_amd64.deb
+sudo dpkg -i grafana_10.2.2_amd64.deb
+
+sudo systemctl daemon-reload
+sudo systemctl enable grafana-server
+sudo systemctl start grafana-server
+sudo systemctl status grafana-server
+
+sudo mkdir -p /etc/apt/keyrings/
+wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+
+
+sudo apt-get update
+
+sudo apt-get install alloy
+```
+##### Homebrew installation
+
+##### Docker installation
+
+#### Grafana Cloud
 
 ### Observability app
 
