@@ -1,24 +1,66 @@
 
 ## Investment basics
 
-### terminology
+### Intro stock market
 
+#### terminology
+
+- **investment**: An investment is an asset bought by an individual or organization with the expectation that it will generate some future income or profit—Examples of investments may include stocks and real estate.
+- **stock market**: The stock market is where buyers and sellers come together to trade shares in eligible companies.
 - **market cap**: the total value of a company in the market, found by multiplying its stock price by the number of shares
 - **index**: A group of preselected investments used to measure the performance of a market sector, like DOW, NASDAQ and SP500
 - **blue chip stock**: a well-established company stock that has reliable performance over decades
 - **penny stock**: a stock you can buy at a low price and is considered high risk
+- **IPO**: If a private company wants to raise money, it may agree to sell a portion of its ownership on the stock market. This is what happens during an [initial public offering](https://learn.robinhood.com/articles/6UsdUrlnUvxiDpDT4D2bup/what-is-an-initial-public-offering-ipo) (“IPO”). If an existing public company wants to raise money it may do so through a secondary public offering.
 
-#### What to invest in based on market cap
 
-Based on market cap, you have these categories:
+#### Stock market basics
 
-- **micro cap**: companies valued at less than $300M in the stock market
-	- Investing in micro cap companies is high risk high reward, since they're considered as penny stocks.
-- **small cap**: companies valued from $300M - $2B in the stock market
-- **large cap**: companies valued over $10B
-	- Investing in large cap companies is low risk low reward, because you will not see much growth from larger companies.
+[Stocks](https://learn.robinhood.com/articles/6FKal8yK9kk22uk65x3Jno/what-is-a-stock/) are bought and sold on stock markets, which bring together buyers and sellers of shares in publicly traded companies. 
 
-The reason
+Stock markets operate kind of like auctions, with potential buyers naming the highest price they’re willing to pay (“[the bid](https://learn.robinhood.com/articles/4ykJfxcn2PhPUIDIzprLqL/what-is-a-bid)”) and potential sellers naming the lowest price they’re willing to accept (“[the ask](https://learn.robinhood.com/articles/6ttKzSPbxOq6P32lBN7IF0/what-is-an-ask)”).
+
+![](https://images.ctfassets.net/lnmc2aao6j57/1R1TG8XToyDVx6lihZZYtJ/2674d82f46f2090e9527529ceda63462/info-stock_market-desktop_mobile.svg)
+
+The actual execution of a trade price will be somewhere at or between the bid and the ask. 
+
+> [!NOTE]
+> Trades can be placed by stockbrokers, usually on behalf of portfolio managers or individual investors like you.
+
+The primary role of the stock market is to bring buyers and sellers together to negotiate the trade of stocks. To determine the price, a stock market operates kind of like an auction.
+
+- **Buyers want to pay the lowest price possible.** Stockbrokers who want to buy (or who represent customers who want to buy) can bid a price they’re willing to pay for a stock. The highest price becomes the “Best Bid.”
+- **Sellers want to sell at the highest price**. Owners of stock or their stockbrokers can show their willingness to sell by placing an [ask](https://learn.robinhood.com/articles/6ttKzSPbxOq6P32lBN7IF0/what-is-an-ask), which is the price they’re willing to sell a stock for. The lowest price becomes the “Best Ask.”
+
+The difference between the Best Bid and Best Ask is called the “[Spread](https://learn.robinhood.com/articles/VDbJTURZuyVyHvvfC7FA0/what-is-a-spread).” The two sides negotiate to meet in the middle, and the intermediary who executes the trade takes the difference as their fee.
+
+As you follow a stock, you’ll notice the share price moves. The share price can change frequently based on the number of investors looking to buy or sell the stock and the number of trades that happen.
+
+Here are some of the key players you should know about:
+
+- **Retail investors** like you can buy or sell individual stocks through your brokerage account. When you place an order, it’s sent to exchanges where the trades are executed.
+- **Stockbrokers** are “registered representatives” who have gone through training and passed a licensing exam. They can buy and sell securities on behalf of investors. Stockbrokers work for brokerages, which can act as principals or agents in transactions, making money through markups/markdowns (as principals) or commissions (as agents) on trades. Many brokerages charge fees to their customers who use the brokerage to place orders and execute the trade of a stock.
+- **Portfolio manager**s act like restaurant owners — they’ll order a ton of food because they’re feeding plenty of people. Portfolio managers make large orders to buy and sell stocks because they manage relatively large stock portfolios, which can be owned by other investors like you. If you own shares in a [fund](https://learn.robinhood.com/articles/2HYXaQHtqR9MczhnO7arr4/what-is-a-fund) (a mutual fund, retirement fund, pension fund, etc) a portfolio manager likely handles the bundle of underlying securities (stocks, bonds etc.) in the fund’s portfolio.
+- **Investment bankers** help companies list shares on stock exchanges.
+
+**SEC**
+
+Stock markets handle trillions of dollars in wealth, so Congress has granted the authority to regulate stock markets to the [US Securities and Exchange Commission](https://learn.robinhood.com/articles/1iinrIv3s01qSQVEBvYhNj/what-is-the-securities-and-exchange-commission-sec/) (SEC).
+
+The SEC sets rules and requirements that affect everyone participating in stock trading. While these rules can differ in specifics for different stock markets in different countries, they’re intended to protect the investing public through transparency, consistency, and accuracy.
+
+- **Price transparency**: Stock markets should ensure that the best “[bid](https://learn.robinhood.com/articles/4ykJfxcn2PhPUIDIzprLqL/what-is-a-bid)” (the price a buyer wants to pay) and the best “[ask](https://learn.robinhood.com/articles/6ttKzSPbxOq6P32lBN7IF0/what-is-an-ask)” (the price at which a seller wants to sell) are displayed to participants to maintain fairness.
+- **Confirmations**: If you’re a brokerage customer trading shares on the stock market, you’re entitled to a trade confirmation showing the key details of the trade. These can include the time the trade was made, the final price you paid, and (if your [broker](https://learn.robinhood.com/articles/3AalDDtYuWx4fp46eEZpxq/what-is-a-broker) charges a fee) the specific commission or markup/markdown you were charged.
+
+#### All about stocks
+
+- **Free/public float**: Stock that has been released to the market and is traded publicly through an exchange.
+- **Stock splits**: If a company wishes to make its stock price more accessible to investors, it will conduct a [stock split](https://learn.robinhood.com/articles/5Bc1M9bKsFQeJ317f9AqYO/what-is-a-stock-split/). This will not change the [market capitalization](https://learn.robinhood.com/articles/GByCbiOluG2kcWs1AF6m5/what-is-market-capitalization) of the company — or the overall value of the shares you own — but it will increase the number of shares available.
+- **Stockholders equity**: In its most basic form, it is the assets that remain in a company after covering all the bills (liabilities). This metric can be used to get a better understanding of the value of the stock.
+- **[Short selling](https://learn.robinhood.com/articles/7CPnasX4CZXQioJgHTMeXg/what-is-short-selling)**: When an investor wishes to speculate on a fall in the stock price, they can “short” a position. This requires borrowing the stock from either a broker or a financial institution. If the price drops, you can buy the stock at the lower price and make a profit. If the price of the stock rises and you buy it back later at the higher price, you will incur a loss.
+- **Broker**: A [broker](https://learn.robinhood.com/articles/3AalDDtYuWx4fp46eEZpxq/what-is-a-broker) will execute trades on behalf of an investor/trader and typically receives a commission in return.
+- **Market/limit/stop orders**: When opening a trade, an investor needs to choose between a range of order types. A market order is executed at the next available price and can be risky if the stock price has a wide spread (the difference between the buyers and sellers are offering). A [limit order](https://learn.robinhood.com/articles/SlMQuo6tjbVxOePMmAnCG/what-is-a-limit-order) is an order to buy or sell a security at or better than a specified price – this can mean that the order may not always get filled, particularly if the market moves quickly. Stop orders allow investors to set a trigger price in the system, which will only execute in the event the price hits the desired level. When this stop price is reached, the order automatically turn into a market order.
+
 
 #### Dividends
 
@@ -378,6 +420,19 @@ So these are the stocks that pay dividends:
 - **Heinz**: has a 4.62% dividend yield
 - **Home depot**: has a 2.7% yield, and is very profitable and grows in a bullish market and has a monopoly on the housing sector.
 - **VOO**: VOO pays a 1.75% dividend yield
+
+
+#### What to invest in based on market cap
+
+Based on market cap, you have these categories:
+
+- **micro cap**: companies valued at less than $300M in the stock market
+	- Investing in micro cap companies is high risk high reward, since they're considered as penny stocks.
+- **small cap**: companies valued from $300M - $2B in the stock market
+- **large cap**: companies valued over $10B
+	- Investing in large cap companies is low risk low reward, because you will not see much growth from larger companies.
+
+
 ### Which ETFs to invest in
 
 The best ETFs to invest in have these criteria:
@@ -467,19 +522,37 @@ aspectRatio: "52.5"
 
 ### Creating a budget 
 
+A budget is always created with after-tax income you have on hand, so this terminology is important:
+
+- **Gross income** is your total pay, before taxes and deductions. This includes the wages you earn, the money you make from your side hustles, and even income from some savings or investment accounts.
+- **Net income** is what you get to take home, after taxes. When budgeting, it’s helpful to consider your net income because that’s the money you can actually use.
+- **fixed costs** are things you must pay for, often on a monthly basis
+- **variable costs** are things you want, which aren’t 100% essential
+
+There are three types of budgets:
+
+- **50/30/20 rule**: 50% for needs, 30% for wants, 20% for savings
+- **30% housing rule**: only take on rent that is max 30% of your budget
+
+#### 50/30/20 rule
+
 A budget should be separated into three categories:
 
 - **needs**: rent, utilities, groceries, insurance, etc.
 - **wants**: entertainment, gym, dining out, short term goals, etc.
 - **savings**: emergency fund, investment
 
-The best proportion for a monthly budget is the 50-30-20 rule, where you divvy up your monthly income to go to these weighted categories:
+The best proportion for a monthly budget is the 50-30-20 rule, where you divvy up your monthly after-tax income to go to these weighted categories:
 
 - 50% needs
 - 30% wants
 - 20% savings
 
+For $100K after-tax income per year resulting in $8000/month after-tax income, here is how you can spend it in a budget:
 
+- 50% needs: $4000 for rent, utilities, groceries
+- 30% wants: $2400 for dining out, subscriptions, entertainment
+- 20% savings: $1600 to put into Roth IRA or investment brokerage
 
 ### What to track
 

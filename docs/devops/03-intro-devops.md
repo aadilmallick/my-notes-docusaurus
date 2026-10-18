@@ -2853,7 +2853,288 @@ USER jenkins
 
 ### Declarative pipelines
 
+Declarative pipelines are config-as-code for defining a job declaratively using a `Jenkinsfile` in the root of a repo.
 
+#### Jenkinsfile
+
+Here is a basic jenkinsfile:
+
+- `agent`: the agent block defines which agent should run the job, via the label of the agent build template
+- `stages`: the stages block defines individual stages of a build which run in sequential order
+- `triggers`: defines the build trigger
+
+```groovy
+pipeline {
+    agent { 
+        node {
+            label 'docker-agent-python'
+            }
+      }
+    triggers {
+        pollSCM '* * * * *'
+    }
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building.."
+                sh '''
+                cd myapp
+                pip install -r requirements.txt
+                '''
+            }
+        }
+        stage('Test') {
+            steps {
+                echo "Testing.."
+                sh '''
+                cd myapp
+                python3 hello.py
+                python3 hello.py --name=Brad
+                '''
+            }
+        }
+        stage('Deliver') {
+            steps {
+                echo 'Deliver....'
+                sh '''
+                echo "doing delivery stuff.."
+                '''
+            }
+        }
+    }
+}
+```
+
+### Jenkins examples
+
+#### SSH agent pipeline 
+
+1. Create an Ubuntu dockerfile that uses ssh agent to allow users to ssh into that container.
+
+```Dockerfile
+# Use the official Ubuntu image as a base
+FROM ubuntu:latest
+
+# Install necessary packages and Docker
+RUN apt-get update && apt-get install -y \
+    sudo \
+    curl \
+    gnupg \
+    lsb-release \
+    && curl -fsSL https://get.docker.com -o get-docker.sh \
+    && sh get-docker.sh \
+    && rm get-docker.sh \
+    && usermod -aG docker root \
+    && apt-get clean
+
+# Install OpenSSH Server
+RUN apt-get install -y openssh-server \
+    && mkdir /var/run/sshd \
+    && echo 'root:password' | chpasswd
+
+# Create a new SSH configuration file
+RUN echo 'PermitRootLogin yes' > /etc/ssh/sshd_config.d/custom.conf \
+    && echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config.d/custom.conf
+
+# Start SSH service
+CMD ["/usr/sbin/sshd", "-D"]
+```
+
+2. Create a docker compose that does the following:
+	- **jenkins image**: creates a jenkins image that runs on port 8080
+	- **ubuntu image**: create an ubuntu image that allows SSHing on it through port 2222
+	- **volume and network connection**: create a bridge network to let the jenkins container and ubuntu container communicate with each other, as well as share the same volumes between those two containers, which contains jenkins configuration and workspace data and docker engine connectivity files.
+
+```yaml
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins-container
+    ports:
+      - "8080:8080"
+    networks:
+      - jenkins-demo-network
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+
+  ubuntu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ubuntu-ssh-container
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    networks:
+      - jenkins-demo-network
+    ports:
+      - "2222:22"  
+      - "8086:8084"  
+
+networks:
+  jenkins-demo-network:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+```
+
+3. Create a react app that is hosted via Nginx on port 80, using this dockerfile
+
+```Dockerfile
+# Use the official Nginx image
+FROM nginx:alpine
+
+# Set the working directory
+WORKDIR /usr/share/nginx/html
+
+# Remove the default Nginx static files
+RUN rm -rf ./*
+
+# Copy the React build output to the Nginx web directory
+COPY ./build /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+
+4. Run `docker compose up` to start the ubuntu and jenkins containers
+
+
+Now the next step is to add ssh agent connectivity via credentials and plugins:
+
+1. Create a new SSH public-private key pair with the `ssh-keygen` command:
+
+```bash
+ssh-keygen
+```
+
+2. Copy over the generated public key to the running Ubuntu container via SSH
+
+```bash
+ssh-copy-id -i jenkins-demo.pub root@localhost -p 2222
+```
+
+3. Create a new credential of type **SSH with private key**
+
+
+![](https://i.imgur.com/ndt5W97.jpeg)
+
+
+
+![](https://i.imgur.com/sviNu8z.jpeg)
+
+4. Manually paste in the private key contents to create the credentials
+
+The next step is to enable NodeJS and Docker tools in Jenkins, which are found in the tools tab. For all of them, you should set up automatic installers, so it installs the languages like JDK and Node on the build agents.
+
+1. Enable the docker tool, let it install automatically
+
+
+![](https://i.imgur.com/0kZ5Rr4.jpeg)
+
+
+2. Enable the NodeJS tool, let it install automatically
+
+
+![](https://i.imgur.com/0TBrily.jpeg)
+
+
+Now you can create a jenkinsfile:
+
+```groovy
+pipeline {
+	// 1. define agent to run the build
+    agent any
+
+	// 2. define env vars and credentials
+    environment {
+        DOCKER_IMAGE = "whether-app" 
+        DOCKER_REGISTRY = "ghcr.io/dispatch-yt"
+        GIT_CREDENTIALS_ID = "GIT_CREDENTIALS_ID" 
+        SSH_CREDENTIALS_ID = "key" 
+        SERVER_IP = "192.168.80.2"
+        SERVER_USER = "root"
+    }
+    
+    // 3. register nodejs and docker tools as possible steps
+    tools {
+        nodejs "nodejs"
+        dockerTool "docker-website"
+    }
+    
+    stages {
+	    // 4. run the git step to clone a repo down
+        stage('Clone Repository') {
+            steps {
+                git credentialsId: "${GIT_CREDENTIALS_ID}", url: 'https://github.com/dispatch-yt/react-whether-appp'
+            }
+        }
+
+		// 5. run the sh steps to run bash commands
+        stage('Build React Project') {
+            steps {
+                sh 'npm install'
+                sh 'npm run build'
+            }
+        }
+
+		// 6. use docker installation on build agent (current jenkins server instance)
+        stage('Create Docker Image') {
+            steps {
+                script {
+                    sh 'ls'
+                    sh 'cat src/pages/Home.jsx'
+                    sh 'docker build -t ${DOCKER_IMAGE}:latest -f Dockerfile .'
+                }
+            }
+        }
+
+        stage('Push Docker Image to GitHub Registry') {
+            steps {
+                script {
+                    docker.withRegistry('https://ghcr.io', 'GIT_CREDENTIALS_ID') {
+                        sh 'docker tag ${DOCKER_IMAGE}:latest ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest'
+                        sh 'docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest'
+                    }
+                }
+            }
+        }
+        stage('SSH to Server and Deploy') {
+            steps {
+                script {
+                    sshagent([SSH_CREDENTIALS_ID]) {
+                        sh """
+                        ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} << EOF
+                            docker stop ${DOCKER_IMAGE} || true
+                            docker rm ${DOCKER_IMAGE} || true
+                            docker rmi ${DOCKER_IMAGE} || true
+                            docker rmi ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest || true
+                            docker pull ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest
+                            docker run -d --name ${DOCKER_IMAGE} -p 8084:80 ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
+```
 ## Source control tools
 
 ### Subversion 
