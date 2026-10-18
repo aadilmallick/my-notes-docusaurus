@@ -1795,16 +1795,28 @@ Using one ensures that what you test is exactly what gets deployed, improving re
 - This is key in continuous integration and delivery pipelines to maintain consistency and control over your software releases.
 ## Observability and monitoring
 
-- **observability**: uncovers both known and unknown problems
-- **monitoring**: extracting info targeting known problems
+### Intro
 
 
-![](https://i.imgur.com/QqFyuX5.jpeg)
+#### Observability 
+
+Of a system's non-functional requirements (see [[03-system-design#Requirements]]), availability, reliability, and performance all contribute to the overall **stability** of a software system.
+
+We can determine the stability level of a system by viewing the state of a system through output measurements called **signals**, which include metrics, logs, and traces.
+
+This is called observability:
+
+>Observability is the possibility of observing the state of a system through output measurements.
 
 
-### Observability 
+
+![](https://i.imgur.com/y7P5NYP.jpeg)
+
 
 **Observability** is a measure of how well the internal states of a system can be inferred from knowledge of its external output. 
+
+- **high observability**: you can tell with high likelihood the state of your system by viewing the metrics, traces, and logs your application outputs.
+- **low observability**: you have a low likelihood at any time of knowing the stability of your system.
 
 > [!NOTE]
 > Therefore we get good observability when by looking at the logs and metrics of our system, we can tell what is going on.
@@ -1817,7 +1829,7 @@ There are four pillars of observability:
 3. **traces**: show the lifecycle of a request as it passes through services and infra, show the entire path of a request and how it flows throughout a distributed service
 4. **events**: events are emitted when something of note happens or changes within your infrastructure. 
 
-Metrics, traces, and logs are the key pillars we want to track.
+Metrics, traces, and logs make up the **telemetry signals** that offer observability into a system's stability:
 
 1. **Metrics**: These are numeric aggregates that offer a high-level overview of a system’s health and performance. Metrics help track overall trends but may not provide detailed insights into specific issues since they represent data in aggregate form.
     
@@ -1844,7 +1856,7 @@ There are 5 areas of observability:
 	4. what was involved
 5. **security**: uses existing logs and metrics but queries them to detect threats. Audits certain paths on endpoints, bad IP requester addresses, and suspicious or unusual behavior.
 
-### Monitoring
+#### Monitoring
 
 Monitoring uses signals to paint a picture of what is happening within the services we track, either by using dashboards, visualizations, or alerting.
 
@@ -1853,7 +1865,35 @@ There are two main types of monitoring:
 - **application-performance monitoring**: monitoring backend performance
 - **frontend monitoring**: monitoring frontend performance
 
-### Observability architecture
+#### Observability vs monitoring
+
+- **observability**: uncovers both known and unknown problems
+- **monitoring**: extracting info targeting known problems
+
+
+![](https://i.imgur.com/QqFyuX5.jpeg)
+
+Here are the use cases between monitoring and observability:
+
+- **monitoring**: intended purpose is to alert quickly of something of note happening
+- **observability**: intended purpose is to understand why something is happening and the underlying cause.
+
+
+![](https://i.imgur.com/K2c2zaW.jpeg)
+
+### Observability solutions
+
+An observability solution has three main components:
+
+- **collector**: a way to collect the telemetry signals
+- **exporter**: a way to transmit the collected data to a backend
+- **server**: a server that processes data and visualizes it
+
+
+![](https://i.imgur.com/aKgEVu8.jpeg)
+
+OpenTelemetry is an open source solution that provides the collector and exporter components and leaves the backend to the choice of the user, like Prometheus or Grafana.
+#### Observability architecture
 
 The observability architecture models how companies usually implement observability. 
 
@@ -2003,7 +2043,19 @@ We also use percentile notation for histograms:
 
 High-cardinality data, like email addresses or transaction IDs, are typically avoided in metrics due to their vast and unpredictable range but low-cardinality data such as Boolean values, response time buckets are much more manageable.
 
+##### Reliability metrics
 
+The reliability of a system concerns how error-free and error-resilient it is, therefore the core reliability metrics that we want to track in an observability solution are as follows:
+
+- **MTTD (Mean time to detect)**: the average time it takes to detect an error
+- **MTTR (Mean time to repair)**: the average time it takes for your dev team to repair an error after detection
+- **MTBF (Mean time between failures)**: the average time it takes before the error gets thrown again or fails again
+- **MTTF (Mean time to failure)**: the sum of MTTD, MTTR, and MTBF, basically the timespan between the first detection and second detection of an error
+
+> [!NOTE]
+> If you have just a monitoring solution, it reduces MTTD drastically, but if you have a full observability solution, it reduces MTTD, MTTR and MTBF because observability gives you the details of the underlying cause of the error, letting the error get fixed faster.
+
+Because observability lets you improve on all these metrics, it leads to a more reliable thus stable system.
 ##### Google's four golden signals
 
 Google's four golden signals are a good foundation for defining which metrics you should track in your application. 

@@ -263,6 +263,10 @@ Listing the functional and nonfunctional requirements of the app helps you under
 - **functional requirements**: describe what the system should do (features, functionality)
 - **nonfunctional requirements**: describe how the system should perform (the speed of features, which tradeoffs you're willing to make)
 
+
+![](https://i.imgur.com/SjuwCO7.jpeg)
+
+
 #### Functional requirements
 
 Here are the core questions you should ask in order to discover the functional requirements of your app:
