@@ -715,6 +715,10 @@ Here are the best sites for freelancing:
 - Upwork
 - Catalant
 - Expert360
+
+#### Passive income ideas
+
+- **writing and publishing an EBOOK**: publish to amazon and sell on gumroad and etsy, heavily market them.
 ## Financial freedom via business
 ### The millionaire fastlane - the new rich
 
