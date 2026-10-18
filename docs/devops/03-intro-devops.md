@@ -2232,10 +2232,17 @@ To implement Prometheus in your server app for observability:
 - **Set up a collector:** Use tools like the OpenTelemetry collector configured with a Prometheus receiver to gather metrics from your app.
 - **Export and visualize:** Send the collected metrics to a backend like Grafana Cloud to analyze and visualize them.
 
-Prometheus is under the hood a time-series database designed for storing metrics.
+##### Prometheus architecture
 
-- The core data structure is a unique combination of **labels**, which act like buckets where metric values with timestamps are pushed into those buckets.
-- You can query by these label combinations via the **PromQL** query language.
+Prometheus is under the hood a time-series database designed for storing metrics, where each time series entry is identified by a **metric name** and **labels**.
+
+- **metric**: a unique metric bucket
+- **labels**: a key-value pair
+
+![](https://i.imgur.com/dTKkPwA.jpeg)
+
+
+You can query individual metrics in the Prometheus database via labels or other query expressions using the **PromQL** query language.
 
 > [!NOTE]
 > The goal is to choose your labels wisely so your buckets don't have too many or too little metrics.
@@ -2244,19 +2251,328 @@ Prometheus is under the hood a time-series database designed for storing metrics
 
 ![](https://i.imgur.com/l1dj2Fa.jpeg)
 
-#### Local setup
+Prometheus can't handle extremely large throughput, so instead it focuses on a **pull-based model**, where Prometheus routinely pulls data from **exporters** like Kinesis or SQL.
 
-##### `prometheus.yaml`
+An **exporter** is the Prometheus-compatible interface you can implement on any data source to allow Prometheus to scrape data from that data source.
+
+- **scrape destination**: Every exporter must implement the same interface to make their data available in a Prometheus-compatible format on the `/metrics` endpoint of their node exporter process
+- **scrape interval**: The default is that every 15 seconds, Prometheus pulls data from data sources with exporters and stores that data in Prometheus.
+
+For applications that want to push their own custom metrics to Prometheus instead of pushing them to an intermediary data source with an exporter, those apps can instead push metric, value, and time entries to a **push gateway** (temporary data store), which has a built-in exporter Prometheus can scrape from.
+
+
+![](https://i.imgur.com/bT6ZZ3g.jpeg)
+
+
+##### Prometheus ports
+
+Prometheus requires special ports to be active on the Prometheus instance and other components:
+
+- **9090**: the port with the Prometheus UI
+- **9091**: the pull-based scraper process
+- **9100**: the port that exporters should be running on
+
+
+#### Installation
+
+##### Mac Homebrew installation
+
+1. Install with brew
+
+```bash
+brew install prometheus
+```
+
+2. Create the prometheus YAML config file
+
+```bash
+touch /usr/local/etc/prometheus.yml
+```
+
+```yaml title="/usr/local/etc/prometheus.yml"
+global:
+  scrape_interval: 15s     # how often do you want it to scrape
+
+scrape_configs:            # tells which targets it should monitor.
+  - job_name: "prometheus" # There could be multiple jobs
+    static_configs:
+    - targets: ["localhost:9090"] # By default it will scrape localhost:9090/metrics but this can be overridden
+```
+
+3. Stop the prometheus service
+
+```bash
+brew stop service prometheus
+```
+
+4. Start prometheus by pointing at the config file:
+
+```bash
+prometheus --config.file=/usr/local/etc/prometheus.yml
+```
+##### Linux installation
+
+1. Set up the prometheus service
+
+```bash
+[Unit]
+Description=Prometheus
+Documentation=https://prometheus.io/docs/introduction/overview/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/local/bin/prometheus \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/prometheus \
+  --web.console.templates=/etc/prometheus/consoles \
+  --web.console.libraries=/etc/prometheus/console_libraries \
+  --web.listen-address=0.0.0.0:9090 \
+  --web.external-url=
+
+SyslogIdentifier=prometheus
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+
+
+
+#### Exporters
+
+- **node exporter**: an official Prometheus exporter for collecting metrics that are exposed by Linux-based kernels.
+	- Metric examples: CPU, disk, memory, Network I/O
+
+##### Creating a node exporter
+
+1. Create an EC2 instance with Ubuntu AMI, install Prometheus on it
+2. Create an EC2 instance with Ubuntu AMI
+3. Expose these ports on the security group
+	- **22**: for SSHing into the node exporter instance
+	- **9100**: the port prometheus uses to connect to a node exporter, set this source to the security group ID of the prometheus instance to only allow prometheus to send traffic to this node exporter instance on port 9100.
+
+
+![](https://i.imgur.com/59AJ8KX.jpeg)
+
+4. SSH into the node exporter instance
+5. Install the node exporter software onto the node exporter instance, which you can do manually by following this guide or by using homebrew for linux, which starts the node exporter service on port 9100.
+
+```bash
+brew install node_exporter
+brew services start node_exporter
+```
+
+6. Update the prometheus YAML (stored at `/usr/local/etc/prometheus.yml`)
+
+
+```yaml
+global:
+  scrape_interval: 15s
+scrape_configs:
+  # let prometheus scrape itself, at localhost:9090/metrics
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # for an ec2 instance node exporter
+  - job_name: 'node_exporter_ec2_instance'
+    static_configs:
+	  - targets: ['172.31.29.28:9100']
+
+  # for a local node exporter
+  - job_name: 'node_exporter_local_instance'
+    static_configs:
+	  - targets: ['localhost:9100']
+```
+#### `prometheus.yaml`
 
 The `prometheus.yaml` file provides configuration for prometheus settings:
 
+- `global`: global settings
+- `scrape_configs`: the list of exporter targets and the configuration for how to target them.
+
+```yaml
+global:
+  scrape_interval: 15s
+scrape_configs:
+  # let prometheus scrape itself, at localhost:9090/metrics
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # for an ec2 instance node exporter
+  - job_name: 'node_exporter_ec2_instance'
+    static_configs:
+	  - targets: ['172.31.29.28:9100']
+
+  # for a local node exporter
+  - job_name: 'node_exporter_local_instance'
+    static_configs:
+	  - targets: ['localhost:9100']
+```
+
+##### Exporters
+
+Adding jobs under the `scrape_configs` block lets you register different exporter targets for scraping.
+
+```yaml
+global:
+  scrape_interval: 15s
+scrape_configs:
+  # let prometheus scrape itself, at localhost:9090/metrics
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # for an ec2 instance node exporter
+  - job_name: 'node_exporter_ec2_instance'
+    static_configs:
+	  - targets: ['172.31.29.28:9100']
+
+  # for a local node exporter
+  - job_name: 'node_exporter_local_instance'
+    static_configs:
+	  - targets: ['localhost:9100']
+```
+
+Each job has two components:
+
+- **job name**: the name of the job, which names the exporter target in the Prometheus UI and uniquely identifies the exporter.
+- **configuration**: configuration for how to actually connect to the exporter is under the `static_configs` block
+	- `targets`: the list of processes to target.
+
+> [!NOTE]
+> Prometheus will target the `/metrics` endpoint on all of the target process for scraping metrics data.
+
+Here are examples of exporters you can target:
+
+- **cloud node exporter**: target a cloud instance running a node exporter service on port 9100
+- **local node exporter**: run a local node exporter instace running a node exporter service on port 9100
+
+> [!TIP]
+> You can go to http://localhost:9100/metrics if running a local node exporter to view all the metrics being outputted by your machine.
+
+#### Local setup
 
 
 ##### Docker compose
 
 ##### Kubernetes
 
-#### Metrics
+#### PromQL
+
+##### Primitive data types
+
+The only primitive data types in prometheus are **strings** and **floats**.
+
+- **querying by strings**: you can query by exact string match or regex matching:
+
+
+![](https://i.imgur.com/BN8hNny.jpeg)
+
+
+- **querying by numbers**: You can query by exact numeric value
+
+##### Instant and Range vectors
+
+You then have instant vectors and range vectors:
+
+- **instant vectors**: return one sampled entry
+- **range vectors**: return multiple entries at once
+
+**Instant vectors** allow the selection of a set of time series, and from that returns only a single sample value for each at a given timestamp. Basically, with instant vectors, here are the rules:
+
+1. you only query by metric name
+2. You can further filter down by providing labels
+3. Only one result is returned per query
+
+
+![](https://i.imgur.com/2wc4bGI.jpeg)
+
+Maybe this will make it more clear:
+
+
+![](https://i.imgur.com/kXLwNss.jpeg)
+
+
+**A range vector** represents a set of instant vectors over a specified period of time.
+
+- It produces a series of data points that shows how the metric values have changed over that time range.
+- For instance, when querying a metric over the last 5 minutes, the range vector captures multiple instant vectors for that duration and provides a history of values.
+
+
+![](https://i.imgur.com/MfVRxWk.jpeg)
+
+
+
+
+![](https://i.imgur.com/Dybqreg.jpeg)
+
+
+There are two key differences between instant vectors and range vectors:
+
+- **Timeframe**: Instant vectors capture metric values at a single point in time, while range vectors capture metric values over a period of time.
+- **Usage**: Instant vectors are typically used when you want real-time values or snapshots, whereas range vectors are useful for understanding trends and patterns over time.
+
+##### Operators
+
+**arithmetic operators**
+
+You have binary arithmetic operators, where you can apply mathematical operations from scalars onto vectors:
+
+- **scalars with vectors**: broadcast arithmetic, scalar operation applies to every value of instant vector.
+- **vectors with vectors**: length-based matching, only vectors of same dimensionality can be multiplied with.
+
+
+![](https://i.imgur.com/zPuA5mv.jpeg)
+
+
+![](https://i.imgur.com/iUJKGOM.jpeg)
+
+
+**binary operators**
+
+A boolean in Prometheus is `1` for true and `0` for false.
+
+![](https://i.imgur.com/YKBLFuF.jpeg)
+
+
+When performed on scalars, all the binary operators return a boolean value of 1 or 0:
+
+![](https://i.imgur.com/K4ItJCU.jpeg)
+
+
+When performing boolean operations on vectors, this conditionally filters entries in a vector, making the resultant vector smaller and filtered.
+
+There are two possible ways you can do this filtering:
+
+- **scalar on vector**: filters entries on a vector based on a boolean operator with a scalar.
+- **vector on vector**: filters entries on a vector based on comparison with another vector.
+
+![](https://i.imgur.com/KIHK9jM.jpeg)
+
+**set binary operators**
+
+Set binary operators are boolean keyword operators that can only be applied to instant vectors and basically perform set operations:
+
+- `and`: performs set intersection (commutative)
+- `or`: performs set union (commutative)
+- `unless`: performs set difference (not commutative)
+
+
+![](https://i.imgur.com/7Z9kCnR.jpeg)
+
+
+#### NodeJS with Prometheus
+
+##### Basic push gateway setup
 
 1. **import the prometheus client library**
 
