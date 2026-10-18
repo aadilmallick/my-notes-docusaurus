@@ -2841,19 +2841,59 @@ sudo systemctl daemon-reload
 sudo systemctl enable grafana-server
 sudo systemctl start grafana-server
 sudo systemctl status grafana-server
-
-sudo mkdir -p /etc/apt/keyrings/
-wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
-echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
-
-
-sudo apt-get update
-
-sudo apt-get install alloy
 ```
+
+##### Amazon Linux installation
+
+
+```bash
+sudo yum install -y https://dl.grafana.com/oss/release/grafana-10.2.2-1.x86_64.rpm
+
+sudo systemctl enable grafana-server
+sudo systemctl start grafana-server
+sudo systemctl status grafana-server
+```
+
 ##### Homebrew installation
 
+1. Install grafana via brew
+
+```bash
+brew install grafana
+```
+
+2. Create a copy of the grafana configuration file and then you can edit it to your liking.
+
+```bash
+cd /usr/local/etc/grafana
+cp grafana.ini custom.ini
+```
+
+3. Restart the grafana service
+
+```bash
+brew services info grafana
+brew service restart grafana
+```
+
 ##### Docker installation
+
+#### Grafana custom configuration
+
+The `grafana.ini` is the source of truth for configuration of the grafana service on Linux systems, and has these top level keys:
+
+- `[server]`: configuration for the server process that runs grafana
+	- `http_port`: the port to run on. The default is 3000.
+- `[database]`: configuration for the database to use for data storage. The default is a local sqlite instance.
+- `[paths]`: the default directories for where to store grafana data and logs, which you can override
+
+Then after modifying the grafana configuration, you need to restart that service:
+
+```bash
+sudo systemctl restart grafana-server
+# or
+brew services restart grafana
+```
 
 #### Grafana Cloud
 
@@ -2921,6 +2961,8 @@ OTel Collector
 Grafana Cloud
 ```
 
+
+#### Prometheus + Grafana in Docker
 ## Site Reliability Engineering
 
 ### Reliability Engineering
