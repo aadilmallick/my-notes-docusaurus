@@ -663,7 +663,7 @@ There are three ways to reliably increase income:
 The best investors are usually the most boring ones who just try to spend all their energy increasing their income and then investing it in ETFs.
 
 That's you best path to wealth.
-### Compound interest is the 8th wonder of the world
+#### Compound interest is the 8th wonder of the world
 
 Time compounding is the biggest factor in wealth increase. 
 
@@ -686,7 +686,35 @@ You can become rich at 65 even on an average salary of 62K even if you invest on
  Most of Warren Buffett's net worth came later on in his life, after 30 years of investing. Trust the compounding. Trust that it works. It happens at a later inflection point in life but after you hit the 100k mark in your investments, your portfolio rapidly begins to rise.
 
 ![](https://i.imgur.com/KyrHmRr.jpeg)
- 
+
+### How to increase income
+
+#### Asking for a raise
+
+To successfully get a raise, prepare a pitch beforehand and schedule a time with your supervisor for the raise negotiation.
+
+Here is what you should focus on in your pitch:
+
+1. Your recent accomplishments and victories
+2. Your skills
+3. Your pay relative to others on Glassdoor
+4. How the extra pay would help you contribute more to the company
+5. Let the boss know how valuable you are to the team.
+
+Timing is also important here. You can increase the chances of getting an affirmative answer by:
+
+1. Formally scheduling time for the discussion
+2. Scheduling the appointment 10-12 weeks before your annual review
+3. Asking soon after a workplace victory
+
+#### Freelancing
+
+Here are the best sites for freelancing:
+
+- Fiverr
+- Upwork
+- Catalant
+- Expert360
 ## Financial freedom via business
 ### The millionaire fastlane - the new rich
 
