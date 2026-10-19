@@ -1940,25 +1940,17 @@ OTel changes the observability architecture by replacing third-party paid vendor
 
 ![](https://i.imgur.com/QfmpHrU.jpeg)
 
+#### Instrumentation
 
-Opentelemetry application development has these components:
+**Instrumentation** is the act of adding observability code to an app yourself to enable measurement capabilities within a system, which you have three different methods of doing it:
 
-- **signals**: the collection of metrics, logs, and traces
-- **context**: the environmental context answering "when?", "where?", and "what?" for the circumstances surrounding the signals being collected.
-	- When did this event occur?
-	- Where did this event occur?
-	- What triggered this event?
-- **semantic conventions**: Standardized naming and attribute keys (e.g., `service.name`) that ensure telemetry data is consistent and can be correlated across different systems and vendors
+- **zero-code**: Adds API & SDK capabilities as agent or agent-link installation.
+	- out-of-the-box instrumentation, like how Deno turns on OpenTelemetry with a single feature flag.
+- **libraries**: import a library as an adapter to make another logging library OTel-compatible, somewhere between zero-code and code-based.
+- **code-based**: manually add code for instrumentation
 
+Of zero-code instrumentation, there are three methods for implementing it:
 
-![](https://i.imgur.com/uxPEIb2.jpeg)
-
-
-The **OpenTelemetry API** and **SDK** serve different roles in building observability into your application:
-
-- **The API (Application Programming Interface):** Acts as the **standardized, language-agnostic interface** ([0:06:28](https://www.youtube.com/watch?t=388s)). It defines the methods and structures for generating telemetry data (traces, logs, and metrics) within your application code. A key feature of the API is that it is "safe" to include in your code—if OpenTelemetry is not installed or configured, calls to the API will simply do nothing rather than causing errors or system overhead. This allows developers to instrument shared libraries or modules without forcing their users to use OpenTelemetry.
-    
-- **The SDK (Software Development Kit):** Acts as the **implementation layer** that communicates with the API ([0:07:13](https://www.youtube.com/watch?t=433s)). While the API defines _how_ you write telemetry, the SDK contains the actual logic required for **capturing, processing, and exporting** that data to your observability backend ([0:07:15](https://www.youtube.com/watch?t=435s) - [0:07:28](https://www.youtube.com/watch?t=448s)).
 ### Observability fundamentals
 
 #### Events
@@ -2274,20 +2266,44 @@ You can consider it as the difference between 100% success for an SLI and the SL
 
 ### OpenTelemetry
 
-#### Instrumentation
+#### Fundamentals
 
-Instrumentation is the act of adding observability code to an app yourself.
+Opentelemetry application development has these components:
 
-There are two types of instrumentation:
+- **signals**: the collection of metrics, logs, and traces
+- **context**: the environmental context answering "when?", "where?", and "what?" for the circumstances surrounding the signals being collected.
+	- When did this event occur?
+	- Where did this event occur?
+	- What triggered this event?
+- **semantic conventions**: Standardized naming and attribute keys (e.g., `service.name`) that ensure telemetry data is consistent and can be correlated across different systems and vendors
+
+
+![](https://i.imgur.com/uxPEIb2.jpeg)
+
+
+
+
+
+APIs and SDKs are what we use to implement instrumentation.
+
+The **OpenTelemetry API** and **SDK** serve different roles in building observability into your application:
+
+- **The API (Application Programming Interface):** Acts as the **standardized, language-agnostic interface** ([0:06:28](https://www.youtube.com/watch?t=388s)). It defines the methods and structures for generating telemetry data (traces, logs, and metrics) within your application code. A key feature of the API is that it is "safe" to include in your code—if OpenTelemetry is not installed or configured, calls to the API will simply do nothing rather than causing errors or system overhead. This allows developers to instrument shared libraries or modules without forcing their users to use OpenTelemetry.
+    
+- **The SDK (Software Development Kit):** Acts as the **implementation layer** that communicates with the API ([0:07:13](https://www.youtube.com/watch?t=433s)). While the API defines _how_ you write telemetry, the SDK contains the actual logic required for **capturing, processing, and exporting** that data to your observability backend ([0:07:15](https://www.youtube.com/watch?t=435s) - [0:07:28](https://www.youtube.com/watch?t=448s)).
+
+
+There are two types of instrumentation that OTel allows you to do:
 
 - **Automatic Instrumentation:** Uses libraries that detect popular frameworks (like _Express_, _HTTP_, or _AWS SDK_) and automatically add monitoring code without you writing manual logic
+	- **Instrumentation Libraries** are pre-built modules that allow OTel to hook into your existing dependencies (e.g., _Bunion_, _Pino_, _Winston_ for logging) to convert their output into the standardized OTel format.
 - **Manual Instrumentation:** Adding code explicitly to your application to capture custom events. You can do OTel instrumentation via the OpenTelemetry APIs and SDKs.
 
-**Instrumentation Libraries** are pre-built modules that allow OTel to hook into your existing dependencies (e.g., _Bunion_, _Pino_, _Winston_ for logging) to convert their output into the standardized OTel format.
 
-##### Context and exporter setup
 
-##### Automatic instrumentation
+##### Zero-code instrumentation
+
+There are three zero-code instrumentation
 
 
 #### OTel Collector
