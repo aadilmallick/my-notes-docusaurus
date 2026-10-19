@@ -5376,6 +5376,18 @@ teamcity run start <job> `
   --clean `
   --watch
 ```
+
+**Production-grade setup**
+
+1. Create a testing zone branch template that you fork off of when creating new test branches for Kotlin DSL. Call the branch something like `testing-zone/template`.
+2. Create a new branch in the pattern `testing-zone/*` and commit your Kotlin DSL changes to that branch
+3. Edit the VCS versioned settings to be as follows:
+
+
+![](https://i.imgur.com/Awdiip0.jpeg)
+
+
+
 ## Teamcity AI
 
 ### Teamcity MCP
