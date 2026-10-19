@@ -1,6 +1,6 @@
 ## Vibe coding mastery
 
-### basic workflow 
+### basic workflow
 
 1. Tell chat about your idea and ask it to make a PRD (project requirements document) so that you can input it into cursor.
 2. Ask chat to convert the PRD into a prompt for building with cursor or replit
@@ -15,6 +15,7 @@
 - **avoid getting stuck in loops by clearing chat**: If the AI agent gets stuck or produces errors, restart the task with a clean context instead of trying to fix it by prompting more—this helps avoid confusion and improves results.
 - **add precommit hooks, vulnerability checks, and security scanning**: Run your standard DevOps and security checks after pushing code to ensure no secrets are leaked and dependencies are secure.
 - **always review AI-generated code**: Carefully review AI-generated code line by line; don’t assume correctness just because it compiles or passes tests. Maintain critical oversight to ensure code quality.
+
 #### Creating a PRD
 
 A PRD should have the structure of having a high-level overview for the product, what it's about, and the tech stack that will be used in it.
@@ -43,9 +44,11 @@ Use this prompt as a cursor rule to build gorgeous UIs, and paste in mockups for
 
 ```md
 ## Role
+
 You are a senior front-end developer.
 
 ## Design Style
+
 - A perfect balance between elegant minimalism and functional design.
 - Soft, refreshing gradient colors that seamlessly integrate with the brand palette.
 - Well-proportioned white space for a clean layout.
@@ -74,7 +77,7 @@ You are a senior front-end developer.
 
 ## Task
 
-This is an **AI Calorie calculator app** where users can take pic of food and auto extract nutrition**.
+This is an **AI Calorie calculator app** where users can take pic of food and auto extract nutrition\*\*.
 
 - Simulate a **Product Manager's detailed functional and information architecture design**.
 
@@ -106,9 +109,6 @@ Add smooth animations and micro interactions like：
 - inertia-based scroll
 ```
 
-
-
-
 #### Vibe coding prompts
 
 Here are some good vibe coding prompts to inject during your workflow:
@@ -129,19 +129,16 @@ The main bulk of a vibe-coding based workflow hinges on 4 cursor rules files you
 - **No Duplication:** "Avoid repeating code; reuse existing functionality when possible."
 - **Organization:** "Keep files concise, under 200-300 lines; refactor as needed."
 - **Documentation:** "After major components, write a brief summary in `/docs/[component].md` (e.g., `login.md`)."
-    
 
 **Why It Works:** Simple code reduces bugs; documentation provides a readable audit trail.
 
 ##### 2. Technical Stack – "Use These Tools"
 
-**Purpose:** Locks the AI to your preferred technologies.  
-
+**Purpose:** Locks the AI to your preferred technologies.
 
 - **stack**: NEXTjs, TS, tailwind, shadcn
 - **database**: Use PostgreSQL with drizzle, using local docker connection string in development and production URL in production.
 - **testing**: write unit tests using vitest to test isolated classes and functions.
-    
 
 **Why It Works:** Consistency prevents AI from switching tools mid-project.
 
@@ -152,7 +149,6 @@ The main bulk of a vibe-coding based workflow hinges on 4 cursor rules files you
 - **Steps:** "Break large tasks into stages; pause after each for my approval." 
 - **Planning:** "Before big changes, write a `plan.md` and await my confirmation."
 - **Tracking:** "Log completed work in `progress.md` and next steps in `TODO.txt`." 
-    
 
 **Why It Works:** Incremental steps and logs keep the process transparent and manageable.
 
@@ -162,7 +158,6 @@ The main bulk of a vibe-coding based workflow hinges on 4 cursor rules files you
 
 - **Summaries:** "After each component, summarize what’s done." 
 - **Clarification:** "If my request is unclear, ask me before proceeding." 
-    
 
 **Why It Works:** You stay informed without needing to decipher AI intent.
 
@@ -181,18 +176,18 @@ I recently joined a startup (https://traceback.cc/) and need to understand the e
 
 When I finish this learning process I want to understand:
 
-* Every important file and why it exists.
-* Every architectural decision.
-* Every library and framework.
-* Every AI engineering concept used.
-* Every agent workflow.
-* Every data flow.
-* Every external service.
-* Every abstraction.
-* Every design pattern.
-* Every prompt engineering technique.
-* Every evaluation strategy.
-* Every production engineering decision.
+- Every important file and why it exists.
+- Every architectural decision.
+- Every library and framework.
+- Every AI engineering concept used.
+- Every agent workflow.
+- Every data flow.
+- Every external service.
+- Every abstraction.
+- Every design pattern.
+- Every prompt engineering technique.
+- Every evaluation strategy.
+- Every production engineering decision.
 
 I don't want surface-level explanations.
 
@@ -217,7 +212,7 @@ Whenever introducing something new, explain:
 7. Common mistakes engineers make
 8. How it connects to the rest of the architecture
 
-The goal is that I deeply understand *why*, not just *what*.
+The goal is that I deeply understand _why_, not just _what_.
 
 ---
 
@@ -233,33 +228,33 @@ Teach the underlying computer science or AI engineering concept.
 
 For example:
 
-* LLM context windows
-* embeddings
-* retrieval
-* vector search
-* tool calling
-* structured outputs
-* JSON schemas
-* planning
-* reasoning
-* memory
-* orchestration
-* agent loops
-* streaming
-* observability
-* evaluation
-* tracing
-* prompt engineering
-* RAG
-* MCP
-* context engineering
-* tokenization
-* latency
-* cost optimization
-* caching
-* retries
-* distributed systems
-* async programming
+- LLM context windows
+- embeddings
+- retrieval
+- vector search
+- tool calling
+- structured outputs
+- JSON schemas
+- planning
+- reasoning
+- memory
+- orchestration
+- agent loops
+- streaming
+- observability
+- evaluation
+- tracing
+- prompt engineering
+- RAG
+- MCP
+- context engineering
+- tokenization
+- latency
+- cost optimization
+- caching
+- retries
+- distributed systems
+- async programming
 
 Do not assume I already understand these concepts.
 
@@ -271,15 +266,15 @@ Whenever we encounter a library:
 
 Explain:
 
-* what it is
-* why it exists
-* how it works internally
-* why this project chose it
-* the most important APIs
-* common patterns
-* common pitfalls
-* alternatives
-* best practices
+- what it is
+- why it exists
+- how it works internally
+- why this project chose it
+- the most important APIs
+- common patterns
+- common pitfalls
+- alternatives
+- best practices
 
 Treat every library as if I may need to use it professionally elsewhere.
 
@@ -309,13 +304,13 @@ Never explain a file in isolation.
 
 Always explain:
 
-* who calls this
-* who this calls
-* why it exists
-* lifecycle
-* ownership
-* dependencies
-* side effects
+- who calls this
+- who this calls
+- why it exists
+- lifecycle
+- ownership
+- dependencies
+- side effects
 
 ---
 
@@ -323,15 +318,15 @@ Always explain:
 
 Whenever the repository performs AI-related work, explain:
 
-* what the model is doing
-* why prompts are structured that way
-* why tool calls exist
-* why schemas exist
-* why retries exist
-* why validation exists
-* why guardrails exist
-* why memory exists
-* why orchestration exists
+- what the model is doing
+- why prompts are structured that way
+- why tool calls exist
+- why schemas exist
+- why retries exist
+- why validation exists
+- why guardrails exist
+- why memory exists
+- why orchestration exists
 
 Explain the engineering reasoning behind each decision.
 
@@ -349,11 +344,11 @@ Discuss why different companies might make different tradeoffs.
 
 After each lesson, give me:
 
-* short coding exercises
-* debugging exercises
-* architecture questions
-* "predict what happens" questions
-* small implementation tasks
+- short coding exercises
+- debugging exercises
+- architecture questions
+- "predict what happens" questions
+- small implementation tasks
 
 Do not immediately reveal the answers.
 
@@ -389,7 +384,7 @@ Use counterexamples.
 
 Use comparisons.
 
-Help me understand *why* experienced engineers structure systems this way.
+Help me understand _why_ experienced engineers structure systems this way.
 
 ---
 
@@ -433,11 +428,11 @@ Don't say:
 
 Instead explain:
 
-* why that function exists
-* why it belongs there
-* why its abstraction is useful
-* what would happen if it didn't exist
-* why the author probably designed it that way
+- why that function exists
+- why it belongs there
+- why its abstraction is useful
+- what would happen if it didn't exist
+- why the author probably designed it that way
 
 Help me think like the engineer who originally wrote the system.
 
@@ -477,7 +472,6 @@ Every lesson should follow this structure:
 Wait for me after each lesson before continuing.
 
 Your objective is that, by the end of this process, I understand this repository, its architecture, and the AI engineering principles behind it well enough to independently design, implement, debug, and extend systems of comparable complexity.
-
 ```
 
 ### brainstorm a project prompt
@@ -494,9 +488,7 @@ If you want to explore a codebase and understand its architecture, here's a good
 Please look into this repository and help me understand its architecture and its core control flow. Write a swimlane diagram using Mermaid Markdown syntax. Please utilize subagents as much as possible and make the documentation comprehensive, spanning multiple files if need be and put them in a DOCS/ folder.
 ```
 
-
 ## Spec-driven slop coding slopvelopment
-
 
 ### Spec driven development basics
 
@@ -504,7 +496,7 @@ A **Spec** is a single document that contains the UI/UX, tech, and business logi
 
 If a spec has these three things:
 
-1. **technology constraints**: what libraries to use, 
+1. **technology constraints**: what libraries to use,
 2. **visual requirements**: what the UI/UX should look like and acceptance criteria for that
 3. **performance requirements**: what the desired performance of the feature should be and acceptance criteria for that
 
@@ -518,8 +510,6 @@ We can master spec-driven development through using these three techniques:
 
 #### Documentation Driven Development (Triple D's)
 
-
-
 Documentation driven development (DDD) is a practice where you use up-to-date documentation and examples to guide AI coding tools in generating code that follows the latest coding standards and best practices.
 
 To achieve DDD, you should follow these principles:
@@ -529,38 +519,22 @@ To achieve DDD, you should follow these principles:
 
 #### SDLC with AI
 
-The Software Development Life Cycle (SDLC) is a structured process that guides software development through four core phases:  
-  
+The Software Development Life Cycle (SDLC) is a structured process that guides software development through four core phases:
 
-- **Planning:** This is the foundation where you define the scope of your project, usually starting with a minimum viable product (MVP) that includes a core feature and a couple of side features. You create a detailed Product Requirements Document (PRD) that outlines user flows, navigation, and mockups. This step ensures clear goals and reduces costly changes later.  
-      
-    
-- **Implementation:** Here, you build the software. The course emphasizes starting with the front-end design as a blueprint—like planning the layout of a house—before developing the back-end logic. Building back-end features in small, isolated, testable blocks helps maintain flexibility and ease of debugging.  
-      
-    
-- **Testing:** After implementation, thorough testing, debugging, and code reviews are conducted to ensure the app works correctly, is secure, and meets quality standards.  
-      
-    
+- **Planning:** This is the foundation where you define the scope of your project, usually starting with a minimum viable product (MVP) that includes a core feature and a couple of side features. You create a detailed Product Requirements Document (PRD) that outlines user flows, navigation, and mockups. This step ensures clear goals and reduces costly changes later.
+- **Implementation:** Here, you build the software. The course emphasizes starting with the front-end design as a blueprint—like planning the layout of a house—before developing the back-end logic. Building back-end features in small, isolated, testable blocks helps maintain flexibility and ease of debugging.
+- **Testing:** After implementation, thorough testing, debugging, and code reviews are conducted to ensure the app works correctly, is secure, and meets quality standards.
 - **Deployment:** Finally, the app is deployed online for users. But this isn't the end; SDLC is iterative. After deployment, you return to planning for new features or improvements, following Agile principles.
 
 #### TDD with AI
 
-1. **Set up your test environment:** Use AI tools integrated in your IDE to help set up a testing framework (like Vitest or Jest). The AI can generate config files and install dependencies, but you may need to troubleshoot and guide it through errors.  
-      
-    
-2. **Start with a test prompt:** Describe the component or feature you want to build to the AI and ask it to generate the test code first. For example, specify what the component should do and what data it should handle.  
-      
-    
-3. **Create the test file:** Have the AI generate the test file (e.g., `WeatherCard.test.tsx`) with the test cases based on your description.  
-      
-    
-4. **Run the tests:** Initially, tests will fail because the component doesn’t exist yet. This is expected in TDD.  
-      
-    
-5. **Generate the component code:** Ask the AI to create the component implementation (e.g., `WeatherCard.tsx`) that satisfies the test requirements.  
-      
-    
+1. **Set up your test environment:** Use AI tools integrated in your IDE to help set up a testing framework (like Vitest or Jest). The AI can generate config files and install dependencies, but you may need to troubleshoot and guide it through errors.
+2. **Start with a test prompt:** Describe the component or feature you want to build to the AI and ask it to generate the test code first. For example, specify what the component should do and what data it should handle.
+3. **Create the test file:** Have the AI generate the test file (e.g., `WeatherCard.test.tsx`) with the test cases based on your description.
+4. **Run the tests:** Initially, tests will fail because the component doesn’t exist yet. This is expected in TDD.
+5. **Generate the component code:** Ask the AI to create the component implementation (e.g., `WeatherCard.tsx`) that satisfies the test requirements.
 6. **Run tests again:** Execute the tests to check if the component passes. If there are failures, review error messages.
+
 #### 6 patterns
 
 **Spec-driven development**
@@ -632,6 +606,7 @@ As a user, I want to invite friends to join the platform by sending them an emai
 ## API Endpoints
 
 ### Generate Invitation
+
 ```
 POST /invitations
 Request: { email: string }
@@ -639,11 +614,13 @@ Response: { token: string, expiresAt: string }
 ```
 
 Validates:
+
 - Email format is valid
 - Email is not already registered
 - User has permission to send invites (optional: limit per user)
 
 ### Redeem Invitation
+
 ```
 POST /invitations/:token/redeem
 Request: { name: string, password: string }
@@ -651,6 +628,7 @@ Response: { user: { id, email, name }, message: string }
 ```
 
 Validates:
+
 - Token exists and is not expired
 - Token has not been previously redeemed
 - Name is non-empty
@@ -658,6 +636,7 @@ Validates:
 - Email from token is not already registered (double-check)
 
 ### List Pending Invitations (Optional)
+
 ```
 GET /invitations/pending
 Response: [{ email, expiresAt, createdBy, createdAt }]
@@ -668,6 +647,7 @@ Auth: Requires admin role
 ## Data Model
 
 ### Invitations Table
+
 ```sql
 CREATE TABLE invitations (
   id TEXT PRIMARY KEY,
@@ -682,6 +662,7 @@ CREATE TABLE invitations (
 ```
 
 Key fields:
+
 - `token`: Random, cryptographically secure string (e.g., 32 bytes base64)
 - `redeemed_at`: NULL if not yet redeemed, timestamp if redeemed
 - `redeemed_by_user_id`: NULL if not yet redeemed, user ID if redeemed
@@ -690,16 +671,19 @@ Key fields:
 ## Validation Rules
 
 ### Email Validation
+
 - Must match standard email regex: `^[^\s@]+@[^\s@]+\.[^\s@]+$`
 - Must not be already registered
 - Must not have a pending invitation
 
 ### Token Generation
+
 - 32 bytes of random data, base64 encoded
 - Uniqueness guaranteed by database constraint
 - Expiration: 7 days from creation (configurable)
 
 ### Password Validation (on redemption)
+
 - Minimum 8 characters
 - Must contain at least one uppercase letter
 - Must contain at least one lowercase letter
@@ -707,16 +691,16 @@ Key fields:
 
 ## Error Cases
 
-| Scenario | HTTP Status | Error Code | Message |
-|----------|------------|-----------|---------|
-| Invalid email format | 400 | INVALID_EMAIL | Email format is invalid |
-| Email already registered | 400 | EMAIL_EXISTS | Email is already registered |
-| Too many pending invitations for user | 429 | RATE_LIMITED | Too many invitations sent |
-| Token not found | 404 | TOKEN_NOT_FOUND | Invitation token not found |
-| Token expired | 400 | TOKEN_EXPIRED | Invitation has expired |
-| Token already redeemed | 400 | TOKEN_REDEEMED | Invitation has already been redeemed |
-| Invalid password | 400 | INVALID_PASSWORD | Password does not meet requirements |
-| Weak password | 400 | WEAK_PASSWORD | Password must contain uppercase, lowercase, and digits |
+| Scenario                              | HTTP Status | Error Code       | Message                                                |
+| ------------------------------------- | ----------- | ---------------- | ------------------------------------------------------ |
+| Invalid email format                  | 400         | INVALID_EMAIL    | Email format is invalid                                |
+| Email already registered              | 400         | EMAIL_EXISTS     | Email is already registered                            |
+| Too many pending invitations for user | 429         | RATE_LIMITED     | Too many invitations sent                              |
+| Token not found                       | 404         | TOKEN_NOT_FOUND  | Invitation token not found                             |
+| Token expired                         | 400         | TOKEN_EXPIRED    | Invitation has expired                                 |
+| Token already redeemed                | 400         | TOKEN_REDEEMED   | Invitation has already been redeemed                   |
+| Invalid password                      | 400         | INVALID_PASSWORD | Password does not meet requirements                    |
+| Weak password                         | 400         | WEAK_PASSWORD    | Password must contain uppercase, lowercase, and digits |
 
 ## Implementation Notes
 
@@ -765,10 +749,7 @@ SO instead of refactoring everything all at once, we break a refactor into 5 pha
 > [!NOTE]
 > Doing refactoring in phases allows us to commit once we're done with a phase, so it's easy to rollback to a previous phase if one goes awry, as opposed to scrapping the entire refactor
 
-
-
 ![](https://i.imgur.com/l6JFDcs.jpeg)
-
 
 **When to use this pattern:**
 
@@ -782,6 +763,7 @@ SO instead of refactoring everything all at once, we break a refactor into 5 pha
 - Small, isolated features (use Beads or RALPH instead)
 - Bug fixes
 - Simple refactors (just do them)
+
 #### Phase 1: Plan
 
 [README](https://github.com/LinkedInLearning/mastering-ai-assisted-development-10666010/blob/main/4.3-demo-multi-phase-planning/README.md#phase-1-plan)
@@ -903,7 +885,6 @@ The AI agent:
 
 **Commit**: `git commit -m "phase-4: migrate to new architecture and remove old code"`
 
-
 ### Testing and debugging
 
 #### UX audit
@@ -931,7 +912,7 @@ Steps:
    - Desktop (1280px wide)
    - Tablet (768px wide)
    - Mobile (375px wide)
-   Take a screenshot at each size. Flag any layout issues: overlapping elements, text overflow, unreachable buttons, horizontal scroll.
+     Take a screenshot at each size. Flag any layout issues: overlapping elements, text overflow, unreachable buttons, horizontal scroll.
 
 4. **Loading and error states**: Navigate with simulated slow network. Verify loading indicators appear. Submit forms with invalid data. Verify error messages are shown clearly and are actionable.
 
@@ -948,12 +929,12 @@ Fix any FAIL issues automatically. For WARN issues, describe the fix but leave i
 #### Mutation testing
 
 - **coverage** tells you what ran and the percentage of codebase coverage
-	- Code coverage only tells you which lines of code were _executed_ during a test run, but it doesn't prove that your assertions are actually verifying correctness.
+  - Code coverage only tells you which lines of code were _executed_ during a test run, but it doesn't prove that your assertions are actually verifying correctness.
 - **Mutation testing** tells you whether the tests would notice if the code were wrong.
-	- **Mutation testing** evaluates the quality of your automated tests rather than the quality of your code. 
+  - **Mutation testing** evaluates the quality of your automated tests rather than the quality of your code.
 
 > [!NOTE]
->  Coverage tells you what lines of code ran in the tests but mutation tells you whether those tests actually mattered or not 
+> Coverage tells you what lines of code ran in the tests but mutation tells you whether those tests actually mattered or not
 
 > [!NOTE]
 > A completely green, passing test suite is just a hypothesis. Mutant testing tries to verify that hypothesis, where if all mutants are killed, then your tests actually matter and test something real.
@@ -961,18 +942,12 @@ Fix any FAIL issues automatically. For WARN issues, describe the fix but leave i
 Here's how it works:
 
 - **Mutant Creation:** A tool introduces deliberate, small bugs (called "mutants") into your codebase (e.g., swapping `>` for `>=`, changing `+` to `-`, or deleting a line of logic).
-    
 - **Execution:** Your test suite is run against each mutated version of the code.
-    
 - **Verdict:**
-    
-    - **Killed Mutant:** If a test fails, the mutant is "killed" (a good outcome—your test caught the bug).
-        
-    - **Surviving Mutant:** If all tests pass despite the introduced bug, the mutant "survived." This highlights a gap in your test assertions or missing edge cases.
-
+  - **Killed Mutant:** If a test fails, the mutant is "killed" (a good outcome—your test caught the bug).
+  - **Surviving Mutant:** If all tests pass despite the introduced bug, the mutant "survived." This highlights a gap in your test assertions or missing edge cases.
 
 ![](https://i.imgur.com/zrz6oZ3.jpeg)
-
 
 Here's how to use AI-assisted coding with mutant testing:
 
@@ -1008,6 +983,7 @@ claude mcp add chrome-devtools -- npx @anthropic-ai/chrome-devtools-mcp@latest
 Systematically debug runtime issues using DevTools MCP.
 
 Steps:
+
 1. Take a screenshot of the current page state
 2. Check the browser console for errors or warnings
 3. Inspect network requests for failed or slow responses
@@ -1019,12 +995,12 @@ Steps:
    - Verify with another screenshot/console check
 
 Report findings as:
+
 - Issue: [what's wrong]
 - Root cause: [why it happens]
 - Fix: [what you changed]
 - Verified: [how you confirmed the fix]
 ```
-
 
 ### Playbook
 
@@ -1047,24 +1023,21 @@ favicon: ""
 aspectRatio: "50"
 ```
 
-
 #### The Templates
-
-
 
 This demo includes starter templates you can customize:
 
 1. Spec Template (`templates/SPEC.md.template`): A reusable project specification following this formula:
+   - Technology constraints
+   - Visual / functional requirements
+   - Performance targets
+   - Interaction model
 
-	- Technology constraints
-	- Visual / functional requirements
-	- Performance targets
-	- Interaction model
-
-````md
+```md
 # Project Spec: [PROJECT NAME]
 
 ## Technology Constraints
+
 - **Framework**: [e.g., React 18, Next.js 15, Vue 3]
 - **Language**: [e.g., TypeScript strict mode]
 - **Styling**: [e.g., Tailwind CSS, CSS Modules]
@@ -1072,31 +1045,34 @@ This demo includes starter templates you can customize:
 - **No**: [explicitly exclude anything you don't want]
 
 ## Functional Requirements
+
 - [What should the application DO? List the core behaviors.]
 - [Be specific about WHAT, flexible about HOW.]
 - [Include interaction model: clicks, hover, keyboard, etc.]
 
 ## Visual Requirements
+
 - [Color palette, typography, layout constraints]
 - [Responsive breakpoints]
 - [Animation and transition expectations]
 - [Reference designs or inspiration (if any)]
 
 ## Performance Targets
+
 - [Load time, bundle size, frame rate expectations]
 - [e.g., "60 FPS animations", "< 200KB bundle", "< 2s initial load"]
 
 ## Out of Scope
+
 - [What this project is NOT — helps Claude stay focused]
-````
+```
 
 2. Skill Template (`templates/SKILL.md.template`): An empty template for creating a skill that contains these sections:
-
-	- Purpose (when to activate)
-	- Principles (domain expertise)
-	- Patterns (code examples)
-	- Anti-Patterns (what to avoid)
-	- Checklist (verification steps)
+   - Purpose (when to activate)
+   - Principles (domain expertise)
+   - Patterns (code examples)
+   - Anti-Patterns (what to avoid)
+   - Checklist (verification steps)
 
 ````md
 # Skill: [SKILL NAME]
@@ -1104,6 +1080,7 @@ This demo includes starter templates you can customize:
 ## Purpose
 
 When to activate this skill:
+
 - [Trigger condition 1: e.g., "When creating React components"]
 - [Trigger condition 2: e.g., "When the user asks for UI work"]
 
@@ -1143,11 +1120,10 @@ Before considering the work done, verify:
 ````
 
 3. CLAUDE.md Template (`templates/CLAUDE.md.template`): A project-level constitution covering:
-
-	- Project context and architecture
-	- Code style and conventions
-	- Testing requirements
-	- Common commands
+   - Project context and architecture
+   - Code style and conventions
+   - Testing requirements
+   - Common commands
 
 ````md
 # CLAUDE.md — Project Constitution
@@ -1193,11 +1169,10 @@ npm run lint     # Run linter
 ````
 
 4. Agent Config Template (`templates/AGENT.md.template`): Subagent definition template
-
-	- Name and description
-	- Allowed tools
-	- Model selection
-	- System prompt with expertise
+   - Name and description
+   - Allowed tools
+   - Model selection
+   - System prompt with expertise
 
 ```md
 ---
@@ -1220,10 +1195,12 @@ You are a specialist in [domain]. Your job is to [primary responsibility].
 ## Scope
 
 **You own these files**:
+
 - `src/[your-layer]/`
 - `tests/[your-layer]/`
 
 **You do NOT touch**:
+
 - [files owned by other agents]
 
 ## Approach
@@ -1322,19 +1299,19 @@ The empty retrospective log template looks like this:
 Track which AI development patterns work for you. Fill this in after each session.
 
 | Date | Task | Pattern Used | Result (Great/Good/Meh/Bad) | What Worked | What to Improve |
-|------|------|-------------|----------------------------|-------------|-----------------|
-|      |      |             |                            |             |                 |
-|      |      |             |                            |             |                 |
-|      |      |             |                            |             |                 |
-|      |      |             |                            |             |                 |
-|      |      |             |                            |             |                 |
+| ---- | ---- | ------------ | --------------------------- | ----------- | --------------- |
+|      |      |              |                             |             |                 |
+|      |      |              |                             |             |                 |
+|      |      |              |                             |             |                 |
+|      |      |              |                             |             |                 |
+|      |      |              |                             |             |                 |
 
 ## Templates Saved
 
 | Date | Template Name | Type (spec/skill/command/agent) | Location | Notes |
-|------|--------------|--------------------------------|----------|-------|
-|      |              |                                |          |       |
-|      |              |                                |          |       |
+| ---- | ------------- | ------------------------------- | -------- | ----- |
+|      |               |                                 |          |       |
+|      |               |                                 |          |       |
 
 ## Insights
 
@@ -1361,15 +1338,15 @@ These are rules you should create as fitness functions via an `npm run security`
 Here are the rules you should turn into fitness functions via an `npm run quality` check
 
 - UX: loading/empty/error states verified in a real browser; no new console errors on load.
-- Performance: LCP <= 2.5s, INP <= 200ms, CLS <= 0.1; JS + image budgets enforced in CI.
+- Performance: LCP $\leq 2.5s$, INP $\leq 200ms$, CLS $\leq 0.1$; JS + image budgets enforced in CI.
 - Accessibility: WCAG 2.2 AA; zero automated axe violations + keyboard/screen-reader verified.
 - Testing: mutation score gate on `packages/core`; evals gate on the AI feature.
 - Security: `npm run security` green (secrets, `.env`, AI guardrail, prod-critical deps); `/security-review` + SAST clean; deps verified; agent runs least-privilege.
-- Reliability: OpenTelemetry traces/SLO; AI calls have timeout, fallback, and a guardrail.****
+- Reliability: OpenTelemetry traces/SLO; AI calls have timeout, fallback, and a guardrail.\*\*\*\*
+
 ### Production grade quality
 
 #### Fitness functions
-
 
 A fitness function is a code architecture rule that can described in natural language, but then you convert it into an automated, programmatic check via a CLI function or something like that.
 
@@ -1398,7 +1375,7 @@ Fix the violation properly. The web app must not import server-side code from ap
 
 #### Test unhappy paths
 
-You don't truly have a working app unless you test the unhappy paths. 
+You don't truly have a working app unless you test the unhappy paths.
 
 The way you could do this is with the chrome devtools MCP, asking the AI to try testing random things and stress test the app via chaos engineering.
 
@@ -1440,10 +1417,9 @@ Then re-verify only the two beats that carry the episode, using the identical me
 
 ### Improving performance
 
->What gets measured gets managed
+> What gets measured gets managed
 
-
-The most possibly important thing for you to have is a performance baseline, before you try to improve anything always do a trace, create a budget, and calculate a performance baseline so that you know what you're measuring against and you know what you can improve on and what will actually improve the performance. 
+The most possibly important thing for you to have is a performance baseline, before you try to improve anything always do a trace, create a budget, and calculate a performance baseline so that you know what you're measuring against and you know what you can improve on and what will actually improve the performance.
 
 #### Browser performance
 
@@ -1451,28 +1427,24 @@ These are the metrics you must try to optimize in order to have a performant web
 
 ![](https://i.imgur.com/XTl4RHB.jpeg)
 
-To diagnose how to improve these browser metrics, you should run a production build and then test on that, not a dev build. 
+To diagnose how to improve these browser metrics, you should run a production build and then test on that, not a dev build.
 
 > [!NOTE]
->  the reason for that is that production builds and dev builds have stark differences, like minified code and code-splitting optimizations in production that are not in dev 
+> the reason for that is that production builds and dev builds have stark differences, like minified code and code-splitting optimizations in production that are not in dev
 
 ```
 npm run build
 npx vite preview
 ```
 
-
-Here are some actionable tips and key takeaways from the video on performance optimization:  
-  
+Here are some actionable tips and key takeaways from the video on performance optimization:
 
 - **Measure first, don’t guess:** Use real user experience metrics like Core Web Vitals, especially Largest Contentful Paint (LCP), to identify performance issues.
 - **Use real browser traces:** Capture detailed traces under controlled conditions (e.g., throttled network and CPU) to pinpoint bottlenecks accurately.
 - **Target fixes based on data:** Optimize large assets (like oversized images), reserve space in markup to avoid layout shifts, use modern image formats (WebP, AVIF), and apply lazy loading and code splitting.
 - **Validate improvements:** After applying fixes, re-measure performance to ensure the issues are resolved and improvements are real.
 
-  
-The recommended workflow to follow is:  
-  
+The recommended workflow to follow is:
 
 1. Build and serve a production bundle (not a dev server build) to get accurate performance data.
 2. Throttle network and CPU to simulate realistic user conditions.
@@ -1495,10 +1467,10 @@ Then use the chrome-devtools MCP against http://localhost:4173. Call `emulate` w
 
 Report: LCP and CLS, the full LCP breakdown (TTFB, load delay, load duration, render delay), which element is the LCP, and the insights the trace surfaces. Tell me which subpart dominates LCP and what that implies. Also report the chunks the build emitted and whether the reporting panel is in the initial chunk. Then tell me the exact files you would change. Do not fix yet.
 ```
+
 #### Performance bundle
 
 A performance budget is a maximum bundle size that the web app build must stay under and if it's above that then the deploy job must fail.
-
 
 ![](https://i.imgur.com/wCey52W.jpeg)
 
@@ -1522,16 +1494,12 @@ Then fix the regression with a scoped import, native code, or lazy loading, re-r
 Print a before/after table in the terminal - measured size, limit, and the delta for each run. Do not write screenshots or report files, and do not claim any performance win without before/after numbers from the same harness.
 ```
 
-
 #### Improving P50 and P95 via regressions
 
-- **P50 latency** is the median response time. This means 50% of requests are faster than this time, and 50% are slower. It represents the typical or average user experience.  
-      
-    
+- **P50 latency** is the median response time. This means 50% of requests are faster than this time, and 50% are slower. It represents the typical or average user experience.
 - **P95 latency** is the 95th percentile response time. This means 95% of requests are faster, but 5% are slower. It captures the "slow tail"—the slower experiences some users face, especially under load.
 
 Here are the key actionable tips and the workflow:
-  
 
 - **Measure first, then fix:** Start by planting realistic performance regressions and measure baseline metrics like Largest Contentful Paint (LCP) and API latency (P50, P95) in a production-like environment.
 - **Use production builds for accuracy:** Always test with production bundles and real browser traces, not dev server builds, to get meaningful performance data.
@@ -1540,9 +1508,7 @@ Here are the key actionable tips and the workflow:
 - **Re-measure to validate:** After fixes, rerun the same tests to confirm improvements and ensure the performance budget passes.
 - **Iterate as needed:** Repeat this measure-fix-validate cycle to continuously improve.
 
-  
-**Recommended workflow:**  
-  
+**Recommended workflow:**
 
 1. Plant realistic regressions to simulate performance issues.
 2. Measure baseline performance metrics on production builds.
@@ -1551,7 +1517,6 @@ Here are the key actionable tips and the workflow:
 5. Rebuild and rerun measurements to verify improvements.
 6. Let quality gates decide if the build passes.
 7. Repeat the process to maintain and improve production readiness.
-
 
 Here's how to ask AI to plant a realistic regression:
 
@@ -1572,7 +1537,7 @@ The trace must hit the preview build on 4173, not the dev server - dev-server nu
 Report measured bundle size vs limit, LCP with its breakdown (TTFB, load delay, load duration, render delay), CLS, and p50/p97.5/max latency plus requests per second. Do not write screenshots or report files - I want the numbers on screen. Do not fix the regressions.
 ```
 
-2.  then tell it to fix the regressions 
+2.  then tell it to fix the regressions
 
 ```
 Solve the performance challenge. Use the failing budget, the trace, and the autocannon baseline as the source of truth. Fix the front-end lodash regression without broad imports. If reporting is on the critical path, lazy-load or defer it without changing user-visible behavior. Fix the synchronous work in GET /api/tickets without changing the response shape.
@@ -1586,17 +1551,14 @@ Do not write screenshots or report files. If a difference is small enough to be 
 
 #### Running an accessibility audit
 
-Here are the key actionable tips and the workflow you should follow based on the video:  
-  
+Here are the key actionable tips and the workflow you should follow based on the video:
 
 - **Measure first, then fix:** Start by measuring real user experience metrics like color contrast for accessibility and performance indicators such as Largest Contentful Paint (LCP).
 - **Use automated tools as a baseline:** Tools like Axe help catch mechanical accessibility issues (e.g., contrast failures, missing labels), but manual testing (keyboard navigation, screen readers) is essential to ensure real usability.
 - **Fix issues iteratively:** Use AI assistance (like Claude) to address flagged problems, such as improving color contrast, adding persistent labels, and ensuring keyboard focus management.
 - **Validate fixes thoroughly:** After applying changes, rerun automated scans and perform manual interaction tests to confirm that issues are resolved and the user experience is genuinely improved.
 
-  
-**Recommended workflow:**  
-  
+**Recommended workflow:**
 
 1. Run automated accessibility scans to identify mechanical issues.
 2. Perform manual testing with keyboard and screen readers to catch real user experience problems.
@@ -1604,11 +1566,7 @@ Here are the key actionable tips and the workflow you should follow based on the
 4. Re-run scans and manual tests to verify fixes.
 5. Repeat as needed to achieve a production-ready, accessible product.
 
-  
 **actual steps**
-
-
-
 
 1. Install required dependencies
 
@@ -1636,7 +1594,7 @@ Then go beyond the scanner. Give the reply textarea a real, persistent label - t
 
 ### Evals
 
-When using AI agents or LLMs to generate or modify code, traditional deterministic tests (unit/integration tests) are necessary but insufficient on their own. AI models introduce non-deterministic outputs, subtle hallucinations, and edge-case security risks. 
+When using AI agents or LLMs to generate or modify code, traditional deterministic tests (unit/integration tests) are necessary but insufficient on their own. AI models introduce non-deterministic outputs, subtle hallucinations, and edge-case security risks.
 
 Evals (evaluation harnesses) bridge this gap.
 
@@ -1654,14 +1612,10 @@ Here are the key benefits of evals:
 
 There are two types of evals:
 
-There are two main types you can think of:  
-  
+There are two main types you can think of:
 
-- **Guardrail Evals:** These focus on safety and correctness. They check that the AI doesn't do anything catastrophic like leaking sensitive data, following harmful hidden instructions, or going off-topic. For example, the video shows tests ensuring AI replies don’t leak customer emails or obey malicious prompts. These evals act as safety nets to block dangerous or clearly wrong outputs before they reach users.  
-      
-    
+- **Guardrail Evals:** These focus on safety and correctness. They check that the AI doesn't do anything catastrophic like leaking sensitive data, following harmful hidden instructions, or going off-topic. For example, the video shows tests ensuring AI replies don’t leak customer emails or obey malicious prompts. These evals act as safety nets to block dangerous or clearly wrong outputs before they reach users.
 - **Quality Evals:** These go a step further and assess how helpful or useful the AI's responses are. While guardrail evals ensure the AI doesn’t misbehave, quality evals measure if the AI actually provides valuable, relevant, and accurate answers. This might involve scoring replies against a rubric or using another AI model to judge helpfulness.
-
 
 Of the quality evals, there are two techniques you can use:
 
@@ -1678,11 +1632,9 @@ LLM as a judge has two main weaknesses
 #### Mutation testing with eval workflow
 
 - **Apply Mutation Testing to AI-Written Tests:** Run mutation testing specifically on tests written or suggested by AI. This pressure-tests whether the agent created robust assertions or merely wrote code that touches lines to boost coverage metrics.
-    
 - **Property-Based Testing:** Pair AI-assisted development with property-based testing. Instead of testing single static examples, generate wide ranges of synthetic inputs to enforce invariants (e.g., "sorting should never change array length").
 
 - **Provide Clear Rubrics & Calibration:** Avoid vague instructions like "check if the code is good." Provide a detailed rubric with explicit criteria and calibrated pass/fail examples.
-    
 - **Tier Your Evaluation Pipeline:** Run cheap, fast deterministic tests on every commit/PR merge. Only invoke LLM judges on critical paths or subjective assertions to keep costs low and build times fast.
 
 #### Eval test suite example
@@ -1715,12 +1667,10 @@ Add a single LLM-as-judge eval for reply helpfulness, scored against an explicit
 
 Why is prompt injection so dangerous? Because it leads to the lethal trifecta:
 
-
 ![](https://i.imgur.com/6ORRwY2.jpeg)
 
+here are actionable tips to avoid prompt injection:
 
- here are actionable tips to avoid prompt injection:
- 
 - **Treat all user input as untrusted data:** Always isolate user-submitted text clearly from instructions to prevent prompt injection attacks.
 - **Use delimiters or structured framing:** Separate trusted system prompts from untrusted user input to avoid mixing data with commands.
 - **Add runtime output guards:** Implement checks that detect and block unsafe or sensitive data leaks in AI responses.
@@ -1728,9 +1678,7 @@ Why is prompt injection so dangerous? Because it leads to the lethal trifecta:
 - **Verify fixes with automated eval tests:** Regularly run tests that confirm your AI features do not leak data or obey malicious instructions.
 - **Ensure deployment updates:** After code changes, restart or update running processes to avoid stale code causing security issues.
 
-
 ![](https://i.imgur.com/WSYSiVe.jpeg)
-
 
 #### Hardening AI-generated code
 
@@ -1739,7 +1687,7 @@ Start with the code. Run the checks that do not rely on anyone's good intentions
 - **SCA analysis**: A dependency audit, so a hallucinated or malicious package fails before it installs
 - **Static analysis**: (Semgrep or similar) for injection, missing validation, and dangerous sinks
 - **Security review skill**: A `/security-review` pass that reads the diff for logic-level problems a linter cannot see
-	- And, for anything non-trivial, a fresh-context reviewer subagent that only sees the diff and is told to try to break it, because an agent reviewing its own work is an echo chamber, not a second opinion
+  - And, for anything non-trivial, a fresh-context reviewer subagent that only sees the diff and is told to try to break it, because an agent reviewing its own work is an echo chamber, not a second opinion
 
 Wire the ones that are deterministic into a `npm run security` gate so they block a merge, not just a conversation.
 
@@ -1768,6 +1716,7 @@ Run it before fixing anything and print exactly what it blocks on and why. Then 
 ```
 Create a fresh-context reviewer subagent (.claude/agents/reviewer.md) whose only job is adversarial security review. Give it the diff for the escalate endpoint and the three original findings, and instruct it to actively try to break the fix: bypass the validation, influence the webhook target, confirm the dependency is truly gone. It must not assume the fix is correct. Run it and report only what it can actually break, with file:line. If it finds nothing, say so explicitly.
 ```
+
 #### Principle of least privilege
 
 Concretely, least privilege for an agent means:
@@ -1792,7 +1741,6 @@ Set up least-privilege permissions for this repo in .claude/settings.json using 
 > [!NOTE]
 > An AI feature is not reliable because the model usually works. It is reliable when failures are visible and survivable.
 
-
 The Suggested Reply path depends on a model call. Model calls can be slow, fail, return empty output, or produce something the product should not use. Reliability work starts by assuming those things will happen.
 
 For the course app, lightweight local telemetry is enough:
@@ -1816,9 +1764,7 @@ Then make failure survivable:
 > [!NOTE]
 > Reliability means the system not only survives failures but also signals when it has degraded, enabling better monitoring and response.
 
-
 ![](https://i.imgur.com/UKb3dpD.jpeg)
-
 
 > [!NOTE]
 > The useful standard is: see it fail, survive the failure, and report the degraded path clearly enough that a human can act.
@@ -1849,23 +1795,16 @@ With the model path still failing, re-run the identical two curl commands and pr
 
 ### Quality gates and shipping
 
-
 #### CI as a quality gate
 
 You should always have precommit hooks and CI workflows that act as a two-gate system to only allow code to be merged into main if it passes testing, security, and configured quality gates.
 
-
 ![](https://i.imgur.com/pMFfkaq.jpeg)
 
-
 1. **Local vs. Enforced Gates:** Checks running locally are advisory; only CI-enforced checks systematically protect main branches. CI moves repeated review debates from human memory into code.
-    
 2. **Shift-Left Defense in Depth:** Relying solely on CI allows broken changes to leave developer laptops. Local hooks (e.g., pre-commit hooks or agent "Stop" hooks) stop bad code before it is pushed, while CI acts as the backup backstop.
-    
 3. **No Imaginary Jobs:** CI pipelines should strictly run existing scripts/commands (e.g., inspecting `package.json` first). Missing checks belong in comments or backlog issues, not non-existent workflow jobs.
-    
 4. **"Net First, Fix Second" for Legacy Code:** Never start legacy work with a rewrite or immediate fix. Map dependencies in read-only mode first, then pin current behavior—quirks included—using characterization tests.
-    
 5. **Ratchet, Don't Over-Require:** Set quality gates at standards the codebase can pass _today_, then gradually ratchet requirements higher over time.
 
 Here are the steps to how you can set up CI and precommit hooks with AI to act as quality gates:
@@ -1897,11 +1836,11 @@ Show the config, then demonstrate it in the terminal: make a red change and show
 ### Dealing with legacy code
 
 - **brownfield**: inherited, legacy code you didn't necessarily write.
-- **smoke test**: A smoke test is a quick, basic test that checks whether the main parts of your system are working after changes. 
-	- It's like a simple health check to ensure nothing critical is broken before deeper testing or deployment.
-- **characterization test**: A characterization test is a type of correctness test that captures exactly how your existing code behaves today, including all its quirks and current outputs. 
-	- Its purpose is to lock in this behavior so that when you make changes, you can detect any unintended differences as failing tests instead of unexpected bugs in production.
-	- Essentially, it pins down the current behavior without asserting whether it's right or wrong, just what it does.
+- **smoke test**: A smoke test is a quick, basic test that checks whether the main parts of your system are working after changes.
+  - It's like a simple health check to ensure nothing critical is broken before deeper testing or deployment.
+- **characterization test**: A characterization test is a type of correctness test that captures exactly how your existing code behaves today, including all its quirks and current outputs.
+  - Its purpose is to lock in this behavior so that when you make changes, you can detect any unintended differences as failing tests instead of unexpected bugs in production.
+  - Essentially, it pins down the current behavior without asserting whether it's right or wrong, just what it does.
 
 To work with brownfield code (legacy code), it's important that you don't break anything. To that end, follow these steps:
 
@@ -1912,16 +1851,12 @@ To work with brownfield code (legacy code), it's important that you don't break 
 
 3. **create a fitness function for ratcheting quality**: once you capture the current performance of the app via a characterization test, write a fitness function for ratcheting quality so that if the performance of the codebase every goes below the results of the characterization test, we fail loudly as to avoid regressions in quality.
 
-
 ![](https://i.imgur.com/y28oYHZ.jpeg)
-
 
 > [!NOTE]
 >  characterization tests help safely evolve legacy code by preventing silent behavior changes, while smoke tests provide a fast check that the system still functions at a basic level after updates.
 
-
 Here's an example of using prompts to work with brownfield cod
-
 
 1. **Requires axe + Playwright (one-time, in this app):**
 
@@ -1949,28 +1884,27 @@ Now fix accessibility, with the characterization tests as the safety net. Write 
 
 ### Production grade playbook
 
- generating AI code is cheap now. The real work is making sure that it's production-grade and ensuring that code never breaks in production. You have to verify that what you ship is correct and it works well.
+generating AI code is cheap now. The real work is making sure that it's production-grade and ensuring that code never breaks in production. You have to verify that what you ship is correct and it works well.
 
 So here are the main techniques you have when it comes to achieving production grade quality:
 
 1. **make quality gates executable**: create fitness functions for quality gates like accessibility, testing, and performance, and have them fail loudly. Below are examples of quality gates:
-	- **codebase architecture**: maintain code quality by creating fitness functions for code architecture.
-	- **user flow**: create E2E tests or a UX audit driven by AI
-	- **accessibility**: automated scans via `axe` or lighthouse
-	- **performance**: create traces, budgets, and characterization tests, before mitigating with automated scans via lighthouse or an AI audit
-	- **tests**: instead of just coverage, add mutation testing
-	- **AI behavior**: test nondeterministic AI behavior through evals.
-	- **security**: automate security with AI audits and SCA and SAST tools
+   - **codebase architecture**: maintain code quality by creating fitness functions for code architecture.
+   - **user flow**: create E2E tests or a UX audit driven by AI
+   - **accessibility**: automated scans via `axe` or lighthouse
+   - **performance**: create traces, budgets, and characterization tests, before mitigating with automated scans via lighthouse or an AI audit
+   - **tests**: instead of just coverage, add mutation testing
+   - **AI behavior**: test nondeterministic AI behavior through evals.
+   - **security**: automate security with AI audits and SCA and SAST tools
 2. **make quality gates automated**: add precommit hooks and CI workflows that only pass if the quality gates pass.
 3. **Add reliability guardrails**: each portion of your app business logic should add in the 5 reliability guardrails:
 
-
 ![](https://i.imgur.com/sSOucmI.jpeg)
-
 
 In summary:
 
 ![](https://media.licdn.com/dms/image/v2/D560DAQGG3ggm9Zy43w/learning-article-inline-scale_1000_2000/B56Z_4DvYnHMAM-/0/1786573158287?e=1791064800&v=beta&t=cUWpjJ6q4a5s2jj0wC9tQZo5E-2_DQDnjcabfVpOE2U)
+
 ## Vibe coding workflows with different harnesses
 
 ### Codex
@@ -2124,7 +2058,7 @@ Review the current project for code quality issues.
 
 ##### `/scaffold`
 
-````md
+```md
 # /scaffold $ARGUMENTS
 
 Generate a new feature module with route and test files.
@@ -2151,7 +2085,7 @@ The feature name is provided as: $ARGUMENTS
 - New files follow the exact patterns from the existing codebase
 - Tests pass when run with `npx jest`
 - TypeScript compiles without errors
-````
+```
 
 ##### `/verify`
 
@@ -2190,6 +2124,7 @@ All tests pass and zero lint errors. If anything fails, suggest specific fixes.
 You are the parent agent orchestrating a feature implementation using custom subagents defined in `.claude/agents/`.
 
 Your job is NOT to implement the feature yourself. Instead:
+
 1. Delegate each layer to the appropriate specialist subagent
 2. Collect results from each subagent
 3. Run integration tests at the end
@@ -2205,13 +2140,14 @@ See `specs/feature.md` for the complete specification.
 
 Three custom subagents are defined in `.claude/agents/`:
 
-| Subagent | File | Responsibility |
-|----------|------|---------------|
-| `data-layer` | `.claude/agents/data-layer.md` | Repository with CRUD operations |
-| `business-logic` | `.claude/agents/business-logic.md` | Service layer with validation |
-| `api-layer` | `.claude/agents/api-layer.md` | Express routes and middleware |
+| Subagent         | File                               | Responsibility                  |
+| ---------------- | ---------------------------------- | ------------------------------- |
+| `data-layer`     | `.claude/agents/data-layer.md`     | Repository with CRUD operations |
+| `business-logic` | `.claude/agents/business-logic.md` | Service layer with validation   |
+| `api-layer`      | `.claude/agents/api-layer.md`      | Express routes and middleware   |
 
 Each subagent has:
+
 - A focused **description** that tells Claude when to delegate
 - **Tool restrictions** (Read, Edit, Write, Bash, Grep, Glob)
 - **Model** set to Sonnet for fast implementation
@@ -2222,6 +2158,7 @@ Each subagent has:
 ### Step 1: Data Layer (use the `data-layer` subagent)
 
 Delegate to the data-layer subagent:
+
 - Read `specs/feature.md` for requirements
 - Read `src/invitations/types.ts` for the shared contract
 - Implement `src/invitations/repository.ts`
@@ -2232,6 +2169,7 @@ Wait for it to complete and verify its report.
 ### Step 2: Business Logic (use the `business-logic` subagent)
 
 Delegate to the business-logic subagent:
+
 - Read the repository interface from Step 1
 - Implement `src/invitations/service.ts` with validation
 - Run tests to verify
@@ -2241,6 +2179,7 @@ Wait for it to complete and verify its report.
 ### Step 3: API Layer (use the `api-layer` subagent)
 
 Delegate to the api-layer subagent:
+
 - Read the service interface from Step 2
 - Implement `src/invitations/routes.ts`
 - Run tests to verify
@@ -2250,11 +2189,13 @@ Wait for it to complete and verify its report.
 ### Step 4: Integration (you, the parent agent)
 
 Run the full test suite:
+
 ```bash
 npm test
 ```
 
 All tests must pass. If they do, commit:
+
 ```bash
 git add -A
 git commit -m "feat: user invitation service
@@ -2286,12 +2227,14 @@ Each subagent gets only the types file and its brief. Do not share the full code
 # Orchestrator Prompt: Feature Implementation with Subagents
 
 ## Your Role
+
 You are the lead engineer orchestrating feature implementation across subagents.
 
 ## Step 1: Research (Subagent A)
 
 Delegate to a subagent:
 "Analyze the codebase and report back in RESEARCH.md:
+
 - Current architecture
 - Testing patterns
 - Naming conventions
@@ -2304,6 +2247,7 @@ After subagent reports back, review RESEARCH.md.
 
 Delegate to a subagent:
 "Implement the feature described in specs/feature.md:
+
 - Follow patterns documented in RESEARCH.md
 - Run tests after each change
 - All tests must pass
@@ -2315,6 +2259,7 @@ After subagent reports back, review IMPLEMENTATION.md and code changes.
 
 Delegate to a subagent:
 "Write comprehensive tests for src/[feature]:
+
 - Follow patterns from RESEARCH.md
 - Aim for 80%+ coverage
 - Cover happy path, edges, errors
@@ -2325,19 +2270,20 @@ After subagent reports back, review TESTS.md and test count.
 ## Step 4: Integration (You)
 
 Review all reports and code:
+
 - Does implementation match the spec?
 - Are tests adequate?
 - Do patterns match the codebase?
 - Are there any issues?
 
 If all looks good:
+
 ```bash
 git add .
 git commit -m "feature: [name] (implemented via subagent coordination)"
 ```
 
 If issues exist, request fixes from relevant subagents.
-
 
 ## Subagent Communication
 
@@ -2364,6 +2310,7 @@ Subagents report back via:
 **Feature**: Add a user authentication service
 
 ### Step 1: Research
+
 Parent delegates to Research Subagent:
 
 "Analyze src/ and report:
@@ -2383,6 +2330,7 @@ Testing: Jest with mocked Express (req, res, next)
 Recommendation: Add JWT for stateless auth
 
 ### Step 2: Implementation
+
 Parent delegates to Implementation Subagent:
 "Implement JWT authentication service:
 
@@ -2402,6 +2350,7 @@ All existing tests still pass
 New auth code tested with AuthService.test.ts
 
 ### Step 3: Testing
+
 Parent delegates to Testing Subagent:
 "Write comprehensive tests for src/auth/:
 
@@ -2420,19 +2369,22 @@ All tests passing
 Edge cases: malformed JWT, expired token, missing Authorization header
 
 ### Step 4: Integration
+
 Parent reviews all work and runs:
+
 ```bash
 npm test         # All tests pass
 npm run build    # Clean build
 git diff         # Review changes
 git commit -m "feat: JWT authentication with subagent coordination"
+```
 ````
 
 Now you should implement these three subagents:
 
 ##### API layer subagent
 
-````md
+```md
 ---
 name: api-layer
 description: API layer specialist for building Express routes, middleware, and HTTP endpoint handlers. Use when implementing REST endpoints, request validation, and response formatting.
@@ -2443,6 +2395,7 @@ model: sonnet
 You are an API layer specialist. Your job is to implement Express routes that wire HTTP to services.
 
 When invoked:
+
 1. Read the shared types and the service interface
 2. Implement Express routes with proper HTTP methods and status codes
 3. Add request validation middleware
@@ -2451,16 +2404,17 @@ When invoked:
 6. Verify all tests pass before reporting back
 
 Rules:
+
 - Only modify files in the routes layer (src/invitations/routes.ts)
 - Import the service — never access the repository directly
 - Map service errors to correct HTTP status codes
 - Validate request bodies before calling services
 - Tests must cover: successful operations, validation failures, not-found, error responses
-````
+```
 
 ##### business logic subagent
 
-````md
+```md
 ---
 name: business-logic
 description: Business logic specialist for implementing service layers, validation rules, and domain logic. Use when building services that orchestrate data operations with business rules.
@@ -2471,6 +2425,7 @@ model: sonnet
 You are a business logic specialist. Your job is to implement service layers that enforce business rules.
 
 When invoked:
+
 1. Read the shared types and the repository interface
 2. Implement the service layer with validation and business rules
 3. Handle all error cases defined in the spec
@@ -2478,16 +2433,17 @@ When invoked:
 5. Verify all tests pass before reporting back
 
 Rules:
+
 - Only modify files in the service layer (src/invitations/service.ts)
 - Import the repository — never access storage directly
 - Implement all validation rules from the spec
 - Return proper error codes for each failure case
 - Tests must cover: happy path, validation errors, edge cases
-````
+```
 
 ##### data layer subagent
 
-````md
+```md
 ---
 name: data-layer
 description: Data layer specialist for building repositories, type definitions, and database schemas. Use when implementing storage, CRUD operations, or data access patterns.
@@ -2498,6 +2454,7 @@ model: sonnet
 You are a data layer specialist. Your job is to implement repository patterns with clean CRUD operations.
 
 When invoked:
+
 1. Read the shared types file to understand the data contract
 2. Implement the repository with in-memory storage
 3. Create proper TypeScript interfaces for all operations
@@ -2505,12 +2462,13 @@ When invoked:
 5. Verify all tests pass before reporting back
 
 Rules:
+
 - Only modify files in the data/repository layer (src/invitations/repository.ts, src/invitations/types.ts)
 - Import shared types — never redefine them
 - Use the exact field names from the types file
 - Implement proper error handling for all operations
 - Tests must cover: create, read, update, delete, not-found cases
-````
+```
 
 ## Slopping it up: community skills and workflows
 
@@ -2534,22 +2492,25 @@ aspectRatio: "52.5"
 The first step with Lovable is the system prompt. In this system prompt you should specify:
 
 - **software development principles**: what libraries to use, what tech stack, whether to use OOP, how to do error handling and security.
-	- **comprehensive logging**: add detailed console log patterns for observability built in straight from the start.
-	- **dry principle**: ask the AI to refactor early and split out components into modules so that it doesn't repeat itself.
+  - **comprehensive logging**: add detailed console log patterns for observability built in straight from the start.
+  - **dry principle**: ask the AI to refactor early and split out components into modules so that it doesn't repeat itself.
 - **tech stack**: zod, typescript, tanstack query, tailwindcss
 - **workflow constraints**: rules for how the AI should conduct code writing and turns, like test driven development.
-	- **TDD**: ask AI to use TDD, following the red-green-refactor cycle.
-	- **OOP**: ask AI to use OOP and follow SOLID design principles for clean code.
-	- **page by page**: when implementing the frontend, go page by page, perfecting each section before you move on to the next one.
+  - **TDD**: ask AI to use TDD, following the red-green-refactor cycle.
+  - **OOP**: ask AI to use OOP and follow SOLID design principles for clean code.
+  - **page by page**: when implementing the frontend, go page by page, perfecting each section before you move on to the next one.
 
 1. To achieve this, brainstorm with some other AI like ChatGPT by entering this prompt:
 
 ````md
 ## Your Role
+
 You are a technical project interviewer for Lovable.dev projects. Your goal is to gather enough information to generate a comprehensive knowledge base file for AI-assisted development.
 
 ## Your Goal
+
 Ask focused questions to understand:
+
 1. **Project Overview** — What the project does, who it's for, what problem it solves, and success metrics
 2. **North Star Feature** — The single most critical user flow that defines product success
 3. **Performance Targets** — Key metrics for the north star feature (if applicable)
@@ -2561,20 +2522,18 @@ Start with: "I'll help you create a knowledge base for your Lovable project. I'l
 ### Questions to Ask (in Order):
 
 **Project Overview:**
+
 1. "What is your project in one sentence? What does it do?"
 2. "Who is this for? Describe your target user."
 3. "What specific problem does this solve for them? What's the pain point?"
 4. "How will you measure success? What's the key user action or metric?"
 
-**North Star Feature:**
-5. "What's the ONE feature that defines your product's core value? The feature that if it doesn't work well, nothing else matters?"
-6. "Walk me through the ideal user flow for this feature step-by-step."
-7. "What makes this feature 'feel right' to users? What's the magic moment?"
-8. "Are there any performance requirements for this feature? (examples: load times, response times)"
+**North Star Feature:** 5. "What's the ONE feature that defines your product's core value? The feature that if it doesn't work well, nothing else matters?" 6. "Walk me through the ideal user flow for this feature step-by-step." 7. "What makes this feature 'feel right' to users? What's the magic moment?" 8. "Are there any performance requirements for this feature? (examples: load times, response times)"
 
 ## Output Format
 
 After gathering answers, generate a knowledge base file in this exact structure:
+
 ```
 # [Project Name] — Knowledge Base
 
@@ -2606,7 +2565,7 @@ After gathering answers, generate a knowledge base file in this exact structure:
 1. Build the front-end UI first. Do not implement back-end integrations or database schemas until the front-end user flow is explicitly approved.
 2. When implementing the front end, make sure to implement it page by page, explicitly asking me to approve each page.
 3. Test-Driven Development: Follow the Red-Green-Refactor cycle for all front-end and back-end implementation. Write a failing test before any implementation code. Use Vitest + React Testing Library for components, Vitest with mocked Supabase client for edge functions. Co-locate test files next to source files. All tests must pass before committing.
-4. After each module implementation, instruct me how i can test the new implemented capability in the preview mode. Do not continue implementing the next module until I confirm I’m ready 
+4. After each module implementation, instruct me how i can test the new implemented capability in the preview mode. Do not continue implementing the next module until I confirm I’m ready
 
 ---
 
@@ -2628,6 +2587,7 @@ After gathering answers, generate a knowledge base file in this exact structure:
 ```
 
 ## Interview Style
+
 - Ask ONE question at a time.
 - Keep questions conversational and clear.
 - Validate understanding before moving on.
@@ -2635,6 +2595,7 @@ After gathering answers, generate a knowledge base file in this exact structure:
 - Don't move to the next section until you have clear, concrete answers.
 
 ## Before Generating Output
+
 Confirm with the user: "I have everything I need. Let me generate your knowledge base file. Does this cover everything, or is there anything else critical I should know about your project's vision?"
 
 ---
@@ -2650,6 +2611,7 @@ Here's an example of the perfect system prompt that combines software developmen
 # Recipe Matcher MVP — Knowledge Base
 
 ## Project Overview
+
 **What:** An ingredient-first recipe matcher that ranks recipes by match quality, with pantry persistence and favorites for all signed-in users.
 **Who:** Home cooks who hate food waste and need cooking inspiration from random ingredients they already have.
 **Problem:** "I have stuff in my fridge but no idea what to cook right now."
@@ -2673,25 +2635,29 @@ Here's an example of the perfect system prompt that combines software developmen
 ---
 
 ## Workflow Constraint
+
 1. Build the front-end UI first. Do not implement back-end integrations or Database schemas until the front-end user flow is explicitly approved.
-2. When implementing the front end, make sure to implement it page by page, explicitly asking me to approve each page. 
+2. When implementing the front end, make sure to implement it page by page, explicitly asking me to approve each page.
 3. Test-Driven Development: Follow the Red-Green-Refactor cycle for all front-end and back-end implementation. Write a failing test before any implementation code. Use Vitest + React Testing Library for components, Vitest with mocked Supabase client for edge functions. Co-locate test files next to source files. All tests must pass before committing.
-4. After each module implementation, instruct me how i can test the new implemented capability in the preview mode. Do not continue implementing the next module until I confirm I’m ready 
+4. After each module implementation, instruct me how i can test the new implemented capability in the preview mode. Do not continue implementing the next module until I confirm I’m ready
 
 ---
 
 ## North Star Feature
+
 **Priority #1:** Ingredient → Recipe Search (The Magic Moment)
 
 This is the anchor feature everything else supports. The entire UX flows from this:
+
 1. User adds ingredients (fast autocomplete)
-2. Hits "Let's cook something!" 
+2. Hits "Let's cook something!"
 3. Sees ranked results instantly (showing match percentages)
 4. Clicks recipe → sees what they have vs. need
 
 Everything else (pantry, favorites, onboarding) exists to make this faster on repeat visits. If search feels slow or confusing, the product fails. Optimize relentlessly for time-to-first-recipe-click.
 
-**Performance Target:** 
+**Performance Target:**
+
 - Autocomplete: <300ms
 - Recipe search: <1
 - Recipe details: <500ms
@@ -2758,11 +2724,11 @@ Format this as a clean, copy-paste ready document using markdown headers and cod
 4. Ask Lovable to create UI based on the design system:
 
 ```
-The UI should feel like an upscale restaurant menu meets a modern app—sophisticated, warm, and inviting. 
-The overall feel should be premium, warm, and food-focused—like a high-end cooking app. 
-Hero Section should have a full-width background image (elegant food photography) with dark linear gradient overlay to bottom. 
-Dark elegance with warm golden accents. 
-The UI uses a sophisticated charcoal background paired with golden/amber highlights to create a premium, inviting food app aesthetic. 
+The UI should feel like an upscale restaurant menu meets a modern app—sophisticated, warm, and inviting.
+The overall feel should be premium, warm, and food-focused—like a high-end cooking app.
+Hero Section should have a full-width background image (elegant food photography) with dark linear gradient overlay to bottom.
+Dark elegance with warm golden accents.
+The UI uses a sophisticated charcoal background paired with golden/amber highlights to create a premium, inviting food app aesthetic.
 Dark-mode first design.
 ```
 
@@ -2770,6 +2736,7 @@ Dark-mode first design.
 
 - **SVG animations**: drop in SVG animations and tell it to use the JavaScript animations API to make complex timeline animations of it.
 - **Skeletons**: ask it to add loading skeletons.
+
 ### Backend with Lovable Cloud
 
 The Lovable Cloud option allows you to use Lovable's integrated backend to make your app a full-stack app.
@@ -2777,15 +2744,12 @@ The Lovable Cloud option allows you to use Lovable's integrated backend to make 
 > [!NOTE]
 > Under the hood, lovable cloud is powered by Supabase.
 
-
-
 ![](https://i.imgur.com/KcVZfsB.jpeg)
-
 
 #### Create backend architecture system prompt
 
 ```md
-Act as a **principal software architect and teacher**. Your goal is to help me design an architecture for this web app built based on **Lovable (frontend)** with **Supabase (backend via Lovable Cloud)**. 
+Act as a **principal software architect and teacher**. Your goal is to help me design an architecture for this web app built based on **Lovable (frontend)** with **Supabase (backend via Lovable Cloud)**.
 
 Useful libraries to add:
 
@@ -2794,10 +2758,10 @@ Useful libraries to add:
 
 ---
 
-
-
 ### Step 1: Analyze the existing front end.
+
 Use your tools to thoroughly examine:
+
 - All pages in `src/pages/`
 - All components in `src/components/`
 - Types and interfaces in `src/types/`
@@ -2806,10 +2770,13 @@ Use your tools to thoroughly examine:
 - Any existing state management
 
 ### Step 2: Review knowledge in settings.
-Understand everything that the user stored in Knowledge already regarding this project. 
+
+Understand everything that the user stored in Knowledge already regarding this project.
 
 ### Step 3: Internal findings checklist
+
 Silently confirm you understand:
+
 - [ ] App purpose and core value proposition
 - [ ] User types (Guest/Authenticated/Premium)
 - [ ] Core user flows from pages and navigation
@@ -2817,14 +2784,13 @@ Silently confirm you understand:
 - [ ] Mock services that need real back-end replacement
 - [ ] Authentication patterns and protected routes
 - [ ] Data relationships and ownership
-      
+
 ### Step 4: architecture design
 
 - [ ] Database: map out the tables and RLS policies
 - [ ] Authentication: enable email OTP passwordless auth and google auth, ask me securely for the GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets and then instruct me as how to set the redirect URI and authorized domains on the google oauth credentials page, walking me through the steps and the exact urls I should put down, wait until I confirm I did it and it worked.
 - [ ] Edge functions: when creating edge function architecture, understand which ones need JWT verification (authenticated user performing CRUD on resources they own) and implement edge functions with TDD.
 - [ ] Payments: use your Stripe integration for payments
-
 ```
 
 ### Quality Assurance and control
@@ -2858,7 +2824,6 @@ Perform a comprehensive audit of the entire codebase to ensure our architecture 
 #### Code refactoring
 
 DO NOT ask AI to fix everything at once. Refactor one thing at a time:
-
 
 1. Dead code removal
 2. remove duplicated code where it makes sense to refactor instead
@@ -2909,22 +2874,20 @@ Once all clusters are complete, run a full audit reconciliation: check every ite
 Test the unhappy paths like network failures, race conditions, malformed input data so you have robust error handling and graceful failover.
 
 ```md
-Review the full front end and edge function test suites. List all the features and behaviours that currently have test coverage, and identify what's missing. 
-Focus on: unhappy paths we haven't tested (network failures, timeouts, malformed data), edge cases (empty inputs, extremely long inputs, duplicate submissions), error handling (what does the user see when something fails?), and boundary conditions (rate limits, large result sets, expired sessions). 
-Present the gaps as a prioritised list—critical gaps first. 
+Review the full front end and edge function test suites. List all the features and behaviours that currently have test coverage, and identify what's missing.
+Focus on: unhappy paths we haven't tested (network failures, timeouts, malformed data), edge cases (empty inputs, extremely long inputs, duplicate submissions), error handling (what does the user see when something fails?), and boundary conditions (rate limits, large result sets, expired sessions).
+Present the gaps as a prioritised list—critical gaps first.
 ```
 
 ### Lovable Security testing
 
 Lovable offers a free security testing and fixing service:
 
-
 ![](https://i.imgur.com/NZ7ETHL.jpeg)
 
 ### Lovable cloud environments
 
 Lovable cloud environments allows you to sandbox your code into different deployment environments, like live vs test.
-
 
 ![](https://i.imgur.com/fiokinw.jpeg)
 
@@ -2933,16 +2896,14 @@ Once you enable this feature, it duplicates the codebase and backend infra to ha
 - Test data stays in test
 - Live data never gets overwritten
 
-
 ![](https://i.imgur.com/wjSBAVo.jpeg)
 
 ### Compliance
 
-
 - **legal pages**: The required legal pages are:
-	- **privacy policy**: highlights the data you collect
-	- **terms of service**: your contract with users
-	- **cookie policy**: browser data disclosure
+  - **privacy policy**: highlights the data you collect
+  - **terms of service**: your contract with users
+  - **cookie policy**: browser data disclosure
 
 GDPR requires users to be able to perform CRUD on their own data and delete their accounts or change their emails.
 
@@ -2952,16 +2913,19 @@ here is how to achieve all of that within one prompt:
 # Compliance PRD: Settings and Data Management Page
 
 ## Overview
+
 Add a Settings page that gives authenticated users full control over their personal data, in compliance with GDPR and CCPA requirements. Add legal pages (Privacy Policy, Terms of Service, Cookie Policy) accessible from the app footer, and a cookie consent popup for first-time visitors.
 
 ## User Flow
 
 ### Accessing Settings
+
 1. User clicks their profile icon or name in the top navigation bar,
 2. A dropdown menu appears with two options: **Settings** and **Sign Out**,
 3. User clicks **Settings** → navigates to the Settings page,
 
 ### Accessing Legal Pages
+
 1. Footer is visible on every page of the app,
 2. Footer contains three links: **Privacy Policy**, **Terms of Service**, **Cookie Policy**,
 3. Each link opens the respective legal page,
@@ -2971,6 +2935,7 @@ Add a Settings page that gives authenticated users full control over their perso
 ## Page Layout: Settings
 
 ### Section 1: Personal Information
+
 Displays all personal data the app stores for the authenticated user.
 
 ```
@@ -2988,6 +2953,7 @@ Displays all personal data the app stores for the authenticated user.
 ```
 
 **Behavior:**
+
 - Fields are read-only by default,
 - Clicking "Edit" or the field makes it editable,
 - "Save Changes" appears only when a field has been modified,
@@ -3011,6 +2977,7 @@ Displays all personal data the app stores for the authenticated user.
 ```
 
 **Behavior:**
+
 - "Delete My Account" is styled in red to signal destructive action,
 - Clicking it opens a confirmation dialog (see below),
 
@@ -3041,6 +3008,7 @@ Displays all personal data the app stores for the authenticated user.
 ```
 
 **Behavior:**
+
 - User must type "DELETE" to enable the "Delete Everything" button,
 - Button is disabled and greyed out until confirmation word is typed,
 - On confirmation → delete all user data → sign user out → redirect to landing page,
@@ -3086,6 +3054,7 @@ Shown once to first-time visitors at the bottom of the screen:
 ```
 
 **Behavior:**
+
 - Appears on first visit, pinned to the bottom of the viewport.
 - "Accept" → stores consent, popup disappears, does not show again.
 - "Decline" → stores refusal, popup disappears, does not show again.
@@ -3108,15 +3077,15 @@ Added to the bottom of every page. Each link opens the respective legal page.
 
 ## Edge Cases
 
-| Scenario | Expected Behavior |
-|---|---|
-| User tries to save an empty name field | Validation error: "Name cannot be empty" |
-| User tries to change email to invalid format | Validation error: "Please enter a valid email address" |
-| User types "delete" (lowercase) in confirmation | Button stays disabled — must be exactly "DELETE" |
-| User deletes account, then tries to sign in again | Standard "Invalid credentials" message — no indication the account existed |
-| Network error during profile update | Toast: "Failed to update profile. Please try again." |
-| Network error during account deletion | Toast: "Failed to delete account. Please try again." — account remains intact |
-| Unauthenticated user navigates to /settings | Redirect to sign-in page |
+| Scenario                                          | Expected Behavior                                                             |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| User tries to save an empty name field            | Validation error: "Name cannot be empty"                                      |
+| User tries to change email to invalid format      | Validation error: "Please enter a valid email address"                        |
+| User types "delete" (lowercase) in confirmation   | Button stays disabled — must be exactly "DELETE"                              |
+| User deletes account, then tries to sign in again | Standard "Invalid credentials" message — no indication the account existed    |
+| Network error during profile update               | Toast: "Failed to update profile. Please try again."                          |
+| Network error during account deletion             | Toast: "Failed to delete account. Please try again." — account remains intact |
+| Unauthenticated user navigates to /settings       | Redirect to sign-in page                                                      |
 
 ---
 
@@ -3134,9 +3103,8 @@ This is handled by the CASCADE DELETE policies already configured in our databas
 ---
 
 ## Design
+
 Follow the existing design system defined in the project Knowledge file. The Settings page should match the style and feel of all other pages in the app. The "Danger Zone" section should use red/warning styling to clearly distinguish destructive actions from normal ones.
-
-
 ````
 
 ### Lovable payments
@@ -3151,5 +3119,5 @@ Here is what you should specify when telling Lovable to add AI:
 
 - **integrate into edge functions**: AI inference should be run in the context of an edcge function
 - **use tanstack AI libraries**: tanstack AI UI components are great for wiring up AI to the backend.
-## Replit
 
+## Replit
