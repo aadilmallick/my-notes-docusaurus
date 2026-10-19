@@ -5386,6 +5386,11 @@ teamcity run start <job> `
 
 ![](https://i.imgur.com/Awdiip0.jpeg)
 
+4. Now create a custom build and make sure to load DSL settings from the testing zone branch
+
+
+
+![](https://i.imgur.com/GnyihOj.jpeg)
 
 
 ## Teamcity AI
