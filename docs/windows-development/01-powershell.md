@@ -734,16 +734,16 @@ You also have these boolean-specific operators:
 - `-not`: returns `$True` if the operand is false or falsy.
 
 ```ps
-$Age = 22
+$money1 = 22
 
-$IsYoung = $Age -lt 35
-$IsRipeForPickin = $Age -gt 18
+$bool1 = $money1 -lt 35
+$bool2 = $money1 -gt 18
 
-$IsFertile = $IsYoung -And $IsRipeForPickin
+$bool3 = $bool1 -And $bool2
 
-Write-Host "Is fertile $IsFertile"
+Write-Host "bool3 $bool3"
 
-$IsHag = -not $IsYoung
+$bool4 = -not $bool3
 ```
 
 
@@ -2312,9 +2312,9 @@ The `Write-Host` cmdlet writes to stdout and accepts stdin as input via powershe
 The `Write-Host` cmdlet takes in an unlimited amount of parameters of any type and then writes them to the console as strings separated by spaces:
 
 ```ps
-$IsFertile = $True
+$IsYoung = $True
 
-Write-Host "Is fertile" $IsFertile
+Write-Host "Is young" $IsYoung
 ```
 
 Here are the options you have available for this cmdlet:
