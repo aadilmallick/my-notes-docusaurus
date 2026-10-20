@@ -165,10 +165,15 @@ You have these named parameters:
 	- `Cmdlet`
 	- `Function`
 	- `Alias`
-- `-Name <name>`: the name of a certain command to find. Also the 1st positional parameter.
-- `-Syntax`: outputs
+- `-Name <name>`: the name of a certain cmdlet to find. 
+	- This is also the 1st positional parameter.
+- `-Syntax`: outputs the syntax of how to use the cmdlet or function.
 
-The `Get-Command`
+The `Get-Command` cmdlet also works with functions:
+
+```ps
+Get-Command -Name <function-name> -Syntax
+```
 ### Protecting against destructive commands
 
 You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
@@ -2832,11 +2837,16 @@ The best practice naming conventions for functions is as follows:
 
 ![](https://i.imgur.com/lMByAKR.jpeg)
 
+#### Function metadata
+
+You can view all the parameters of a function like so:
+
+```ps
+(Get-Command -Name Test-MrParameter).Parameters.Keys
+```
 #### Advanced functions
 
 Turning a function into an advanced function in PowerShell is simple. One of the differences between a function and an advanced function is that advanced functions have common parameters that are automatically added. Common parameters include parameters such as **Verbose** and **Debug**.
-
-##### Common parameters
 
 Given a function like so:
 
@@ -2851,9 +2861,125 @@ function Test-MrParameter {
 You can view the common parameters and syntax of how to use the function with the `-Syntax` flag on the `Get-Command` cmdlet
 
 ```ps
+# outputs Test-MrParameter [[-ComputerName] <Object>]
 Get-Command -Name Test-MrParameter -Syntax
 ```
 
+- **normal functions**: normal functions don't have common parameters
+- **advanced functions**: advanced functions have common parameters built-in
+
+Add the `CmdletBinding` attribute to turn the function into an advanced function.
+
+- When you specify `CmdletBinding`, the common parameters are added automatically. 
+- `CmdletBinding` requires a `param` block, but the `param` block can be empty.
+
+```ps
+function Test-MrCmdletBinding {
+
+[CmdletBinding()] # Turns a regular function into an advanced function
+    param (
+        $ComputerName
+    )
+
+Write-Output $ComputerName
+
+}
+```
+
+Drilling down into the parameters property of `Get-Command` shows the actual parameter names, including the common ones.
+
+```ps
+# getting all parameters of an advanced function
+(Get-Command -Name Test-MrCmdletBinding).Parameters.Keys
+
+# will output
+ComputerName
+Verbose
+Debug
+ErrorAction
+WarningAction
+InformationAction
+ErrorVariable
+WarningVariable
+InformationVariable
+OutVariable
+OutBuffer
+PipelineVariable
+```
+
+##### Supporting verbose output
+
+Just allowing the use of the `-Verbose` flag on a function execution does nothing if the function doesn't have a built-in way to quantify what to include in the verbose output.
+
+For that, here's what you can do:
+
+Inline comments are useful if you're writing complex code, but users don't see them unless they look at the code.
+
+The function in the following example has an inline comment in the `foreach` loop. While this particular comment might not be difficult to locate, imagine if the function contained hundreds of lines of code.
+
+
+```ps
+function Test-MrVerboseOutput {
+
+    [CmdletBinding()]
+    param (
+        [ValidateNotNullOrEmpty()]
+        [string[]]$ComputerName = $env:COMPUTERNAME
+    )
+
+    foreach ($Computer in $ComputerName) {
+        #Attempting to perform an action on $Computer <<-- Don't use
+        #inline comments like this, use write verbose instead.
+        Write-Output $Computer
+    }
+
+}
+```
+
+A better option is to use `Write-Verbose` instead of inline comments, where stdout will only be written to if the function is executed with the `-Verbose` option.
+
+
+```ps
+function Test-MrVerboseOutput {
+
+    [CmdletBinding()]
+    param (
+        [ValidateNotNullOrEmpty()]
+        [string[]]$ComputerName = $env:COMPUTERNAME
+    )
+
+    foreach ($Computer in $ComputerName) {
+        Write-Verbose -Message "Attempting to perform an action on $Computer"
+        Write-Output $Computer
+    }
+
+}
+```
+
+The verbose output is displayed when the function is called with the **Verbose** parameter.
+
+```ps
+Test-MrVerboseOutput -ComputerName Server01, Server02 -Verbose
+```
+
+##### Supporting `-WhatIf` and `-Confirm`
+
+The `SupportsShouldProcess` attribute adds the **WhatIf** and **Confirm** risk mitigation parameters. These parameters are only needed for commands that make changes.
+
+```ps
+function Test-MrSupportsShouldProcess {
+
+[CmdletBinding(SupportsShouldProcess)]
+    param (
+        $ComputerName
+    )
+
+Write-Output $ComputerName
+
+}
+```
+
+Now the above function allows you to add the `-WhatIf` and `-Confirm` parameters to use on the function, which will work out of the box.
 #### Function examples
 
 **Logging function**
@@ -2913,6 +3039,58 @@ the process name and CPU usage to a text file.
 .NOTES
 Beginner script example
 #>
+```
+
+```ps
+function Get-MrAutoStoppedService {
+
+<#
+.SYNOPSIS
+    Returns a list of services that are set to start automatically, are not
+    currently running, excluding the services that are set to delayed start.
+
+.DESCRIPTION
+    Get-MrAutoStoppedService is a function that returns a list of services
+    from the specified remote computer(s) that are set to start
+    automatically, are not currently running, and it excludes the services
+    that are set to start automatically with a delayed startup.
+
+.PARAMETER ComputerName
+    The remote computer(s) to check the status of the services on.
+
+.PARAMETER Credential
+    Specifies a user account that has permission to perform this action. The
+    default is the current user.
+
+.EXAMPLE
+     Get-MrAutoStoppedService -ComputerName 'Server1', 'Server2'
+
+.EXAMPLE
+     'Server1', 'Server2' | Get-MrAutoStoppedService
+
+.EXAMPLE
+     Get-MrAutoStoppedService -ComputerName 'Server1' -Credential (Get-Credential)
+
+.INPUTS
+    String
+
+.OUTPUTS
+    PSCustomObject
+
+.NOTES
+    Author:  Mike F. Robbins
+    Website: https://mikefrobbins.com
+    Twitter: @mikefrobbins
+#>
+
+[CmdletBinding()]
+    param (
+
+)
+
+#Function Body
+
+}
 ```
 ## Other commands
 
