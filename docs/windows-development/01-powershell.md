@@ -166,6 +166,9 @@ You have these named parameters:
 	- `Function`
 	- `Alias`
 - `-Name <name>`: the name of a certain command to find. Also the 1st positional parameter.
+- `-Syntax`: outputs
+
+The `Get-Command`
 ### Protecting against destructive commands
 
 You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
@@ -2244,7 +2247,21 @@ Get-ChildItem Env:
 Remove-Item $Env:Test
 ```
 
+### Function PSDrive
 
+Once loaded into memory, you can see and manage functions on the **Function** PSDrive:
+
+- **get all functions in memory**:
+
+```bash
+Get-ChildItem -Path Function:\Get-*Version
+```
+
+- **removing functions from memory**: If you want to remove these functions from your current session, remove them from the **Function** PSDrive or close and reopen PowerShell.
+
+```bash
+Get-ChildItem -Path Function:\Get-*Version | Remove-Item
+```
 ### Custom providers with PSDrive
 
 A PSDrive in PowerShell is a special kind of provider that lets you map different data stores—like network shares, folders, or even registry keys—as drives you can navigate and manage just like a regular file system.
@@ -2284,7 +2301,7 @@ Set-Location -Path SharedDrive:
 Remove-PSDrive -Name SharedDrive
 ```
 
-#### Function PSDrive
+
 ## Powershell scripting
 
 ### Special script variables
@@ -2814,6 +2831,29 @@ The best practice naming conventions for functions is as follows:
 
 
 ![](https://i.imgur.com/lMByAKR.jpeg)
+
+#### Advanced functions
+
+Turning a function into an advanced function in PowerShell is simple. One of the differences between a function and an advanced function is that advanced functions have common parameters that are automatically added. Common parameters include parameters such as **Verbose** and **Debug**.
+
+##### Common parameters
+
+Given a function like so:
+
+```ps
+function Test-MrParameter {
+	param ([string]$ComputerName)
+
+	Write-Output $ComputerName
+}
+```
+
+You can view the common parameters and syntax of how to use the function with the `-Syntax` flag on the `Get-Command` cmdlet
+
+```ps
+Get-Command -Name Test-MrParameter -Syntax
+```
+
 #### Function examples
 
 **Logging function**
