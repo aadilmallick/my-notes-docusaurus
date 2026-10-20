@@ -1849,7 +1849,15 @@ Here are the four main policies:
 > [!NOTE]
 > The default policy is `RemoteSigned`, balancing security and usability. 
 
+Here are the default execution policies for the different Windows distributions:
 
+| Windows Operating System Version | Default Execution Policy |
+| -------------------------------- | ------------------------ |
+| Windows Server 2022              | Remote Signed            |
+| Windows Server 2019              | Remote Signed            |
+| Windows Server 2016              | Remote Signed            |
+| Windows 11                       | Restricted               |
+| Windows 10                       | Restricted               |
 #### Getting the current execution policy
 
 To get the current execution policy of PowerShell, use the `Get-ExecutionPolicy` cmdlet
@@ -2276,6 +2284,7 @@ Set-Location -Path SharedDrive:
 Remove-PSDrive -Name SharedDrive
 ```
 
+#### Function PSDrive
 ## Powershell scripting
 
 ### Special script variables
@@ -3078,7 +3087,15 @@ This feature is useful when you have tasks that can run independently and you wa
 	- But if the error comes from a script and involves multiple issues, it displays a detailed multiline error message with a pointer to the exact line where the error happened, similar to a stack trace. 
 ## Powershell administration
 
-### Check powershell version
+### Powershell escalated privilege
+
+UAC is a Windows security feature that helps prevent malicious code from running with elevated privileges.
+
+However, PowerShell doesn't participate in [User Access Control (UAC)](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/). That means it's unable to prompt for elevation for tasks that require the approval of an administrator.
+
+Therefore if you want to run privileged access commands in Powershell, you must manually open Powershell as an admin first.
+
+### Powershell version management
 
 View the value of the `$PSVersionTable` variable to see what the current powershell version is.
 
