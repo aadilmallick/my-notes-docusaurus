@@ -1838,7 +1838,11 @@ PowerShell execution policies control which scripts are allowed to run on your s
 
 - Execution policies act as a safety feature to control when scripts can run, helping prevent accidental execution of potentially malicious scripts.
 - Changing execution policies requires administrator privileges for machine-wide settings; users can change policies for their own scope without admin rights.
-- Windows also blocks scripts downloaded from the internet by default, showing a security warning until the file is unblocked manually.
+
+Here are the default behaviors:
+
+- **default online script blocking**: Windows also blocks scripts downloaded from the internet by default, showing a security warning until the file is unblocked manually.
+
 
 > [!NOTE]
 > You can run commands manually, it's just script execution that's blocked and that you need to change execution policies for.
@@ -1851,8 +1855,11 @@ Here are the four main policies:
 - **AllSigned**: Only scripts that are digitally signed by a trusted publisher can run, whether they are local or downloaded.
 	- You can run commands, and scripts only if they are digitally signed.
 - **RemoteSigned** (default): Locally created scripts run without restriction, but scripts downloaded from the internet must be digitally signed.
-	- You can run commands and local scripts
-- **Unrestricted**: All scripts can run regardless of signature. This is risky for production environments and should only be used temporarily for testing.
+	- You can run commands and local scripts, and remote signed scripts.
+- **Unrestricted**: All scripts can run regardless of signature, but warnings and prompts are shown for safety.
+	- This is risky for production environments and should only be used temporarily for testing.
+- **Bypass**: no restrictions at all
+- **Undefined**: no execution policy for the current shell session
 
 > [!NOTE]
 > The default policy is `RemoteSigned`, balancing security and usability. 
@@ -1881,7 +1888,6 @@ If you encounter errors running scripts, it’s often due to these policies, and
 > [!WARNING]
 > Just be cautious, especially with Unrestricted, to avoid security risks.
 
-
 To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy` cmdlet and then pass in as the argument one of the 4 available execution policies to choose from.
 
 ```powershell
@@ -1890,8 +1896,12 @@ Set-ExecutionPolicy restricted
 
 Here are the additional flags you can set on this cmdlet:
 
-- `-Scope`: how to scope this. accepts these values:
+- `-Scope`: how to scope the execution policy. It follows in order of highest precedence to least precendence:
+	- `-MachinePolicy`: group policy that affects all users of the computer, highest precedence
+	- `-UserPolicy`: group policy that affects the current user of the computer
+	- `-Process`: not saved to the configuration file, just a temporary JIT access for the current process (powershell script duration or powershell command)
 	- `-CurrentUser`: scope to powershell session, changing the execution policy just for this session. The advantage of this is that now you don't need to run as admin to change the execution policy.
+	- `-LocalMachine`: affects all users of the machine, lowest precedence
 - `-ExecutionPolicy`: specify the execution pollicy, which you use this flag instead of supplying the parameter if you are using flags.
 - `-Force`: force override
 
@@ -1899,6 +1909,8 @@ Here are the additional flags you can set on this cmdlet:
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
 ```
 
+
+The scopes are 
 ### Custom modules
 
 Before we can create custom modules, we have to understand module internals:
@@ -2353,10 +2365,11 @@ Here are the options you have available for this cmdlet:
 - `-ForegroundColor <color>`: sets the text color of the output in the console.
 - `-BackgroundColor <color>`: sets the background color of the text output in the console.
 
-#### `Read-Host` and `Clear-Host`
+#### `Read-Host`
 
-- The `Clear-Host` command clears the screen for you
-- The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
+ The `Read-Host` command accepts user input and returns whatever the input was as a string variable.
+
+Here's the basic usage:
 
 ```ps
 $Age = Read-Host "What's your age?"
@@ -2372,6 +2385,9 @@ What's your age?: 22
 Hello, you are 22 years old
 ```
 
+You also have these additional options on the cmdlet:
+
+- `-AsSecureString`: if this flag is set, then it asks for the user input in a password-masked manner and returns the value as a `SecureString` instance (look at [[#SecureString variable]] for more info).
 #### `Write-Output`
 
 The `Write-Output` cmdlet writes to the pipeline stdout, meaning you can store the contents of `Write-Output` in a variable or forward it along the pipeline.
@@ -3531,6 +3547,168 @@ Invoke-Command -ComputerName Win3 -Credential $Cred -ScriptBlock {
 	# some script here
 }
 ```
+
+### Powershell security
+
+#### Foundations
+
+The 4 main risks that come with Powershell security are the following:
+
+1. **Running untrusted scripts without verification**: trusting unverified scripts mean that you could execute malicious scripts.
+2. **Improper use of elevated permissions**: once in elevated permissions, principle of least privilege is violated and you have a greater attack surface.
+3. **lack of logging and auditing**: lack of monitoring makes it harder to detect exploited vulnerabilities or unsafe behavior.
+4. **misconfigured execution policies**: allows running unsigned scripts without a guarantee of their integrity could be malicious.
+
+Powershell has built-in security layers that you can take advantage of, which fix these 4 main risks:
+
+- **RBAC**: RBAC authorizes users with permissions to execute certain commands granularly
+- **execution policies**: configure level of trust with remote and local scripts, with most secure being to run only signed scripts.
+- **script program security**: script hardening with logging, parameter validation, and asking for confirmation frequently.
+- **JIT access**: JIT (Just-in-time) access allows to escalate privilege temporarily to perform an action.
+- **secure credentials**: use the Powershell secret management module for safe secrets injection.
+
+#### Signing scripts
+
+Signing scripts lets you comply with compliance laws and let you run your script with a strict execution policy.
+
+There are two ways you can sign your script:
+
+- **self-signed scripts**: use the local Windows CA on your local machine to sign the script
+- **trusted CA**: use a trusted CA to sign and verify script integrity
+
+Here are the relevant commands:
+
+- `Set-AuthenticodeSignature`: signs a script. If the script is modified, it must resigned by this method.
+
+Here are the steps to sign your script:
+
+1. **Check for an existing code signing certificate:** If you don't have one, proceed to create a self-signed certificate.
+
+  ```ps
+  Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+  ```
+
+2. **Create a self-signed code signing certificate:** This creates a certificate named "PowerShellScriptSigner" in your personal certificate store.
+
+```ps
+$Cert = New-SelfSignedCertificate \
+	-CertStoreLocation Cert:\CurrentUser\My \
+	-Subject "PowerShellScriptSigner" \
+	-KeyUsage DigitalSignature \
+	-Type CodeSigningCert
+
+Write-Host "Certificate created with thumbprint: $($Cert.Thumbprint)"
+```
+
+3. Get the certificate
+
+```ps
+$cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {
+	$_.Subject -like "*PowerShellScriptSigner*" 
+}
+```
+
+4. **sign the powershell script**: Assuming your script path is stored in `$scriptPath`:
+
+```ps
+Set-AuthenticodeSignature -FilePath $scriptPath -Certificate $cert
+```
+
+5. **verify the script signature**: This command shows the signature status, indicating if it's valid or has issues.
+
+```ps
+$Signature = Get-AuthenticodeSignature -FilePath $scriptPath
+
+Write-Host "Signature status: $($Signature.Status)"
+```
+
+#### SecureString variable
+
+The `SecureString` class in powershell allows you to treat a string as a sensitive-string that should be encrypted and not leak its plaintext value.
+
+```bash
+# 1. create a secure plaintext string that gets encrypted
+$SecureString = ConvertTo-SecureString -String "mypassword" -AsPlainText -Force
+
+# 2. save encrypted content to file
+$SecureString | Export-CliXml -Path ".\EncryptedPassword.xml"
+
+# 3. retrieve secure string from file
+$RetrievedString = Import-CliXml -Path ".\EncryptedPassword.xml"
+```
+
+### Logging
+
+PowerShell provides several important log sources for auditing and monitoring:  
+  
+
+- **PowerShell Operational Log:** Captures essential PowerShell activities and is accessible via Event Viewer. It records command execution and script activity.
+- **Security Logs:** Track privilege-related actions to help detect unauthorized access or suspicious behavior.
+- **Application Logs:** Monitor execution history and events related to PowerShell scripts.
+- **Module Logging:** Tracks execution of cmdlets from various modules, helping to see what commands are run.
+- **Script Block Logging:** Captures the content of executed scripts, which is useful for security analysis.
+- **PowerShell Transcription:** Records entire PowerShell sessions including input and output, providing a complete audit trail.
+
+Additionally, custom logging can be implemented within scripts to write specific events or messages to files or event logs, allowing more granular control over what gets logged.
+
+#### Loggings with group policy
+
+Group Policy is a feature in Windows that allows administrators to centrally manage and configure settings for multiple computers within a network, especially in business environments. It helps enforce consistent rules and policies, like security settings or software configurations, across all systems. 
+
+In the context of PowerShell, Group Policy lets you set up logging and security options uniformly on many machines, making it easier to monitor and control PowerShell usage across your organization.
+
+To configure PowerShell logging using Group Policy, you centrally manage logging settings across multiple systems by following these steps:  
+  
+
+1. Open Group Policy Editor and navigate to **Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell**.
+2. **configure logging policies**: Here, you can enable and configure various logging options such as:
+	- **Module Logging** (tracks cmdlet execution)
+	- **Script Block Logging** (captures script content)
+	- **PowerShell Transcription** (records full session input and output).
+3. **navigate to log viewers**: These logs are stored in the Event Viewer under the PowerShell operational log, making it easier to audit and monitor PowerShell activity.
+
+#### event log management
+
+- `Get-WinEvent`: The `Get-WinEvent` cmdlet allows you to get windows event logs
+- `Write-EventLog`: Writes to the Windows event log
+
+Here's how to do event log management:
+
+1. Upsert a new Windows event log source:
+
+```ps
+# 1. if event source exists, use it, else create it.
+$EventSource = "PowerShellScriptLog"
+if (-not (Get-EventLog -LogName Application -Source $EventSource `
+-ErrorAction SilentlyContinue)) {
+    New-EventLog -LogName Application -Source $EventSource
+}
+```
+2. Write an event log to the source
+
+```ps
+# 1. choose log level: can be one of "Information", "Warning", or "Error"
+$EntryType = "Information" 
+
+# 2. choose event id
+$EventId = 1000
+
+Write-EventLog -LogName MyLog -Source $EventSource `
+	-EntryType $EntryType `
+	-EventId 1000 `
+	-Message "Hello world this is an event log"
+```
+
+
+#### **custom logging**
+
+- `Start-Transcript`: The `Start-Transcript` cmdlet allows you to capture all output from a powershell session and capture it to a log file
+- `Stop-Transcript`: this cmdlet 
+
+
+![](https://i.imgur.com/J1ZAF35.jpeg)
+
+
 
 ### Troubleshooting
 
