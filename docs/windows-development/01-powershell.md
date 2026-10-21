@@ -1909,20 +1909,81 @@ Here are the additional flags you can set on this cmdlet:
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
 ```
 
-
-The scopes are 
 ### Custom modules
+
+
+In PowerShell, a script module is simply a `.psm1` file that contains one or more functions, just like a regular script, but with a different file extension.
+
+There are two types of modules you can create:
+
+- **dynamic module**: in-memory module that lasts for the duration of the powershell session. You can create a dynamic module with the `New-Module` cmdlet.
 
 Before we can create custom modules, we have to understand module internals:
 
 - **private functions**: private functions internal to the module, can't be used after loading a module
 - **public functions**: functions exposed publicly and are accessible after loading the module.
 
-You can create your own modules by creating `.psm1` files (stands for ps1 module files) within the **powershell modules** directory, which you can get the directory path for via the `$ENV:PSModulePath` variable.
 
-That file will then declare functions and export them with the `Export-ModuleMember` cmdlet, allowing reuse and sharing across systems.
+#### Dynamic modules
 
-So here are the generic steps to create and use the custom module:
+The following example uses the `New-Module` cmdlet to create a dynamic module in memory, specifically to demonstrate what happens when you don't use an approved verb.
+
+```ps
+New-Module -Name MyModule -ScriptBlock {
+
+function Return-MrOsVersion {
+        Get-CimInstance -ClassName Win32_OperatingSystem |
+        Select-Object -Property @{Label='OperatingSystem';Expression={$_.Caption}}
+    }
+
+Export-ModuleMember -Function Return-MrOsVersion
+
+} | Import-Module
+```
+#### Static custom module
+
+To create a script module, save your functions in a `.psm1` file. 
+
+1. **create the script module**: For example, save the following two functions in a file named `MyScriptModule.psm1`
+
+```ps
+function Get-MrPSVersion {
+    $PSVersionTable
+}
+
+function Get-MrComputerName {
+    $env:COMPUTERNAME
+}
+```
+
+
+2. **import the script module**: To make the function available, you can manually import the `MyScriptModule.psm1` file using the `Import-Module` cmdlet.
+
+
+```ps
+Import-Module C:\MyScriptModule.psm1
+```
+
+#### Module auto-loading
+
+PowerShell introduced module autoloading in version 3. 
+
+To take advantage of this feature, the script module must follow these requirements:
+
+1. saved in a folder with the same base name as the `.psm1` file
+2. That folder must be located in one of the directories specified in the `$env:PSModulePath` environment variable.
+
+For module autoloading to work, you must place the `MyScriptModule.psm1` file must in a folder named `MyScriptModule`, and that folder must reside directly inside one of the paths listed in  
+`$env:PSModulePath`.
+
+> [!TIP]
+> The output of `$env:PSModulePath` is difficult to read. To make the results more readable, split the paths on the semicolon path separator so each one appears on its own line.
+> 
+> ```ps
+> $env:PSModulePath -split ';'
+> ```
+
+So here are the generic steps to create and use the custom module that can get auto-loaded with Powershell.
 
 1. Inside the `$ENV:PSModulePath` directory, create a subfolder and then within that subfolder create a file named the same as that subfolder but with the `.psm1` file extension.
 2. Create functions in that file.
@@ -1949,7 +2010,10 @@ Function Say-Hello {
 Import-Module greetings
 ```
 
-#### Creating a custom module with powershell cmds
+#### Custom modules with module manifests
+
+Every module should include a module manifest, which is a `.psd1` file containing metadata about the module. While the `.psd1` extension is used for manifests, not all `.psd1` files are module manifests. You can also use them for other purposes, such as defining environment data in a DSC  
+configuration.
 
 In a PowerShell module, you use a **Module Manifest (`.psd1`)** and a **Script Module (`.psm1`)** together to manage how your functions are exposed to the user.
 
@@ -1986,6 +2050,19 @@ New-ModuleManifest -Path "\$path\8.MyModule.psd1" `
     -Author "Your Name" `
     -Description "A module containing basic functions"
 ```
+
+```ps
+$moduleManifestParams = @{
+    Path = "$env:ProgramFiles\WindowsPowerShell\Modules\MyScriptModule\MyScriptModule.psd1"
+    RootModule = 'MyScriptModule'
+    Author = 'Mike F. Robbins'
+    Description = 'MyScriptModule'
+    CompanyName = 'mikefrobbins.com'
+}
+
+New-ModuleManifest @moduleManifestParams
+```
+
 
 3. Import the latest version of the module to use it
 
@@ -2337,7 +2414,10 @@ Sourcing a script runs it and then it makes all local variables and functions in
 
 To understand how sourcing works, it's also important to understand how it mixes with variable scopes:
 
+- **script**: The issue with running the script that defines the function is that it loads it into the **Script** scope. Once the script finishes executing, PowerShell discards that scope along with the function.
+- **global**: To keep the function available after the script runs, it needs to be loaded into the **Global** scope. You can accomplish this by dot-sourcing the script file. You can use a relative path for this purpose.
 
+Therefore if you want to make local functions within a script global, you need to dot-source the script.
 
 ### Interacting to console
 
