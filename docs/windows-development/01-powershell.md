@@ -1990,6 +1990,11 @@ So here are the generic steps to create and use the custom module that can get a
 3. Export the specific functions you want to make public by using the `Export-ModuleMember` cmdlet with the `-Function` option, which takes in an array of functions
 4. Import the module via the module name
 
+> [!IMPORTANT]
+> You can't just put your PSM file in a module path. You have to put it in a subfolder with the same base name as the script PSM file. 
+> 
+> For example, if you script name is `my-script.psm`, you need to put that file into a folder called `my-script` within a module path.
+
 Here is how to create a custom module example:
 
 1. Inside the `$ENV:PSModulePath` directory, create a `greetings` subdirectory (choose the name for the module)
@@ -2009,6 +2014,7 @@ Function Say-Hello {
 ```ps
 Import-Module greetings
 ```
+
 
 #### Custom modules with module manifests
 
@@ -2404,7 +2410,7 @@ Remove-PSDrive -Name SharedDrive
 
 #### sourcing scripts
 
-You can source scripts like so, which is called **dot-sourcing**
+You can source scripts like so, which is called **dot-sourcing**, which executes scripts in the current scope, registering variables and functions in a dot-sourced script within the current scope.
 
 ```ps
 . $pathToPWSHScript
@@ -3188,14 +3194,109 @@ function Get-MrAutoStoppedService {
 
 }
 ```
-## Other commands
+## Advanced powershell
 
-### `Get-Date`
+### Dates in powershell
 
-The `Get-Date` cmdlet retruns the current date and time in a human readable format.
+### C sharp extensibility
 
+In PowerShell, you can extend its capabilities by running C# code inline. Here's how it works:
 
+1. **Create a C# class as a string:** Define your class with methods inside a string variable. For example, a class called `MathHelper` with a static method `addNumbers` that takes two integers and returns their sum:
 
+```ps
+# Define C# class
+$code = @"
+public class MathHelper {
+    public static int addNumbers(int firstNumber, int secondNumber) {
+        return firstNumber + secondNumber;
+    }
+}
+"@
+```
+
+2. **Compile the C# code using `Add-Type`:** Use `Add-Type -TypeDefinition "<your C# code>"` to compile the class and make it accessible in PowerShell.
+
+```ps
+# Compile the class
+Add-Type -TypeDefinition $code
+```
+
+3. **Use the class and its methods in PowerShell:** Call the method using the syntax
+
+```ps
+[ClassName]::MethodName(parameters)
+```
+
+Here's the full example:
+
+```ps
+# Define C# class
+$code = @"
+public class MathHelper {
+    public static int addNumbers(int firstNumber, int secondNumber) {
+        return firstNumber + secondNumber;
+    }
+}
+"@
+
+# Compile the class
+Add-Type -TypeDefinition $code
+
+# Use PowerShell variables
+$firstValue = 5
+$secondValue = 7
+
+# Call the C# method
+$result = [MathHelper]::addNumbers($firstValue, $secondValue)
+
+# Display the result
+Write-Host "Result from C# code: $result"
+```
+
+#### .NET extensibility
+
+PowerShell integrates with the .NET framework to extend its capabilities beyond text-based commands, allowing you to create GUI applications and use powerful .NET classes. Here's how it works with syntax examples:  
+  
+
+- **Load a .NET assembly:** Use `Add-Type -AssemblyName <assembly>` to load the .NET library you want to use. For example:  
+      
+```ps
+Add-Type -AssemblyName System.Windows.Forms
+```
+    
+- **Create an object from a .NET class:** Use `New-Object` with the full class name:  
+      
+```ps
+$form = New-Object System.Windows.Forms.Form
+```
+    
+- **Access or set properties:** Use dot notation to get or set properties of the object:  
+      
+```ps
+$form.Text = 'Hello World GUI' 
+$form.Size = New-Object System.Drawing.Size(300,200)
+```
+    
+- **Call methods:** Use dot notation to invoke methods:  
+      
+```ps
+$form.ShowDialog()
+```
+### Python extensibility
+
+Here is how to run python code within a powershell script using the `Python` cmdlet:
+
+- `Python <file>`: run a python file
+- `Python -c <script>`: run inline python script
+
+```ps
+$Values = 1, 2, 3
+
+ForEach ($Value in $Values) {
+	Python -c "print('hello world', $Value)"
+}
+```
 ### HTTP requests
 
 #### `Invoke-WebRequest`
@@ -3312,6 +3413,19 @@ $response = Invoke-RestMethod -Uri "http://localhost:8080/auth-basic" `
 $response
 ```
 
+#### POST request
+
+```ps
+$Body = @{
+	title = "post title"
+	body = "post body"
+}
+
+$Response = Invoke-RestMethod -Uri "https://api.example.com/post" `
+	-Method Post `
+	-Body ($Body | ConvertTo-Json) `
+	-ContentType "application/json"
+```
 ## Powershell automation
 
 ### Background jobs
