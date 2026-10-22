@@ -3837,7 +3837,7 @@ triggers {
     }
 }
 ```
-#### Build steps
+#### Build steps intro
 
 ##### Script steps
 
@@ -3875,7 +3875,7 @@ object CommandLineRunnerTest : BuildType({
 
 Refer to original concept in [[#Step execution conditions]]:
 
-In the Kotlin DSL, you can check the `teamcity.agent.jvm.os.name` parameter to run the current build step only on Windows agents, as follows:
+In the Kotlin DSL, the `conditions` block allows you to use teamcity parameter values in conditional statements where if true, the build step runs, and if false, the build step does not run.
 
 ```kt
 package _Self.buildTypes
@@ -3928,7 +3928,53 @@ object MyBuildConf : BuildType({
 > [!NOTE]
 > If you declare multiple execution conditions, the build step will be executed only if all of them are satisfied in the current build run.
 
+Suppose we define:
 
+```kt
+params {
+    param("deploy.enabled", "false")
+}
+```
+
+Then:
+
+```kt
+script {
+    id = "deploy"
+    name = "Deploy"
+
+    conditions {
+        equals(
+            "deploy.enabled",
+            "true"
+        )
+    }
+
+    scriptContent = "./scripts/deploy.sh"
+}
+```
+
+For a custom build, someone could potentially override:
+
+```
+deploy.enabled=true
+```
+
+and enable the step.
+
+This is a powerful pattern:
+
+```
+TeamCity parameter
+        │
+        ▼
+step execution condition
+        │
+        ▼
+conditional pipeline behavior
+```
+
+TeamCity specifically notes that custom-build parameter overrides can be used to control conditional steps.
 ##### Resolving from the `.teamcity` folder
 
 **Problem**: I want to generate a TeamCity build configuration based on the data in some file residing in the VCS inside the `.teamcity` directory.
@@ -3938,6 +3984,156 @@ object MyBuildConf : BuildType({
 ```kt
 val dataFile = File(DslContext.baseDir, "data/setup.xml")
 ```
+
+##### Step IDs
+
+Build steps can have their own IDs you can set with the `id=` kwarg.
+
+- The BuildType ID identifies the entire configuration.
+- The step ID identifies one step inside it.
+
+Step IDs aren't always required, but they become especially useful when templates are involved or when other configuration needs to refer to a specific step. 
+
+TeamCity specifically notes that template-based builds can override a step by using the same step ID.
+
+> [!TIP]
+> For reusable production DSL, assigning stable IDs to important steps is a good habit.
+
+##### Step execution mode
+
+Step execution modes allow you to control if a step should run or not based on the success status of previous steps or the build configuration as a whole.
+
+Current TeamCity has these modes: `DEFAULT`, `RUN_ON_SUCCESS`, `RUN_ON_FAILURE`, `RUN_ONLY_ON_FAILURE`, and `ALWAYS`, which you can set on the `executionMode` property on a `BuildStep` object.
+
+- `DEFAULT`: Don't execute this step if a previous step has failed. This is the default bheavior.
+
+```kt
+script {
+    executionMode = BuildStep.ExecutionMode.DEFAULT
+}
+```
+
+- `RUN_ON_FAILURE`: execute this step even if a previous step has failed.
+
+```kt
+script {
+    executionMode = BuildStep.ExecutionMode.RUN_ON_FAILURE
+}
+```
+
+- `RUN_ONLY_ON_FAILURE`: execute this step only if a previous step failed, or when teamcity consider the build as failed.
+
+```kt
+script {
+    id = "diagnostics"
+    name = "Collect Failure Diagnostics"
+
+    executionMode =
+        BuildStep.ExecutionMode.RUN_ONLY_ON_FAILURE
+
+    scriptContent = "./scripts/collect-diagnostics.sh"
+}
+```
+
+- `ALWAYS`: execute execute this step, even if a previous step or even the build configuration has failed.
+	- TeamCity documents this as the strongest “run regardless” mode
+
+```kt
+script {
+    id = "cleanup"
+    name = "Cleanup"
+
+    executionMode =
+        BuildStep.ExecutionMode.ALWAYS
+
+    scriptContent = "./scripts/cleanup.sh"
+}
+```
+
+- `RUN_ON_SUCCESS`: Run this step only if the rest of the build configuration has succeeded. This is stricter than simply checking whether previous agent-side steps succeeded.
+	- TeamCity queries the server-side build status before executing the step.
+	- That's useful because TeamCity can mark the build failed for reasons beyond a process exit code—for example, test failures or server-side failure conditions.
+
+```kt
+script {
+    executionMode = BuildStep.ExecutionMode.RUN_ON_SUCCESS
+}
+```
+
+
+
+#### Build steps
+
+##### Powershell step
+
+```kt
+powerShell {
+    name = "Deploy"
+
+    scriptMode = script {
+        content = """
+            Write-Host "Deploying application"
+            ./deploy.ps1
+        """.trimIndent()
+    }
+}
+```
+
+
+```kt
+powerShell {
+	id = "copy-windows"
+	name = "Copy File — Windows"
+
+	conditions {
+		startsWith(
+			"teamcity.agent.jvm.os.name",
+			"Windows"
+		)
+	}
+
+	scriptMode = script {
+		content = """
+			Copy-Item result.xml -Destination C:\output
+		""".trimIndent()
+	}
+}
+```
+
+##### Gradle step
+
+```kt
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
+
+object BuildApplication : BuildType({
+
+    id("BuildApplication")
+    name = "Build Application"
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+
+        gradle {
+            id = "gradle-build"
+            name = "Gradle Build"
+
+            tasks = "clean build"
+
+            useGradleWrapper = true
+
+            enableStacktrace = true
+        }
+    }
+
+    artifactRules = "build/libs/*.jar"
+})
+```
+
+
 #### Build outputs and variable interpolation
 
 In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
@@ -4879,9 +5075,63 @@ Here's how they work
 
 This approach works well because we treat the VCS with the kotlin DSL as the source of truth, and any changes made in the UI as a "nice suggestion" we can choose to include in the code as config or not.
 
-### Advanced best practices
+### Refactoring best practices
 
 #### Level 1 abstraction - wrapper functions
+
+
+
+Here's a basic function that returns a `BuildType` object:
+
+1. Create a function that returns a `BuildType` object
+
+```kt
+fun gradleServiceBuild(
+    buildId: String,
+    service: String
+): BuildType {
+
+    return BuildType {
+
+        id(buildId)
+
+        name = "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+        vcs {
+            root(
+                ApplicationRepository,
+                "+:services/$service => ."
+            )
+        }
+
+        steps {
+            script {
+                name = "Build"
+                scriptContent = "./gradlew clean build"
+            }
+        }
+
+        artifactRules = "build/libs/*.jar"
+    }
+}
+```
+
+2. Create build configurations by invoking those functions
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+)
+
+val ordersBuild = gradleServiceBuild(
+    buildId = "BuildOrders",
+    service = "orders"
+)
+```
+
+We can go beyond this for more flexibility
+##### Parameterizing build features
 
 What we’d ideally like is to have every build configuration automatically have the _Build Files Cleaner_ feature, without having to manually add it. In order to do this, we could introduce a function that wraps every instance of `BuildType` with this feature. In essence, instead of having the _Project_ call
 
@@ -4946,7 +5196,272 @@ buildType(wrapWithFeature(Build){
 })
 ```
 
-#### Level 2 abstraction - classes
+##### Parameterization with lambda receivers
+
+Accept a partial of an object as an optional parameter for extra configuration, using the receiver lambda type.
+
+For example, a receiver lambda type for a build configuration would be:
+
+```
+BuildType.() -> Unit
+```
+
+Here's an example of creating a function that uses a receiver lambda for extra configuration:
+
+```kt
+fun gradleServiceBuild(
+    buildId: String,
+    service: String,
+    tasks: String = "clean build",
+    configure: BuildType.() -> Unit = {}
+): BuildType {
+
+    return BuildType {
+
+        id(buildId)
+        name = "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+        vcs {
+            root(
+                ApplicationRepository,
+                "+:services/$service => ."
+            )
+        }
+
+        steps {
+            script {
+                name = "Build"
+                scriptContent = "./gradlew $tasks"
+            }
+        }
+
+        artifactRules = "build/libs/*.jar"
+
+		// lambda receiver of BuildType
+        configure()
+    }
+}
+```
+
+Then you can create a build configuration using this function like so:
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+    params {
+        param("env.PAYMENT_MODE", "test")
+    }
+}
+```
+
+> [!NOTE]
+> - The function establishes sensible defaults.
+> - The lambda handles exceptional configuration.
+
+##### Parameterization with Extension functions
+
+We can use extension functions to add agent requirements to a build configuration via a single function call.
+
+1. Create an extension function on the `BuildType` class
+
+```kt
+fun BuildType.requireLinuxAgent() {
+
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+}
+```
+
+2. Use the extension function within a build type receiver lambda
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+    requireLinuxAgent()
+}
+```
+
+**in summary**
+
+Extension functions are excellent for reusable **capabilities**.
+
+For example:
+
+```kt
+fun BuildType.requireDocker()
+fun BuildType.addVcsTrigger()
+fun BuildType.publishJUnitReports()
+fun BuildType.enableCommitStatusPublisher()
+fun BuildType.addSecurityScan()
+```
+
+Then configuration reads almost like architecture:
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+
+    requireLinuxAgent()
+    requireDocker()
+    addSecurityScan()
+}
+```
+
+##### Extension functions with build steps
+
+1. Create an extension function that is an abstraction around a build step:
+
+```kt
+fun BuildSteps.gradleTask(
+    stepId: String,
+    stepName: String,
+    tasks: String,
+    workingDirectory: String? = null
+) {
+
+    gradle {
+        id = stepId
+        name = stepName
+
+        this.tasks = tasks
+        workingDir = workingDirectory
+
+        useGradleWrapper = true
+        enableStacktrace = true
+    }
+}
+```
+
+2. Use the new function you created, then invoke it to register the build step
+
+```kt
+steps {
+
+    gradleTask(
+        stepId = "compile",
+        stepName = "Compile",
+        tasks = "classes"
+    )
+
+    gradleTask(
+        stepId = "test",
+        stepName = "Unit Tests",
+        tasks = "test"
+    )
+}
+```
+##### Factory functions vs Extension functions
+
+When to use factory functions vs extension functions for creating build configurations and other DSL objects? It's about semantic intention:
+
+- **factory function**: for creating a specific type of build configuration with sensible details and optional configuration.
+- **extension function**: syntactic sugar over adding sets of configuration and capabilities in a reusable way.
+
+```
+Factories
+    ↓
+what kind of build is this?
+
+
+Extensions
+    ↓
+what capabilities does this build have?
+```
+
+For example:
+
+```kt
+fun BuildType.requireLinuxAgent() {
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+}
+
+
+fun BuildType.requireDocker() {
+    requirements {
+        exists("docker.server.version")
+    }
+}
+
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+
+    requireLinuxAgent()
+    requireDocker()
+
+    params {
+        param("env.SERVICE_NAME", "payments")
+    }
+}
+```
+#### Level 2 abstraction - classes and templates
+
+Here are the different reasons for when you should use one abstraction technique over the other
+
+| Approach                       | Best fit                                                    |
+| ------------------------------ | ----------------------------------------------------------- |
+| Function returning `BuildType` | simple generation/reuse                                     |
+| Extension function             | add reusable behavior                                       |
+| Custom `BuildType` subclass    | build is meaningfully its own reusable type                 |
+| TeamCity `Template`            | TeamCity itself should know about the reusable relationship |
+
+##### Sneak peek at classes
+
+```kt
+class GradleServiceBuild(
+    buildId: String,
+    service: String,
+    tasks: String = "clean build"
+) : BuildType({
+
+    id(buildId)
+
+    name = "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+    vcs {
+        root(
+            ApplicationRepository,
+            "+:services/$service => ."
+        )
+    }
+
+    steps {
+        script {
+            name = "Build"
+            scriptContent = "./gradlew $tasks"
+        }
+    }
+
+    artifactRules = "build/libs/*.jar"
+})
+```
+
+Then
+
+```kt
+val paymentsBuild =
+    GradleServiceBuild(
+        buildId = "BuildPayments",
+        service = "payments"
+    )
+```
+##### Intro classes
 
 You can create custom classes that inherit from the teamcity constructs as to provide a more configurable approach and avoid code duplication:
 
@@ -4990,6 +5505,267 @@ project {
 }
 ```
 
+#### Templates
+
+The Teamcity `Template` class is a reusable build configuration template that you can override. 
+
+> [!NOTE]
+> Using this class is useful because now TeamCity knows that templates exist, and are useful for creating patches and the like.
+
+Here are the advantages using teamcity templates over custom Kotlin abstractions gives you:
+
+- **teamcity parameterization**: you can change parameter values on a template and build configurations that implement the template via the TeamCity UI.
+	- TeamCity explicitly supports parameterizing template settings and overriding regular template parameter values in build configurations.
+- **creates a teamcity relationship**: Teamcity knows which build configurations are created from which templates, which gives you more observability when something goes wrong.
+
+> [!TIP]
+> Use a TeamCity Template when the reusable concept should be meaningful to **TeamCity itself**.
+
+##### Intro templates
+
+Here is an example of using templates:
+
+1. Create the template:
+
+```kt
+object StandardGradleTemplate : Template({
+
+    id("StandardGradleTemplate")
+    name = "Standard Gradle Build"
+
+    params {
+        param("gradle.tasks", "clean build")
+    }
+
+    steps {
+        script {
+            name = "Gradle"
+            scriptContent = "./gradlew %gradle.tasks%"
+        }
+    }
+
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+})
+```
+
+2. Register the template on the project
+
+```kt
+project {
+
+    template(StandardGradleTemplate)
+}
+```
+
+3. Create a build type from a template
+
+```kt
+object BuildPayments : BuildType({
+
+    id("BuildPayments")
+    name = "Build Payments"
+
+    templates(StandardGradleTemplate)
+
+    vcs {
+        root(
+            ApplicationRepository,
+            "+:services/payments => ."
+        )
+    }
+})
+```
+
+##### Templates with factory functions
+
+Create a TeamCity template:
+
+```kt
+object JvmServiceTemplate : Template({
+
+    id("JvmServiceTemplate")
+    name = "JVM Service"
+
+    params {
+        param(
+            "gradle.tasks",
+            "clean build"
+        )
+    }
+
+    steps {
+
+        script {
+            id = "gradle-build"
+            name = "Build"
+
+            scriptContent =
+                "./gradlew %gradle.tasks%"
+        }
+    }
+
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+})
+```
+
+Then our Kotlin function generates builds that use it:
+
+```kt
+fun jvmServiceBuild(
+    buildId: String,
+    service: String,
+    tasks: String = "clean build",
+    configure: BuildType.() -> Unit = {}
+): BuildType {
+
+    return BuildType {
+
+        id(buildId)
+
+        name =
+            "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+        templates(JvmServiceTemplate)
+
+        params {
+            param("gradle.tasks", tasks)
+        }
+
+        vcs {
+            root(
+                ApplicationRepository,
+                "+:services/$service => ."
+            )
+        }
+
+        configure()
+    }
+}
+```
+
+Now:
+
+```kt
+val paymentsBuild = jvmServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+)
+
+val ordersBuild = jvmServiceBuild(
+    buildId = "BuildOrders",
+    service = "orders",
+    tasks = "clean check build"
+)
+```
+
+This architecture separates concerns nicely.
+
+#### Production-grade folder structure
+
+This is what you should eventually graduate to:
+
+```
+.teamcity/
+├── settings.kts
+├── pom.xml
+│
+└── src/
+    └── main/
+        └── kotlin/
+            │
+            ├── vcs/
+            │   └── ApplicationRepository.kt
+            │
+            ├── templates/
+            │   └── JvmServiceTemplate.kt
+            │
+            ├── builds/
+            │   └── ServiceBuilds.kt
+            │
+            └── common/
+                └── BuildExtensions.kt
+```
+
+##### All together: a good build configuration design
+
+Here is how to design a good build configuration type:
+
+- **use templates**: base a build type off a template
+- **use extension functions**: use extension functions as abstractions over build features, build steps, agent requirements, and more.
+
+```kt
+object VerifyPayments : BuildType({
+
+    id("VerifyPayments")
+    name = "Verify Payments"
+
+    templates(JvmServiceTemplate)
+
+    vcs {
+        root(
+            ApplicationRepository,
+            "+:services/payments => ."
+        )
+    }
+
+    steps {
+
+        gradleTask(
+            stepId = "check",
+            stepName = "Verify",
+            tasks = "clean check"
+        )
+
+        addFailureDiagnostics()
+
+        addCleanupStep()
+    }
+})
+```
+##### Build steps vs Build configurations
+
+Suppose you have:
+
+```
+compile
+test
+package
+```
+
+Should they be three steps:
+
+```
+BuildType
+├── compile
+├── test
+└── package
+```
+
+or three BuildTypes:
+
+```
+Compile → Test → Package
+```
+
+There isn't one universal answer.
+
+| Use separate steps when…       | Use separate BuildTypes when…             |
+| ------------------------------ | ----------------------------------------- |
+| They belong to one logical job | They represent meaningful pipeline stages |
+| Same agent/workspace is useful | They may need different agents            |
+| They always run together       | They may run independently                |
+| No artifact boundary is needed | Files need durable artifact transfer      |
+| Simplicity matters most        | Parallelization/history/promotion matters |
 ### IntelliJ with Kotlin DSL
 
 #### Cloning down project and installing dependencies
