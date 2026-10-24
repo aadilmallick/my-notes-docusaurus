@@ -232,6 +232,44 @@ Here are examples of common feature engineering tasks to create, modify, or dele
 - **combining existing features together**: you can achieve a lower complexity model (and thus less variance) by making the data lower complexity by combining several features into one single, powerful predictive feature.
 - **removing highly correlated features**: features that are highly correlated with each other will be redundant. Therefore removing them lets you make your model simpler. 
 - **filling in missing data**: features with missing data are bad data, so it's better to fill them in or remove the feature entirely.
+
+## Data preparation
+
+### Data analysis
+
+Here are basic data analysis tools you can do:
+
+- **verify which features have missing values**: it's important to understand which features may have null values
+
+```py
+# Verify which features have missing values
+housing_df.isnull().sum()
+
+# Calculate the % of missing data
+housing_df['total_bedrooms'].isnull().sum()/housing_df.shape[0] * 100
+```
+
+- **find most important features**: use pandas to find feature importances
+
+```py
+# Determine feature importance - random forest algorithm is that it gives you the ‘feature importance’ for all the variables in the data
+# plot the 6 most important features 
+plt.figure(figsize=(10,6))
+feat_importances = pd.Series(rf_model.feature_importances_, index = X_train.columns)
+feat_importances.nlargest(6).plot(kind='barh');
+```
+### Data preparation
+
+#### One-hot encoding
+
+One-hot encoding is the process of converting text enum data into numerical data, where if an enum is of cardinality $N$, then the one-hot encoded vector of a datum of that enum will be of dimensionality $N$, where one value 1 and all other values are 0.
+
+That one position where the value is 1 corresponds to that datum's position in the enum, meaning that one-hot encoded vector representation uniquely represents that enum.
+
+```py
+pd.get_dummies(housing_df['ocean_proximity'])
+```
+
 ## Training, Validation, Test
 
 ### Generalization error
@@ -587,15 +625,11 @@ PCA finds the directions (axes/vectors) in which the most variance the data set 
 
 **Cardinality** of a feature refers to how many unique values that feature has. 
 
-**the effect of high cardinality**
+High cardinality features can increase the complexity of models, particularly those based on tree algorithms. 
 
-High cardinality features can increase the complexity of models, particularly those based on tree algorithms. Decision trees, for example, may struggle to effectively split on high cardinality features, leading to inefficient use of computational resources and potentially overfitting.
+- **how high cardinality affects decision trees**: Decision trees, for example, may struggle to effectively split on high cardinality features, leading to inefficient use of computational resources and potentially overfitting.
 
-> [!NOTE]
-> For features with a high cardinality, you need more data to have robust training on them.
-
-
-
+For features with a high cardinality, more data is the cure to improve model performance.
 
 
 ## First algorithm: univariate linear regression
@@ -644,6 +678,65 @@ Understanding how univariate linear regression works will give you a foundationa
 
 - **pro - average stability and speed**: Combines stability and speed for the best of both worlds
 - A batch size of 100 training samples per iteration is the most recommended
+
+### Sci-kit Learn Linear Regression
+
+Here is a basic pipeline:
+
+1. Create data set, preprocess it
+
+```py
+import sklearn
+from sklearn.model_selection import train_test_split
+
+# remove spaces from column names and convert all to lowercase and remove special characters as it could cause issues in the future
+housing_df_encoded.columns = [c.lower().replace(' ', '_').replace('<', '_') for c in housing_df_encoded.columns]
+
+# Split target variable and feature variables
+X = housing_df_encoded[['housing_median_age', 'median_income','bedrooms_per_room','population_per_household','coords','ocean_proximity__1h_ocean',
+                        'ocean_proximity_inland','ocean_proximity_island','ocean_proximity_near_bay','ocean_proximity_near_ocean']]
+y = housing_df_encoded['median_house_value']
+```
+
+2. Split dataset into train and test
+
+```py
+# Splitting the data into training and testing sets in numpy arrays
+# We train the model with 70% of the samples and test with the remaining 30%
+# X -> array with the inputs; y -> array of the outputs
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, shuffle=True, test_size=0.3)
+```
+
+3. Create linear regression model and fit it to data
+
+```py
+# Use scikit-learn’s LinearRegression to train the model on both the training and evaluate it on the test sets
+from sklearn.linear_model import LinearRegression
+
+# Create a Linear regressor using all the feature variables
+reg_model = LinearRegression()
+
+# Train the model using the training sets
+reg_model.fit(X_train, y_train)
+```
+
+4. Run predictions
+
+```py
+#run the predictions on the training and testing data
+y_pred_test = reg_model.predict(X_test)
+```
+
+5. Evaluate the model
+
+```py
+# Determine accuracy uisng 𝑅^2
+# 𝑅^2 : R squared is another way to evaluate the performance of a regression model.
+# 1, means that the model is perfect and 0 means the the model will perform poorly.
+r2_reg_model_test = round(reg_model.score(X_test, y_test),2)
+
+print("R^2 Test: {}".format(r2_reg_model_test))
+```
 ## Regularization
 
 Regularization is a technique to mitigate overfitting by penalizing noise through a parameter $\lambda$, with the purpose of trying to make a complex model (cause of overfitting) simpler.

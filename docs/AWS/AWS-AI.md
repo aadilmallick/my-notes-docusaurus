@@ -2511,3 +2511,82 @@ agent.addHook(AfterToolCallEvent, (event) => {
   console.log(`Status: ${event.result.status}`)
 })
 ```
+
+
+## Sagemaker
+
+Amazon SageMaker is a managed service from AWS that helps you build, train, and deploy machine learning models easily. It offers low-code and no-code options, so you don't need deep technical experience to train models.
+
+Once you create a **training job** on Sagemaker, you can deploy the model through amazon sagemaker hosting, which makes the model available via an API endpoint
+
+### Creating a sage maker job
+
+1. Click on **training jobs**
+
+
+![](https://i.imgur.com/pSrDmUi.jpeg)
+
+2. Fill out the following info:
+	- **algorithm**: use a sagemaker algorithm
+	- **input type**: file
+	- **IAM role**: created for you
+
+3. Select the underlying EC2 instance used for sagemaker
+
+
+![](https://i.imgur.com/LOAoEzO.jpeg)
+
+4. Change hyperparameters for the model
+5. Create **channels**, which are configured methods to get training data from a file or pipeline. Here's an example of a "train" channel that pulls data from an S3 bucket:
+
+
+![](https://i.imgur.com/2xTIOgy.jpeg)
+
+### Training a sagemaker model
+
+1. Create the sagemaker session
+
+
+```py
+from sagemaker.session import Session
+from sagemaker.feature_store.feature_group import FeatureGroup
+
+region = boto3.Session().region_name
+boto_session = boto3.Session(region_name=region)
+
+sagemaker_client = boto_session.client(service_name='sagemaker', region_name=region)
+featurestore_runtime = boto_session.client(service_name='sagemaker-featurestore-runtime', region_name=region)
+
+feature_store_session = Session(
+    boto_session=boto_session,
+    sagemaker_client=sagemaker_client,
+    sagemaker_featurestore_runtime_client=featurestore_runtime
+)
+
+feature_group_name = "FG-ndcCrime-7dee9362" # replace with your feature group name 
+feature_group = FeatureGroup(name=feature_group_name, sagemaker_session=feature_store_session)
+```
+
+2. Create a sagemaker bucket
+
+```py
+import sagemaker
+bucket=sagemaker.Session().default_bucket()
+prefix = 'sagemaker/DEMO-linlearn-dm'
+```
+
+3. query with athena
+
+```py
+# Build SQL query to features group
+fs_query = feature_group.athena_query()
+fs_table = fs_query.table_name
+query_string = 'SELECT * FROM "'+fs_table+'"'
+
+# Run Athena query. The output is loaded to a Pandas dataframe.
+fs_query.run(query_string=query_string, output_location='s3://'+bucket+'/'+prefix+'/fs_query_results/')
+fs_query.wait()
+
+# now we have the data from the channel
+model_data = fs_query.as_dataframe()
+```
