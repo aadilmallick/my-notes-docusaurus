@@ -231,7 +231,16 @@ Here are examples of common feature engineering tasks to create, modify, or dele
 
 - **combining existing features together**: you can achieve a lower complexity model (and thus less variance) by making the data lower complexity by combining several features into one single, powerful predictive feature.
 - **removing highly correlated features**: features that are highly correlated with each other will be redundant. Therefore removing them lets you make your model simpler. 
-- **filling in missing data**: features with missing data are bad data, so it's better to fill them in or remove the feature entirely.
+- **impute missing data**: features with missing data are bad data, so it's better to fill them via **imputation** or remove the feature entirely.
+
+#### Imputation
+
+Imputation is the process of filling in missing data values in your dataset so that your machine learning model can train effectively. 
+
+Instead of leaving gaps or incomplete information, imputation estimates those missing values based on other data, ensuring the dataset is complete and consistent. 
+
+> [!NOTE]
+> Imputation is important because most models require complete data to learn patterns accurately, and imputation allows you to infer reasonable estimates for missing data instead of throwing it away.
 
 ## Data preparation
 
@@ -1221,6 +1230,26 @@ Here are the key benefits:
 #### Sci-kit learn pipeline
 
 Here's an example pipeline:
+
+1. Get data
+
+
+```py
+import sklearn
+from sklearn.model_selection import train_test_split
+
+# remove spaces from column names and convert all to lowercase and remove special characters as it could cause issues in the future
+housing_df_encoded.columns = [c.lower().replace(' ', '_').replace('<', '_') for c in housing_df_encoded.columns]
+
+# Split target variable and feature variables
+X = housing_df_encoded[['housing_median_age', 'median_income','bedrooms_per_room','population_per_household','coords','ocean_proximity__1h_ocean',
+                        'ocean_proximity_inland','ocean_proximity_island','ocean_proximity_near_bay','ocean_proximity_near_ocean']]
+y = housing_df_encoded['median_house_value']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, shuffle=True, test_size=0.3)
+```
+
+2. Create pipeline
 
 ```py
 from sklearn.pipeline import Pipeline
