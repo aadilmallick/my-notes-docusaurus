@@ -1176,7 +1176,14 @@ Before any model or agent touches production, you must evaluate it against a cur
         
     - **Answer Relevance:** Did it actually answer the user's prompt without introducing off-topic noise?
 
-#### 2. Post-Deployment (Online) Observability & Monitoring
+#### Observability & Monitoring against drift and bias
+
+Bias is seen when predictions are less favorable to an individual or group.
+
+Model drift happens when the relationship between the target variable and other input variables changes over time after the model is deployed, and can introduce bias in your model after production.
+
+- This means the patterns the model learned during training no longer fully apply, causing its predictions to become less accurate.
+- Drift can occur due to changes in real-world data or environment where the model operates.
 
 Once in production, static metrics degrade because the real world changes. You must monitor for two primary types of drift:
 
@@ -1186,11 +1193,55 @@ Once in production, static metrics degrade because the real world changes. You m
     
 - **Operational Metrics:** Latency (p95/p99), token consumption/cost tracking, and error/exception rates.
 
+Here are the different ways to mitigate drift:
+
+- **feature engineering**: one approach is weighting important features so the model focuses more on stable, relevant data points. Understanding and managing drift is key to keeping machine learning models reliable in production.
+
 #### 3. Rigorous Experimentation
 
 - **A/B Testing:** Routing a percentage of live production traffic to a newly fine-tuned model or updated prompt chain to measure concrete business impact (e.g., resolution time, user correction rate) before full rollout.
 
 ### ML pipeline
 
+A machine learning pipeline is a way to organize and automate all the steps involved in building a machine learning model—from preparing data, training the model, evaluating it, tuning parameters, to deploying it. 
+
+Instead of running each step separately, a pipeline groups them into a single, streamlined process. 
+
+> [!NOTE]
+> Pipelines make your workflow more efficient, reproducible, and easier to manage.
+
+Here are the key benefits:
+
+
+- **have parallelization capability**: Pipelines also speed up training by running tasks in parallel and help ensure consistent data preparation across different model training runs. 
+- **reliability and reproducibility**: This approach is especially helpful in production environments where you want reliable and maintainable ML systems.
+
 
 ![](https://i.imgur.com/RjqBEs8.jpeg)
+#### Sci-kit learn pipeline
+
+Here's an example pipeline:
+
+```py
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+
+
+pipeline_lr= Pipeline([('lr_classifier', LinearRegression())])
+pipeline_rf = Pipeline([('rf_classifier', RandomForestRegressor(n_estimators=10,random_state=10))]) 
+pipeline_xgb = Pipeline([('xgb_classifier', XGBRegressor())]) 
+
+pipelines = [pipeline_lr, pipeline_rf, pipeline_xgb]
+pipe_dict = {0: 'Linear Regression', 1: 'Random Forest Regressor', 2: 'XGBRegressor'}
+
+for pipe in pipelines:
+    pipe.fit(X_train, y_train)
+
+for i,model in enumerate(pipelines):
+    pred_test = model.predict(X_test)
+    if i == 1: rf_model = model
+    print("{} Test Accuracy:{}".format(pipe_dict[i],model.score(X_test,y_test)))
+    print(pd.DataFrame({'Actual': y_test, 'Predicted': pred_test}))
+```

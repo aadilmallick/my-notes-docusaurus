@@ -2544,6 +2544,16 @@ Once you create a **training job** on Sagemaker, you can deploy the model throug
 
 ### Training a sagemaker model
 
+```embed
+title: "artificial-intelligence-foundations-machine-learning-3067770/LiL-CrimeModel.ipynb at main · LinkedInLearning/artificial-intelligence-foundations-machine-learning-3067770"
+image: "https://opengraph.githubassets.com/7d79f5d4e8b08c4d6ba891c6366ec82766ec84d6438beddfad2dd45f3e07b16c/LinkedInLearning/artificial-intelligence-foundations-machine-learning-3067770"
+description: "This is a repo for the LinkedIn Learning course Artificial Intelligence Foundations: Machine Learning - LinkedInLearning/artificial-intelligence-foundations-machine-learning-3067770"
+url: "https://github.com/LinkedInLearning/artificial-intelligence-foundations-machine-learning-3067770/blob/main/LiL-CrimeModel.ipynb"
+favicon: ""
+aspectRatio: "50"
+```
+
+
 1. Create the sagemaker session
 
 
