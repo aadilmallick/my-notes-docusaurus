@@ -3,16 +3,35 @@
 ## An overview of machine learning
 
 
-### Types of intelligence
+### Terminology
 
 - **general intelligence**: stuff like humans, biological intelligence at the level of humans
 - **artificial intelligence**: when a machine can perform a task as good or better than a human can, like classifying images.
+- **data**: tabular data or data that can be stored in a single file
+- **big data**: data that is too large to be stored in a tabular format, so it's stored in a stream instead.
 - **AGI**: when artificial intelligence achieves the capability of general intelligence, when AI becomes better at tasks than most humans are.
 - **Strong AI** refers to machines that display full human-like intelligence, including emotions, creativity, and a sense of purpose—like the intelligent characters you see in science fiction. It's the idea of a machine that truly thinks and understands like a person, but this is still mostly theoretical today.  
 - **Weak AI**, on the other hand, is designed for specific tasks. It can process language or recognize patterns but doesn't actually understand or have consciousness. For example, Siri is a weak AI—it listens to your questions and matches them to programmed responses without real understanding.
 - **predictive AI**: regression, classification, or clustering tasks, which is a type of AI that analyzes large amounts of data to find patterns and make predictions about future behavior
 - **generative AI**: generates content
 
+### Big data
+
+Bid data satisfies the three Vs:
+
+- **Volume**: high volume of data, at least several terabytes
+- **Velocity**: high influx rate of data, like 100 megabits per second
+- **Variety**: high variety arising from a complex data structure storage like audio, stream, or image data.
+
+When dealing with Big Data, you arive at the CAP theorem from system design, where there is a tradeoff between consistency, availability, and partitioning with trying to replicate data across multiple machines.
+
+
+### Weak AI vs Strong AI
+
+Machine learning is **weak AI**, where we use mathematical techniques like statistics or hardcoded rules to learn patterns in data.
+
+- **early weak AI**: hardcoded rules designated by experts, much like a hardcoded decision tree
+- **modern weak AI**: learning patterns via computational statistic inference and gradient descent, where a function hypothesis is approximated computationally instead of cognitively.
 
 ### Alignment
 
@@ -36,8 +55,20 @@ There are 4 alignment problems in AI:
 
 For example, if an AI system is designed to reduce health insurance costs by targeting high-cost customers, it might cancel policies for older people to save money, which is not the intended ethical outcome. 
 
+### Types of machine learning
 
+#### Supervised learning
 
+Supervised learning is based on known feature data $X$ and known labels $y$, where $f(X)$ is the unknown, true function that provides a 100% deterministic, correlated relationship between $X$ and $y$.
+
+The goal of supervised learning is to estimate this true relationship $f(X)$ using an approximation function $\hat f(X)$ to make predictions $\hat y$, and then based on the error between prediction $\hat y$ and expected known label $y$, we tune the hypothesis function to grow closer to the true $f(X)$ by trying to minimize error as much as possible
+
+The closer $\hat f(X)$ is to $f(X)$, the better the model performs, which means that hypothesis that minimizes the error (the discrepancy between the hypothesis function and the true unknown function) the most, is the best hypothesis possible, accounting for initial assumptions and bias.
+
+Basically, the goal is to minimize something like this:
+
+$$\min \sum_i C(\hat y_i - y_i)$$
+Where $C$ is some cost function, ranging from MAE to RMSE to others.
 ## Features
 
 ![](https://i.imgur.com/kBSaGnF.jpeg)
