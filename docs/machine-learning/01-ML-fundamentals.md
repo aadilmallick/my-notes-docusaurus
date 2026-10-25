@@ -69,6 +69,21 @@ Basically, the goal is to minimize something like this:
 
 $$\min \sum_i C(\hat y_i - y_i)$$
 Where $C$ is some cost function, ranging from MAE to RMSE to others.
+
+### Semantic gap in machine learning
+
+The semantic gap refers to the difference between the data we have and the actual information or meaning we want to extract from it. 
+
+In machine learning, this often means that the features or data available (like photographs) do not fully capture the true characteristics that distinguish what we want to classify (such as the difference between cats and dogs).
+
+> [!NOTE]
+> Basically a semantic gap occurs when the features you have don't explain the data 100%, and there are some other hidden variables you can't account for, and we just approximate through machine learning.
+
+For example, a photo contains visual information, but it doesn’t include deeper properties like DNA, bone structure, or behavior, which are essential to truly distinguish a cat from a dog. The machine learning model tries to bridge this gap by finding patterns in the available data, but it is limited to what is present in the data. Sometimes, the model may pick up on irrelevant features (like snow in the background of dog photos) rather than the actual distinguishing features.
+
+The semantic gap highlights the challenge that the data used for training may not be sufficient or relevant enough to solve the real-world problem accurately.
+
+
 ## Features
 
 ![](https://i.imgur.com/kBSaGnF.jpeg)
