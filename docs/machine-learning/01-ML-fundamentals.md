@@ -67,8 +67,11 @@ The closer $\hat f(X)$ is to $f(X)$, the better the model performs, which means 
 
 Basically, the goal is to minimize something like this:
 
-$$\min \sum_i C(\hat y_i - y_i)$$
-Where $C$ is some cost function, ranging from MAE to RMSE to others.
+$$C = \min \sum_i l(\hat y^{(i)} - y^{(i)})$$
+Where $l$ is some loss function calculating the prediction error for the $i$th training sample $(\vec x^{(i)}, y^{(i)})$, and $C$ is some cost function that aggregates the losses.
+
+- **loss**: the prediction error for one training sample and its expected known value
+- **cost**: the total prediction error over all training samples, found via aggregating losses.
 
 ### Semantic gap in machine learning
 
@@ -687,10 +690,40 @@ High cardinality features can increase the complexity of models, particularly th
 For features with a high cardinality, more data is the cure to improve model performance.
 
 
-## First algorithm: univariate linear regression
+## univariate linear regression
 
 Understanding how univariate linear regression works will give you a foundational base to understand every other machine learning model out there.
 
+### Algebraic formulation
+
+#### Model
+
+To model $y = mx+b$, we want to find a function $\hat f(x; m,b) = \hat y$ (this notation means that $x$ is variable while $m$ and $b$ are fixed parameters) that is a good approximation for that line
+
+For this, we need to know what to minimize/optimize:
+
+- **loss**: let the loss function be squared error
+
+$$loss(\hat f(x^{(i)}), y^{(i)}) = (\hat f(x^{(i)}) - y^{(i)})^2$$
+
+- **cost**: let the cost function be mean squared error
+
+$$C = \sum_i(\hat f(x^{(i)}) - y^{(i)})^2 = \sum_i(mx^{(i)} + b  - y^{(i)})^2$$
+
+So our goal is this:
+
+$$\min_{\hat f} C = \min_{\hat f} \sum_i (mx^{(i)} + b - y^{(i)})^2$$
+
+#### Gradient descent
+
+For a single training sample, we calculate $loss(m, b; x, y) = (mx^{(i)} + b - y^{(i)})^2$. 
+
+We then want to calculate the gradient of loss with respect to parameters $m$ and $b$ to figure out how to change those parameters.
+
+1. Calculate loss or cost
+2. Calculate gradient with respect to loss or cost
+3. Perform gradient descent update with a decently small learning rate
+4. Repeat until an update of the previous iteration is very small.
 ### Batches, epoch, gradient descent types
 
 - **batch**: a small portion of a dataset
@@ -733,6 +766,50 @@ Understanding how univariate linear regression works will give you a foundationa
 
 - **pro - average stability and speed**: Combines stability and speed for the best of both worlds
 - A batch size of 100 training samples per iteration is the most recommended
+
+### Evaluating the model
+
+#### Coefficient of determination
+
+We need some way to evaluate how well our model does and you can do that either with loss or something in statistics called the **coefficient of determination**, which only works in two-dimensional data (features X and output y).
+
+- **coefficient of determination**: denoted via $R^2$, and has bounds $(-\infty, 1]$.
+	- **use case**: used as a measure of correlation strength between two variables
+- **correlation coefficient**: denoted by $r$, which is just the square root of the coefficient of determination, and has bounds $[0, 1]$.
+	- **use case**: used as a measure of correlation strength
+
+
+
+  
+
+$$r = \sqrt{R^2}$$
+
+  
+
+> [!NOTE]
+> The null model is just predicting the mean, which means that the null model has an $R^2$ value = 0
+
+#### Null model
+
+In linear regression, the **Null Model** is the simplest possible baseline. It assumes that the features ($x$) have no predictive power, so it simply predicts the **mean** ($\mu$) of the target variable ($y$) for every observation.
+
+- **Equation:** $\hat{y} = \bar{y}$
+- **Purpose:** It serves as a benchmark. If your regression model isn't better than the null model, your features are not useful.
+
+The null model will just predict that every point is equal to the mean, giving a straight line. Then from there, we can get the coefficient R^2, which is the coefficient of determination.
+
+  
+
+$$R^2 = 1 - \frac{\mathrm{Sum \ of \  actual \ squared \  errors}}{\mathrm{Sum\  of\  squared\  errors\  using \ \ null\  model}}$$
+
+  
+
+You can also think of it like this:
+
+  
+
+$$R^2 = 1 - \frac{\sum (\hat y - y)^2}{\sum (\hat y - \mu)^2}$$
+
 
 ### Sci-kit Learn Linear Regression
 
