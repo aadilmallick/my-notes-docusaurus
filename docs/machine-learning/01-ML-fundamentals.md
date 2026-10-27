@@ -714,6 +714,9 @@ So our goal is this:
 
 $$\min_{\hat f} C = \min_{\hat f} \sum_i (mx^{(i)} + b - y^{(i)})^2$$
 
+There is also alternative notation:
+
+
 #### Gradient descent
 
 For a single training sample, we calculate $loss(m, b; x, y) = (mx^{(i)} + b - y^{(i)})^2$. 
@@ -869,6 +872,36 @@ r2_reg_model_test = round(reg_model.score(X_test, y_test),2)
 
 print("R^2 Test: {}".format(r2_reg_model_test))
 ```
+
+
+## Multivariate linear regression
+
+### Model
+
+For linear regression, the hypothesis will be a linear equation with any amount of features. This can be univariate or multivariate linear regression:
+
+  
+
+$$h_\beta (x) = \beta_0 + \beta_1 x $$
+
+$$ h_\beta (x) = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + ... $$
+
+  
+
+The goal in linear regression is to minimize the squared error consisting of all the data points:
+
+  
+
+$$C = \sum (\hat{y} - y)^2$$
+
+We have several choices of loss functions for linear regression:
+
+
+![](https://i.imgur.com/jiv89SK.jpeg)
+
+
+
+
 ## Regularization
 
 Regularization is a technique to mitigate overfitting by penalizing noise through a parameter $\lambda$, with the purpose of trying to make a complex model (cause of overfitting) simpler.
