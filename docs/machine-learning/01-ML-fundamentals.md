@@ -735,18 +735,53 @@ We then want to calculate the gradient of loss with respect to parameters $m$ an
 4. Repeat this process until an update of the previous iteration is very small.
 
 ![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/gradient-descent.png)
+
+
+### Gradient descent basics
+
+Here's some basic terminology concerning gradient descent:
+
+- **loss curve**: plotting cost against number of iterations to view the "elbow" of diminishing returns for when to stop gradient descent.
+- **learning rate**: a percentage multiplier quantifying the proportion of the gradient to step down.
+
+#### Loss curve
+
+When training a model, you'll often look at a [**loss curve**](https://developers.google.com/machine-learning/glossary#loss-curve) to determine if the model has [**converged**](https://developers.google.com/machine-learning/glossary#convergence). The loss curve shows how the loss changes as the model trains. 
+
+The following is what a typical loss curve looks like:
+
+- **y-axis**: Loss is on the y-axis
+- **x-axis**: iterations are on the x-axis
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/convergence.png)
+
+#### Learning rate
+
+[**Learning rate**](https://developers.google.com/machine-learning/glossary#learning-rate) is a floating point number you set that influences how quickly the model converges. 
+
+- If the learning rate is too low, the model can take a long time to converge.
+- However, if the learning rate is too high, the model never converges, but instead bounces around the weights and bias that minimize the loss.
+
+The difference between the old model parameters and the new model parameters is proportional to the slope of the loss function multiplied by the learning rate.
 ### Batches, epoch, gradient descent types
 
 - **batch**: a small portion of a dataset
+- **batch size**: [**Batch size**](https://developers.google.com/machine-learning/glossary#batch-size) is a hyperparameter that refers to the number of [**examples**](https://developers.google.com/machine-learning/glossary#example) the model processes before updating its weights and bias
 - **iteration**: a computational procedure concerning a single batch
-- **epoch**: completion of one iteration on all batches
+- **epoch**: completion of one iteration of gradient descent on the batch size
 
-| Type                        | Speed   | Stability                                       | Has vectorization? |
-| --------------------------- | ------- | ----------------------------------------------- | ------------------ |
-| Batch gradient descent      | Slow    | Highest, completely stable                      | Yes                |
-| Stochastic gradient descent | Fastest | Lowest stability, but moves generally downhill. | No                 |
-| Mini-batch gradient descent | Fast    | Medium stability                                | Only a bit         |
-|                             |         |                                                 |                    |
+You might think that the model should calculate the loss for _every_ example in the dataset before updating the weights and bias. 
+
+However, when a dataset contains hundreds of thousands or even millions of examples, using the full batch isn't practical. 
+
+That's what gives us multiple types of gradient descent:
+
+| Type                        | Speed   | Stability                                              | Has vectorization? |
+| --------------------------- | ------- | ------------------------------------------------------ | ------------------ |
+| Batch gradient descent      | Slow    | Highest, completely stable                             | Yes                |
+| Stochastic gradient descent | Fastest | Lowest stability, noisy, but moves generally downhill. | No                 |
+| Mini-batch gradient descent | Fast    | Medium stability                                       | Only a bit         |
+|                             |         |                                                        |                    |
 - **Batch gradient descent**: each step of gradient descent vectorizes over all the training examples to calculate the gradient with respect to cost.
 - **stochastic gradient descent**: each step of gradient descent chooses only one random training sample to calculate the gradient with respect to cost.
 - **mini-batch gradient descent**: each step of gradient descent chooses a small randomly sampled batch of training sample to calculate the gradient with respect to cost.
@@ -768,15 +803,47 @@ We then want to calculate the gradient of loss with respect to parameters $m$ an
 
 **stochastic gradient descent** is where you train on one random training sample at a time for the feed forward and backprop process, and update parameters based on one training sample per iteration.
 
-- Fastest form of gradient descent, but most unstable since you’re basing entire parameter update off of one training sample
-- Does not benefit from vectorization
+It is the fastest form of gradient descent, but most unstable since you’re basing entire parameter update off of one training sample
+
+Here are the pros:
+
+1. Quick and computationally efficient
+
+Here are the cons:
+
+1. Does not benefit from vectorization
+2. noisy descent
 
 #### Mini-batch gradient descent
 
+
+ Mini-batch stochastic gradient descent is a compromise between full-batch and SGD. 
+
 **mini batch gradient descent** is where you train on a small randomly sampled batch of training samples for the feed forward and backprop process and update parameters based on calculation from that batch.
 
-- **pro - average stability and speed**: Combines stability and speed for the best of both worlds
-- A batch size of 100 training samples per iteration is the most recommended
+
+Here is the exact formalism
+ 
+ 1. For $N$ number of data points, the batch size can be any number greater than 1 and less than $N$ . 
+ 2. The model chooses the examples included in each batch at random, averages their gradients, and then updates the weights and bias once per iteration.
+
+Determining the number of examples for each batch depends on the dataset and the available compute resources. In general, small batch sizes behaves like SGD, and larger batch sizes behaves like full-batch gradient descent.
+
+> [!TIP]
+> A batch size of 100 training samples per iteration is the most recommended
+
+#### Epochs
+
+In general, more epochs produces a better model, but also takes more time to train.
+
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/batch-size.png)
+
+| Batch type                             | When weights and bias updates occur                                                                                                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full batch                             | After the model looks at all the examples in the dataset. For instance, if a dataset contains 1,000 examples and the model trains for 20 epochs, the model updates the weights and bias 20 times, once per epoch.         |
+| Stochastic gradient descent            | After the model looks at a single example from the dataset. For instance, if a dataset contains 1,000 examples and trains for 20 epochs, the model updates the weights and bias 20,000 times.                             |
+| Mini-batch stochastic gradient descent | After the model looks at the examples in each batch. For instance, if a dataset contains 1,000 examples, and the batch size is 100, and the model trains for 20 epochs, the model updates the weights and bias 200 times. |
 
 ### Evaluating the model
 
