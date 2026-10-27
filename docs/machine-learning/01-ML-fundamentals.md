@@ -696,9 +696,15 @@ Understanding how univariate linear regression works will give you a foundationa
 
 ### Algebraic formulation
 
-#### Model
+#### Model and cost
 
-To model $y = mx+b$, we want to find a function $\hat f(x; m,b) = \hat y$ (this notation means that $x$ is variable while $m$ and $b$ are fixed parameters) that is a good approximation for that line
+To model $y = mx+b$, we want to find a function $\hat f(x; m,b) = \hat y$ (this notation means that $x$ is variable while $m$ and $b$ are fixed parameters) that is a good approximation for that line.
+
+We use cost and loss:
+
+
+![](https://i.imgur.com/d3vGdOV.jpeg)
+
 
 For this, we need to know what to minimize/optimize:
 
@@ -726,7 +732,9 @@ We then want to calculate the gradient of loss with respect to parameters $m$ an
 1. Calculate loss or cost
 2. Calculate gradient with respect to loss or cost
 3. Perform gradient descent update with a decently small learning rate
-4. Repeat until an update of the previous iteration is very small.
+4. Repeat this process until an update of the previous iteration is very small.
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/gradient-descent.png)
 ### Batches, epoch, gradient descent types
 
 - **batch**: a small portion of a dataset
@@ -886,7 +894,10 @@ $$h_\beta (x) = \beta_0 + \beta_1 x $$
 
 $$ h_\beta (x) = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + ... $$
 
-  
+Alternative notation is something like:
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/equation-multiple-features.png)
+
 
 The goal in linear regression is to minimize the squared error consisting of all the data points:
 
