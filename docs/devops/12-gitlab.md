@@ -302,9 +302,15 @@ Security scanning in Gitlab works by adding it as config to the gitlab CI file, 
 	- For example, the SAST scanner generates a JSON file titled `gl-sast-report.json`. 
 	- When you download this report, you will see JSON data outlining vulnerabilities found by the scanner, as well as details about the scan that was run.
 
-Security scanning CI in gitlab requires these three files to be present in your repo:
+Security scanning CI in gitlab pulls from pre-defined CI workflows that gitlab provides for security scanning:
 
+- **`Jobs/SAST.gitlab-ci.yml` template**: jobs template for running SAST on the checked out source code
+- **`Jobs/Secret-Detection.gitlab-ci.yml` template**: jobs template for running secret scanning on the checked out source code
+- **`Jobs/SAST-IaC.gitlab-ci.yml` template**: jobs template for running IaC scanning on the checked out source code
 
-- `Jobs/SAST.gitlab-ci.yml`
-- `Jobs/Secret-Detection.gitlab-ci.yml`
-- `.gitlab-ci.yml`
+```yaml
+include:
+  - template: Jobs/SAST.gitlab-ci.yml # include SAST
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+  - template: Jobs/SAST-IaC.gitlab-ci.yml
+```
