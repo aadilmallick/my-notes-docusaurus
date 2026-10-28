@@ -153,6 +153,11 @@ If any job in a stage fails, the next stage is not (usually) executed and the pi
 
 ![](https://i.imgur.com/i2m6Npc.jpeg)
 
+Here's how to define stages in YAML, which you do under the `stages` list:
+
+```yaml
+
+```
 
 #### Pipeline editor
 
