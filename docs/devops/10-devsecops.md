@@ -316,10 +316,20 @@ Runtime monitoring detects suspicious activities in real time, such as unusual p
 AWS GuardDuty is an example of a runtime monitoring solution that collects logs from various sources (like EC2 and Aurora) to detect suspicious API calls, malware, and misconfigurations, providing comprehensive visibility across your cloud environment.
 
 
-### Complete pipeline
+### Security scanning pipeline
+
+The security scanning pipeline makes use of automated SAST and DAST tools that integrate with CI/CD to perform security scanning on merge requests, artifact uploads, and pushing to the main branch.
 
 ![](https://i.imgur.com/CwZYfKI.jpeg)
 
+#### Merge request security reports
+
+The goal of merge request reporting is twofold. 
+
+1. The first goal is to ensure that security vulnerabilities do not reach the main branch of an application. 
+2. The second goal is to show developers where security vulnerabilities are with every commit they make to a merge request. 
+
+This helps developers catch vulnerabilities early, reducing the impact of security vulnerabilities during development.
 ## SAST tools
 
 ### SNYK

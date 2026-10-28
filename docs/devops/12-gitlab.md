@@ -128,6 +128,32 @@ Gitlab pages is exactly like github pages.
 
 ## Gitlab CI
 
+### Basics
+
+#### Stages vs Jobs
+
+A gitlab pipeline (single `gitlab-ci.yml` file) consists of **stages** and **jobs**:
+
+- **stages**: Parent containers of jobs. Stages run sequentially.
+- **jobs**: jobs live inside stages and run in parallel.
+
+| Stages                                                          | Jobs                                                        |
+| --------------------------------------------------------------- | ----------------------------------------------------------- |
+| Control _when_ things run                                       | Control _what_ runs                                         |
+| Run **sequentially**                                            | Run **in parallel** (within a stage)                        |
+| Pipeline moves to next stage only if current stage jobs succeed | Each job is a specific task (like “run tests”)              |
+| E.g., build → test → deploy                                     | E.g., run Jest tests, check code quality, deploy to staging |
+#### Pipeline editor
+
+There is a native pipeline editor in the gitlab UI that lets you create pipelines for your repo, which can access by navigating to `Build > Pipeline editor` in your GitLab project.
+
+Rather than editing `.gitlab-ci.yml` directly in a text editor, the Pipeline Editor gives you immediate feedback and visibility — helping you catch problems before they reach your pipeline.
+
+Here are the three key benefits:
+
+- **Live syntax validation** — catches errors as you type, before you commit anything to your repository.
+- **Visual pipeline diagram** — shows your stages and jobs laid out graphically so you can verify the flow at a glance.
+- **Full configuration tab** — displays the fully merged YAML from all your `include` statements in one place, making it easy to spot errors across files.
 ### GitLab pages
 
 ```yaml
@@ -164,6 +190,15 @@ pages:
 ### MakeFiles strategy
 
 ### Security scanning
+
+GitLab provides a set of security scanners, which allow you to scan your code for security vulnerabilities. There are two types of vulnerability scanners provided by GitLab:
+
+- **Static analysis scanners** run against your applications source code, looking for vulnerable patterns in the code.
+    
+-  **Dynamic analysis scanners** scan running applications for common vulnerabilities. The goal of a dynamic scanner is to look for vulnerable behavior that only occurs when the application runs.
+    
+
+
 
 #### Free vs Ultimate
 
@@ -243,6 +278,13 @@ sudo gitlab-runner register
 ```
 
 #### Security scanning CI basics
+
+Security scanning in Gitlab works by adding it as config to the gitlab CI file, which will then run the security scan on a workflow trigger and result in the following:
+
+1. **built-in security findings**: view security findings in the UI after a workflow trigger
+2. **security reports**: In addition to the built in security reports, you can also retrieve downloadable reports from your security scanners, using job artifacts. For security scanners in GitLab, job artifacts are generated during each scan. Typically, they are stored in a JSON format. 
+	- For example, the SAST scanner generates a JSON file titled `gl-sast-report.json`. 
+	- When you download this report, you will see JSON data outlining vulnerabilities found by the scanner, as well as details about the scan that was run.
 
 Security scanning CI in gitlab requires these three files to be present in your repo:
 

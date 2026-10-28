@@ -1246,7 +1246,7 @@ These situations can negatively affect the confidentiality, availability, and in
 
 ## Vulnerabilities
 
-### aCRONYMS
+### Acronyms
 
 #### CVE and CWE
 
@@ -1285,11 +1285,44 @@ Here are some things that determine the severity of a vulnerability.
 - **Privileges required:** Vulnerability is worse if you don’t need any privilege to do the exploit, as opposed to high privilege required.
 - **User interaction:** Worse if no user interaction is required for the exploit is triggered
 
-#### EPSS
+**attack vector**
 
-EPSS means Exploit prediction scoring system, and is a daily estimate of the probability of exploitation activity being observed over the next 30 days.
+How is an attacker able to exploit the vulnerability? There are four possible options, starting from most severe to least severe:
 
+1. **Network**: An attacker can exploit the vulnerability through any online network
+    
+2. **Adjacent Network**: An attacker can exploit the vulnerability from the same shared physical network (for example, bluetooth or local area network)
+    
+3. **Local**: An attacker needs to access to read/write/execute access to the target computer or server.
+    
+4. **Physical**: An attacker needs physical access to the target computer or server.
 
+**attack complexity**
+
+Attack complexity describes how easy and reliable a vulnerability is to exploit. This can either be low complexity, meaning the vulnerability is easy and reliable to exploit, not relying on any external conditions, or high complexity, meaning to exploit the vulnerability, the attacker must rely on something outside of their control.
+
+**privileges required**
+
+Privileges required describes what type of account privileges an attacker would need to exploit a vulnerability. There are three possible options:
+
+1. **None**: An attacker is unauthorized prior to the attack
+    
+2. **Low**: An attacker can use any general account for the attack
+    
+3. **High**: An attacker requires significant privileges, often administrative control, to accomplish an attack
+
+**user interaction**
+
+Some vulnerabilities require interaction from a user in order to be exploited. This can be either None, meaning no interaction is required, or required, meaning a user must interact with something for the vulnerability to be exploited.
+
+#### EPSS and KEV
+
+EPSS and KEV are both measures of the probability of somebody exploiting a vulnerability in the app.
+
+- **EPSS**: EPSS means Exploit prediction scoring system, and is a daily estimate of the probability of exploitation activity being observed over the next 30 days.
+- **KEV**: KEV, or Has Known Exploit, indicates if a vulnerability has a known public exploit available for it.
+
+If a vulnerability has a known exploit or high EPSS, it is more likely that an exploit will occur on your system, and thus you should prioritize fixing those vulnerabilities.
 
 ![](https://i.imgur.com/ZYH6Atj.jpeg)
 
@@ -1297,6 +1330,9 @@ EPSS means Exploit prediction scoring system, and is a daily estimate of the pro
 
 
 ![](https://i.imgur.com/xZJKeey.jpeg)
+
+#### KEV
+
 
 ### Authentication vulnerabilities
 
