@@ -162,3 +162,91 @@ pages:
 
 ```
 ### MakeFiles strategy
+
+### Security scanning
+
+#### Free vs Ultimate
+
+| Capability                                          | Free | Ultimate |
+| --------------------------------------------------- | ---- | -------- |
+| Basic SAST scanning (open-source analyzers)         | ✅    | ✅        |
+| Secret Detection                                    | ✅    | ✅        |
+| Downloadable scan reports                           | ✅    | ✅        |
+| Advanced SAST (cross-file, cross-function analysis) | ❌    | ✅        |
+| Vulnerability Management dashboard                  | ❌    | ✅        |
+| Merge Request security findings widget              | ❌    | ✅        |
+| Inline security findings in MR changes view         | ❌    | ✅        |
+| Advanced Vulnerability Tracking                     | ❌    | ✅        |
+| UI-based scanner configuration                      | ❌    | ✅        |
+| Ruleset customization                               | ❌    | ✅        |
+| GitLab Duo false-positive detection\*               | ❌    | ✅        |
+| Automatic AI-generated vulnerability fixes\*        | ❌    | ✅        |
+For SAST, Free includes:
+
+- Static Application Security Testing using GitLab-provided analyzers
+- Security scanning during CI/CD pipelines
+- JSON security reports
+- Support for the standard language analyzers (Semgrep and other OSS scanners)
+
+For Secret Detection, Free includes:
+
+- Pipeline-based secret scanning
+- Secret Push Protection
+- Client-side secret detection in issues and merge requests
+
+This is enough if your goal is simply:
+
+- Detecting vulnerabilities
+- Detecting leaked credentials/secrets
+- Failing pipelines based on findings
+- Reviewing reports manually
+
+Gitlab Ultimate is $99/user/month, but here are the features:
+
+- **advanced SAST engine**: GitLab Advanced SAST performs cross-file and cross-function data flow analysis, which can find vulnerabilities that simple pattern matching misses. Ultimate can trace user input through multiple methods/classes/files before identifying the sink.
+- **vulnerability management**: Ultimate turns scan results into a managed vulnerability lifecycle: Track vulnerabilities over time, Assign ownership, Triage findings, Monitor remediation status.
+- **merge request integration**: on a PR, security scanning runs as a CI/CD step out of the box.
+- **advanced vulnerability tracking**: When code is refactored or moved, Free may treat findings as new findings, while Ultimate can recognize that the vulnerability is the same issue and preserve history.
+- **AI-powered security**: automatic merge requests made by AI to fix found vulnerabilities, and AI explanations of merge requests.
+
+#### Installing self-hosted gitlab runner
+
+1. SSH into a linux VM
+2. Install the gitlab runner software
+
+```bash
+curl -L \
+https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh \
+| sudo bash
+
+sudo apt install gitlab-runner -y
+
+# verify
+gitlab-runner --version
+```
+
+3. Install docker
+
+```bash
+sudo apt update
+sudo apt install docker.io -y
+
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+4. Obtain a registration token from **Project ➡️ Settings ➡️ CI/CD ➡️ Runners**
+5. In the linux VM, run this command to register the runner
+
+```bash
+sudo gitlab-runner register
+```
+
+#### Security scanning CI basics
+
+Security scanning CI in gitlab requires these three files to be present in your repo:
+
+
+- `Jobs/SAST.gitlab-ci.yml`
+- `Jobs/Secret-Detection.gitlab-ci.yml`
+- `.gitlab-ci.yml`
