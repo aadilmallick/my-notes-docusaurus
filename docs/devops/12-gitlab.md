@@ -134,8 +134,12 @@ Gitlab pages is exactly like github pages.
 
 A gitlab pipeline (single `gitlab-ci.yml` file) consists of **stages** and **jobs**:
 
-- **stages**: Parent containers of jobs. Stages run sequentially.
-- **jobs**: jobs live inside stages and run in parallel.
+- **stages**: Parent containers of jobs, where stages either have one job or have many jobs. Stages run sequentially.
+- **jobs**: jobs live inside stages, define the work to do in the stage on the runner, and run in parallel.
+
+Once all jobs within a stage complete execution successfully, then the pipeline moves on to execute the next stage.
+
+If any job in a stage fails, the next stage is not (usually) executed and the pipeline ends early
 
 | Stages                                                          | Jobs                                                        |
 | --------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -143,6 +147,13 @@ A gitlab pipeline (single `gitlab-ci.yml` file) consists of **stages** and **job
 | Run **sequentially**                                            | Run **in parallel** (within a stage)                        |
 | Pipeline moves to next stage only if current stage jobs succeed | Each job is a specific task (like “run tests”)              |
 | E.g., build → test → deploy                                     | E.g., run Jest tests, check code quality, deploy to staging |
+
+ A typical pipeline might consist of three stages: build, test, and deploy. In fact, these three stages are the default in GitLab.
+
+
+![](https://i.imgur.com/i2m6Npc.jpeg)
+
+
 #### Pipeline editor
 
 There is a native pipeline editor in the gitlab UI that lets you create pipelines for your repo, which can access by navigating to `Build > Pipeline editor` in your GitLab project.
