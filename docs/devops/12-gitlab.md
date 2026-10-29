@@ -1076,10 +1076,7 @@ GitLab provides a set of security scanners, which allow you to scan your code fo
     
 -  **Dynamic analysis scanners** scan running applications for common vulnerabilities. The goal of a dynamic scanner is to look for vulnerable behavior that only occurs when the application runs.
     
-
-
-
-#### Free vs Ultimate
+Gitlab free vs ultimate has these differences:
 
 | Capability                                          | Free | Ultimate |
 | --------------------------------------------------- | ---- | -------- |
@@ -1123,7 +1120,16 @@ Gitlab Ultimate is $99/user/month, but here are the features:
 - **advanced vulnerability tracking**: When code is refactored or moved, Free may treat findings as new findings, while Ultimate can recognize that the vulnerability is the same issue and preserve history.
 - **AI-powered security**: automatic merge requests made by AI to fix found vulnerabilities, and AI explanations of merge requests.
 
-#### Security scanning CI basics
+#### SAST CI basics
+
+The SAST scanner can be added to a project through your `.gitlab-ci.yml` file. The SAST scanner is implemented as a component, with a variety of different configuration options.
+
+The SAST scanner uses analyzers to detect vulnerabilities in source code. Currently, there are six officially supported analyzers:
+
+- `gitlab-advanced-sast`:Designed to discover vulnerabilities by performing cross-function and cross-file taint analysis
+- `kubesec`: Designed to scan Kubernetes manifests and Helm charts
+- `semgrep`: Designed as a standard static scanner for most programming languages
+- `spotbugs`: Designed to support Groovy
 
 Security scanning in Gitlab works by adding it as config to the gitlab CI file, which will then run the security scan on a workflow trigger and result in the following:
 
@@ -1134,7 +1140,7 @@ Security scanning in Gitlab works by adding it as config to the gitlab CI file, 
 
 Security scanning CI in gitlab pulls from pre-defined CI workflows that gitlab provides for security scanning:
 
-- **`Jobs/SAST.gitlab-ci.yml` template**: jobs template for running SAST on the checked out source code
+- **`Jobs/SAST.gitlab-ci.yml` template**: jobs template for running basic SAST on the checked out source code
 - **`Jobs/Secret-Detection.gitlab-ci.yml` template**: jobs template for running secret scanning on the checked out source code
 - **`Jobs/SAST-IaC.gitlab-ci.yml` template**: jobs template for running IaC scanning on the checked out source code
 
