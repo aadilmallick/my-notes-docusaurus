@@ -1002,6 +1002,72 @@ Here are the variables you have access to:
 - `CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX`: For top-level groups
     
 - `CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX`: For direct or subgroup paths
+
+### Advanced examples
+
+#### Python package registry and container registry
+
+```yaml
+stages:
+  - publish
+  - consume
+  - build
+  - test
+
+publish-package:
+  stage: publish
+  image: python:3.9-alpine
+  script:
+    - pip install build twine
+    - python -m build
+    - echo "Publishing package to GitLab Package Registry..."
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+  rules:
+    - changes:
+        - pyproject.toml
+        - swag_store_utils/**/*
+
+consume-package:
+  stage: consume
+  image: python:3.9-alpine
+  script:
+    - echo "Testing package consumption from registry..."
+    - pip install --index-url https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi/simple swag-store-utils
+    - python -c "from swag_store_utils.pricing import format_price, calculate_discount; print(f'20% off $100 = {format_price(calculate_discount(100, 20))}')"
+
+build-and-push-image:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+  script:
+    - echo "Building Docker image for Swag Store..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+
+test-container:
+  stage: test
+  needs: ["build-and-push-image"]
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $IMAGE_TAG
+    - |
+      # Create a container and verify it contains our files
+      CONTAINER_ID=$(docker create $IMAGE_TAG)
+      docker cp $CONTAINER_ID:/usr/share/nginx/html/index.html ./index.html
+      grep "DevOps Swag Store" index.html && echo "✓ Container verified!"
+      docker rm $CONTAINER_ID
+```
 ### Security scanning
 
 GitLab provides a set of security scanners, which allow you to scan your code for security vulnerabilities. There are two types of vulnerability scanners provided by GitLab:
