@@ -204,7 +204,7 @@ Here are the three key benefits:
 - **Live syntax validation** — catches errors as you type, before you commit anything to your repository.
 - **Visual pipeline diagram** — shows your stages and jobs laid out graphically so you can verify the flow at a glance.
 - **Full configuration tab** — displays the fully merged YAML from all your `include` statements in one place, making it easy to spot errors across files.
-### GitLab pages
+#### Deploy jobs, dependencies, GitLab pages
 
 `pages` is a special name for a job in the `deploy` stage that you can configure to publish an artifact with an `index.html` within it to github pages when pushing to the main branch:
 
@@ -305,6 +305,259 @@ pages:
     paths:
 ```
 
+### Templates and components
+
+As your development team scales, keeping CI/CD pipelines efficient and consistent becomes harder. Instead of repeating the same pipeline code across multiple projects, GitLab gives you powerful tools to **reuse, organize, and share** configurations.
+
+GitLab lets you split and reuse your pipeline configuration with the `include` keyword to build composable CI/CD pipelines by importing other **templates**.
+
+When you use `include`, GitLab **merges** the external YAML from the imported template or component into your `.gitlab-ci.yml` at runtime.
+
+
+This helps you:
+
+- Avoid repeating the same logic across files
+    
+- Share pipeline snippets across projects
+    
+- Centralize templates for easier maintenance
+    
+
+#### `include: local`
+
+The `local` resource allows you to import a **YAML CI template** in the repo codebase to merge that into the CI entrypoint.
+
+A YAML CI template in Gitlab is kind of a building block to the full pipeline YAML that is `.gitlab-ci.yml`, where a YAML CI template doesn't really stand on it's own and is meant to be merged in to a pipeline via `include` directive usage.
+
+Here are the rules of YAML CI templates:
+
+- **no stages**: don't list stages in a template.
+- **only jobs**: stages can only have job definitions.
+
+Here is an example:
+
+1. Create the local CI YAML file, which doesn't have to be a full file with stages. It can just contain jobs. 
+
+```yaml title="ci/test-jobs.yml"
+test:
+  script:
+    - echo 'Running tests...'
+```
+
+2. In the `.gitlab-ci.yml` use the `include` directive to include it locally, and point to the file using absolute filepaths starting from the runner root  (project root)
+
+```yaml title=".gitlab-ci.yml"
+include:
+  - local: '/ci/test-jobs.yml'
+```
+
+#### `include: project`
+
+This allows you to include YAML files from other GitLab projects on the same instance. This is helpful when you want to share configurations across multiple projects.
+
+1. Create a repo with a YAML file with some CI.
+
+```yaml title="ci/test-jobs.yml"
+# committed in repo create-group/ci-config
+test:
+  script:
+    - echo 'Running tests...'
+```
+
+2. In another repo, in the `.gitlab-ci.yml`, use the `include` directive with the `project` type to target that specific YAML file in another repo.
+
+```yaml title=".gitlab-ci.yml"
+include:
+  - project: 'create-group/ci-config'
+    ref: main
+    file: '/ci/test-jobs.yml'
+```
+
+#### `include: remote`
+
+This allows you to include YAML files from remote URLs, instead of just within your GitLab instance. For example:
+
+```yaml
+include:
+  - remote: 'https://gitlab.com/example-project/-/raw/main/.gitlab-ci.yml'
+```
+
+#### Components intro
+
+Components are the equivalent of workflow actions, which are shared, versioned pipeline building blocks anyone on the team can reuse.
+
+Here is an example of using a component, which needs to be imported using the `include` directive:
+
+```yaml
+include:
+	- component: $CI_SERVER_FQDN/components/markdownlint/markdownlint@2.1.0
+```
+
+| Part                    | What it means                                               | Syntax              |
+| ----------------------- | ----------------------------------------------------------- | ------------------- |
+| $CI_SERVER_FQDN         | Points to our GitLab instance (no need to hardcode the URL) | gitlab instance URL |
+| components/markdownlint | The group and project where the component lives             | repo                |
+| markdownlint            | The specific component name                                 | component name      |
+| @2.1.0                  | The exact version we want to use                            | version             |
+
+For versioning you have these options, since in the end you're just targeting a specific reference (tag or commit) from a repo.
+
+| Reference Type | Example                               | Use Case                                                                          |
+| -------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| Commit SHA     | e3262fdd0914fa8...                    | Pin to an exact commit for full stability (great for audits or long-term support) |
+| Tag            | @1.0.2                                | Reference a released version—stable, predictable                                  |
+| Branch         | main                                  | Track ongoing development (useful for testing or internal work-in-progress)       |
+| @~latest       | Always uses the newest stable version | Use _only_ in dev or exploratory contexts where breakage is OK                    |
+
+#### Creating components
+
+Here are the best practices when creating components:
+
+- **single responsibility**: A good component does one thing well, and are all focused and reusable—no sprawling logic or ambiguous purpose.
+- **well documented**: has documentation and comments on these 4 things:
+	1. purpose and functionality
+	2. required and optional inputs
+	3. expected outputs
+	4. usage examples
+- **flexible yet opinionated**: let your components set smart defaults based on team standards but allow customization through inputs, and enforce a common standard for input and output.
+- **versioned and testable**: implement semantic versioning, automated tests to verify functionality, and set up a clear release process.
+
+You can create multiple components in a dedicated repo for them, and they must have this structure, with these special files and folders:
+
+- `templates/`: the folder which contains component YAML files
+- `.gitlab-ci.yml`: file to test the components
+
+```
+├── templates/
+│   └── my-component.yml
+├── LICENSE.md
+├── README.md
+└── .gitlab-ci.yml
+```
+
+or a more advanced structure:
+
+```
+├── templates/
+│   ├── my-simple-component.yml
+│   └── my-complex-component/
+│       ├── template.yml
+│       ├── Dockerfile
+│       └── test.sh
+```
+
+> [!TIP]
+> In GitLab 18.0+, you can use the built-in CI/CD Catalog project template to get the `/templates` directory, `README`, and release pipeline pre-scaffolded
+
+##### Component YAML
+
+A component YAML has two top-level sections:
+
+- **The spec section** (metadata and inputs)
+- **The implementation section** (the actual job logic)
+
+Here's an example:
+
+```yaml title="templates/my-simple-component.yml"
+# Specification section
+spec:
+  inputs:
+    stage:
+      description: "Pipeline stage to run the job in"
+      type: string
+      default: test
+
+    message:
+      description: "Custom message to display"
+      type: string
+      default: "Hello from my component!"
+
+# Separator between spec and implementation
+---
+
+# Implementation section
+hello-job:
+  stage: $[[ inputs.stage ]]
+  image: alpine:latest
+  script:
+    - echo "$[[ inputs.message ]]"
+```
+
+Then after creating a component, you can test it in a workflow in the same repo via the `.gitlab-ci.yml`
+
+```yaml title=".gitlab-ci.yml"
+include:
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/hello-world@$CI_COMMIT_SHA
+    inputs:
+      stage: build
+      message: "Hello from testing!"
+
+stages: 
+  - build
+  - test
+
+ensure-job-added:
+  stage: test
+  image: badouralix/curl-jq
+  script:
+    - |
+      route="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs"
+      count=$(curl --silent "$route" | jq 'map(select(.name | contains("hello-job"))) | length')
+      if [ "$count" != "1" ]; then
+        echo "ERROR: hello-job was not created by the component!"
+        exit 1
+      else
+        echo "SUCCESS: hello-job was successfully created by the component"
+      fi
+
+```
+
+##### Publishing a component
+
+In order to publish a component, you must first have at least **maintainer** permissions for the project.
+
+Here are the steps to publish a component:
+
+1. Mark the project as a **CI/CD Catalog project**
+2. Add a description to the project, fill out the `README.md`
+3. Add a `release` job in the `.gitlab-ci.yml` to automate publishing whenever a new tag is pushed.
+
+```yaml
+create-release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  script: echo "Creating release $CI_COMMIT_TAG"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\\d+\\.\\d+\\.\\d+$/  # Only for semver tags
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: "Release $CI_COMMIT_TAG of components in $CI_PROJECT_PATH"
+```
+
+4. Tag the release and push it
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+#### Advanced components
+##### Components with inputs
+
+```yaml
+stages:
+  - lint
+include:
+  - component: $CI_SERVER_FQDN/components/code-quality-oss/codequality-os-scanners-integration/pylint@1.0.7
+    inputs:
+      stage: lint
+      image: python:3.9
+```
+
+### Pipeline execution strategy
+
+Pipeline execution policies are a GitLab feature that allows administrators to define mandatory pipeline configurations that are automatically injected into projects. They’re a powerful tool for enforcing organizational standards—like security scans, test coverage, or compliance checks—across all pipelines.
+
+These policies are centrally managed in GitLab’s Policy Project and use reserved stages (like `.pipeline-policy-pre`) to insert jobs at specific points in the pipeline.
 ### MakeFiles strategy
 
 ### Security scanning
