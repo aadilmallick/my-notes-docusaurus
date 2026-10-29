@@ -835,6 +835,7 @@ Let's break down this job:
 - **`variables`**: Sets up environment variables:
     
     - `IMAGE_TAG`: Creates a unique tag for the image using the branch/tag name and commit SHA
+    - `DOCKER_TLS_CERTDIR`: disables Docker TLS by setting `DOCKER_TLS_CERTDIR` to an empty string, which is required for Docker-in-Docker to function correctly
         
 - **`script`**: Contains the commands to build and push the image:
     
