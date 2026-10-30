@@ -1138,6 +1138,24 @@ Security scanning in Gitlab works by adding it as config to the gitlab CI file, 
 	- For example, the SAST scanner generates a JSON file titled `gl-sast-report.json`. 
 	- When you download this report, you will see JSON data outlining vulnerabilities found by the scanner, as well as details about the scan that was run.
 
+The most basic security scanning setup involves importing the `gitlab.com/components/sast/sast@main` component, which runs in the `test` stage by default and includes a `semgrep-sast` job to perform basic SAST on your code:
+
+```yaml
+stages:
+    - test
+include:
+  - component: gitlab.com/components/sast/sast@main
+```
+
+Here are the available inputs on the component:
+
+- `stage`: This input is ideal for if you want to control when SAST scans occur. Many users will opt to put security scanners in their own stage.
+- `image_prefix`: If you or your company have specific requirements for Docker images, these inputs will let you customize the image for the scanner. Most commonly, these inputs are used to use FIPS-enabled images in a scan.
+- `excluded_paths`: If there are certain paths in your repository you want to exclude, this input allows you to do so. Often, users will exclude documentation or tests from scanning.
+- `run_advanced_sast`: This input can be toggled to true to enable advanced SAST
+- `run_kubesec_sast`: This input can be toggled to true to enable the kubesec-sast job. The kubesec scanner will scan Kubernetes manifest files.
+
+
 Security scanning CI in gitlab pulls from pre-defined CI workflows that gitlab provides for security scanning:
 
 - **`Jobs/SAST.gitlab-ci.yml` template**: jobs template for running basic SAST on the checked out source code
