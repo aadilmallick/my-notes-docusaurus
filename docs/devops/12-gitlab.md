@@ -1120,7 +1120,9 @@ Gitlab Ultimate is $99/user/month, but here are the features:
 - **advanced vulnerability tracking**: When code is refactored or moved, Free may treat findings as new findings, while Ultimate can recognize that the vulnerability is the same issue and preserve history.
 - **AI-powered security**: automatic merge requests made by AI to fix found vulnerabilities, and AI explanations of merge requests.
 
-#### SAST CI basics
+#### SAST
+
+##### Intro
 
 The SAST scanner can be added to a project through your `.gitlab-ci.yml` file. The SAST scanner is implemented as a component, with a variety of different configuration options.
 
@@ -1138,6 +1140,7 @@ Security scanning in Gitlab works by adding it as config to the gitlab CI file, 
 	- For example, the SAST scanner generates a JSON file titled `gl-sast-report.json`. 
 	- When you download this report, you will see JSON data outlining vulnerabilities found by the scanner, as well as details about the scan that was run.
 
+
 The most basic security scanning setup involves importing the `gitlab.com/components/sast/sast@main` component, which runs in the `test` stage by default and includes a `semgrep-sast` job to perform basic SAST on your code:
 
 ```yaml
@@ -1147,16 +1150,8 @@ include:
   - component: gitlab.com/components/sast/sast@main
 ```
 
-Here are the available inputs on the component:
 
-- `stage`: This input is ideal for if you want to control when SAST scans occur. Many users will opt to put security scanners in their own stage.
-- `image_prefix`: If you or your company have specific requirements for Docker images, these inputs will let you customize the image for the scanner. Most commonly, these inputs are used to use FIPS-enabled images in a scan.
-- `excluded_paths`: If there are certain paths in your repository you want to exclude, this input allows you to do so. Often, users will exclude documentation or tests from scanning.
-- `run_advanced_sast`: This input can be toggled to true to enable advanced SAST
-- `run_kubesec_sast`: This input can be toggled to true to enable the kubesec-sast job. The kubesec scanner will scan Kubernetes manifest files.
-
-
-Security scanning CI in gitlab pulls from pre-defined CI workflows that gitlab provides for security scanning:
+For other forms of security scanning (secret detection, IaC scanning), you have templates available to import:
 
 - **`Jobs/SAST.gitlab-ci.yml` template**: jobs template for running basic SAST on the checked out source code
 - **`Jobs/Secret-Detection.gitlab-ci.yml` template**: jobs template for running secret scanning on the checked out source code
@@ -1169,6 +1164,150 @@ include:
   - template: Jobs/SAST-IaC.gitlab-ci.yml
 ```
 
+##### Basic SAST
+
+Here are the available inputs on the `gitlab.com/components/sast/sast` component:
+
+- `stage`: This input is ideal for if you want to control when SAST scans occur. Many users will opt to put security scanners in their own stage.
+- `image_prefix`: If you or your company have specific requirements for Docker images, these inputs will let you customize the image for the scanner. Most commonly, these inputs are used to use FIPS-enabled images in a scan.
+- `excluded_paths`: If there are certain paths in your repository you want to exclude, this input allows you to do so. Often, users will exclude documentation or tests from scanning.
+- `run_advanced_sast`: This input can be toggled to `true` to enable advanced SAST
+- `run_kubesec_sast`: This input can be toggled to `true` to enable the kubesec-sast job. The kubesec scanner will scan Kubernetes manifest files.
+
+Here's a more advanced example:
+
+```yaml
+stages:
+  - security
+include:
+  - component: gitlab.com/components/sast/sast@main
+    inputs:
+        stage: security
+        excluded_paths: "docs,tests,samples,src/components/*,src/components/*,router.jsx"
+```
+
+
+The GitLab Advanced SAST Scanner is a SAST analyzer which is designed to discover vulnerabilities through cross-function and cross-file taint analysis. Currently, the Advanced SAST Scanner supports the following languages:
+
+- C#
+- Go
+- Java, including JSP
+- JavaScript and TypeScript
+- Python
+- Ruby
+- PHP
+
+To enable the advanced SAST scanner in your project, you need to set the advanced_sast input to true in your .gitlab-ci.yml file. Below is an example of a configuration that does this:
+
+> [!NOTE]
+> In order to enable the Advanced SAST Scanner, you must be using component version 2.1.0 or later.
+
+```yaml
+include:
+  - component: gitlab.com/components/sast/sast@2.1.0
+    inputs:
+      stage: security
+      excluded_paths: "docs,tests"
+      run_advanced_sast: true
+```
+##### Secret scanning
+
+When implementing secret scanning, you have three use cases:
+
+- **secret push protection**: Secret push protection will scan commits for secrets when you push changes to GitLab. If a push contains a secret, the push is blocked. The goal of secret push protection is to prevent pushes with secrets from reaching a repository at all.
+- **pipeline secret detection**: The next line of defense is pipeline secret detection. This secret detection will scan your GitLab repository for secrets. This allows you to find secrets that have already been committed to your repository.
+- **client-side secret detection**: Client-side secret detection will scan descriptions and comments of issues and merge requests for secrets before they are saved to GitLab. This helps prevent secrets from being exposed through GitLab features outside of your source code repository.
+
+Here is how to add secret detection via component:
+
+```yaml
+stages:
+  - test
+include:
+  - component: gitlab.com/components/sast/sast@main
+  - component: gitlab.com/components/secret-detection/secret-detection@main
+```
+
+> [!NOTE]
+> After adding secret detection to your project, you will see it appear in the pipeline as the `secret_detection` job. After the scan completes, your results will be visible in your **Vulnerability Report**, with a **Report Type** of **Secret Detection**.
+
+
+The Secret Detection component allows you to customize functionality in two ways: **inputs** and **variables**. 
+
+- **inputs**: You can use inputs to change the stage and image details of your scanner. 
+	- `stage`: the stage to run the scanning in
+- **variables**: Variables allow you to customize more of the scanner functionality, and includes the following configuration options:
+	- `SECRET_DETECTION_EXCLUDED_PATHS`: Specifies the paths to exclude from the secret detection scanner.
+	- `SECRET_DETECTION_HISTORIC_SCAN`: **Boolean**, lets you enable historical secret scans. This will scan your whole Git history to find any exposed secrets.
+	- `SECRET_DETECTION_LOG_OPTIONS`: Allows you to configure git log options to define commit ranges for security scan findings.
+
+```yaml
+stages:
+  - test
+  - security
+
+include:
+  - component: gitlab.com/components/sast/sast@main
+  - component: gitlab.com/components/secret-detection/secret-detection@main
+    inputs:
+      stage: security
+
+variables:
+  SECRET_DETECTION_HISOTRICAL_SCAN: true
+```
+
+**secret push protection**
+
+Follow these steps to enable secret push protection:
+
+1. Navigate to the GitLab project they want to enable push protection on.
+    
+2. Navigate to **Settings > Repository** in the left sidebar.journey.
+    
+3. In the resulting menu, expand Push rules.
+    
+4. Ensure that Prevent pushing secret files is checked.
+
+##### Dependency scanning
+
+The goal of Dependency scanners are to allow you to find security vulnerabilities in your application's dependencies. Doing this will help avoid dependency related vulnerabilities from reaching production, letting you avoid being targeted by attacks.
+
+Dependency scanning is a core security feature that can benefit any application that requires third party dependencies, as well as containers. 
+
+You should use dependency scanning to achieve two main objectives:
+
+- **find vulnerabilities**: To determine if vulnerabilities exist in third party dependencies.
+    
+- **generate SBOM**: To generate an SBOM of all dependencies your project relies on.
+
+Here's the basic flow:
+
+1. **scan packages**: The dependency scanner searches for packages that are defined in your package manager files. 
+	- For example, if you are using JavaScript, the dependency scanner will examine files such as `package-lock.json`.
+2. **check packages against gitlab advisory database**: During this scan, the dependency scanning will determine the dependencies being used in your project, as well as the version of each dependency. This data is compared against a database known as the **GitLab Advisory Database**. 
+3. **create vulnerability report**: Any vulnerabilities found in your packages are then added to your vulnerability report, complete with **CVE**, **CVSS**, and **CWE** where available.
+
+There are two ways to add dependency scanning to your CI workflow:
+
+- **template method (stable)**: include this template:
+
+```yaml
+stages:
+  - test
+
+include:
+  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
+```
+
+- **component method (beta)**: If you want to use the beta version of the dependency scanning component, you can add dependency scanning as shown in the example below:
+
+```yaml
+stages:
+  - test
+
+include:
+  - component: gitlab.com/components/dependency-scanning/main@main
+```
 ### Gitlab runners
 
 #### How runners work
