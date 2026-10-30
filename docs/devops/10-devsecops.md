@@ -182,14 +182,23 @@ Here are the dynamic security testing techniques:
 
 SAST is static application security testing, where it reviews the source code of software to identify potential vulnerabilities.
 
+SAST scanners are tools that can help with the security analysis of static source code. When you use the SAST scanner, it's important to understand what cases SAST can help cover, as well as what areas may be best to supplement with other scanners or tools. Below are some strengths and considerations for the SAST scanner.
+
+> [!NOTE]
+> SAST tools are great for finding well-defined security vulnerabilities, however more complex vulnerabilities often need a different approach. Logic based vulnerabilities such as access control issues are often best tested with other scanners such as DAST.
+
 **pros**
 
 - **CI/CD friendly**: runs very quickly and can catch many common vulnerabilities
+- **ease of scaling**: One of the main strengths of SAST is the ability to scale it. If you have many projects or large code bases, you can use SAST to ensure a baseline security posture is met for all of your code. 
+- **consistent security scanning**: Additionally, you can schedule SAST scans to allow for consistent security scanning.
+- **identification of common vulnerabilities**: SAST excels with detecting well-known vulnerabilities, such as buffer overflows and SQL injections. SAST scanners help ensure that these common and well-defined vulnerabilities do not make it into your production code.
 
 **cons**
 
-- **many false positives**
-- **doesn't catch runtime errors**: can't catch runtime security vulnerabilities like authorization misconfiguration
+- **many false positives**: very simple and errs on the side of caution, so you may have many false positives.
+- **doesn't catch runtime errors**: can't catch runtime security vulnerabilities like authorization misconfiguration. For this, use something like DAST.
+- **doesn't catch access control errors**: logical vulnerabilities require more interactive security testing methods like DAST.
 
 
 #### Static code analysis (SCA)
@@ -225,13 +234,22 @@ Here are the best practices:
 
 ![](https://i.imgur.com/GYkfWyu.jpeg)
 
-#### Continuous dependency scanning
+#### Dependency scanning and ontinuous dependency scanning
+
+**dependency scanning** is able to create SBOM reports, determine licenses of open-source libraries, and detect vulnerabilities in libraries.
+
+Here is what dependency scanning allows you to do:
+
+- **detect licenses and vulnerabilities**: As software continues to evolve, we have more reliance on open-source or third-party libraries. These libraries are useful, however they also increase the attack surface of our applications. Having dependency scanning in place lets us ensure that with the increased attack surface, we still have proper awareness of the vulnerabilities in these libraries.
+- **create SBOMs**: SBOM reporting allows you to get a full picture of what open-source components exist in your projects. This is essential for situations where a critical issue occurs in a component. In these cases, the SBOM reports you generate can allow you to quickly validate if any of your projects are impacted by the issue.
+
+> [!TIP]
+> you should combine dependency scanning with other tools such as SAST to get a full coverage of your application code.
+
+Automated dependency scanning integrated into your CI/CD pipeline helps quickly identify vulnerable components by comparing dependencies against known vulnerability databases (CVEs).
 
 **Continuous dependency scanning** uses an automated dependency scanner tool that scans your codebase's third party packages for vulnerabilities or outdated dependencies.
 
-
-> [!NOTE]
-> Automated dependency scanning integrated into your CI/CD pipeline helps quickly identify vulnerable components by comparing dependencies against known vulnerability databases (CVEs).
 
 
 ![](https://i.imgur.com/fITNC1F.jpeg)
@@ -241,6 +259,8 @@ Here are the best practices:
 **Continuous container scanning** scans these three main security focus areas for containerized applications:
   
 - **image vulnerabilities:** Identifying known vulnerabilities in the container's base image and its installed libraries and dependencies.
+- **detection of licenses and vulnerabilities**: Similarly to dependency scanning, container scanning can also report license and vulnerability details for components inside container images. This helps you ensure you maintain license compliance, while also being aware of vulnerabilities in your containers.
+- **SBOM reports**: Container scanning will generate an SBOM report, allowing you to add container image components to a dependency scan SBOM report.
 - **Policy Enforcement:** Ensuring containers are built and configured following security best practices, such as those outlined in CIS Benchmarks.
 - **Runtime Protection:** Monitoring running containers for suspicious activity and preventing container breakouts.
 
@@ -279,6 +299,19 @@ DAST stands for Dynamic Application Security Testing, it is a form of black-box 
 > [!NOTE]
 > DAST simulates how a real attacker interacts with apps, testing vulnerabilities with simulated SQL injections and XSS attacks.
 
+DAST allows you to run tests against a running copy of your application. This can potentially find issues that were not present in your static source code, allowing you to have a more complete picture of the security posture of your application.
+
+DAST scanners provide a variety of different configurations and modes you can use. The two main modes available are passive and active scans.
+
+- **passive scan**: A passive scan checks for vulnerabilities in an application by crawling the application. Passive scans aim to interact with the application the same way a normal user would. This means that passive scans do not attempt to simulate adversarial behavior. A passive check is great for highlighting issues in HTTP messages, cookies, storage events, console events, and DOM.
+- **active scan**: If you need a more intensive scan, you can opt for an active scan. Active scans will check for vulnerabilities by injecting attack payloads into HTTP requests. The goal of this is to simulate adversarial behavior, attempting to explicitly exploit the application. In order to use active mode, you need to add specific configurations to your application to prove you own the server being scanned. More details on this will be discussed later in the course.
+
+An active DAST scan will determine if an exploit is successful through two methods: **match responses** and **time responses**:
+
+- **match responses**: With this method, the scanner is checking to see if the result received matches the expected result of a successful exploit. For example, if the request was trying to access a password file, a response in the format of a password file is considered successful. 
+- **timing response**: Some requests will add sleeps to their payload to see if the application pauses for the specified amount of time. If pauses are seen as a response, it indicates a potentially successful exploit.
+
+
 Here are the three core components DAST handles:
 
 - **Crawling and Spidering:** The scanner navigates the live application to discover all entry points, URLs, forms, inputs, and API endpoints.
@@ -293,6 +326,28 @@ This is an example of using OWASP ZAP DAST tool, which tests a URL for networkin
 ```bash
 docker run -t owasp/zap2docker-stable zap-baseline.py -t http://10.0.2.15:3000
 ```
+
+#### API security scanning
+
+If you are writing a web application, it is likely that your application uses an API to retrieve data from your web server. API security scanners are designed to ensure that your API endpoints stay protected from common vulnerabilities such as unauthorized access and malicious inputs.
+
+As a part of the API security scan configuration, you provide details about your API endpoints. There are four supported formats you can use to do this:
+
+1. OpenAPI spec
+2. GraphQL schema
+3. HTTP archive
+4. Postman collection
+
+After you have specified the API format, the API scanner will use the configuration to send requests to your API. These requests are designed to attempt to trigger vulnerabilities in your API functionality. 
+
+- The goal of the scan is to simulate a real-world hacking attempt to see how your API reacts to these types of requests. 
+- The scans are language agnostic, as they only rely on the API request definitions to run.
+
+Like DAST, API Security can also be configured in a passive or active mode. 
+
+- A passive scan will search for vulnerabilities by calling the API normally and reviewing the results. 
+- An active scan will search with specific vulnerabilities, such as SQL injection.
+
 #### Dynamic code analysis 
 
 For DevSecOps, dynamic scans should run asynchronously in CI/CD pipelines to avoid blocking builds, and tools should be fast, accurate, support automation (API/CLI), and integrate with bug trackers

@@ -189,10 +189,26 @@ test_job:
 On each job you have the following properties:
 
 - `stage`: the corresponding stage for the job
-- `image`: the docker image to use for the runner execution environment when running the job
+- `image`: the docker image to use for the runner execution environment when running the job. Can be set globally or per-job.
 - `artifacts`: pass corresponding folderpaths and filepaths as artifacts that can be used by other jobs in other stages.
 - `dependencies`: specify a list of jobs the current job depends on. This means that this job will run sequentially after all of its dependencies have finished, or will trigger the dependency builds first in order to run afterwards.
 - `allow_failure`: a boolean value where if `true`, then even if the job fails it does not cause the stage to fail.
+- **script commands**: These three script commands run shell commands and accept list of shell command strings to run sequentially:
+	- `before_script`: runs setup
+	- `script`: runs the actual work
+	- `after_script`: shell code that always runs after `script`, even if `script` fails. (good for cleanup)
+- **`tags`**: labels used to match a job to specific runners (important once you have multiple runners, e.g. one tagged `docker`, one tagged `macos`).
+- **`variables`**: key/value pairs scoped to a job (or global, at the top of the file).
+
+These two sections can either be declared globally (for which then they apply to all jobs) or at the job-level to apply to a specific job
+
+- `image`: docker image for the job environment
+- `variables`: become both CI vars and env vars that can then be accessed through shell variable interpolation
+
+These are the global CI variables you have available:
+
+- `CI_COMMIT_BRANCH`: represents the branch the workflow is currently running, like `main`.
+- 
 
 #### Pipeline editor
 
@@ -205,9 +221,14 @@ Here are the three key benefits:
 - **Live syntax validation** — catches errors as you type, before you commit anything to your repository.
 - **Visual pipeline diagram** — shows your stages and jobs laid out graphically so you can verify the flow at a glance.
 - **Full configuration tab** — displays the fully merged YAML from all your `include` statements in one place, making it easy to spot errors across files.
-#### Deploy jobs, dependencies, GitLab pages
+#### GitLab pages
 
-`pages` is a special name for a job in the `deploy` stage that you can configure to publish an artifact with an `index.html` within it to github pages when pushing to the main branch:
+`pages` is a special name for a job in the `deploy` stage that you can configure to publish an artifact with an `index.html` within it to github pages when pushing to the main branch.
+
+Here are the CI vars you have access to on the `pages` job:
+
+- `$CI_PAGES_URL`: the pages URL getting deployed to
+
 
 ```yaml
 stages:
@@ -238,6 +259,29 @@ pages:
   dependencies:
     - build
 ```
+
+Here's a complete examples with variables:
+
+```yaml
+image: busybox:1.36.1
+
+stages:
+  - deploy
+
+pages:
+  stage: deploy
+  environment: 
+    name: production
+    url: $CI_PAGES_URL
+  script:
+    - echo "The site will be deployed to $CI_PAGES_URL"
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+```
+
 
 Here's a complete example:
 
@@ -1280,6 +1324,9 @@ You should use dependency scanning to achieve two main objectives:
     
 - **generate SBOM**: To generate an SBOM of all dependencies your project relies on.
 
+> [!NOTE]
+> The SBOM, or software bill of materials, shows you an overview of all of the third party dependencies in your project. When you enable dependency scanning, you will also receive an SBOM report.
+
 Here's the basic flow:
 
 1. **scan packages**: The dependency scanner searches for packages that are defined in your package manager files. 
@@ -1307,6 +1354,291 @@ stages:
 
 include:
   - component: gitlab.com/components/dependency-scanning/main@main
+```
+
+Here is how you can view dependency scanning output in the UI:
+
+- **view dependency scan vulnerability results**: After adding the dependency scanner, you will also now be able to see vulnerabilities associated with dependencies in your project. Vulnerabilities can be found in the Vulnerability report, by selecting **Secure > Vulnerability report** in the left sidebar.
+- **view SBOM**: To access the SBOM report, select **Secure > Dependency list** in the left sidebar. In this listing, you will see all of the dependencies that your dependency scanner found. The report will also list which package manager has the dependency, where the package is located, the license for the package, and any vulnerabilities associated with the package.
+
+**continuous vulnerability scanning**
+
+Every day, new vulnerabilities are discovered and disclosed. When you rely on third-party packages, you want to ensure that you receive notice of vulnerabilities discovered in them as soon as possible. 
+
+To help you achieve this, you can utilize Continuous Vulnerability Scanning (CVS). 
+
+Continuous Vulnerability Scanning looks for security vulnerabilities in your project's dependencies by comparing the component names and versions to security advisories. 
+
+- CVS is executed using background jobs rather than the CI pipelines. 
+- This means that no security report artifacts are generated as a result of the scan. Instead, vulnerabilities are directly added to the Vulnerability Report.
+
+To enable CVS, you need to generate a CycloneDX SBOM report for your project. If you are using dependency scanning, this is automatically generated as a result of the scan. 
+
+In addition to the SBOM report, you will also need to have security advisories synchronized to your GitLab instance. 
+
+- **gitlab managed**: On GitLab.com, this synchronization is done automatically. 
+- **self-hosted**: If you are on a self-hosted instance, you will need to configure this in your admin area.
+
+##### Container scanning
+
+To assist in the process of resolving container vulnerabilities, you can use the container scanner.
+
+Container scanning is able to scan any container image you create as a part of your CI/CD process. Like dependency scanning, container scanning will check dependencies and versions against the GitLab Advisory Database.
+
+
+> [!IMPORTANT]
+> Container scanning does not run against your source code, but instead against the latest container in your container registry. This means that you should build your containers in the stage before you run the container scanner.
+
+Here's an example of how to use the container scanning component to include container scanning capabilities in your CI pipeline:
+
+```yaml
+stages:
+  - build
+  - test
+
+build-and-push-docker-image:
+  stage: build
+  image: docker:20.10.17
+  services:
+    - docker:20.10.17-dind
+  variables:
+    IMAGE: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - docker build --tag $IMAGE .
+    - docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $IMAGE
+  
+include:
+  - component: gitlab.com/components/container-scanning/container-scanning@main
+```
+
+Here's the basic flow of what's happening:
+
+1. In the `build` stage, use docker-in-docker image to build a container image from the `Dockerfile` in the root of the repo and then push it to the container registry.
+2. In the `test` stage, the container scanning component will run.
+3. When the container scanner runs, it will pull down the most recent container that was built, and scan it for vulnerabilities. 
+4. After it finishes, the container scanner will show as the `container_scanning` job in your pipeline.
+
+Here are the additional inputs you can set on the container scanner component:
+
+- `stage`: Defines the stage that the scanner runs in
+- `analyzer_image`: Defines the container image to use for the analyzer
+- `cs_image`: Defines the image to analyze with the scanner
+- `dependencies`: Allows you to provide a list of CI jobs that the scanner should depend on
+
+##### IaC scanning
+
+IaC scanning runs against infrastructure configuration files in your GitLab repository. Infrastructure files are scanned by KICS, which is an open source static analysis tool specifically designed for infrastructure as code. 
+
+You can add an IaC scanner to a project using a CI/CD component:
+
+```yaml
+stages:
+  - test
+
+include:
+  - template: Jobs/SAST-IaC.gitlab-ci.yml
+```
+
+> [!NOTE]
+> The IaC job will show as the `kics-iac-sast` job in your pipeline.
+
+The IaC scanner template can be configured using variables. The following variables are available for this purpose:
+
+- `SAST_EXCLUDED_PATHS`: Sets the paths to exclude from the IaC scanner
+
+In addition to CI/CD variables, IaC scanners also provide a way of overriding and disabling predefined rules and rulesets. This can be done using the following steps:
+
+1. Create a `.gitlab` directory in your project, if one does not already exist
+2. Create a ruleset file named `sast-ruleset.toml` in the `.gitlab` directory
+
+#### DAST
+
+DAST allows you to run tests against a running copy of your application. This can potentially find issues that were not present in your static source code, allowing you to have a more complete picture of the security posture of your application.
+
+DAST scanners provide a variety of different configurations and modes you can use. The two main modes available are passive and active scans.
+
+- **passive scan**: A passive scan checks for vulnerabilities in an application by crawling the application. Passive scans aim to interact with the application the same way a normal user would. This means that passive scans do not attempt to simulate adversarial behavior. A passive check is great for highlighting issues in HTTP messages, cookies, storage events, console events, and DOM.
+- **active scan**: If you need a more intensive scan, you can opt for an active scan. Active scans will check for vulnerabilities by injecting attack payloads into HTTP requests. The goal of this is to simulate adversarial behavior, attempting to explicitly exploit the application. In order to use active mode, you need to add specific configurations to your application to prove you own the server being scanned. More details on this will be discussed later in the course.
+
+An active DAST scan will determine if an exploit is successful through two methods: **match responses** and **time responses**:
+
+- **match responses**: With this method, the scanner is checking to see if the result received matches the expected result of a successful exploit. For example, if the request was trying to access a password file, a response in the format of a password file is considered successful. 
+- **timing response**: Some requests will add sleeps to their payload to see if the application pauses for the specified amount of time. If pauses are seen as a response, it indicates a potentially successful exploit.
+
+##### Basic DAST
+
+
+DAST can be enabled in your project using the DAST template. The following configuration shows an example of a basic template include for this purpose.
+
+```yaml
+stages:
+  - dast
+
+include:
+  - template: DAST.gitlab-ci.yml
+```
+
+Because DAST does not run against your source code, you will need to add configurations to point DAST towards the server you wish to target. This configuration is done using variables. 
+
+At a minimum, you will need to provide a **`DAST_TARGET_URL`**, which represents the URL of the site you are trying to scan.
+
+```yaml
+stages:
+  - dast
+
+include:
+  - template: DAST.gitlab-ci.yml
+
+variables:
+  DAST_TARGET_URL: https://testurl
+```
+
+In many cases, you will want your scan to be able to authenticate on the web application. This allows you to expand your attack surface, scanning more content. To do this, you can provide variables to instruct the scanner on how to authenticate in your application.
+
+```yaml
+stages:
+  - dast
+
+include:
+  - template: DAST.gitlab-ci.yml
+
+variables:
+  DAST_TARGET_URL: https://testurl
+  DAST_AUTH_URL: "http://juiceshop:3000/#/login"
+  DAST_AUTH_USERNAME: "username_here"
+  DAST_AUTH_PASSWORD: "password_here" <i># use protected/masked variables, this is only for demonstration purposes</i>
+  DAST_AUTH_USERNAME_FIELD: "css:input[id=email]"
+  DAST_AUTH_PASSWORD_FIELD: "css:input[id=password]"
+  DAST_AUTH_SUBMIT_FIELD: "css:button[id=loginButton]"
+```
+
+To run an active scan against a site, you need to validate that you are in control of the site you are scanning. This is done to prevent malicious scanning of web applications. To prove this, you have three options:
+
+- **text file validation**: You can upload a text file to the site which the scanner can retrieve and validate the contents of
+- **header validation**: You can add the Gitlab-On-Demand-DAST header to your target site on HTTP responses. The scanner will check for this header before allowing the scan.
+- **meta tag validation**: You can add the `gitlab-dast-validation` meta tag to your site, in the `<head>` section of the HTML.
+
+You have these variables which alter the configuration of the DAST scan:
+
+- `DAST_FULL_SCAN`: When set to true, this will run both passive and active checks.
+- `DAST_AUTH_REPORT`: When set to true, this will generate a report detailing steps taken for authentication. This is helpful to enable in cases where you want to verify that authentication completed successfully.
+- `DAST_CRAWL_GRAPH`: When set to true, this will generate an SVG graph of the navigation completed during the scan. This is helpful to see a more detailed picture of how the scan was completed.
+
+##### DAST with Docker
+
+One method of enabling DAST is to create a Docker service of your application to scan. This is ideal for situations where you do not have a dedicated server available for testing your application.
+
+The DAST scanner template includes the `dast` job, which runs the DAST on a server or container. We can pass a Docker service into this job to allow it to use the Docker container during the scan job. 
+
+This is done using the `services` keyword, as shown below.
+
+```yaml
+stages:
+  - dast
+
+include:
+  - template: DAST.gitlab-ci.yml
+
+dast:
+  services:
+    - name: bkimminich/juice-shop:v16.0.0
+      alias: juiceshop
+```
+
+Here is a full example:
+
+```yaml
+stages:
+  - dast
+include:
+  - template: DAST.gitlab-ci.yml
+dast:
+  services:
+    - name: bkimminich/juice-shop:v16.0.0
+      alias: juiceshop
+  variables:
+      DAST_TARGET_URL: "http://juiceshop:3000/"
+      DAST_AUTH_URL: "http://juiceshop:3000/#/login"
+      DAST_AUTH_USERNAME: "admin@juice-sh.op"
+      DAST_AUTH_PASSWORD: "admin123" <i># use protected/masked variables, this is only for demonstration purposes</i>
+      DAST_AUTH_USERNAME_FIELD: "css:input[id=email]"
+      DAST_AUTH_PASSWORD_FIELD: "css:input[id=password]"
+      DAST_AUTH_SUBMIT_FIELD: "css:button[id=loginButton]"
+      DAST_SCOPE_EXCLUDE_ELEMENTS: "css:[id=navbarLogoutButton]"
+      DAST_FULL_SCAN: "true"
+      DAST_AUTH_REPORT: "true"
+      DAST_CRAWL_GRAPH: "true"
+```
+
+##### API security scanning
+
+If you are writing a web application, it is likely that your application uses an API to retrieve data from your web server. API security scanners are designed to ensure that your API endpoints stay protected from common vulnerabilities such as unauthorized access and malicious inputs.
+
+As a part of the API security scan configuration, you provide details about your API endpoints. There are four supported formats you can use to do this:
+
+1. OpenAPI spec
+2. GraphQL schema
+3. HTTP archive
+4. Postman collection
+
+After you have specified the API format, the API scanner will use the configuration to send requests to your API. These requests are designed to attempt to trigger vulnerabilities in your API functionality. 
+
+- The goal of the scan is to simulate a real-world hacking attempt to see how your API reacts to these types of requests. 
+- The scans are language agnostic, as they only rely on the API request definitions to run.
+
+Like DAST, API Security can also be configured in a passive or active mode. 
+
+- A passive scan will search for vulnerabilities by calling the API normally and reviewing the results. 
+- An active scan will search with specific vulnerabilities, such as SQL injection.
+
+> [!WARNING]
+> It is recommended to only run scans against testing environments to ensure that there is no impact on production from the scans.
+
+You can add API Security scans to your project by including the API security template. The example below shows one way of doing this:
+
+```yaml
+stages:
+  - dast
+include:
+    - template: API-Security.gitlab-ci.yml
+variables:
+  APISEC_POSTMAN_COLLECTION: postman_collection.json
+  APISEC_TARGET_URL: http://target:7777
+```
+
+Here are the different variables you have access to:
+
+- `APISEC_POSTMAN_COLLECTION`: the JSON file representation of the postman collection representing your API structure
+- `APISEC_TARGET_URL`: the server origin to target
+
+One of the main areas of configuration you should consider with API scanning is authentication. Providing authentication will allow for a more robust scan, targeting the full attack surface of the application. 
+
+Here is how to do it with bearer tokens:
+
+If your bearer tokens do not have a set expiry, the process to add them to the API security scanner requires the following steps:
+
+1. Create a new CI/CD variable which contains the token in the format below:
+
+```json
+ {"headers":{"Authorization":"Bearer your-token-here"}}.
+```
+    
+2. Add the **`APISEC_OVERRIDES_ENV`** variable to your `.gitlab-ci.yml` file. For its value, set it to the CI/CD variable that contains your token.
+
+```yaml
+stages:
+  - dast
+
+include:
+  - template: API-Security.gitlab-ci.yml
+
+variables:
+  APISEC_PROFILE: Quick
+  APISEC_OPENAPI: test-api-specification.json
+  APISEC_TARGET_URL: http://test-deployment/
+  APISEC_OVERRIDES_ENV: $TEST_API_BEARERAUTH
 ```
 ### Gitlab runners
 
@@ -1468,3 +1800,198 @@ RHEL with gitlab runner with docker executor is unique because docker isn't very
 Here are all the reasons why using docker sucks on RHEL:
 
 So instead we use podman, which has out-of-the-box support with RHEL for linux containers.
+
+## Security policies and control
+
+### Compliance policies
+
+The goal of security policies is to provide you with a level of control over your projects and groups. Policies allow you to enforce requirements on merge requests, enforce security scans, enforce custom CI/CD configurations, and automate vulnerability management workflows. 
+
+GitLab provides four different policies to achieve these goals:
+
+1. **Merge request approval policies**: offer merge protection and force approval of a merge request before it can get merged in.
+    
+2. **Scan execution policies**: enforce security scanning CI to be run for specific projects and groups, as well as different levels of granular control over how much security scanning should be done for each project.
+    
+3. **Pipeline execution policies**: enforce common policies for pipelines in a project
+    
+4. **Vulnerability management policies**: Vulnerability management policies allow you to automatically resolve vulnerabilities found by scanners in your projects
+
+#### Merge request approval policies
+
+Merge request approval policies are designed to help you control what gets merged into your default branch. This level of control is essential, as it ensures the quality and security of code reaching your default and production branches. You should consider merge request approval policies for cases where:
+
+1. You need to prevent code that contains security vulnerabilities from reaching default branches
+    
+2. You need to control which licenses are added to your code repository
+
+There are two modes you can use for creating and editing merge request approval policies: **Rule mode** and **`.yaml` mode**.
+
+- **rule mode**: Rule mode provides you with GUI inputs for each policy configuration option. The GUI inputs are converted into equivalent YAML configuration values. This provides a simpler interface for configuring policies, while still providing a good level of customization.
+- **YAML mode**: Yaml mode allows you to directly write yaml configurations for your policy. Yaml mode provides you with more control, however, it is more complex to setup compared to rule mode.
+
+**scanner types**
+
+There are two types of scanners you can apply the policy to, where when you select a scanner for a policy, the scanner will run when the policy trigger is executed (i.e. when a merge request comes in).
+
+- **security scan**: choose a security scanner and configure it
+- **license scan**
+
+Follow these steps to implement attach a security scanner to the policy:
+
+1. When you select **Security Scan**, you will be prompted to select which security scanners you want to consider in your policy. In this dropdown, you can select one or more security scanners. 
+2. Next, you select which branches to apply the policy to. You can select the default branch, all protected branches, or specific protected branches. Additionally, you can provide exceptions if some branches should be excluded from the policy.
+3. Next, you define which types of security vulnerabilities you want to capture in the policy. You can apply the policy for all vulnerabilities that match a rule, or set a threshold for the number of vulnerabilities until the rule applies.
+4. For the Severity, you can apply the policy to all severity levels, or just specific levels of severity. 
+5. Finally, you can specify what status you want to consider in your policy. You can apply the policy for new or previously detected vulnerabilities, in the needs triage or dismissed state.
+
+Here's how to implement the license scan option:
+
+1. For the **License Scan** option, you will be prompted for which branches you want to apply your policy to. You can select the default branch, all protected branches, or specific protected branches. Additionally, you can provide exceptions if some branches should be excluded from the policy. 
+2. Next, you define which licenses status you want to apply the policy to. You can apply the policy to either newly detected, or pre-existing licenses. 
+3. Finally, you can configure an allowlist of licenses to allow in your project. If any licenses are not found in the allowlist, they are excluded from the project.
+
+**policy violation**
+
+When a violation of a policy occurs, you can define a set of actions to take. For merge request approval policies, the action typically involves approval from 1 or more individual users or groups.
+
+In addition to requiring specific actions, by default, policy violations will result in a bot comment on the merge request explaining the issue. 
+
+**advanced settings**
+
+- **protected branch settings**: In the protected branch settings, you can prevent branch modification, pushing, and force pushing for protected branches. This setting will overwrite the existing project settings. Setting this allows you to control protected branch settings at a compliance level rather than relying on project creators to set this configuration options themselves.
+- **merge request approval settings**: In the Merge request approval settings, you can prevent approval by the merge request author, prevent approval by the commit author, remove all approvals when a new commit occurs, and require user authentication to approve merge requests. These settings will overwrite the existing project settings for merge request approvals.
+- **fallback behavior and edge case settings**: In the Fallback behavior and edge case settings, you can determine the action to take if the policy's criteria cannot be met. You can either fail open, meaning the merge request is allowed to proceed, or fail closed, meaning the merge request is blocked until all criteria are met.
+
+**creating the policy**
+
+Here are the steps to create a merge request approval policy:
+
+1. To create a merge request approval policy, navigate to your project, and in the left sidebar, select **Secure > Policies**. 
+2. In the policies window, select **New Policy > Merge request approval policy**.
+
+#### Scan execution policies
+
+Scan execution policies allow you to enforce running specific security scanners for projects and groups. This allows you to create an enforced baseline for security scanning in your projects. 
+
+> [!NOTE]
+> You should consider scan execution policies for cases where you need to enforce security scanning on a project or group.
+
+Scan execution policies also allow you to enforce security scans for particular branches at specific times. This allows you to create consistency in how security scans are conducted in your projects. 
+
+Similar to merge request approval policies, there are two modes you can use for creating and editing scan execution policies: Rule mode and `.yaml` mode.
+
+Here is an example of the YAML, which must be in `.gitlab/security-policies/policy.yml`
+
+```yaml
+---
+scan_execution_policy:
+- name: Group security policy
+  description: ''
+  enabled: true
+  rules:
+  - type: pipeline
+    branch_type: default
+  - type: pipeline
+    branch_type: target_default
+    pipeline_sources:
+      including:
+      - merge_request_event
+  actions:
+  - scan: sast
+    variables:
+      SECURE_ENABLE_LOCAL_CONFIGURATION: 'false'
+    template: latest
+  skip_ci:
+    allowed: true
+
+```
+
+Conditions allow you to configure when the actions from the previous section will run for your project. You can setup a scanner to run with either a trigger or a schedule. 
+
+- **trigger**: A trigger will run your actions every time a pipeline runs for the branches you define. 
+	- **use case**: Trigger conditions are ideal for cases where you want to enforce security scanning on every pipeline. For example, if you want every commit or every merge request to result in a security scan, a trigger would be the ideal implementation.
+- **schedule**: A schedule will run scans against the specified branches, on a daily or weekly cadence at a specified time.
+	- **use case**: Scheduling scanners is ideal for situations where compliance or policy requirements require scans on a regular cadence. For example, compliance requirements like SOC2 often require a minimum of quarterly security scanning. Scheduling allows you to easily meet these compliance requirements
+
+Here's how to create scan execution policies:
+
+1. To create a scan execution policy, navigate to your project, and in the left sidebar, select **Secure > Policies**. 
+2. In the policies window, select **New Policy > Scan execution policy**. 
+
+
+#### Pipeline execution policies
+
+Pipeline execution policies allow you to enforce specific pipeline jobs and pipeline configurations for projects and groups. This allows you to ensure that your CI/CD jobs are run in a consistent way, with consistent configurations. You should consider pipeline execution policies for cases where:
+
+1. You need to ensure specific jobs are always running in your projects or groups
+    
+2. You need to ensure that specific configurations are used for jobs or security scanners
+
+Here are the steps to create:
+
+1. To create a pipeline execution policy, navigate to your project, and in the left sidebar, select **Secure > Policies**. 
+2. In the policies window, select **New Policy > Pipeline execution policy**.
+
+As with our other policies, there are two modes you can use for creating and editing scan execution policies: **Rule mode** and **`yaml` mode**.
+
+Here's the steps for configuring rule mode:
+
+1. start your policy configuration by adding a name and optional description to the policy. 
+2. In the Actions section of the configuration, you can create the rules that define how pipelines should run in your project. You can either inject a CI/CD configuration into the project or override the configuration. 
+3. After selecting how the CI/CD configuration is applied, you will point the action to the CI/CD configuration you want to apply. You can point to any valid `.gitlab-ci.yml` file in any project you have access to. In the case where the project CI/CD file and the selected CI/CD configuration have conflicting job names, you can provide a job name suffix to ensure job names stay unique.
+
+
+Here's the difference between injection and overriding:
+
+- **Injection** will merge the CI/CD configuration you select with the existing CI/CD configuration in the project. 
+- **Override** will only use the CI/CD configuration you select in the actions. 
+#### Vulnerability management policies
+
+Vulnerability management policies allow you to automatically resolve vulnerabilities found by scanners in your projects. If a vulnerability is no longer detected by a scanner, it can be resolved automatically, reducing the amount of time required to manually update security report results. You should consider vulnerability management policies for cases where:
+
+1. Your projects have a large number of security vulnerabilities that would take time to manually close
+    
+2. You have tracking on security vulnerability counts and want to ensure resolutions are shown accurately as soon as possible.
+
+Here's how to create:
+
+1. To create a vulnerability management policy, navigate to your project, and in the left sidebar, select **Secure > Policies**. 
+2. In the policies window, select **New Policy > Vulnerability management policy**.
+
+There are two modes you can use for creating and editing vulnerability management policies: Rule mode and `.yaml` mode.
+
+Here's the steps for rule mode:
+
+1. In Rule mode, you start your policy configuration by adding a name and optional description to the policy. 
+2. In the Actions section of the configuration, you can select either **Auto-Resolve** or **Auto-Dismiss**. 
+	- Auto-Resolve will automatically set vulnerabilities to resolved if they meet certain conditions. 
+	- Auto-Dismiss will automatically dismiss vulnerabilities that meet certain conditions.
+## Gitlab Duo
+
+GitLab Duo is GitLab's AI assistant woven into the whole software development lifecycle, from planning to security. It splits into two layers: non-agentic (single-shot AI help) and the agentic **Duo Agent Platform** (autonomous agents and flows that work over multiple steps).
+
+Here are the **Non-agentic features** (chat answers, inline suggestions):
+
+- **Code Suggestions**: AI-powered autocomplete as you type, in your IDE or Web IDE.
+- **Duo Chat**: ask questions about code, issues, MRs, pipelines, or GitLab itself, right in the UI or IDE.
+- Code explanation, root cause analysis for failed CI jobs, merge request summaries, code review suggestions, vulnerability explanation and resolution, test generation, and more small single-purpose assistants throughout the product.
+
+**GitLab Duo Agent Platform** (the agentic layer, what I'm part of): instead of a single prompt/response, you delegate whole tasks to specialized agents that work asynchronously, often over several CI-backed steps, and can open merge requests, push commits, and comment back with results. Agents I can start for you right now include:
+
+- **developer**: write/change code, resolve an issue, implement a described feature.
+- **fix_pipeline**: diagnose and fix a failing CI/CD pipeline.
+- **code_review**: read-only review and assessment of an MR's changes.
+- **sast_fp_detection** / **secrets_fp_detection**: check whether a SAST or secret-detection vulnerability is a false positive.
+- **resolve_sast_vulnerability**: generate a code fix for a SAST finding.
+- **catalog_flow**: run a custom flow your project has enabled in the AI Catalog.
+- **Planner** (plan/prioritize/track work)
+- **Security Analyst** (autonomous vulnerability triage and remediation)
+
+
+
+Access depends on your tier: 
+
+- **Duo Core** gives basic agentic chat and code suggestions
+- **Duo Pro** adds full chat and some agentic features
+- **Duo Enterprise** unlocks everything, including things like the Security Review Flow.
