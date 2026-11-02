@@ -209,6 +209,7 @@ These two sections can either be declared globally (for which then they apply to
 
 ##### Artifacts
 
+
 Artifacts are files produced by a job that should survive after the container is destroyed, and be downloadable or passed to later jobs.
 
 Think of a job's container as **ephemeral and disposable**. Once it exits, everything inside it vanishes — except whatever you explicitly tell GitLab to keep as an artifact.
@@ -263,6 +264,57 @@ test-job:
       junit: junit.xml
 ```
 
+You also have artifact dependencies you can specify via the `dependencies` key on the job level:
+
+```yaml
+stages:
+  - install
+  - build
+  - test
+
+install-deps:
+  stage: install
+  script:
+    - npm ci
+  cache:
+    key:
+      files:
+        - package-lock.json   # cache invalidates automatically when lockfile changes
+    paths:
+      - node_modules/
+    policy: pull-push         # download existing cache, then re-upload if changed
+
+build-job:
+  stage: build
+  script:
+    - npm run build
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull              # only needs to read the cache, never re-upload
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
+
+test-job:
+  stage: test
+  script:
+    - npm test
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull
+  dependencies:
+    - build-job            # explicitly restrict which artifacts this job downloads
+
+```
 ##### Variables
 
 These are the global CI variables you have available:
@@ -301,6 +353,76 @@ deploy-review:
 | `CI_ENVIRONMENT_NAME`                                        | Set when the job has an `environment:` block (Lesson 7)                                                                         |
 | `GITLAB_USER_LOGIN` / `CI_COMMIT_AUTHOR`                     | Who triggered the pipeline / authored the commit                                                                                |
 | `CI_COMMIT_REF_SLUG`                                         | a URL-safe version of the branch name                                                                                           |
+##### Caches
+
+Both `cache` and `artifacts` persist files, but they solve different problems and have fundamentally different guarantees:
+
+- **Artifacts**: "I produced something this job's downstream jobs _need_." Guaranteed to exist if the job succeeded (or if `when: always`). Tied to a specific pipeline run. Automatically passed to later-stage jobs.
+- **Cache**: "I want to avoid redoing expensive setup work (like downloading dependencies) across _different pipeline runs_." Best-effort only — GitLab may or may not find a matching cache, and your job must work correctly even if the cache is empty/missing.
+
+> [!NOTE]
+> Mental model: artifacts flow **forward within one pipeline** (build → test → deploy); cache flows **sideways across pipeline runs over time** (today's `npm ci` reuses yesterday's downloaded packages).
+
+Here's a code example:
+
+```yaml
+stages:
+  - install
+  - build
+  - test
+
+install-deps:
+  stage: install
+  script:
+    - npm ci
+  cache:
+    key:
+    # cache invalidates automatically when lockfile changes
+      files:
+        - package-lock.json   
+    paths:
+      - node_modules/
+    # download existing cache, then re-upload if changed (stale while revalidate)
+    policy: pull-push         
+
+build-job:
+  stage: build
+  script:
+    - npm run build
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    # only needs to read the cache, never re-upload (cache-first)
+    policy: pull              
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
+
+test-job:
+  stage: test
+  script:
+    - npm test
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull
+  # explicitly restrict which artifacts this job downloads
+  dependencies:
+    - build-job            
+```
+
+What's happening:
+
+- `cache.key.files: [package-lock.json]` means the cache key is derived from that file's hash — if the lockfile doesn't change, every pipeline reuses the same `node_modules/` cache, skipping a full reinstall. If it changes, a new cache bucket starts (correct invalidation, no stale deps).
+- `policy: pull-push` on `install-deps` means it both downloads the existing cache and uploads a new one if it changed; downstream jobs use `policy: pull` since they don't need to re-upload — saves time and avoids race conditions where multiple jobs try to write the same cache simultaneously.
+- `dependencies: [build-job]` on `test-job` restricts artifact downloads to just that one job's output, instead of the default (download artifacts from _every_ job in all prior stages). This matters once you have many parallel jobs — without it, every job downloads every artifact from every previous job, which is wasteful.
 
 #### Pipeline editor
 
