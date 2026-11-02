@@ -207,7 +207,7 @@ These two sections can either be declared globally (for which then they apply to
 - `image`: docker image for the job environment
 - `variables`: become both CI vars and env vars that can then be accessed through shell variable interpolation
 
-##### Artifacts
+##### Artifacts, `dependencies`, `needs`
 
 
 Artifacts are files produced by a job that should survive after the container is destroyed, and be downloadable or passed to later jobs.
@@ -264,37 +264,27 @@ test-job:
       junit: junit.xml
 ```
 
-You also have artifact dependencies you can specify via the `dependencies` key on the job level:
+**artifact dependencies**
+
+You can also control from which specific jobs artifacts get download via the `dependencies` key on the job level.
+
+Here is the behavior to understand:
+
+- **default behavior**: the default behavior of a job's artifact dependencies is that it downloads all artifacts from all jobs in the previous stage.
+- **no artifact download**: By setting an empty dependency array via `dependencies: []`, this means that the job will not download any artifacts from jobs in the previous stage.
+- **specific job artifacts**: By specifying specific jobs to depend on for artifacts, you get more granular with which artifacts you're download, reducing bandwidth.
 
 ```yaml
 stages:
-  - install
   - build
   - test
 
-install-deps:
-  stage: install
-  script:
-    - npm ci
-  cache:
-    key:
-      files:
-        - package-lock.json   # cache invalidates automatically when lockfile changes
-    paths:
-      - node_modules/
-    policy: pull-push         # download existing cache, then re-upload if changed
 
 build-job:
   stage: build
   script:
+    - npm install
     - npm run build
-  cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - node_modules/
-    policy: pull              # only needs to read the cache, never re-upload
   artifacts:
     paths:
       - dist/
@@ -303,19 +293,128 @@ build-job:
 test-job:
   stage: test
   script:
+    - npm install
     - npm test
-  cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - node_modules/
-    policy: pull
+  # list artifact dependencies
   dependencies:
-    - build-job            # explicitly restrict which artifacts this job downloads
+    - build-job            
 
 ```
+
+
+**`dependencies` vs Stage Ordering**
+
+Stage ordering and artifact passing are **two separate mechanisms** that happen to interact. People conflate them because the default behavior makes them look connected, but they control different things:
+
+- **Stage ordering** (`stages:` + each job's `stage:`) controls **when** a job runs — i.e., execution sequencing/gating.
+- **`dependencies`** (or `needs`, which we'll hit in Lesson 5) controls **which artifacts get downloaded** into a job's workspace — i.e., data flow.
+
+> [!NOTE]
+> By default, without specifying `dependencies` at all, GitLab downloads artifacts from **every job in every previous stage**. `dependencies` is purely a _filter_ on top of that default — it doesn't add new capability, it restricts an existing one.
+
+So you can use artifact dependencies strategically:
+
+
+| Scenario                                                                | What happens                                                                        |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| No `dependencies` key at all                                            | Downloads artifacts from **all** jobs in **all** previous stages                    |
+| `dependencies: [job-a]`                                                 | Downloads **only** `job-a`'s artifacts (must be in an earlier stage)                |
+| `dependencies: []`                                                      | Downloads **nothing**                                                               |
+| `dependencies: [job-x]` where `job-x` is in the _same_ or _later_ stage | **Pipeline validation error** — dependencies can only point backward in stage order |
+
+That last row is the key limitation: `dependencies` is still constrained by stage ordering. You can only depend on jobs that are guaranteed to have already run by stage position. 
+
+This is exactly the limitation `needs` removes by letting you refer to a job in a later stage and mark that as a dependency instead of being dependent on a specific stage, starting it as soon as its specific dependencies finish, ignoring stage order entirely.
+
+Instead of "wait for the whole previous stage," a job with `needs` says "wait only for these specific jobs, then start immediately — I don't care what stage I'm nominally in."
+
+This turns your pipeline from a rigid staircase (stage1 → stage2 → stage3, fully blocking) into a true DAG (directed acyclic graph) where independent branches run concurrently and converge only where real dependencies exist.
+
+These are the basic properties of using `needs`:
+
+- **list jobs**: list jobs as dependencies, then as soon as those jobs finish, the dependent job can run.
+- **get specific job artifacts**: `needs` implies artifact download from the listed jobs only (same filtering behavior as `dependencies`), so you usually don't need both keys together.
+
+```yaml
+stages:
+  - build
+  - test
+  - deploy
+
+build-frontend:
+  stage: build
+  script: echo "building frontend" > frontend.txt
+  artifacts:
+    paths: [frontend.txt]
+
+build-backend:
+  stage: build
+  script: sleep 600 && echo "building backend" > backend.txt   # slow, 10 min
+  artifacts:
+    paths: [backend.txt]
+
+test-frontend:
+  stage: test
+  script: cat frontend.txt
+  needs:
+    - build-frontend     # does NOT wait for build-backend
+
+test-backend:
+  stage: test
+  script: cat backend.txt
+  needs:
+    - build-backend
+
+deploy-job:
+  stage: deploy
+  script: echo "deploying"
+  needs:
+    - test-frontend
+    - test-backend
+```
+
+> [!NOTE]
+> **`dependencies` vs `needs`**
+> ***
+> `dependencies` only filters artifacts and still respects stage gating (job waits for its whole previous stage to finish, not just its specific dependency). 
+> 
+> `needs` does both — filters artifacts _and_ breaks stage gating so the job starts the instant its specific needed jobs finish, which is strictly more powerful but changes your pipeline's execution shape (jobs can finish out of visual "stage" order, which can be confusing to read in the UI if overused).
+
+Here are the core tradeoffs:
+
+- **DAG (`needs`) speed vs readability**: `needs` can dramatically cut pipeline duration by removing artificial stage-blocking, but the pipeline graph becomes harder to reason about visually — jobs "jump ahead" of their nominal stage, which can confuse teammates reading the YAML linearly. Heavy `needs` usage essentially makes `stages:` cosmetic/organizational rather than load-bearing.
+- **`needs` has a limit** (historically 50 jobs per `needs` list on GitLab.com, configurable on self-managed) — extremely fan-heavy DAGs can hit this ceiling.
 ##### Variables
+
+CI/CD variables come from many layers (instance-wide, group, project, pipeline-trigger, job-level, `.gitlab-ci.yml`), and GitLab resolves conflicts via a strict precedence order. 
+
+Separately, GitLab gives you **protected** and **masked** flags to control where sensitive values (API keys, deploy tokens) can leak. 
+
+To illustrate the difference, let's see how a `DEPLOY_TOKEN` variable differs in behavior depending on whether it's protected or masked:
+
+- **Protected**: only exposed to pipelines running on protected branches/tags (e.g., `main`, release tags). 
+	- A pipeline on a random feature branch simply won't have `$DEPLOY_TOKEN` available at all — it's empty/unset. This stops someone from pushing a branch that echoes `$DEPLOY_TOKEN` to steal it.
+- **Masked**: GitLab scrubs the literal value from job logs, replacing it with `[masked]` if it would otherwise be printed. 
+	- Requires the value to meet certain format constraints (no newlines, minimum length, etc.) — GitLab won't let you mask something it can't reliably pattern-match in log output.
+
+Understanding both prevents two classic failure modes: 
+
+- **precedence issue**: "why did my variable not apply" (precedence)
+- **secret protection issue**: "I accidentally exposed a secret in job logs" (masking/protection).
+
+Here is the precedence, from most specific to least specific:
+
+1. Trigger variables / manual pipeline run variables (set when manually running a pipeline via UI/API)
+2. Project-level CI/CD variables (Settings → CI/CD → Variables)
+3. Group-level variables (inherited by all projects in the group)
+4. Instance-level variables (self-managed only)
+5. `.gitlab-ci.yml` job-level `variables:` section
+6. `.gitlab-ci.yml` global `variables:` section
+
+> [!NOTE]
+> A narrower scope (job-level YAML) beats a broader one (global YAML), but project/group Settings-UI variables generally override YAML-defined ones of the same name — this is intentional, so ops/security teams can override developer-committed defaults without touching code.
+
+**Built-in CI variables**
 
 These are the global CI variables you have available:
 
@@ -353,6 +452,20 @@ deploy-review:
 | `CI_ENVIRONMENT_NAME`                                        | Set when the job has an `environment:` block (Lesson 7)                                                                         |
 | `GITLAB_USER_LOGIN` / `CI_COMMIT_AUTHOR`                     | Who triggered the pipeline / authored the commit                                                                                |
 | `CI_COMMIT_REF_SLUG`                                         | a URL-safe version of the branch name                                                                                           |
+
+**file-type variables**
+
+You can store sensitive files (service-account gcloud files) as secret variables via **file-type variables**:
+
+```yaml
+deploy-job:
+  script:
+    - gcloud auth activate-service-account --key-file="$GCP_SERVICE_ACCOUNT_KEY"
+```
+
+If `GCP_SERVICE_ACCOUNT_KEY` is defined as a **File** type variable (not the default **Variable** type) in Settings, GitLab writes its content to a temp file and sets the variable to that file's _path_, not the content itself — ideal for credentials that tools expect as a file (kubeconfigs, service account JSON, SSH keys).
+
+
 ##### Caches
 
 Both `cache` and `artifacts` persist files, but they solve different problems and have fundamentally different guarantees:
@@ -424,6 +537,30 @@ What's happening:
 - `policy: pull-push` on `install-deps` means it both downloads the existing cache and uploads a new one if it changed; downstream jobs use `policy: pull` since they don't need to re-upload — saves time and avoids race conditions where multiple jobs try to write the same cache simultaneously.
 - `dependencies: [build-job]` on `test-job` restricts artifact downloads to just that one job's output, instead of the default (download artifacts from _every_ job in all prior stages). This matters once you have many parallel jobs — without it, every job downloads every artifact from every previous job, which is wasteful.
 
+Here are the key tradeoffs of cache:
+
+- **Cache is not guaranteed.** Different runners (especially autoscaled/ephemeral ones) may not share cache storage, or the cache may get evicted. Never assume cache presence for correctness — only for speed. Your `script` must work from a cold cache (e.g., `npm ci` still works even if `node_modules/` is empty).
+- **Artifacts vs re-running work**: you could skip artifacts entirely and have `test-job` rebuild from source, but that duplicates work and risks inconsistency (test job builds slightly different code than what will actually deploy). Artifacts guarantee you test/deploy _exactly_ what was built.
+- **Global cache key vs per-branch cache key**: using one shared cache key across all branches is simple but risky — two branches with different dependency versions can stomp on each other's cache, causing flaky "works on one branch, fails on another" bugs. Common fix: `key: ${CI_COMMIT_REF_SLUG}-${CI_JOB_NAME}` to scope cache per-branch, at the cost of more cache storage and more cache misses for new branches.
+- **`dependencies: []` (empty array)** explicitly disables artifact downloads for a job — useful for jobs like `deploy-prod` that only need a deploy script, not your entire build output, cutting job startup time.
+- **Over-aggressive caching can mask bugs**: if you cache something that should be rebuilt fresh (like a generated config file) and forget to invalidate it properly, you get stale-state bugs that are maddening to debug because "it works locally" but CI has old cached files.
+
+##### Parallel jobs
+
+The below example spins up 5 identical jobs (`test-shard 1/5` ... `5/5`) running concurrently, each getting `CI_NODE_INDEX`/`CI_NODE_TOTAL` to split test suites. 
+
+- **use case**: Great for cutting wall-clock time on large test suites.
+- **`parallel` fan-out cost**: 5x parallel jobs means 5x runner capacity needed simultaneously — on limited/shared runners this can mean _longer_ wait time waiting for available runners, even though total compute-per-job is less. Great on autoscaling infra, less great on a small fixed runner pool.
+
+```yaml
+test-shard:
+  stage: test
+  parallel: 5
+  script:
+    - echo "Running shard $CI_NODE_INDEX of $CI_NODE_TOTAL"
+    - npm test -- --shard=$CI_NODE_INDEX/$CI_NODE_TOTAL
+```
+
 #### Pipeline editor
 
 There is a native pipeline editor in the gitlab UI that lets you create pipelines for your repo, which can access by navigating to `Build > Pipeline editor` in your GitLab project.
@@ -481,11 +618,12 @@ Here are the rules of rules:
 2. **first match win**
 3. If no rule matches, the job doesn't run at all.
 
-Rules have two keys, which can be used either-or or use both of them.
+Rules have two keys, `when` and `if`, and both of them must pass their respective conditions in order to execute a job.
 
-- `when`: when this rule should apply, but this only for normal rules, NOT workflow rules. Here are the values:
-	- `never`: The default is `when: never` implicitly, which means the job or workflow should not be run.
-	- `on_success`: this rule only applies if the jobs in previous stages succeeded
+- `when`: Here are the values:
+	- `never`: The default is `when: never` implicitly, which means the job or workflow should not be run. Never passes.
+	- `manual`: passes when the workflow was triggered manually.
+	- `on_success`: passes only if the jobs in previous stages succeeded
 - `if`: pass a boolean condition that if evaluates to true, then the job or workflow should run. Else moves on down to the next rule in the chain.
 
 What's happening:
@@ -496,6 +634,35 @@ What's happening:
 
 > [!IMPORTANT]
 > **Common pitfall**: forgetting that without any `workflow:rules`, GitLab's default behavior allows duplicate pipelines — a push to a branch with an open MR triggers both a branch pipeline AND a merge request pipeline. That `workflow:rules` block above is the standard pattern to prevent that duplication.
+
+##### Merge requests via branch pushing
+
+GitLab can create a pipeline for the same commit under two different "modes":
+
+- **branch pipeline** (triggered by a push, context = just that branch)
+- **merge request pipeline** (triggered because an MR exists, context = the merge of source into target).
+
+They look similar but have different predefined variables available.
+
+> [!WARNING]
+> The default, naive GitLab behavior (no `workflow:rules`) runs **both** for the same push if an MR is open — duplicate pipelines, duplicate compute, confusing double-entries in commit history. This is the single most common GitLab CI/CD pipeline this is the single most common "why do I have two pipelines" question.
+
+The standard fix is to introduce specific workflow rules in order of specificity:
+
+```yaml
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+```
+
+This says: 
+
+1. create a pipeline only for (a) MR pipelines, (b) pushes directly to the default branch, (c) tags. 
+2. A push to a feature branch with no open MR creates **no pipeline at all** — not even a branch pipeline — until an MR is opened. 
+
+This is the generally recommended pattern: develop on a branch, open an MR early (even as a draft) to get pipeline feedback, and avoid the double-pipeline problem entirely.
 
 ##### File dependency rules
 
@@ -545,6 +712,133 @@ Here are the tradeoffs of using rule changes:
 - **`rules:changes` adds a git-diff cost** to pipeline evaluation — negligible for small repos, but on very large monorepos with deep history, comparisons can add seconds to pipeline creation.
 - **Relying on predefined variables vs hardcoding**: using `CI_DEFAULT_BRANCH` instead of `"main"` makes config portable across forks/renames, but makes YAML slightly harder to read for newcomers who don't know the variable table by heart.
 - **Over-fragmenting with `changes`** can backfire: if a shared config file changes but your globs don't include it, dependent jobs silently skip when they shouldn't have run — a subtle, hard-to-notice failure mode. Safer to err toward broader globs for critical jobs (like security scans) and narrower globs only for genuinely isolated test suites.
+
+#### Environments
+
+
+The `environment` section tells GitLab:
+
+>"this job deploys to a named target (staging, production, review/mr-123)."
+
+It's not just metadata — it unlocks a dedicated **Environments** UI (Deployments → Environments) showing deployment history, who deployed what and when, one-click rollback, and the ability to gate deploys behind manual approval.
+
+Basically environment offer these benefits:
+
+- **isolated deployment history**: allows rollbacks, better deploymest history
+- **gated manual approval**: best use case for environments is to force human in the loop.
+- **environment-scoped variables**: In Settings → CI/CD → Variables, you can scope a variable to only apply to jobs targeting a specific environment (e.g., an environment pattern like `production` vs `review/*`).
+
+The `environment` section has these keys:
+
+- `name`: the name of the environment
+- `url`: the url to deploy to.
+
+The below example creates/updates a `production` environment entry every time the job runs, links to `https://app.example.com` directly from the pipeline UI, and requires a manual click (`when: manual`) so prod deploys are never automatic on every merge to main.
+
+```yaml
+deploy-production:
+  stage: deploy
+  script:
+    - ./deploy.sh production
+  environment:
+    name: production
+    url: https://app.example.com
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+
+```
+
+When using the `environment` section, you then get access to these CI variables:
+
+- `CI_ENVIRONMENT_SLUG`: the URL slug for an environment deployment
+
+Here's another example:
+
+- Every MR gets its own live environment (`review/feature-xyz`), visible with a clickable URL right in the MR widget. 
+- `on_stop: stop-review` links the two jobs together — GitLab can auto-trigger `stop-review` when the MR is merged/closed, or a human can trigger it manually, tearing down the review app so it doesn't run forever and cost money.
+
+```yaml
+deploy-review:
+  stage: deploy
+  script:
+    - ./deploy.sh "$CI_ENVIRONMENT_SLUG"
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://$CI_ENVIRONMENT_SLUG.review.example.com
+    on_stop: stop-review
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+stop-review:
+  stage: deploy
+  script:
+    - ./teardown.sh "$CI_ENVIRONMENT_SLUG"
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    action: stop
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+```
+
+
+#### YAML organization
+
+As pipelines grow, you'll have many jobs sharing config (same image, same script, same rules). 
+
+Two ways to deduplicate:
+
+- **YAML anchors**: native YAML feature, gitlab-agnostic.
+
+```yaml
+# YAML anchors (native YAML feature, GitLab-agnostic)
+.node_defaults: &node_defaults
+  image: node:20
+  before_script:
+    - npm ci
+
+test-unit:
+  <<: *node_defaults
+  script: npm run test:unit
+
+test-integration:
+  <<: *node_defaults
+  script: npm run test:integration
+
+```
+
+- **`extends`**: Gitlab-specific, supports deep merging.
+
+```yaml
+# extends (GitLab-specific, supports deep merging)
+.node_defaults:
+  image: node:20
+  before_script:
+    - npm ci
+  variables:
+    NODE_ENV: test
+
+test-unit:
+  extends: .node_defaults
+  script: npm run test:unit
+
+test-integration:
+  extends: .node_defaults
+  script: npm run test:integration
+  variables:
+    NODE_ENV: integration   # deep-merges: keeps rest of .node_defaults, overrides NODE_ENV only
+```
+
+There's a key difference between these two:
+
+- **shallow merge**: YAML anchors do a **shallow merge** (`<<:` overwrites entire top-level keys, so if both define `variables:`, one fully replaces the other). 
+- **deep merge**: `extends` does a **deep merge** per key — hashes merge recursively, which is usually what you actually want. 
+	- `extends` also supports multiple inheritance (`extends: [.a, .b]`) and is generally the preferred modern approach for templating in GitLab specifically.
+
+Here is the key tradeoffs of each:
+
+- **`extends` deep-merge surprises**: because merging is recursive and automatic, it's easy to accidentally inherit a `rules:` block you didn't intend, since `rules` arrays get fully replaced (not merged) when overridden, while `variables` hashes merge key-by-key. Know which keys merge vs replace.
 
 #### GitLab pages
 
@@ -679,7 +973,7 @@ pages:
 
 As your development team scales, keeping CI/CD pipelines efficient and consistent becomes harder. Instead of repeating the same pipeline code across multiple projects, GitLab gives you powerful tools to **reuse, organize, and share** configurations.
 
-GitLab lets you split and reuse your pipeline configuration with the `include` keyword to build composable CI/CD pipelines by importing other **templates**.
+GitLab lets you split and reuse your pipeline configuration with the `include` keyword to build composable CI/CD pipelines by importing other **templates** and **components**,
 
 When you use `include`, GitLab **merges** the external YAML from the imported template or component into your `.gitlab-ci.yml` at runtime.
 
@@ -691,7 +985,9 @@ This helps you:
 - Share pipeline snippets across projects
     
 - Centralize templates for easier maintenance
-    
+
+
+
 
 #### `include: local`
 
@@ -751,6 +1047,76 @@ This allows you to include YAML files from remote URLs, instead of just within y
 include:
   - remote: 'https://gitlab.com/example-project/-/raw/main/.gitlab-ci.yml'
 ```
+
+
+#### Parent and child pipelines
+
+So far every pipeline has lived in one `.gitlab-ci.yml`, one project. Two mechanisms break out of that:
+
+- **Parent-child pipelines**: one pipeline triggers another pipeline _within the same project_, each with its own independent YAML file. Useful for splitting a huge monolithic config into logical chunks, or for generating pipeline YAML dynamically at runtime.
+- **Multi-project pipelines**: a pipeline in Project A triggers a pipeline in Project B. Useful when services live in separate repos but deploys/tests need to be coordinated (e.g., deploying a backend triggers an integration-test pipeline in a separate QA repo).
+
+> [!NOTE]
+> **Mental model**: your main `.gitlab-ci.yml` becomes an **orchestrator** that delegates real work to other pipelines, rather than doing everything itself.
+
+Here's the YAML example, where we use the `trigger` section to define how a job should kick off another pipeline:
+
+- `trigger.include`: the YAML workflow file to use as the pipeline to trigger
+- `strategy`: the strategy for pipeline execution behavior
+	- `depend`: parent waits for child, and fails if child fails
+
+```yaml
+# .gitlab-ci.yml (parent)
+stages:
+  - trigger
+
+trigger-backend:
+  stage: trigger
+  trigger:
+    include: backend/.gitlab-ci.yml
+    strategy: depend    # parent waits for child, and fails if child fails
+
+trigger-frontend:
+  stage: trigger
+  trigger:
+    include: frontend/.gitlab-ci.yml
+    strategy: depend
+```
+
+For even more flexibility, you can create a YAML workflow file at runtime and then use that as a pipeline to trigger, via **dynamic child pipelines**:
+
+```yaml
+# .gitlab-ci.yml (parent)
+generate-config:
+  stage: build
+  script:
+    - ./generate-pipeline.sh > generated-config.yml   # custom script writes YAML
+  artifacts:
+    paths:
+      - generated-config.yml
+
+trigger-dynamic:
+  stage: test
+  trigger:
+    include:
+      - artifact: generated-config.yml
+        job: generate-config
+    strategy: depend
+```
+
+You can also include a pipeline file from another project:
+
+```yaml
+# Project A's .gitlab-ci.yml
+trigger-downstream:
+  stage: deploy
+  trigger:
+    project: my-group/qa-integration-tests
+    branch: main
+    strategy: depend
+
+```
+
 
 #### Components intro
 
