@@ -186,6 +186,8 @@ test_job:
     - npm test
 ```
 
+#### Job deep dive
+
 On each job you have the following properties:
 
 - `stage`: the corresponding stage for the job
@@ -205,10 +207,100 @@ These two sections can either be declared globally (for which then they apply to
 - `image`: docker image for the job environment
 - `variables`: become both CI vars and env vars that can then be accessed through shell variable interpolation
 
+##### Artifacts
+
+Artifacts are files produced by a job that should survive after the container is destroyed, and be downloadable or passed to later jobs.
+
+Think of a job's container as **ephemeral and disposable**. Once it exits, everything inside it vanishes — except whatever you explicitly tell GitLab to keep as an artifact.
+
+> [!NOTE]
+> **Artifacts are not free.** They're stored and transferred over the network between jobs; large artifacts (build outputs, node_modules) slow pipelines and cost storage. 
+> 
+> Use `expire_in` aggressively, and only upload what later jobs or humans actually need.
+
+Here's a code example:
+
+- `artifacts.paths`: list of file paths or folder paths to register as artifacts.
+- `artifacts.expire_in`: the lifetime of an artifact.
+- `artifacts.reports`: reports integrate with GitLab's UI (test summary, coverage visualization) but are opinionated about format (JUnit XML, Cobertura, etc.) — you may need a reporter plugin to generate the right format.
+	- `junit`: Pass an XML file path here, and if you do that, Gitlab will show artifact results in the merge request UI if running CI on a merge request
+- `when`: when to run
+	- `success`: only output on success of the job
+	- `failure`: only output on failure of the job
+	- `always`: always output, even if job failed
+
+```yaml
+default:
+  image: node:20
+  before_script:
+    - npm ci   # faster, reproducible install vs npm install
+
+variables:
+  NODE_ENV: "test"       # global default, available to all jobs
+
+stages:
+  - build
+  - test
+
+build-job:
+  stage: build
+  variables:
+    NODE_ENV: "production"   # overrides the global value for this job only
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
+test-job:
+  stage: test
+  script:
+    - npm test -- --reporters=jest-junit
+  artifacts:
+    when: always            # keep results even if tests fail
+    reports:
+      junit: junit.xml
+```
+
+##### Variables
+
 These are the global CI variables you have available:
 
-- `CI_COMMIT_BRANCH`: represents the branch the workflow is currently running, like `main`.
-- 
+- `$CI_COMMIT_BRANCH`: return the branch of the commit the workflow is currently running as a string, like `"main"`.
+- `$CI_PIPELINE_SOURCE`: Returns a string representing the event type that triggered the workflow
+	- `"merge_request_event"`: means a merge request triggered the pipeline.
+- `$CI_COMMIT_tag`: represents the tag of the commit the workflow is currently running, like `v1.0.0`.
+
+```yaml
+deploy-review:
+  stage: deploy
+  script:
+    - echo "Deploying MR !$CI_MERGE_REQUEST_IID from $CI_COMMIT_REF_NAME"
+    - ./deploy.sh "$CI_ENVIRONMENT_SLUG"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - src/**/*
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+```
+
+| Variable                                                     | What it holds                                                                                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `CI_PIPELINE_SOURCE`                                         | How the pipeline was triggered: `push`, `merge_request_event`, `schedule`, `web`, `api`, `trigger`, `pipeline` (child pipeline) |
+| `CI_COMMIT_BRANCH`                                           | Branch name, only set on branch pipelines (empty on MR/tag pipelines)                                                           |
+| `CI_COMMIT_TAG`                                              | Tag name, only set on tag pipelines                                                                                             |
+| `CI_COMMIT_SHA` / `CI_COMMIT_SHORT_SHA`                      | Full / short commit hash                                                                                                        |
+| `CI_COMMIT_REF_NAME`                                         | Branch or tag name, works for both cases                                                                                        |
+| `CI_MERGE_REQUEST_IID`                                       | MR number, only set on MR pipelines                                                                                             |
+| `CI_MERGE_REQUEST_SOURCE_BRANCH_NAME` / `TARGET_BRANCH_NAME` | Source/target branch of the MR                                                                                                  |
+| `CI_DEFAULT_BRANCH`                                          | Your repo's default branch (e.g. `main`) — use this instead of hardcoding `"main"` so it survives a default-branch rename       |
+| `CI_PROJECT_PATH` / `CI_PROJECT_NAME` / `CI_PROJECT_ID`      | Project identity, useful for API calls back to GitLab                                                                           |
+| `CI_JOB_NAME` / `CI_JOB_ID` / `CI_JOB_STAGE`                 | Identify the current job at runtime                                                                                             |
+| `CI_ENVIRONMENT_NAME`                                        | Set when the job has an `environment:` block (Lesson 7)                                                                         |
+| `GITLAB_USER_LOGIN` / `CI_COMMIT_AUTHOR`                     | Who triggered the pipeline / authored the commit                                                                                |
+| `CI_COMMIT_REF_SLUG`                                         | a URL-safe version of the branch name                                                                                           |
 
 #### Pipeline editor
 
@@ -221,6 +313,117 @@ Here are the three key benefits:
 - **Live syntax validation** — catches errors as you type, before you commit anything to your repository.
 - **Visual pipeline diagram** — shows your stages and jobs laid out graphically so you can verify the flow at a glance.
 - **Full configuration tab** — displays the fully merged YAML from all your `include` statements in one place, making it easy to spot errors across files.
+
+#### Workflow rules
+
+Not every job should run on every pipeline. You don't want to deploy on every feature-branch push, or run expensive E2E tests on a typo-fix commit.
+
+- `rules` controls whether an individual job runs, is skipped, or runs manually. 
+- `workflow:rules` controls whether the _entire pipeline_ gets created at all
+
+> [!NOTE]
+> Think of `workflow:rules` as the bouncer at the door, and per-job `rules` as the seating chart once you're inside.
+
+Here's an example:
+
+```yaml
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG'
+
+stages:
+  - test
+  - deploy
+
+unit-tests:
+  stage: test
+  script: npm test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+deploy-prod:
+  stage: deploy
+  script: ./deploy.sh production
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: on_success
+    - when: never   # explicit default: don't run otherwise
+```
+
+Here are the rules of rules:
+
+1. **Rules evaluate in order**
+2. **first match win**
+3. If no rule matches, the job doesn't run at all.
+
+Rules have two keys, which can be used either-or or use both of them.
+
+- `when`: when this rule should apply, but this only for normal rules, NOT workflow rules. Here are the values:
+	- `never`: The default is `when: never` implicitly, which means the job or workflow should not be run.
+	- `on_success`: this rule only applies if the jobs in previous stages succeeded
+- `if`: pass a boolean condition that if evaluates to true, then the job or workflow should run. Else moves on down to the next rule in the chain.
+
+What's happening:
+
+- `workflow:rules` says: only create a pipeline at all if it's (a) an MR pipeline, (b) a push to `main`, or (c) a tag push. Anything else (e.g., a push to a random feature branch with no open MR) creates **no pipeline whatsoever** — saves compute, avoids noisy duplicate runs.
+- `unit-tests` runs for MR pipelines and `main`, but not for tag pipelines (it's just not listed, and rules evaluate top-to-bottom; no match = job doesn't run).
+- `deploy-prod` only runs when a tag is pushed, and the trailing `when: never` is a defensive explicit fallback (without it, a job with rules that match nothing is simply skipped anyway, but being explicit is good practice for deploy jobs).
+
+> [!IMPORTANT]
+> **Common pitfall**: forgetting that without any `workflow:rules`, GitLab's default behavior allows duplicate pipelines — a push to a branch with an open MR triggers both a branch pipeline AND a merge request pipeline. That `workflow:rules` block above is the standard pattern to prevent that duplication.
+
+##### File dependency rules
+
+In a monorepo (frontend + backend + infra in one repo), you don't want every job running on every commit. 
+
+`rules:changes` lets a job check "did any file matching this pattern change in this commit/MR?" before deciding to run.
+
+```yaml
+frontend-test:
+  stage: test
+  script: npm --prefix frontend test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - frontend/**/*
+        - package.json
+
+backend-test:
+  stage: test
+  script: go test ./...
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/**/*
+        - go.mod
+
+```
+
+Both conditions (`if` and `changes`) must be true for that rule to match.
+
+On a plain **branch pipeline** (push event, not an MR), GitLab compares against the previous commit (`CI_COMMIT_BEFORE_SHA`) by default, which on a freshly pushed branch can be all-zeros, making the comparison unreliable. 
+
+On **MR pipelines**, it correctly diffs against the target branch — which is one more reason MR pipelines are the recommended default over branch pipelines. 
+
+You can also pin the comparison explicitly:
+
+```yaml
+rules:
+  - changes:
+      paths:
+        - backend/**/*
+      compare_to: 'refs/heads/main'
+```
+
+Here are the tradeoffs of using rule changes:
+
+- **`rules:changes` adds a git-diff cost** to pipeline evaluation — negligible for small repos, but on very large monorepos with deep history, comparisons can add seconds to pipeline creation.
+- **Relying on predefined variables vs hardcoding**: using `CI_DEFAULT_BRANCH` instead of `"main"` makes config portable across forks/renames, but makes YAML slightly harder to read for newcomers who don't know the variable table by heart.
+- **Over-fragmenting with `changes`** can backfire: if a shared config file changes but your globs don't include it, dependent jobs silently skip when they shouldn't have run — a subtle, hard-to-notice failure mode. Safer to err toward broader globs for critical jobs (like security scans) and narrower globs only for genuinely isolated test suites.
+
 #### GitLab pages
 
 `pages` is a special name for a job in the `deploy` stage that you can configure to publish an artifact with an `index.html` within it to github pages when pushing to the main branch.
