@@ -207,7 +207,7 @@ These two sections can either be declared globally (for which then they apply to
 - `image`: docker image for the job environment
 - `variables`: become both CI vars and env vars that can then be accessed through shell variable interpolation
 
-##### Artifacts, `dependencies`, `needs`
+#### Artifacts, `dependencies`, `needs`
 
 
 Artifacts are files produced by a job that should survive after the container is destroyed, and be downloadable or passed to later jobs.
@@ -264,7 +264,44 @@ test-job:
       junit: junit.xml
 ```
 
-**artifact dependencies**
+##### artifact reports
+
+The `artifacts.reports` section allows you to create UI and file report artifacts with built-in support in the Gitlab UI.
+
+```yaml
+test:
+  stage: test
+  script:
+    - npm run test:coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'   # regex GitLab uses to parse coverage % from log output
+  artifacts:
+    when: always
+    reports:
+      junit: junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+```
+
+- `coverage:` (a regex) extracts a single percentage number from your test runner's stdout and displays it as a badge on the job and in the MR widget (e.g., "72% coverage").
+- `reports.coverage_report` (Cobertura format) goes further — GitLab overlays **line-by-line** coverage directly on the MR diff view, showing exactly which changed lines are/aren't covered by tests, not just an aggregate number.
+- `reports.code_quality`: shows codequality reports
+- `reports.junit` surfaces individual test pass/fail results in the MR's "Test summary" widget, including which specific tests failed, without opening job logs.
+
+Here is an example with a code quality report:
+
+```yaml
+code-quality:
+  stage: test
+  script:
+    - ./run-code-quality.sh
+  artifacts:
+    reports:
+      codequality: gl-code-quality-report.json
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+```
+##### **artifact dependencies**
 
 You can also control from which specific jobs artifacts get download via the `dependencies` key on the job level.
 
@@ -323,6 +360,8 @@ So you can use artifact dependencies strategically:
 | `dependencies: [job-x]` where `job-x` is in the _same_ or _later_ stage | **Pipeline validation error** — dependencies can only point backward in stage order |
 
 That last row is the key limitation: `dependencies` is still constrained by stage ordering. You can only depend on jobs that are guaranteed to have already run by stage position. 
+
+##### `needs`
 
 This is exactly the limitation `needs` removes by letting you refer to a job in a later stage and mark that as a dependency instead of being dependent on a specific stage, starting it as soon as its specific dependencies finish, ignoring stage order entirely.
 
@@ -384,7 +423,88 @@ Here are the core tradeoffs:
 
 - **DAG (`needs`) speed vs readability**: `needs` can dramatically cut pipeline duration by removing artificial stage-blocking, but the pipeline graph becomes harder to reason about visually — jobs "jump ahead" of their nominal stage, which can confuse teammates reading the YAML linearly. Heavy `needs` usage essentially makes `stages:` cosmetic/organizational rather than load-bearing.
 - **`needs` has a limit** (historically 50 jobs per `needs` list on GitLab.com, configurable on self-managed) — extremely fan-heavy DAGs can hit this ceiling.
-##### Variables
+
+##### Caches
+
+Both `cache` and `artifacts` persist files, but they solve different problems and have fundamentally different guarantees:
+
+- **Artifacts**: "I produced something this job's downstream jobs _need_." Guaranteed to exist if the job succeeded (or if `when: always`). Tied to a specific pipeline run. Automatically passed to later-stage jobs.
+- **Cache**: "I want to avoid redoing expensive setup work (like downloading dependencies) across _different pipeline runs_." Best-effort only — GitLab may or may not find a matching cache, and your job must work correctly even if the cache is empty/missing.
+
+> [!NOTE]
+> Mental model: artifacts flow **forward within one pipeline** (build → test → deploy); cache flows **sideways across pipeline runs over time** (today's `npm ci` reuses yesterday's downloaded packages).
+
+Here's a code example:
+
+```yaml
+stages:
+  - install
+  - build
+  - test
+
+install-deps:
+  stage: install
+  script:
+    - npm ci
+  cache:
+    key:
+    # cache invalidates automatically when lockfile changes
+      files:
+        - package-lock.json   
+    paths:
+      - node_modules/
+    # download existing cache, then re-upload if changed (stale while revalidate)
+    policy: pull-push         
+
+build-job:
+  stage: build
+  script:
+    - npm run build
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    # only needs to read the cache, never re-upload (cache-first)
+    policy: pull              
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
+
+test-job:
+  stage: test
+  script:
+    - npm test
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull
+  # explicitly restrict which artifacts this job downloads
+  dependencies:
+    - build-job            
+```
+
+What's happening:
+
+- `cache.key.files: [package-lock.json]` means the cache key is derived from that file's hash — if the lockfile doesn't change, every pipeline reuses the same `node_modules/` cache, skipping a full reinstall. If it changes, a new cache bucket starts (correct invalidation, no stale deps).
+- `policy: pull-push` on `install-deps` means it both downloads the existing cache and uploads a new one if it changed; downstream jobs use `policy: pull` since they don't need to re-upload — saves time and avoids race conditions where multiple jobs try to write the same cache simultaneously.
+- `dependencies: [build-job]` on `test-job` restricts artifact downloads to just that one job's output, instead of the default (download artifacts from _every_ job in all prior stages). This matters once you have many parallel jobs — without it, every job downloads every artifact from every previous job, which is wasteful.
+
+Here are the key tradeoffs of cache:
+
+- **Cache is not guaranteed.** Different runners (especially autoscaled/ephemeral ones) may not share cache storage, or the cache may get evicted. Never assume cache presence for correctness — only for speed. Your `script` must work from a cold cache (e.g., `npm ci` still works even if `node_modules/` is empty).
+- **Artifacts vs re-running work**: you could skip artifacts entirely and have `test-job` rebuild from source, but that duplicates work and risks inconsistency (test job builds slightly different code than what will actually deploy). Artifacts guarantee you test/deploy _exactly_ what was built.
+- **Global cache key vs per-branch cache key**: using one shared cache key across all branches is simple but risky — two branches with different dependency versions can stomp on each other's cache, causing flaky "works on one branch, fails on another" bugs. Common fix: `key: ${CI_COMMIT_REF_SLUG}-${CI_JOB_NAME}` to scope cache per-branch, at the cost of more cache storage and more cache misses for new branches.
+- **`dependencies: []` (empty array)** explicitly disables artifact downloads for a job — useful for jobs like `deploy-prod` that only need a deploy script, not your entire build output, cutting job startup time.
+- **Over-aggressive caching can mask bugs**: if you cache something that should be rebuilt fresh (like a generated config file) and forget to invalidate it properly, you get stale-state bugs that are maddening to debug because "it works locally" but CI has old cached files.
+
+
+#### Variables
 
 CI/CD variables come from many layers (instance-wide, group, project, pipeline-trigger, job-level, `.gitlab-ci.yml`), and GitLab resolves conflicts via a strict precedence order. 
 
@@ -466,86 +586,7 @@ deploy-job:
 If `GCP_SERVICE_ACCOUNT_KEY` is defined as a **File** type variable (not the default **Variable** type) in Settings, GitLab writes its content to a temp file and sets the variable to that file's _path_, not the content itself — ideal for credentials that tools expect as a file (kubeconfigs, service account JSON, SSH keys).
 
 
-##### Caches
-
-Both `cache` and `artifacts` persist files, but they solve different problems and have fundamentally different guarantees:
-
-- **Artifacts**: "I produced something this job's downstream jobs _need_." Guaranteed to exist if the job succeeded (or if `when: always`). Tied to a specific pipeline run. Automatically passed to later-stage jobs.
-- **Cache**: "I want to avoid redoing expensive setup work (like downloading dependencies) across _different pipeline runs_." Best-effort only — GitLab may or may not find a matching cache, and your job must work correctly even if the cache is empty/missing.
-
-> [!NOTE]
-> Mental model: artifacts flow **forward within one pipeline** (build → test → deploy); cache flows **sideways across pipeline runs over time** (today's `npm ci` reuses yesterday's downloaded packages).
-
-Here's a code example:
-
-```yaml
-stages:
-  - install
-  - build
-  - test
-
-install-deps:
-  stage: install
-  script:
-    - npm ci
-  cache:
-    key:
-    # cache invalidates automatically when lockfile changes
-      files:
-        - package-lock.json   
-    paths:
-      - node_modules/
-    # download existing cache, then re-upload if changed (stale while revalidate)
-    policy: pull-push         
-
-build-job:
-  stage: build
-  script:
-    - npm run build
-  cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - node_modules/
-    # only needs to read the cache, never re-upload (cache-first)
-    policy: pull              
-  artifacts:
-    paths:
-      - dist/
-    expire_in: 1 day
-
-test-job:
-  stage: test
-  script:
-    - npm test
-  cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - node_modules/
-    policy: pull
-  # explicitly restrict which artifacts this job downloads
-  dependencies:
-    - build-job            
-```
-
-What's happening:
-
-- `cache.key.files: [package-lock.json]` means the cache key is derived from that file's hash — if the lockfile doesn't change, every pipeline reuses the same `node_modules/` cache, skipping a full reinstall. If it changes, a new cache bucket starts (correct invalidation, no stale deps).
-- `policy: pull-push` on `install-deps` means it both downloads the existing cache and uploads a new one if it changed; downstream jobs use `policy: pull` since they don't need to re-upload — saves time and avoids race conditions where multiple jobs try to write the same cache simultaneously.
-- `dependencies: [build-job]` on `test-job` restricts artifact downloads to just that one job's output, instead of the default (download artifacts from _every_ job in all prior stages). This matters once you have many parallel jobs — without it, every job downloads every artifact from every previous job, which is wasteful.
-
-Here are the key tradeoffs of cache:
-
-- **Cache is not guaranteed.** Different runners (especially autoscaled/ephemeral ones) may not share cache storage, or the cache may get evicted. Never assume cache presence for correctness — only for speed. Your `script` must work from a cold cache (e.g., `npm ci` still works even if `node_modules/` is empty).
-- **Artifacts vs re-running work**: you could skip artifacts entirely and have `test-job` rebuild from source, but that duplicates work and risks inconsistency (test job builds slightly different code than what will actually deploy). Artifacts guarantee you test/deploy _exactly_ what was built.
-- **Global cache key vs per-branch cache key**: using one shared cache key across all branches is simple but risky — two branches with different dependency versions can stomp on each other's cache, causing flaky "works on one branch, fails on another" bugs. Common fix: `key: ${CI_COMMIT_REF_SLUG}-${CI_JOB_NAME}` to scope cache per-branch, at the cost of more cache storage and more cache misses for new branches.
-- **`dependencies: []` (empty array)** explicitly disables artifact downloads for a job — useful for jobs like `deploy-prod` that only need a deploy script, not your entire build output, cutting job startup time.
-- **Over-aggressive caching can mask bugs**: if you cache something that should be rebuilt fresh (like a generated config file) and forget to invalidate it properly, you get stale-state bugs that are maddening to debug because "it works locally" but CI has old cached files.
-
-##### Parallel jobs
+#### Parallel jobs
 
 The below example spins up 5 identical jobs (`test-shard 1/5` ... `5/5`) running concurrently, each getting `CI_NODE_INDEX`/`CI_NODE_TOTAL` to split test suites. 
 
@@ -836,10 +877,29 @@ There's a key difference between these two:
 - **deep merge**: `extends` does a **deep merge** per key — hashes merge recursively, which is usually what you actually want. 
 	- `extends` also supports multiple inheritance (`extends: [.a, .b]`) and is generally the preferred modern approach for templating in GitLab specifically.
 
-Here is the key tradeoffs of each:
+##### `extends`
 
-- **`extends` deep-merge surprises**: because merging is recursive and automatic, it's easy to accidentally inherit a `rules:` block you didn't intend, since `rules` arrays get fully replaced (not merged) when overridden, while `variables` hashes merge key-by-key. Know which keys merge vs replace.
+> [!WARNING]
+> **`extends` deep-merge surprises**: because merging is recursive and automatic, it's easy to accidentally inherit a `rules:` block you didn't intend, since `rules` arrays get fully replaced (not merged) when overridden, while `variables` hashes merge key-by-key. Know which keys merge vs replace.
 
+To solve this issue, we use the `!reference` directive.
+
+The `!reference` directive lets you splice in a specific nested key from another block (here, just the `rules` list) and then add more entries alongside it — more surgical than `extends`, which inherits a whole job template.
+
+```yaml
+.base-rules:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+test-job:
+  script:
+    - npm test
+  rules:
+    - !reference [.base-rules, rules]
+    - if: '$CI_COMMIT_TAG'
+      when: never
+
+```
 #### GitLab pages
 
 `pages` is a special name for a job in the `deploy` stage that you can configure to publish an artifact with an `index.html` within it to github pages when pushing to the main branch.
@@ -987,7 +1047,23 @@ This helps you:
 - Centralize templates for easier maintenance
 
 
+You use the `include` section to add templates and components from other repos, projects, or YAML files within the repo:
 
+- `local`: a file in the same repo (good for breaking one giant YAML into logical files)
+- `project`: a file from another project's repo (good for sharing standards org-wide — one canonical "golden" CI config repo)
+- `template`: one of GitLab's own maintained templates (e.g., `Jobs/SAST.gitlab-ci.yml`, `Jobs/Dependency-Scanning.gitlab-ci.yml`) — pre-built, maintained security/quality jobs you opt into with one line instead of writing from scratch
+
+```yaml
+# .gitlab-ci.yml
+include:
+  - local: 'ci/build.yml'
+  - local: 'ci/test.yml'
+  - project: 'my-group/ci-templates'
+    ref: main
+    file: 'security-scan.yml'
+  - template: 'Jobs/SAST.gitlab-ci.yml'   # GitLab-maintained built-in template
+
+```
 
 #### `include: local`
 
@@ -1064,6 +1140,12 @@ Here's the YAML example, where we use the `trigger` section to define how a job 
 - `trigger.include`: the YAML workflow file to use as the pipeline to trigger
 - `strategy`: the strategy for pipeline execution behavior
 	- `depend`: parent waits for child, and fails if child fails
+
+> [!NOTE]
+> **`strategy: depend` vs fire-and-forget**
+> ***
+> - without `strategy: depend`, the parent pipeline shows "passed" the instant it successfully _triggers_ the child, regardless of whether the child actually succeeds — easy to miss real failures. 
+> - With `strategy: depend`, the parent job blocks and waits, giving accurate pass/fail, but at the cost of parent runner minutes sitting idle while waiting (though lightweight — trigger jobs don't consume heavy compute while waiting).
 
 ```yaml
 # .gitlab-ci.yml (parent)
@@ -1245,6 +1327,40 @@ ensure-job-added:
       else
         echo "SUCCESS: hello-job was successfully created by the component"
       fi
+
+```
+
+Here is another way to create a component:
+
+1. Create the component YAML
+
+```yaml
+# templates/deploy.yml in group/ci-components project
+spec:
+  inputs:
+    environment:
+      default: staging
+    deploy_script:
+      type: string
+---
+deploy-$[[ inputs.environment ]]:
+  stage: deploy
+  script:
+    - $[[ inputs.deploy_script ]]
+  environment:
+    name: $[[ inputs.environment ]]
+
+```
+
+2. Consume it
+
+```yaml
+# .gitlab-ci.yml
+include:
+  - component: gitlab.com/my-group/ci-components/deploy@1.2.0
+    inputs:
+      environment: production
+      deploy_script: "./deploy.sh prod"
 
 ```
 
