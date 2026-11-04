@@ -1434,6 +1434,113 @@ TeamCity distributes queued builds only to enabled agents. Disabling an agent do
 > A disabled agent still runs builds that are explicitly assigned to it, for example through [Custom Build](https://www.jetbrains.com/help/teamcity/running-custom-build.html). This makes disabling the usual way to pull an agent out of the build grid and reproduce an agent-specific problem on it without regular builds interfering.
 
 #### Variables
+
+A build agent can be configured by adjusting in the `<TeamCity Agent Home>/conf/buildAgent.properties` file, which stores teamcity system variables as well as environment variables of the build agent enviornment.
+
+Here is an example where by RDPing into a build agent, the build agent properties file is at the `C:\BuildAgent\conf\buildAgent.properties` path:
+
+
+![](https://i.imgur.com/BS9DapI.jpeg)
+
+Syntax reference:
+
+- Use `property_name=value<newline>` syntax.
+    
+- Use `#` in the first position of the line for a comment.
+    
+- Use `/` instead of `\` as the path separator. If you need to include `\`, escape it with another `\`.
+    
+- Whitespaces are processed as any other symbol.
+
+Here's an example file:
+
+```bash
+## The address of the TeamCity server. The same as is used to open the TeamCity web interface in the browser.
+## Must include the protocol specification (https:// is recommended).
+serverUrl=http://localhost:8111/
+
+## The unique name of the agent used to identify this agent on the TeamCity server
+## Use blank name to let server generate it.
+## By default, this name would be created from the build agent's host name
+name=Default agent
+
+## Container directory to create default checkout directories for the build configurations.
+workDir=../work
+
+## Container directory for the temporary directories.
+## Please note that the directory may be cleaned between the builds.
+tempDir=../temp
+
+## Container directory for agent state files and caches.
+## TeamCity agent assumes ownership of the directory and can delete the content inside.
+systemDir=../system
+
+
+######################################
+#   Optional Agent Properties        #
+######################################
+## A token which is used to identify this agent on the TeamCity server for agent authorization purposes.
+## It is automatically generated and saved back on the first agent connection to the server.
+authorizationToken=1234567890abcdefghijklml
+```
+
+Here's how you can set agent properties, system properties, and env properties:
+
+- **agent properties**: simple key-value pairs that are used sort of like tags for agent requirements.
+- **system properties**: All properties starting with the naming syntax `system.<name>` are considered system variables
+
+```bash
+# you would refer to this in a build configuration
+# through %teamcity.agent.ensure.free.space%
+system.teamcity.agent.ensure.free.space=10gb
+```
+
+
+```bash
+######################################
+#   Optional Agent Properties        #
+######################################
+
+## A token which is used to identify this agent on the TeamCity server for agent authorization purposes.
+## It is automatically generated and saved back on the first agent connection to the server.
+authorizationToken=4913cc2f2f527d4a4f26d23c324fc565
+devops.teamcity.tools.dir=D:\\AgentData\\tools
+prodops.products.devops=1
+prodops.products.coco=1
+prodops.products.prism=1
+prodops.products.bam=1
+prodops.products.marketplace=1
+prodops.products.topvue=1
+prodops.products.clm=1
+prodops.products.mp.java.8151=D:\Java.8u151
+prodops.products.mp.java.8265=D:\Java.8u265b01
+
+
+######################################
+#   Default Build Properties         #
+######################################
+## All properties starting with "system.name" will be passed to the build script as "name"
+## All properties starting with "env.name" will be set as environment variable "name" for the build process
+## Note that value should be properly escaped. (use "\\" to represent single backslash ("\"))
+## More on file structure: http://java.sun.com/j2se/1.5.0/docs/api/java/util/Properties.html#load(java.io.InputStream)
+
+# Build Script Properties
+
+#system.exampleProperty=example Value.
+
+# Environment Variables
+env.TEAMCITY_JRE=C\:\\BuildAgent\\jre
+env.RESHARPER_CMD_ARGS=-s=warning
+
+#env.exampleEnvVar=example Env Value
+env.TEAMCITY_JRE=C\:\\BuildAgent\\jre
+ownPort=9090
+teamcity.dotnet.vstest.15.0=C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\TestAgent\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow\\vstest.console.exe
+teamcity.agent.build.checkoutDir.expireHours=744
+system.teamcity.agent.ensure.free.space=10gb
+system.teamcity.agent.ensure.free.temp.space=30gb
+```
+
 ### Teamcity pipelines
 
 **TeamCity Pipelines** is a CI/CD server designed to integrate seamlessly into a developer's workflow. It offers a **visual pipeline editor** that allows users to configure pipelines without needing to manually manage complex YAML files, though YAML configuration is also supported.
