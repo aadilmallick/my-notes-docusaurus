@@ -54,11 +54,9 @@ The Build Agent service can be installed either on the same server as the TeamCi
 2. **Configuration**: After installation, the Build Agent must be configured. This includes setting up the necessary tools and SDKs required for building your specific code, such as .NET SDK, JDK, PHP, etc. Essentially, the Build Agent acts as a local environment where all the build and compile processes occur.
 3. **Execution**: Once agents are set up, TeamCity can assign builds to them. The Build Agents check out the source code, compile it, and produce packages, thereby facilitating continuous integration and continuous delivery (CI/CD) workflows.
 
-A very important thing to understand is that TeamCity automatically looks at which build agent to use for which task, depending on the type of software and packages that each build configuration needs. 
+A very important thing to understand is that TeamCity automatically looks at which build agent to use for which task (this is called **agent requirements**), depending on the type of software and packages that each build configuration needs. 
 
-For example, a build configuration that uses NPM heavily will only use a build agent that has NPM and Node installed.
-
-TeamCity will understand how to choose that agent automatically by seeing if it has NPM installed via configuration management. 
+For example, a build configuration that needs to use NPM will only use a build agent that has NPM and Node installed. TeamCity will understand how to choose that agent automatically by seeing if it has NPM installed via configuration management. 
 
 
 ![](https://i.imgur.com/YYMJWo8.jpeg)
@@ -1333,6 +1331,40 @@ This section allows you to control whether the second option is available.
 
 Related article: [Working with Recipes](https://www.jetbrains.com/help/teamcity/working-with-meta-runner.html)
 
+#### Tools 
+
+In TeamCity, an agent tool is a type of plugin used only for distributing files to [build agents](https://www.jetbrains.com/help/teamcity/install-and-start-teamcity-agents.html). An agent tool can be a set of files or a binary distribution. Its classes are not loaded into the runtime.
+
+TeamCity allows you to install/remove additional tools on the server and distribute them to build agents on-demand.  
+In environments with many build agents, you can centralize distribution of configuration files (for example, if you want to distribute a custom configuration file/library to all agents that require it) or remove a tool on agents at once.
+
+The `Administration | Tools` page provides a unified interface to set up tools to be used by appropriate plugins. You can install different versions of a tool and/or change the default one. The tools will be automatically distributed to build agents that request them and used in the related runners.
+
+> [!NOTE]
+> Tools are specific software integrations you can install on teamcity agents so you don't have to install everything onto a build agent from scratch yourself.
+
+An agent downloads a tool before starting the first build which requires it. Once downloaded, the tool is stored on the agent so builds don't spend time on downloading it again.
+
+When editing settings of a build step that directly depends on a tool, you just need to select a specific version of this tool from the drop-down menu to let TeamCity know what exact tool should be delivered to an agent.
+
+> [!NOTE]
+> However, there are cases when an arbitrary build script needs a certain tool. In such case, you can reference a required tool via a `%teamcity.tool.<installed_tool_ID>%` parameter in the build step settings that support the input of parameters. 
+> 
+> You can also reference a tool in [values of build configuration parameters](https://www.jetbrains.com/help/teamcity/configuring-build-parameters.html) or in [agent requirements](https://www.jetbrains.com/help/teamcity/configuring-agent-requirements.html). 
+> 
+> - **agent requirement case**: For instance, in case with agent requirements, you can define a requirement of the type `exists` for a parameter with the name `%teamcity.tool.<installed_tool_ID>%`, and this will instruct TeamCity that the build requires the referenced tool. 
+
+Before starting a build, the TeamCity server scans all build steps' settings, finds all such tool references, and informs an agent what tools are required for the build.
+
+To check that the tool appears on the agent, look for `teamcity.tool.<installed_tool_ID>` in [configuration parameters reported by the agent](https://www.jetbrains.com/help/teamcity/predefined-build-parameters.html#Predefined+Agent+Build+Parameters) in the TeamCity UI.
+##### Maven tools
+
+1. Go to **admin** then to **tools**
+2. Select **Maven** and then download a new maven version.
+
+![](https://i.imgur.com/glADaGw.jpeg)
+
+If you follow these steps, now the agent will expose a `teamcity.tools.maven.3.9.16` parameter that points to the maven binary, so you can dynamically use that maven installation depending on if the build agent has that tool installed.
 
 #### SSH build steps
 
@@ -1355,7 +1387,42 @@ Here's the different types of ways you can do a build step that uses SSH somehow
 
 
 ![](https://i.imgur.com/dtUA8I0.jpeg)
+### Agents
 
+#### Intro
+
+
+
+Each agent can have a unique environment: architecture, operating system, installed tools, and so on. These properties define which builds an agent can run.
+
+Here are the rules of agents:
+
+- **can only run one build at a time**: An agent can run a single build at a time. The number of agents basically limits the number of parallel builds and environments in which your build processes are run.
+- **can only run on compatible builds**: An agent can run builds of any [compatible build configuration](https://www.jetbrains.com/help/teamcity/configuring-agent-requirements.html), which is defined by agent requirements on a build configuration.
+
+A TeamCity build agent contains [two processes](https://www.jetbrains.com/help/teamcity/configuring-build-agent-startup-properties.html): agent launcher (a Java process that launches the agent process) and agent (the main process for a build agent that runs as a child process for the agent launcher).
+
+#### Agent management and installation
+
+Here's the installation process for an agent:
+
+1. Go to your teamcity server **admin** page, then go to **agents**, then click on **install agent** and select a **full ZIP distribution**, which works on any machine.
+
+
+![](https://i.imgur.com/U1bEWde.jpeg)
+
+2. Download the configuration of the agent using the authentication token, which downloads a `.properties` file that you should register in your build agent.
+
+
+![](https://i.imgur.com/h8ghGkY.jpeg)
+
+
+
+![](https://i.imgur.com/WFZoDAy.jpeg)
+
+
+Once you've installed software into the agent
+#### Variables
 ### Teamcity pipelines
 
 **TeamCity Pipelines** is a CI/CD server designed to integrate seamlessly into a developer's workflow. It offers a **visual pipeline editor** that allows users to configure pipelines without needing to manually manage complex YAML files, though YAML configuration is also supported.
