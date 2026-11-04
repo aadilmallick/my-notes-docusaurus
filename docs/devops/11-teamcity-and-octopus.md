@@ -1391,8 +1391,6 @@ Here's the different types of ways you can do a build step that uses SSH somehow
 
 #### Intro
 
-
-
 Each agent can have a unique environment: architecture, operating system, installed tools, and so on. These properties define which builds an agent can run.
 
 Here are the rules of agents:
@@ -1421,7 +1419,20 @@ Here's the installation process for an agent:
 ![](https://i.imgur.com/WFZoDAy.jpeg)
 
 
-Once you've installed software into the agent
+3. SSH into the agent, unzip the agent ZIP bundle into the agent's home directory.
+4. Run the `agent.bat start` command to start the build agent.
+
+##### **disabling an agent**
+
+Enabling and disabling agents controls the flow of builds to a machine you still trust and manage. You switch this status [in the UI](https://www.jetbrains.com/help/teamcity/build-agents-configuration-and-maintenance.html#Enabling%2FDisabling+Agents+via+UI); for cloud agents, the corresponding action is Disable for maintenance.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-disable-agent.png)
+
+TeamCity distributes queued builds only to enabled agents. Disabling an agent does not stop the build that is currently running on it, so you can disable a machine and let it finish its work before you take it offline.
+
+> [!TIP]
+> A disabled agent still runs builds that are explicitly assigned to it, for example through [Custom Build](https://www.jetbrains.com/help/teamcity/running-custom-build.html). This makes disabling the usual way to pull an agent out of the build grid and reproduce an agent-specific problem on it without regular builds interfering.
+
 #### Variables
 ### Teamcity pipelines
 
