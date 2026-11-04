@@ -823,6 +823,31 @@ Switched to a new branch 'my_feature'
 **dealing with multiple VCS roots caveat**
 
 If your build configuration has more than one VCS root which support branch remote run, and you push changes to all of them, TeamCity will start one personal build with changes per each VCS root.
+
+#### Parameters
+
+Parameters are `name=value` pairs that you reference via the `%parameterName%` syntax in TeamCity settings and build scripts.
+
+```
+name=value
+```
+
+There are two ways to supply parameter values in teamcity:
+
+- **manually supply value**: The parameter `value` part can be a raw value (`release.number=2026.1`)
+- **reference another parameter**: or include a reference to another parameter (`system.tomcat.libs=%env.CATALINA_HOME%/lib/*.jar`), which just uses the value from that parameter
+
+> [!WARNING]
+> TeamCity interprets any text enclosed in percentage characters as a parameter reference (and potentially adds an [implicit agent requirement](https://www.jetbrains.com/help/teamcity/configuring-agent-requirements.html#Implicit+Requirements) if no such parameter exists). To avoid this behavior, double percentage characters. For example, if you want to pass `%Y%m%d%H%M%S` into the build, change it to `%%Y%%m%%d%%H%%M%%S`.
+
+TeamCity supports parameters of three types:
+
+- **Configuration Parameters** — parameters whose primary objective is to share settings within a build configuration. You can also use these parameters to customize a configuration that was created from a [template](https://www.jetbrains.com/help/teamcity/build-configuration-template.html) or uses a [recipe](https://www.jetbrains.com/help/teamcity/working-with-meta-runner.html
+	- **important**: TeamCity does not pass configuration parameters to a build process (that is, these parameters are not accessible by a build script engine).
+    
+- **Environment Variables** — parameters that start with the `env.` prefix. These parameters are passed to the process of a build runner similarly to the default env variables of a system.
+    
+- **System Properties** — parameters that start with the `system.` prefix, which the build agent supplies (see [[#Variables]]) TeamCity can pass parameters of this type to configuration files of certain runners as variables specific to a build tool.
 #### Build steps
 
 ##### Setting step execution conditions
