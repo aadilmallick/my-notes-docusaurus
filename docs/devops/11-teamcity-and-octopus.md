@@ -2452,7 +2452,15 @@ The `teamcity agent` commands family lets you manage agents, SSH into them, and 
 
 - `teamcity agent list`: lists all agents associated with your Teamcity server
 - `teamcity agent term <agent-id>`: SSH into a specific agent
+- `teamcity agent reboot <agent-id>`: lets you reboot an agent.
 - `teamcity agent exec <agent-id> <cmd>`: Execute a command within the context of an agent's terminal
+	- `--timeout`: set a timeout for the command, like `10m` for 10 minutes.
+
+```bash
+teamcity agent exec 1 "ls -la"
+teamcity agent exec Agent-Linux-01 "cat /etc/os-release"
+teamcity agent exec Agent-Linux-01 --timeout 10m -- long-running-script.sh
+```
 
 Validate Kotlin DSL configuration by running the TeamCity configuration generator:
 
