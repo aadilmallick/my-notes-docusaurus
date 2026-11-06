@@ -2606,8 +2606,113 @@ RHEL with gitlab runner with docker executor is unique because docker isn't very
 
 Here are all the reasons why using docker sucks on RHEL:
 
-So instead we use podman, which has out-of-the-box support with RHEL for linux containers.
+So instead we use podman, which has out-of-the-box support with RHEL for linux containers. Learn more about podman here: [[01-Docker#Podman]].
 
+Here are the numerous resources you can learn from besides this:
+
+- [How to Run GitLab Runner in a Podman Container](https://oneuptime.com/blog/post/2026-03-18-run-gitlab-runner-podman-container/view)
+- [Demo of Podman as a drop-in replacement for Docker in GitLab Runner - YouTube](https://www.youtube.com/watch?v=lpRI_NIJ3vQ&t=2s)
+- 
+
+**Phase 1 - setup**
+
+1. Update package manager for redhat
+
+```bash
+sudo dnf clean all
+sudo dnf update -y
+sudo reboot
+sudo dnf check-update
+```
+
+
+**Phase 2 - Install podman**
+
+1. Install podman and podman docker
+
+```bash
+# 1. install
+sudo dnf update -y
+sudo dnf install -y podman podman-docker
+
+# 2. verify
+podman info
+podman version
+
+docker ps
+```
+
+2. Enable and start the podman docker socket
+
+```bash
+sudo systemctl enable --now podman.socket
+```
+
+**Phase 3 - install gitlab runner**
+
+1. Create a new **instance runner** by going to **admin** then to **settings** then to **CI/CD** then to **runners**.
+2. Create an instance runner and get the token.
+3. In the RHEL instance, run this command to install the gitlab runner software
+
+```bash
+curl -L \
+https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh \
+| sudo bash
+
+sudo dnf install -y gitlab-runner
+
+gitlab-runner --version
+```
+
+4. Restrict access to the gitlab runner configuration
+
+```bash
+sudo chmod 700 /home/gitlab-runner
+
+sudo chown root:gitlab-runner \
+  /etc/gitlab-runner/config.toml
+
+sudo chmod 640 \
+  /etc/gitlab-runner/config.toml
+ 
+# verify Only administrators and the runner service should have access.
+ ls -l /etc/gitlab-runner/config.toml
+```
+
+5. Register the gitlab runner
+
+```bash
+sudo gitlab-runner register
+```
+
+6. Manually change the configuration to the following:
+	- **gitlab instance**: point to self-hosted gitlab instance URL
+	- **executor**: choose docker executor, configure executor to point to podman socket rather than docker socket.
+
+```bash
+sudo vi /etc/gitlab-runner/config.toml
+```
+
+```bash
+[[runners]]
+  name = "ashdevcilx02"
+  url = "https://gitlab.compusearch.com/"
+  token = "xxxxxxxx"
+  executor = "docker"
+
+  [runners.docker]
+    image = "alpine:latest"
+    privileged = true
+    tls_verify = false
+    disable_cache = false
+```
+
+7. Reload the runner and verify. If nothing bad happens, you're all good to go.
+
+```bash
+sudo systemctl restart gitlab-runner
+sudo gitlab-runner verify
+```
 ## Security policies and control
 
 ### Compliance policies
