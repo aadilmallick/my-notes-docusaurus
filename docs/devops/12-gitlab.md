@@ -2652,6 +2652,10 @@ sudo systemctl enable --now podman.socket
 
 1. Create a new **instance runner** by going to **admin** then to **settings** then to **CI/CD** then to **runners**.
 2. Create an instance runner and get the token.
+
+> [!NOTE]
+> It's extremely important that you notice that instance runner tokens start with `glrt-...`, which stands for "gitlab runner token".
+
 3. In the RHEL instance, run this command to install the gitlab runner software
 
 ```bash
@@ -2694,17 +2698,41 @@ sudo vi /etc/gitlab-runner/config.toml
 ```
 
 ```bash
-[[runners]]
-  name = "ashdevcilx02"
-  url = "https://gitlab.compusearch.com/"
-  token = "xxxxxxxx"
-  executor = "docker"
 
+concurrent = 1
+check_interval = 0
+connection_max_age = "15m0s"
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "ashdevcilx02.compusearch.com"
+  url = "https://gitlab.compusearch.com/"
+  id = 10
+  environment = ["FF_NETWORK_PER_BUILD=1"]
+  token = "glrt-..."
+  token_obtained_at = 2026-10-28T19:24:04Z
+  token_expires_at = 0001-01-01T00:00:00Z
+  executor = "docker"
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+    [runners.cache.s3]
+      AssumeRoleMaxConcurrency = 0
+    [runners.cache.gcs]
+    [runners.cache.azure]
   [runners.docker]
-    image = "alpine:latest"
-    privileged = true
     tls_verify = false
+    image = "alpine:latest"
+    host = "unix:///run/podman/podman.sock"
+    privileged = false
+    disable_entrypoint_overwrite = false
+    oom_kill_disable = false
     disable_cache = false
+    volumes = ["/cache"]
+    volume_keep = false
+    shm_size = 0
 ```
 
 7. Reload the runner and verify. If nothing bad happens, you're all good to go.
