@@ -1103,6 +1103,299 @@ Vulnerability flaws that appear with a blue icon means that Veracode Fix can aut
 
 ![](https://i.imgur.com/J6RvG64.jpeg)
 
+
+## Qodana
+
+Qodana is a SAST tool that has great integrations with CI/CD and IDEs. Qodana is delivered as a **Docker image**, making it portable and compatible with virtually any CI system, such as _GitHub Actions_, _GitLab CI/CD_, and _TeamCity_
+
+
+Here are all the tools Qodana offers:
+
+- **CLI**: CLI for running SAST on your codebase
+- **CI/CD**: actions for Github actions, Gitlab workflows, Teamcity, Jenkins, etc.
+- **IDE plugin**: run Qodana SAST analysis from your IDE
+
+You control the analysis through a `qodana.yaml` configuration file placed in your project root. This file tracks your settings, including enabled inspections and excluded directories
+
+ Qodana provides a visual dashboard to monitor project state, filter results, and track progress over time. You can even click an "Open in IDE" button to jump directly to specific issues within your local _IntelliJ IDEA_ project
+ 
+
+
+### Configuration
+
+Qodana supports two major places to configure behavior:
+
+1. **`qodana.yaml`**
+2. The thing launching Qodana, such as Qodana CLI, Docker, your IDE, or CI/CD system.
+
+JetBrains specifically recommends YAML for configuration that would otherwise produce long commands, particularly inspection settings and `bootstrap`. 
+
+Tool-level settings can override settings from `qodana.yaml`
+
+> [!NOTE]
+> Think of `qodana.yaml` as the configuration describing what Qodana should do, and the CLI, CI/CD, or IDE as the execution medium for executing Qodana.
+
+#### Basics
+
+This is a basic `qodana.yaml`:
+
+- `version`: uses version 1.0 for the configuration schema
+- `linter`: points to the `jetbrains/qodana-jvm:2026.2` as the image for running SAST analysis on a JVM project
+
+```yaml title="qodana.yaml"
+version: "1.0"
+
+linter: jetbrains/qodana-jvm:2026.2
+
+profile:
+  name: qodana.starter
+```
+
+Here is some terminology:
+
+- **linter**: the Qodana analysis environment appropriate for your technology stack, 
+
+> [!NOTE]
+> You use a JVM linter image for JVM projects, and node linter image for node projects.
+
+- **profile**: a collection of inspections, patterns, and security rules to test against.
+- **inspection**: a single vulnerability to inspect, which contains patterns and rules.
+
+
+> [!NOTE]
+> In Qodana, a **profile** is a customizable set of **inspections** and rules applied to your files
+> 
+> - **Customization:** You can define which checks are active, disable specific categories, or exclude entire folders (like test directories) from analysis to fit your team's standards
+> - **Automation:** These profile adjustments are automatically reflected in your `qodana.yaml`, ensuring that every CI run follows your customized ruleset
+
+Qodana provides these built-in profiles to use:
+
+- `qodana.starter`: small ruleset, basic security tests
+- `qodana.recommended`: larger ruleset, a more comprehensive profile intended for CI/CD and largely corresponding to the default inspection profile
+
+You can then customize specific inspections in profiles:
+
+```yaml
+profile:
+  name: qodana.recommended
+
+inspections:
+  - inspection: SomeInspectionId
+    enabled: false
+```
+
+Think of profiles and linters in this hierarchy:
+
+```
+LINTER
+qodana-jvm
+    │
+    └── PROFILE
+        qodana.recommended
+            │
+            ├── Inspection A
+            ├── Inspection B
+            ├── Inspection C
+            ├── Inspection D
+            └── ...
+```
+
+#### Bootstrapping
+
+For applications 
+### CLI
+
+#### Installation
+
+Here is how to install on Windows:
+
+```cmd
+scoop bucket add jetbrains https://github.com/JetBrains/scoop-utils
+scoop install qodana
+```
+
+
+Here is how to install on Mac:
+
+```bash
+brew install jetbrains/utils/qodana
+```
+
+How to install on Linux:
+
+```bash
+curl -fsSL https://jb.gg/qodana-cli/install | bash
+```
+
+#### Setup
+
+To run SAST in the cloud, you need a `QODANA_TOKEN` env var to authenticate with qodana:
+
+```bash
+QODANA_TOKEN="***********************************MzHc"
+qodana scan
+```
+
+Then the dashboard results will appear in the cloud after the scan.
+
+### IDE plugin
+
+Here is how to use the Jetbrains IDE plugin with Qodana:
+
+1. Navigate to the Problems tool window and click the Qodana tab4
+
+![](https://qodana.cloud/assets/problems-tool-window-B1wwjPI_.png)
+
+2. Log in or try locally and then paste in the qodana token, then add the `qodana.yaml` to the project root.
+
+![](https://qodana.cloud/assets/project-token-input-MuJRZ5Z9.png)
+
+3. After the scan runs, click on **Open Qodana report in browser**
+
+
+![](https://i.imgur.com/jo28i5h.jpeg)
+
+### CI/CD
+
+CI/CD in Qodana allows you to shift security left:
+
+```
+                 Developer
+                     |
+                     v
+                 Git push
+                     |
+                     v
+               CI pipeline
+                     |
+                     v
+              Qodana analysis
+                     |
+           +---------+---------+
+           |                   |
+        passes              violates
+      quality gate         quality gate
+           |                   |
+           v                   v
+       continue               fail
+```
+
+#### Gitlab
+
+```yaml
+#-------------------------------------------------------------------------------#
+#        Discover additional configuration options in our documentation         #
+#               https://www.jetbrains.com/help/qodana/github.html               #
+#-------------------------------------------------------------------------------#
+
+name: Qodana
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - testing-zone/DVPS-3364-3365
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2026.2
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+        with:
+          # When pr-mode is set to true, Qodana analyzes only the files that have been changed
+          pr-mode: false
+          use-caches: true
+          post-pr-comment: true
+          use-annotations: true
+          # Upload Qodana results (SARIF, other artifacts, logs) as an artifact to the job
+          upload-result: false
+          # quick-fixes available in Ultimate and Ultimate Plus plans
+          push-fixes: 'none'
+```
+
+#### GItlab
+
+```yaml
+#-------------------------------------------------------------------------------#
+#        Discover additional configuration options in our documentation         #
+#              https://www.jetbrains.com/help/qodana/gitlab.html                #
+#-------------------------------------------------------------------------------#
+
+include:
+  - component: $CI_SERVER_FQDN/qodana/qodana/qodana-gitlab-ci@v2026.2
+    inputs:
+      # When mr-mode is set to true, Qodana analyzes only the files that have been changed
+      mr-mode: false
+      use-caches: true
+      post-mr-comment: true
+      # Upload Qodana results (SARIF, other artifacts, logs) as an artifact to the job
+      upload-result: false
+      # quick-fixes available in Ultimate and Ultimate Plus plans
+      push-fixes: 'none'
+
+qodana:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "testing-zone/DVPS-3364-3365"
+```
+
+#### Teamcity
+
+```kt
+import jetbrains.buildServer.configs.kotlin.*  
+import jetbrains.buildServer.configs.kotlin.buildFeatures.perfmon  
+import jetbrains.buildServer.configs.kotlin.buildSteps.qodana  
+import jetbrains.buildServer.configs.kotlin.triggers.vcs  
+import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot  
+  
+version = "2022.10"  
+  
+project {  
+  vcsRoot(ProjectVcsRoot)  
+  buildType(Build)  
+}  
+  
+object Build : BuildType({  
+  name = "Build"  
+  vcs {  
+    root(ProjectVcsRoot)  
+  }  
+  steps {  
+    qodana {  
+      name = "Qodana Step"  
+      reportAsTests = true  
+      linter = jvm {}  
+    }  
+  }  
+  triggers {  
+    vcs {}  
+  }  
+  features {  
+    perfmon {}  
+  }  
+})  
+  
+object ProjectVcsRoot : GitVcsRoot({  
+  name = "https://gitlab.compusearch.com/devops/teamcityci/prismci.git#refs/heads/master"  
+  url = "https://gitlab.compusearch.com/devops/teamcityci/prismci.git"  
+  branch = "refs/heads/master"  
+  branchSpec = """  
+    refs/heads/testing-zone/DVPS-3364-3365  """.trimIndent()  
+})
+```
 ## DevSecOps pipeline creation
 
 ### Gitlab
