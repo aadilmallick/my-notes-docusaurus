@@ -1108,6 +1108,9 @@ Vulnerability flaws that appear with a blue icon means that Veracode Fix can aut
 
 Qodana is a SAST tool that has great integrations with CI/CD and IDEs. Qodana is delivered as a **Docker image**, making it portable and compatible with virtually any CI system, such as _GitHub Actions_, _GitLab CI/CD_, and _TeamCity_
 
+> [!IMPORTANT]
+> Running Qodana locally requires the Docker engine to be on.
+
 
 Here are all the tools Qodana offers:
 
@@ -1158,7 +1161,7 @@ Here is some terminology:
 > [!NOTE]
 > You use a JVM linter image for JVM projects, and node linter image for node projects.
 
-- **profile**: a collection of inspections, patterns, and security rules to test against.
+- **profile**: a set of inspections and the files they are applied to, representing the full security testing and linting procedure against an application.
 - **inspection**: a single vulnerability to inspect, which contains patterns and rules.
 
 
@@ -1203,7 +1206,40 @@ qodana-jvm
 #### Bootstrapping
 
 For applications 
+
+### Dashboard
+
+The Qodana dashboard has several things you can do with it.
+
+#### Filters
+
+Here's an example of creating a filter and then saving the filter so you can reuse it later.
+
+
+![](https://i.imgur.com/Vaj3Dsw.jpeg)
+
+#### Inspections and profile
+
+You can enable or disable inspections from the dashboard by looking at the found problems and then clicking on **More actions** and then disabling the inspection category or the specific inspection.
+
+
+![](https://i.imgur.com/Urp51kv.jpeg)
+
+You can edit the profile in the dashboard directly and then download the modified `qodana.yaml` to put that into your project root.
+
+> [!TIP]
+> If you have the Qodana IntelliJ IDE extension installed, edits int he UI automatically update the `qodana.yaml` in your IDE.
+
+#### Comparing against builds
+
+The UI stores all previous scans and scan history, so you can compare scan histories to see what bugs got fixed or introduced.
+
+
+![](https://i.imgur.com/AoUBjS6.jpeg)
+
 ### CLI
+
+The CLI is just a wrapper around the Qodana Docker image that runs the container against a profile.
 
 #### Installation
 
