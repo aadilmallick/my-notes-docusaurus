@@ -1138,12 +1138,13 @@ Tool-level settings can override settings from `qodana.yaml`
 > [!NOTE]
 > Think of `qodana.yaml` as the configuration describing what Qodana should do, and the CLI, CI/CD, or IDE as the execution medium for executing Qodana.
 
-#### Basics
+#### Basics - linter, profiles, inspections
 
 This is a basic `qodana.yaml`:
 
 - `version`: uses version 1.0 for the configuration schema
-- `linter`: points to the `jetbrains/qodana-jvm:2026.2` as the image for running SAST analysis on a JVM project
+- `linter`: points to the `jetbrains/qodana-jvm:2026.2` as the image for running SAST analysis on a JVM project'
+- `profile`: the specific profile to use for the SAST setup. In this case, we use the starter profile.
 
 ```yaml title="qodana.yaml"
 version: "1.0"
@@ -1173,19 +1174,10 @@ Here is some terminology:
 
 Qodana provides these built-in profiles to use:
 
+- `empty`: empty profile containing no inspections, which you can use to fully customize and use manual configuration.
+- `qodana.sanity`: very small sanity checks.
 - `qodana.starter`: small ruleset, basic security tests
 - `qodana.recommended`: larger ruleset, a more comprehensive profile intended for CI/CD and largely corresponding to the default inspection profile
-
-You can then customize specific inspections in profiles:
-
-```yaml
-profile:
-  name: qodana.recommended
-
-inspections:
-  - inspection: SomeInspectionId
-    enabled: false
-```
 
 Think of profiles and linters in this hierarchy:
 
@@ -1206,6 +1198,8 @@ qodana-jvm
 #### Bootstrapping
 
 For applications 
+
+#### Profiles and inspections
 
 ### Dashboard
 
@@ -1273,6 +1267,29 @@ qodana scan
 ```
 
 Then the dashboard results will appear in the cloud after the scan.
+
+You can also set up completions like so:
+
+```bash
+qodana completion bash
+qodana completion powershell
+qodana completion zsh
+```
+
+#### `qodana init`
+
+Running `qodana init` in a project will set up the `qodana.yaml` for you, choosing the linter image and configuration version
+
+#### `qodana scan`
+
+```bash
+qodana scan --show-report --port 8888 --print-problems
+```
+
+- `--show-report`: shows the qodana dashboard in localhost
+- `--port <port-number>`: hardcodes the port for the qodana dashboard
+- `--profile <profile>`: the specific profile to use
+- `--print-problems`: if set, then shows all inspections from the profile.
 
 ### IDE plugin
 
