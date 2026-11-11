@@ -1120,8 +1120,84 @@ Here are all the tools Qodana offers:
 
 You control the analysis through a `qodana.yaml` configuration file placed in your project root. This file tracks your settings, including enabled inspections and excluded directories
 
- Qodana provides a visual dashboard to monitor project state, filter results, and track progress over time. You can even click an "Open in IDE" button to jump directly to specific issues within your local _IntelliJ IDEA_ project
+ - Qodana provides a visual dashboard to monitor project state, filter results, and track progress over time. Y
+ - ou can even click an "Open in IDE" button to jump directly to specific issues within your local _IntelliJ IDEA_ project
  
+The main differences between the **Qodana Community** (free) and **Qodana Ultimate** plans revolve around the breadth of inspection coverage, advanced security features, and enterprise-grade support.
+
+**Qodana Community (Free)**
+
+- **Core Inspection Set:** Provides access to the essential, open-source static analysis inspections derived from _JetBrains_ IDEs.
+- **Standard CI/CD Integration:** Ideal for open-source projects or smaller teams that need basic code quality checks without complex security requirements.
+- **Limited Scope:** Focuses on general code health, structural issues, and best practices that are part of the standard _IntelliJ_ inspection profiles.
+
+**Qodana Ultimate**
+
+- **Comprehensive Inspections:** Unlocks the full suite of static analysis tools, including deep inspections that cover a wider range of frameworks and languages.
+- **Advanced Security & Compliance:** Includes specialized security features, such as **OWASP taint analysis** and more rigorous checks to help meet professional and enterprise security standards.
+- **Baseline & Filtering:** Allows for more advanced reporting, such as setting a "baseline" to ignore legacy issues and focus only on new code quality regressions.
+- **Enterprise Features:** Designed for teams and businesses, offering enhanced support, better integration with enterprise CI/CD pipelines, and capabilities often required for compliance or regulated environments.
+
+In summary, while the **Community** plan is a powerful tool for maintaining general code quality, the **Ultimate** plan is built for professional teams that require deeper security vulnerability detection, advanced compliance reporting, and broader language support.
+
+### Basics
+
+#### Project tokens, CI/CD
+
+#### Tokens
+
+Each project in **Qodana Cloud** requires a specific **unique token** to establish a connection with your CI/CD pipeline, local CLI, or IDE to a specific Qodana project. 
+
+When you create a new project in Qodana Cloud, it generates this token so that your CI server, such as **GitHub Actions**, can authenticate and successfully upload the results of your code quality scans
+
+once you connect your local qodana scans to a qodana project in the cloud via a project token, qodana cloud will store the scan history for you.
+
+
+
+![](https://i.imgur.com/cgf9tJ7.jpeg)
+
+Here is how to create a new qodana project in qodana cloud and then connect it to your CI/CD pipeline in Github
+
+1. Go to qodana cloud and click on **create new project**, then put in your github repo URL
+
+
+![](https://i.imgur.com/ZVoMDZX.jpeg)
+
+
+2. Copy the qodana project token
+3. Set up the CI pipeline in Github which uses the `qodana` action
+
+```yaml
+name: Qodana
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main bks]
+  push:
+    branches:
+      - master
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2023.3
+        with:
+          args: --apply-fixes
+          pr-mode: false
+          push-fixes: pull-request
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+```
+
+4. Add a `secrets.QODANA_TOKEN` repository secret
+
+
+![](https://i.imgur.com/HRGILST.jpeg)
 
 
 ### Configuration
@@ -1137,6 +1213,7 @@ Tool-level settings can override settings from `qodana.yaml`
 
 > [!NOTE]
 > Think of `qodana.yaml` as the configuration describing what Qodana should do, and the CLI, CI/CD, or IDE as the execution medium for executing Qodana.
+
 
 #### Basics - linter, profiles, inspections
 
@@ -1205,6 +1282,32 @@ For applications
 
 The Qodana dashboard has several things you can do with it.
 
+
+
+#### **SARIF**
+
+**SARIF** is industry-standard file format used to exchange static analysis results between different tools.
+
+After _Qodana_ completes a code scan, it generates a **SARIF** file containing the analysis findings, which is then pushed to the cloud dashboard for visualization and integration with the IDE plugin.
+
+#### Baseline and quality gate
+
+By moving existing issues into the **baseline**, you can effectively hide them from current reports, allowing you to configure a **quality gate** that focuses exclusively on identifying and blocking newly introduced issues in your code
+
+A **quality gate** is a configuration feature within a CI (Continuous Integration) pipeline, such as in _Qodana_, used to enforce code standards before changes are merged into the main codebase.
+
+It works by:
+
+- **Defining criteria:** You set specific thresholds for code quality, such as a limit on the number of new issues allowed or minimum required code coverage
+- **Blocking merges:** If the scan identifies new issues that violate these established thresholds, the pipeline will cause the build to fail, preventing the problematic code from being merged.
+- **Focusing on new code:** When combined with a **baseline**—which hides pre-existing technical debt—a quality gate ensures that developers only focus on and address newly introduced problems in their current work.
+
+To set a **quality gate** in _Qodana_, follow these steps within your project's configuration:
+
+1. **Define the Baseline:** Before configuring the gate, it is recommended to move existing technical debt into a **baseline**. This ensures the quality gate only blocks builds based on _new_ issues rather than pre-existing ones
+2. **Configure Criteria:** Navigate to the quality gate settings where you can define thresholds based on various criteria, such as specific **issue severity** (e.g., critical or high) or required **code coverage** percentages
+3. **Apply to Pipeline:** Once configured, the quality gate integrates into your CI/CD pipeline. If a scan detects new issues that exceed your set thresholds, the pipeline will cause the build to fail, effectively preventing the code from being merged
+
 #### Filters
 
 Here's an example of creating a filter and then saving the filter so you can reuse it later.
@@ -1259,7 +1362,7 @@ curl -fsSL https://jb.gg/qodana-cli/install | bash
 
 #### Setup
 
-To run SAST in the cloud, you need a `QODANA_TOKEN` env var to authenticate with qodana:
+To run SAST in the cloud, you need a `QODANA_TOKEN` env var to authenticate with a specific qodana project:
 
 ```bash
 QODANA_TOKEN="***********************************MzHc"
@@ -1333,7 +1436,7 @@ CI/CD in Qodana allows you to shift security left:
        continue               fail
 ```
 
-#### Gitlab
+#### Github
 
 ```yaml
 #-------------------------------------------------------------------------------#
@@ -1378,6 +1481,45 @@ jobs:
           push-fixes: 'none'
 ```
 
+Here's another example:
+
+```yaml
+name: Qodana
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main bks]
+  push:
+    branches:
+      - master
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2023.3
+        with:
+          args: --apply-fixes
+          pr-mode: false
+          push-fixes: pull-request
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+```
+
+Here are all the args you can pass:
+
+- `args`: the command line arguments to pass
+	- `--apply-fixes`: will try to apply automatic fixes to findings
+- `pr-mode`: boolean, where if set to true, will only analyze changed files in the commit, and if false, analyzes entire codebase.
+- `push-fixes`: if the CLI command was run with `--apply-fixes`, will submit those code changes for fixing those findings as a pull request.
 #### GItlab
 
 ```yaml
