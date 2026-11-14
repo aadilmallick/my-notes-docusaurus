@@ -54,6 +54,8 @@ The SEC sets rules and requirements that affect everyone participating in stock 
 
 #### All about stocks
 
+Here's some terminology
+
 - **Free/public float**: Stock that has been released to the market and is traded publicly through an exchange.
 - **Stock splits**: If a company wishes to make its stock price more accessible to investors, it will conduct a [stock split](https://learn.robinhood.com/articles/5Bc1M9bKsFQeJ317f9AqYO/what-is-a-stock-split/). This will not change the [market capitalization](https://learn.robinhood.com/articles/GByCbiOluG2kcWs1AF6m5/what-is-market-capitalization) of the company — or the overall value of the shares you own — but it will increase the number of shares available.
 - **Stockholders equity**: In its most basic form, it is the assets that remain in a company after covering all the bills (liabilities). This metric can be used to get a better understanding of the value of the stock.
@@ -61,8 +63,67 @@ The SEC sets rules and requirements that affect everyone participating in stock 
 - **Broker**: A [broker](https://learn.robinhood.com/articles/3AalDDtYuWx4fp46eEZpxq/what-is-a-broker) will execute trades on behalf of an investor/trader and typically receives a commission in return.
 - **Market/limit/stop orders**: When opening a trade, an investor needs to choose between a range of order types. A market order is executed at the next available price and can be risky if the stock price has a wide spread (the difference between the buyers and sellers are offering). A [limit order](https://learn.robinhood.com/articles/SlMQuo6tjbVxOePMmAnCG/what-is-a-limit-order) is an order to buy or sell a security at or better than a specified price – this can mean that the order may not always get filled, particularly if the market moves quickly. Stop orders allow investors to set a trigger price in the system, which will only execute in the event the price hits the desired level. When this stop price is reached, the order automatically turn into a market order.
 
+here are the attributes of a stock:
 
-#### Dividends
+##### Price & Daily Trading Activity
+
+- **At Close ($0.4080):** The final price a share traded for when the main stock market closed at 4:00 PM EST.
+    
+- **After Hours ($0.4180):** Trading that happens via electronic networks after 4:00 PM EST. Volume is thin, so prices swing easily.
+    
+- **Previous Close ($0.4239):** The closing price from the prior trading day. Daily percentage gains/losses (`-3.75%`) are measured against this number.
+    
+- **Open ($0.4200):** The price of the very first trade when the market opened at 9:30 AM EST.
+    
+- **Bid ($0.4050 x 100):** The highest price a buyer is currently willing to pay (`$0.4050`) and how many shares they want (`100`).
+    
+- **Ask ($0.3749 x 100):** The lowest price a seller is willing to accept. _(Note: Normally the Ask is higher than the Bid; seeing an Ask lower than the Bid after hours reflects stale/frozen order book quotes on an illiquid penny stock)._
+    
+- **Day's Range ($0.3600 - $0.4200):** The lowest and highest prices the stock traded at during today's regular session.
+    
+- **52 Week Range ($0.3600 - $9,072.0000):** The lowest and highest prices over the past year (adjusted for reverse stock splits).
+    
+
+##### Volume & Liquidity
+
+- **Volume (354,838):** Total number of shares bought and sold today.
+    
+- **Avg. Volume (716,002):** Average daily shares traded over the last 3 months. Higher volume means higher **liquidity** (easier to buy/sell quickly without moving the price).
+    
+
+##### Valuation & Risk Metrics
+
+- **Market Cap ($307,031):** Total market value of the entire company (`Share Price × Total Outstanding Shares`). Under $300M is a _micro-cap_; under $50M is a _nano-cap_. At $307k, GMEX is exceptionally tiny and risks Nasdaq delisting if it stays below $1.00.
+    
+- **Beta (5.85):** Measures how volatile the stock is compared to the overall market (S&P 500 = `1.0`). A Beta of `5.85` means GMEX is roughly **5.85x more volatile** than the broader market.
+    
+- **PE Ratio (TTM) (`--`):** Price-to-Earnings ratio (`Share Price ÷ Earnings Per Share`) over the **Trailing Twelve Months (TTM)**. It shows how much investors pay for $1 of profit. It is blank (`--`) because GMEX is losing money.
+    
+- **EPS (TTM) (-$1,013.18):** **Earnings Per Share**—the company's net profit (or loss) over the past 12 months divided by the number of shares. Negative EPS means the company is unprofitable.
+    
+- **Earnings Date (est.) (Nov 2, 2026):** The estimated date the company releases its quarterly financial report.
+    
+- **1y Target Est ($5.05):** The average 12-month price forecast from Wall Street analysts covering the stock (often outdated after penny-stock splits).
+    
+
+##### Financial Highlights
+
+- **Profit Margin (0.00%):** Percentage of revenue kept as actual profit after all expenses.
+    
+- **Return on Assets / Equity (-5.91% / -91.49%):** How efficiently the company uses its assets and shareholder money to generate profit (negative = burning capital).
+    
+- **Revenue (TTM) ($5.61M):** Total top-line sales brought in over the past 12 months.
+    
+- **Net Income Avi to Common (-$17.28M):** Bottom-line profit or loss left for common shareholders after all costs, taxes, and debts.
+    
+- **Total Cash (mrq) ($26.59M):** Cash on hand in the **Most Recent Quarter (MRQ)**.
+    
+- **Total Debt/Equity (mrq) (140.90%):** Compares total debt to shareholder equity—over 100% means the company relies more on debt than shareholder equity to finance itself.
+    
+- **Levered Free Cash Flow (ttm) ($3.09M):** Cash left over after paying operating expenses, capital expenditures, and debt obligations.
+
+
+##### Dividends
 
 A **dividend** is a cash payment made by a company to its shareholders out of its profits, as a reward for investors holding stocks.
 
@@ -74,13 +135,35 @@ A **dividend** is a cash payment made by a company to its shareholders out of it
 
 ![](https://i.imgur.com/6vdqBCZ.jpeg)
 
-As the share price keeps going up while the dividend stays constant, then dividend yield drops, which is generally true year to year.
+
+$$\text{Dividend Yield} = \left( \frac{\text{Annual Dividend Per Share}}{\text{Current Share Price}} \right) \times 100$$
+
+
+As the share price keeps going up while the dividend percentage stays constant, then dividend yield drops, which is generally true year to year.
 
 If a stock has a dividend yield of 4% and priced at $100 per share, that means you'll be paid a $4 dividend per share per year.
 
 > [!NOTE]
+> Because the stock price is in the denominator, **yield moves in the opposite direction of the stock price**. If a company pays a $1 dividend on a $20 stock, the yield is **5%**. If the stock crashes to $5 and the dividend hasn't been cut yet, the yield spikes to **20%**.
+
+**Signals Dividend Yield Sends to Investors**
+
+- **0% (No Dividend):** Common for young, fast-growing tech or robotics companies. It signals management believes reinvesting every dollar back into R&D and growth creates more value than handing cash to shareholders.
+    
+- **2% – 5% (Healthy / Mature):** The sweet spot for established, profitable blue-chip companies (e.g., utilities, consumer staples, banks). Signals steady cash flow and financial stability.
+    
+- **6% – 10%+ (High Yield / Caution):** Often found in Real Estate Investment Trusts (REITs) or energy pipelines, which are legally or structurally designed to pay out cash. Outside those sectors, it signals the market expects the stock price to fall or the dividend to be cut soon.
+    
+- **15%+ or Triple Digits (Distressed / Data Error):** Known as a **Yield Trap**. It signals severe financial distress, an imminent dividend suspension, or—as with GMEX—broken post-split accounting data.
+
+> [!NOTE]
 > Avoid **dividend traps**, which is investing in stocks with a 5%+ dividend yield, because that means they're just focused on attracting more shareholders rather than investing the profits back into R&D for the company, meaning that the company's growth will likely stall if they have a high dividend yield.
 
+**tradeoffs of dividend investing**
+
+- **Pros:** Predictable passive cash flow; lower volatility than non-dividend growth stocks; compounding returns if you reinvest dividends (DRIP).
+    
+- **Cons:** Dividends are **not free money**—on the payout date (ex-dividend date), the stock's price mechanically drops by the exact amount of the dividend paid; dividends are taxed as income in the year you receive them; high-paying companies often grow slower because they aren't reinvesting their profits.
 ### Fundamental vs technical investors
 
 - **fundamental investor**: more simple strategy, pick a stock and hold it for a longer time
@@ -502,7 +585,11 @@ But in reality, a higher fee does **not** equal higher performance.
 - **High fees actively erode compounding wealth from day one.** On a $100,000 balance, a 1% fee costs $1,000 _every single year_ just in management fees, regardless of whether the fund goes up or down. Over a 10-year FIRE horizon, that fee drag compounded destroys tens of thousands of dollars in gains.
 
 
+#### ETF strategy
 
+Here's a couple of good strategies:
+
+- **vanguard strategy**: 80% VTI or VTSAX or VOO, 20% VEU
 
 
 ### Investment strategy
