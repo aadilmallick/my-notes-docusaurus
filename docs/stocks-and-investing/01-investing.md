@@ -1,24 +1,88 @@
 
 ## Investment basics
 
-### terminology
+### Intro stock market
 
+#### terminology
+
+- **investment**: An investment is an asset bought by an individual or organization with the expectation that it will generate some future income or profit—Examples of investments may include stocks and real estate.
+- **stock market**: The stock market is where buyers and sellers come together to trade shares in eligible companies.
 - **market cap**: the total value of a company in the market, found by multiplying its stock price by the number of shares
 - **index**: A group of preselected investments used to measure the performance of a market sector, like DOW, NASDAQ and SP500
 - **blue chip stock**: a well-established company stock that has reliable performance over decades
 - **penny stock**: a stock you can buy at a low price and is considered high risk
+- **IPO**: If a private company wants to raise money, it may agree to sell a portion of its ownership on the stock market. This is what happens during an [initial public offering](https://learn.robinhood.com/articles/6UsdUrlnUvxiDpDT4D2bup/what-is-an-initial-public-offering-ipo) (“IPO”). If an existing public company wants to raise money it may do so through a secondary public offering.
 
-#### What to invest in based on market cap
 
-Based on market cap, you have these categories:
+#### Stock market basics
 
-- **micro cap**: companies valued at less than $300M in the stock market
-	- Investing in micro cap companies is high risk high reward, since they're considered as penny stocks.
-- **small cap**: companies valued from $300M - $2B in the stock market
-- **large cap**: companies valued over $10B
-	- Investing in large cap companies is low risk low reward, because you will not see much growth from larger companies.
+[Stocks](https://learn.robinhood.com/articles/6FKal8yK9kk22uk65x3Jno/what-is-a-stock/) are bought and sold on stock markets, which bring together buyers and sellers of shares in publicly traded companies. 
 
-The reason
+Stock markets operate kind of like auctions, with potential buyers naming the highest price they’re willing to pay (“[the bid](https://learn.robinhood.com/articles/4ykJfxcn2PhPUIDIzprLqL/what-is-a-bid)”) and potential sellers naming the lowest price they’re willing to accept (“[the ask](https://learn.robinhood.com/articles/6ttKzSPbxOq6P32lBN7IF0/what-is-an-ask)”).
+
+![](https://images.ctfassets.net/lnmc2aao6j57/1R1TG8XToyDVx6lihZZYtJ/2674d82f46f2090e9527529ceda63462/info-stock_market-desktop_mobile.svg)
+
+The actual execution of a trade price will be somewhere at or between the bid and the ask. 
+
+> [!NOTE]
+> Trades can be placed by stockbrokers, usually on behalf of portfolio managers or individual investors like you.
+
+The primary role of the stock market is to bring buyers and sellers together to negotiate the trade of stocks. To determine the price, a stock market operates kind of like an auction.
+
+- **Buyers want to pay the lowest price possible.** Stockbrokers who want to buy (or who represent customers who want to buy) can bid a price they’re willing to pay for a stock. The highest price becomes the “Best Bid.”
+- **Sellers want to sell at the highest price**. Owners of stock or their stockbrokers can show their willingness to sell by placing an [ask](https://learn.robinhood.com/articles/6ttKzSPbxOq6P32lBN7IF0/what-is-an-ask), which is the price they’re willing to sell a stock for. The lowest price becomes the “Best Ask.”
+
+The difference between the Best Bid and Best Ask is called the “[Spread](https://learn.robinhood.com/articles/VDbJTURZuyVyHvvfC7FA0/what-is-a-spread).” The two sides negotiate to meet in the middle, and the intermediary who executes the trade takes the difference as their fee.
+
+As you follow a stock, you’ll notice the share price moves. The share price can change frequently based on the number of investors looking to buy or sell the stock and the number of trades that happen.
+
+Here are some of the key players you should know about:
+
+- **Retail investors** like you can buy or sell individual stocks through your brokerage account. When you place an order, it’s sent to exchanges where the trades are executed.
+- **Stockbrokers** are “registered representatives” who have gone through training and passed a licensing exam. They can buy and sell securities on behalf of investors. Stockbrokers work for brokerages, which can act as principals or agents in transactions, making money through markups/markdowns (as principals) or commissions (as agents) on trades. Many brokerages charge fees to their customers who use the brokerage to place orders and execute the trade of a stock.
+- **Portfolio manager**s act like restaurant owners — they’ll order a ton of food because they’re feeding plenty of people. Portfolio managers make large orders to buy and sell stocks because they manage relatively large stock portfolios, which can be owned by other investors like you. If you own shares in a [fund](https://learn.robinhood.com/articles/2HYXaQHtqR9MczhnO7arr4/what-is-a-fund) (a mutual fund, retirement fund, pension fund, etc) a portfolio manager likely handles the bundle of underlying securities (stocks, bonds etc.) in the fund’s portfolio.
+- **Investment bankers** help companies list shares on stock exchanges.
+
+**SEC**
+
+Stock markets handle trillions of dollars in wealth, so Congress has granted the authority to regulate stock markets to the [US Securities and Exchange Commission](https://learn.robinhood.com/articles/1iinrIv3s01qSQVEBvYhNj/what-is-the-securities-and-exchange-commission-sec/) (SEC).
+
+The SEC sets rules and requirements that affect everyone participating in stock trading. While these rules can differ in specifics for different stock markets in different countries, they’re intended to protect the investing public through transparency, consistency, and accuracy.
+
+- **Price transparency**: Stock markets should ensure that the best “[bid](https://learn.robinhood.com/articles/4ykJfxcn2PhPUIDIzprLqL/what-is-a-bid)” (the price a buyer wants to pay) and the best “[ask](https://learn.robinhood.com/articles/6ttKzSPbxOq6P32lBN7IF0/what-is-an-ask)” (the price at which a seller wants to sell) are displayed to participants to maintain fairness.
+- **Confirmations**: If you’re a brokerage customer trading shares on the stock market, you’re entitled to a trade confirmation showing the key details of the trade. These can include the time the trade was made, the final price you paid, and (if your [broker](https://learn.robinhood.com/articles/3AalDDtYuWx4fp46eEZpxq/what-is-a-broker) charges a fee) the specific commission or markup/markdown you were charged.
+
+#### All about stocks
+
+- **Free/public float**: Stock that has been released to the market and is traded publicly through an exchange.
+- **Stock splits**: If a company wishes to make its stock price more accessible to investors, it will conduct a [stock split](https://learn.robinhood.com/articles/5Bc1M9bKsFQeJ317f9AqYO/what-is-a-stock-split/). This will not change the [market capitalization](https://learn.robinhood.com/articles/GByCbiOluG2kcWs1AF6m5/what-is-market-capitalization) of the company — or the overall value of the shares you own — but it will increase the number of shares available.
+- **Stockholders equity**: In its most basic form, it is the assets that remain in a company after covering all the bills (liabilities). This metric can be used to get a better understanding of the value of the stock.
+- **[Short selling](https://learn.robinhood.com/articles/7CPnasX4CZXQioJgHTMeXg/what-is-short-selling)**: When an investor wishes to speculate on a fall in the stock price, they can “short” a position. This requires borrowing the stock from either a broker or a financial institution. If the price drops, you can buy the stock at the lower price and make a profit. If the price of the stock rises and you buy it back later at the higher price, you will incur a loss.
+- **Broker**: A [broker](https://learn.robinhood.com/articles/3AalDDtYuWx4fp46eEZpxq/what-is-a-broker) will execute trades on behalf of an investor/trader and typically receives a commission in return.
+- **Market/limit/stop orders**: When opening a trade, an investor needs to choose between a range of order types. A market order is executed at the next available price and can be risky if the stock price has a wide spread (the difference between the buyers and sellers are offering). A [limit order](https://learn.robinhood.com/articles/SlMQuo6tjbVxOePMmAnCG/what-is-a-limit-order) is an order to buy or sell a security at or better than a specified price – this can mean that the order may not always get filled, particularly if the market moves quickly. Stop orders allow investors to set a trigger price in the system, which will only execute in the event the price hits the desired level. When this stop price is reached, the order automatically turn into a market order.
+
+
+#### Dividends
+
+A **dividend** is a cash payment made by a company to its shareholders out of its profits, as a reward for investors holding stocks.
+
+**dividend stocks** are shares of stable, profitable companies that choose to pay a portion of their profits back to shareholders in the form of cash payments, rather than reinvesting all of that money into their business
+
+- **Dividends:** These are the actual cash payments generated by the stock
+- **Dividend Yields:** This metric allows investors to evaluate the return on their investment by dividing the annual dividend payment by the current stock price
+
+
+![](https://i.imgur.com/6vdqBCZ.jpeg)
+
+As the share price keeps going up while the dividend stays constant, then dividend yield drops, which is generally true year to year.
+
+If a stock has a dividend yield of 4% and priced at $100 per share, that means you'll be paid a $4 dividend per share per year.
+
+> [!NOTE]
+> Avoid **dividend traps**, which is investing in stocks with a 5%+ dividend yield, because that means they're just focused on attracting more shareholders rather than investing the profits back into R&D for the company, meaning that the company's growth will likely stall if they have a high dividend yield.
+
+
+
 ### Investment accounts
 
 There are two types of investment accounts:
@@ -52,23 +116,58 @@ The main difference between after-tax Roth IRA and a normal brokerage account is
 
 #### Tax-sheltered accounts
 
-Both Pre-Tax (Traditional) and Post-Tax (Roth) retirement accounts enjoy **tax-sheltered growth** while invested—meaning you pay $0 in capital gains, dividend, or interest taxes year over year in both account types. T
+Both Pre-Tax (Traditional) and Post-Tax (Roth) retirement accounts enjoy **tax-sheltered growth** while invested—meaning you pay $0 in capital gains, dividend, or interest taxes year over year in both account types. 
 
-he fundamental difference between them is not how fast they grow, but **when you pay income tax**: upfront today (Roth) versus upon withdrawal in retirement (Pre-Tax).
-
-- **when to use pre-tax**: When your current tax bracket is significantly higher than your expected tax bracket in retirement, **Pre-Tax contributions yield higher net gains and overall wealth**.
+The fundamental difference between them is not how fast they grow, but **when you pay income tax**: upfront today (Roth) versus upon withdrawal in retirement (Pre-Tax).
 
 
+- **when to use pre-tax**: When your current tax bracket is significantly higher than your expected tax bracket in retirement, *Pre-Tax contributions yield higher net gains and overall wealth*.
+- **when to use post-tax**: when you have a high income after 65, then you want tax-free withdrawals.
 
+##### Pre-tax (Traditional)
+
+How much tax you pay on the withdrawals from a pre-tax retirement account is dependent on your current tax bracket when you withdraw the money.
+
+For example, if when you retire and have no income, you are in the 10% tax bracket, thus you have to pay a 10% fee on whatever you withdraw from your account.
+
+Withdrawing from tax-sheltered accounts before 59.5 years of age results in a 10% penalty on whatever you withdraw, on top of income tax if not in a Roth account.
+
+- **example**: if you're 20 years old, in a 22% federal tax bracket, an early withdrawal of 10K from a pre-tax retirement account will cost you $3200, resulting from the 10% early penalty fee and the 22% tax bracket combining to be a 32% tax on your withdrawal.
+
+
+##### Post-tax (Roth)
+
+The Roth IRA contribution limit in 2026 is $7500/yr, and you can only contribute to it if you make less than $168K/yr.
+
+However, if you want to contribute to a Roth IRA, you can instead open up a **traditional Roth** account, contribute to it, and then convert it into a normal Roth IRA via a **Backdoor Roth** account.
+
+A **backdoor Roth IRA** is a financial strategy used by high-income earners who exceed the IRS income limits for making direct contributions to a Roth IRA.
+
+Here's how it works:
+
+- **Nondeductible Contribution:** Since you earn too much to contribute directly, you first contribute after-tax money to a traditional IRA.
+- **Conversion:** Once the funds are in the traditional IRA, you convert them into a Roth IRA.
+
+Because the contribution to the traditional IRA is made with after-tax dollars (nondeductible), you effectively bypass the income restrictions that normally prevent high earners from utilizing a Roth IRA.
 #### Taxable brokerage account
 
-You invest after-tax money and then you pay **capital gains tax** on the interest you earned in the stock market.
+When investing in a taxable brokerage account, you often pay taxes on the stocks you own:
 
-- **Capital Gains Tax:** This is a tax on the profit made when you sell an asset (like a stock) for more than you paid for it, basically a tax on the gains you made on a stock, including dividends.
+- **capital gains tax**: when you sell a stock, you pay a tax on interest you earned from that stock, which is a tax on the profit made when you sell an asset (like a stock) for more than you paid for it, basically a tax on the gains you made on a stock.
+- **stock dividends tax**: when you earn dividends from a stock, you get taxed on those earnings based on how long you've held that stock.
 
-Here is how to reduce capital gains tax:
 
-- **hold the stocks for longer**: holding stocks for **longer than a year** can qualify you for lower, long-term capital gains tax rates
+Capital gains get taxed based on how long you hold the investment.
+
+- **less than one year**: if you hold a stock for less than one year before selling it, you will pay taxes on those gains equal to the tax rate of the tax bracket you're currently in
+- **more than one year**: if you hold a stock for at least one year before selling it, you will pay a special reduced capital gains tax rate, which is like 15%
+
+Stock dividends also get taxed based on how long you hold the investment:
+
+- **less than 60 days**: if a stock paying dividends is held for less than 60 days, you will pay taxes on those dividends equal to the tax rate of the tax bracket you're currently in 
+- **more than 60 days**: if a stock paying dividends is held for more than 60 days, you will pay a special reduced dividend tax rate
+
+Therefore, to reduce both dividends tax and capital gains tax, you must **hold the stocks for longer**, since holding stocks for **longer than a year** can qualify you for lower, long-term capital gains tax rates and dividends rates.
 
 #### Tax efficiency
 
@@ -119,7 +218,7 @@ In summary, here is why the SP500 is so good:
  
 #### Why you shouldn't try to pick single stocks
 
-Your insight is never as good as you think.  
+Your insight is never as good as you think.
 
 To get a winning single stock, not only do you have to know which company will do well and which company will not go bankrupt, but you also have to predict the stock's growth graph over many years to come (because you don't want to be stuck selling early and you don't want to be stuck selling too late)
 
@@ -136,6 +235,12 @@ Unless you get really lucky, you will not beat the market and you'll perform low
 - **Massive Overlap:** Broad market funds like VOO or VTI already hold Nvidia (~6-7%) and Google (~3-4%) as top holdings. Adding direct NVDA, GOOGL, and FSELX (Fidelity Select Semiconductors, which has ~25% in Nvidia alone) creates massive triple-dipping in tech/semiconductors. You end up with 20%+ of your total wealth in a single sector.
     
 >The harsh truth is, I can’t pick winning individual stocks and you can’t either. Nor can the vast majority who claim they can. It is extraordinarily difficult, expensive and a fool’s errand. Having the humility to accept this will do wonders for your ability to accumulate wealth.
+
+
+Even though research shows that most people are not good stock pickers, for some reason we always consider ourselves to be the exception. This is due to the **disposition effect trap** cognitive bias, which arises from regret avoidance and loss aversion, which leads to these two effects:
+
+- Most investors sell winning stocks too early
+- Most investors hold losing stocks for way too long.
 
 
 > [! ]
@@ -243,10 +348,23 @@ Philosophies
 - **stock picking is a sucker's game**: you'll never be good enough to predict individual stocks ballooning.
 - **the market always goes up**: it may not be a smooth ride, but over time the market always goes up.
 - **market crashes will always happen regardless. Stay the course**: the market always rebounds after a market crash. Never sell. Keep investing.
-- **keep investments simple**: Simple is good. Simple is easier. Simple is more profitable.
+- **keep investments simple**: Simple is good. Simple is easier. Simple is more profitable. Embrace simplicity
+- **past performance does not indicate future performance**: do not stock pick based on historical performance of the stock. There is no way to predict how it will grow.
 
+#### The simpler, the better
 
-#### Why people lose money
+>But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
+
+### Investing mistakes
+
+#### Don't pick too many ETFs
+
+Investing in too many ETFs on the SP500 is stupid because most of them are just overlapping.
+
+> [!TIP]
+> Just pick a maximum of 3 ETFs.
+
+#### Why people lose money on stock picking
 
 There are these reasons why people lose money when they invest, and how to avoid those mistakes:
 
@@ -269,10 +387,7 @@ There are these reasons why people lose money when they invest, and how to avoid
 
 >When you look at the daily price of a given stock, it is very hard to know how much is foam. This is why a company can plummet in value one day, and soar the next. This is why CNBC routinely features experts, each impressively credentialed, confidently predicting where the market is going next—while consistently contradicting each other. It is all those traders competing to guess how much beer and how much foam is actually in the glass at any particular moment. While this makes for great drama and television, for our purposes it is only the beer that matters. It is the beer that is the real operating money making underlying businesses, beneath all that foam and froth, that over time drives the market ever higher.
 
-#### The simpler, the better
-
->But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
-
+5. **we are overconfident**: Most people confident in their stock picking abilities actually underperform the market.
 
 ### how to choose individual stocks
 
@@ -287,6 +402,36 @@ Look at these 5 indicators to decide whether investing in an individual stock is
 
 ![](https://i.imgur.com/F4mwIDk.jpeg)
 
+#### Stocks that pay dividends
+
+
+You want to invest in stocks that pay dividends further down the line.
+
+- **Total Return vs. Dividend Yield:** During your accumulation phase (Age 22–32), your goal is maximizing overall portfolio growth (**Total Return = Capital Appreciation + Dividends**). Dividend-focused funds (like SCHD/VYM) deliberately filter for mature, cash-distributing companies (banks, utilities, consumer staples) and exclude high-growth companies that reinvest earnings into expansion.
+    
+- **Dividend Irrelevance:** When a company pays a dividend of $1/share, its share price drops by $1 on the ex-dividend date. Dividends are not bonus returns; they are forced liquidations of company equity.
+    
+- **Tax Efficiency in Taxable Accounts:** If held in a taxable account, dividends trigger annual taxes (qualified dividend tax rates up to 15%–20%), creating tax drag. Dividend funds are better suited during the _decumulation_ (spending) phase if income generation is needed, not during the rapid wealth-building phase.
+
+So these are the stocks that pay dividends:
+
+- **JPMorgan**: has a 3.5% dividend yield
+- **Exxon**
+- **Heinz**: has a 4.62% dividend yield
+- **Home depot**: has a 2.7% yield, and is very profitable and grows in a bullish market and has a monopoly on the housing sector.
+- **VOO**: VOO pays a 1.75% dividend yield
+
+
+#### What to invest in based on market cap
+
+Based on market cap, you have these categories:
+
+- **micro cap**: companies valued at less than $300M in the stock market
+	- Investing in micro cap companies is high risk high reward, since they're considered as penny stocks.
+- **small cap**: companies valued from $300M - $2B in the stock market
+- **large cap**: companies valued over $10B
+	- Investing in large cap companies is low risk low reward, because you will not see much growth from larger companies.
+
 
 ### Which ETFs to invest in
 
@@ -294,6 +439,25 @@ The best ETFs to invest in have these criteria:
 
 - **expense fee < 0.1%**:  you want to invest in ETFs with a low expense fee rate
 - **no load fee**
+
+
+**ETFs**
+
+- **VOO (Vanguard S&P 500 ETF)**: very good, first choice, 0.03% expense fee and has 1.78% dividend yield.
+- **VTSAX**: Vanguard Morningstar Total Stock Market Index Fund Admiral Shares
+- FXAIX
+- FZROX
+- **VTI (vanguard total stock market ETF)**
+- **VEU (vanguard global etf excluding US)**: good for international ETFs
+- **Vanguard FTSE global index fund**: index fund of top 3700 companies across the world.
+
+**ETF Stocks that pay dividends**
+
+Only do these in tax-retired accounts so you don't pay capital gains tax on dividends.
+
+- Vanguard High Dividend Yield ETF
+- Schwab US Dividend Equity ETF
+- VOO: very good, also has 1.75% dividend yields
 #### ETF fees
 
 ETFs have a percentage fee per year which they take from all your investment money in that fund, ranging from 0.03% - 1% of your holdings.
@@ -307,31 +471,8 @@ But in reality, a higher fee does **not** equal higher performance.
 - **evidence shows low-fee ETFs outperform high-fee ETFs**: Decades of SPIVA (S&P Indices Versus Active) data show that over a 10-year period, **85% to 90%+ of active funds charging 0.50%–1.00%+ fees underperform low-cost index funds** (like VOO/VTI at 0.03%).
 - **High fees actively erode compounding wealth from day one.** On a $100,000 balance, a 1% fee costs $1,000 _every single year_ just in management fees, regardless of whether the fund goes up or down. Over a 10-year FIRE horizon, that fee drag compounded destroys tens of thousands of dollars in gains.
 
-#### ETFs that pay dividends
 
-You want to invest in stocks that pay dividends further down the line.
 
-- **Total Return vs. Dividend Yield:** During your accumulation phase (Age 22–32), your goal is maximizing overall portfolio growth (**Total Return = Capital Appreciation + Dividends**). Dividend-focused funds (like SCHD/VYM) deliberately filter for mature, cash-distributing companies (banks, utilities, consumer staples) and exclude high-growth companies that reinvest earnings into expansion.
-    
-- **Dividend Irrelevance:** When a company pays a dividend of $1/share, its share price drops by $1 on the ex-dividend date. Dividends are not bonus returns; they are forced liquidations of company equity.
-    
-- **Tax Efficiency in Taxable Accounts:** If held in a taxable account, dividends trigger annual taxes (qualified dividend tax rates up to 15%–20%), creating tax drag. Dividend funds are better suited during the _decumulation_ (spending) phase if income generation is needed, not during the rapid wealth-building phase.
-
-#### Stocks to invest in
-
-**ETFs**
-
-- **VOO (Vanguard S&P 500 ETF)**: very good
-- Vanguard Morningstar Total Stock Market Index Fund Admiral Shares
-- FXAIX
-- **Vanguard FTSE global index fund**: index fund of top 3700 companies across the world.
-
-**Stocks that pay dividends**
-
-Only do these in tax-retired accounts so you don't pay capital gains tax on dividends.
-
-- Vanguard High Dividend Yield ETF
-- Schwab US Dividend Equity ETF
 
 
 ### Investment strategy
@@ -381,17 +522,59 @@ aspectRatio: "52.5"
 
 ### Creating a budget 
 
+A budget is always created with after-tax income you have on hand, so this terminology is important:
+
+- **Gross income** is your total pay, before taxes and deductions. This includes the wages you earn, the money you make from your side hustles, and even income from some savings or investment accounts.
+- **Net income** is what you get to take home, after taxes. When budgeting, it’s helpful to consider your net income because that’s the money you can actually use.
+- **fixed costs** are things you must pay for, often on a monthly basis
+- **variable costs** are things you want, which aren’t 100% essential
+
+There are three types of budgets:
+
+- **50/30/20 rule**: 50% for needs, 30% for wants, 20% for savings
+- **30% housing rule**: only take on rent that is max 30% of your budget
+
+#### 50/30/20 rule
+
 A budget should be separated into three categories:
 
 - **needs**: rent, utilities, groceries, insurance, etc.
 - **wants**: entertainment, gym, dining out, short term goals, etc.
 - **savings**: emergency fund, investment
 
-The best proportion for a monthly budget is the 50-30-20 rule, where you divvy up your monthly income to go to these weighted categories:
+The best proportion for a monthly budget is the 50-30-20 rule, where you divvy up your monthly after-tax income to go to these weighted categories:
 
 - 50% needs
 - 30% wants
 - 20% savings
+
+For $100K after-tax income per year resulting in $8000/month after-tax income, here is how you can spend it in a budget:
+
+- 50% needs: $4000 for rent, utilities, groceries
+- 30% wants: $2400 for dining out, subscriptions, entertainment
+- 20% savings: $1600 to put into Roth IRA or investment brokerage
+
+### What to track
+
+There are three important numbers to track:
+
+1. Savings / savings rate
+2. Expenses
+3. Net worth
+
+If you are able to track these three numbers over time, your financial position will improve year by year.
+
+> [!TIP]
+> You cannot improve what you don't track. So track your expenses
+
+
+
+#### Tracking expenses
+
+Your expenses should be categorized as follows:
+
+- **fixed or variable**: fixed expenses are constant from month to month, like subscriptions or rent, while variable expenses vary, like groceries or eating out.
+- **necessity or discretionary**: do you need this expense or not?
 
 ### Rules of budgeting
 
@@ -451,7 +634,41 @@ Then to achieve those short term goals, do the following:
 Here are example of SMART short term goals:
 
 - I want to buy a $3600 macbook pro in the next three months
-### Avoiding lifestyle creep
+
+
+#### WOOP Method
+
+People using the WOOP goals method spend way more time working on their goals compared to regular goal setting. 
+
+WOOP uses **mental contrasting** to visualize the desired outcome and all possible obstacles in the way of that outcome, then plan how to overcome those barriers.
+
+- **Wish**: ask yourself, "what is your wish that is challenging, yet feels achievable?"
+	- Answer it in a systems-thinking, like "I want to go to the gym everyday for 1 hour"
+- **Outcome**: picture yourself experiencing the desired outcome
+	- The outcome of going to the gym for 1 hour every day is a ripped body at the end with a 6 pack.
+- **Obstacle**: think about potential obstacles you might face on your way to the outcome and write them down.
+- **Plan**: plan to overcome obstacles with this syntax: "If `obstacle` occurs, then I will `action` to overcome it."
+
+Thinking about the obstacles provides these three benefits:
+
+1. It gives you energy to tackle challenges
+2. It helps you find creative solutions
+3. It gets your brain working on solutions automatically
+
+#### Automate savings
+
+The best way to achieve your financial goals is to automate savings towards them.
+
+
+#### In summary
+
+The 4 best tips to achieve your goals are as follows:
+
+1. **Use the WOOP method**
+2. **Set up automated savings**
+3. **Write down your goals and break them down into subgoals**. People who write down their goals are more likely to achieve them.
+4. **put your goals somewhere visible**: having your goals somewhere on a sticky note will make it more likely to achieve them.
+### Avoiding lifestyle creep and overspending
 
 You could have 500K income but still live paycheck to paycheck because of lifestyle creep.
 
@@ -460,7 +677,13 @@ You could have 500K income but still live paycheck to paycheck because of lifest
 
 To become rich, you need to keep your spending habits the same while trying to increase your income.
 
-### 1% rule
+To practically implement avoiding overspending, use these techniques:
+
+- **1% rule**: Think twice before making a purchase that is above 1% of your net worth.  Take a day to think about it before making the purchase.
+- **"wait for it rule"**: if you want to buy something above $50, make yourself wait for a week and then buy it if you really want to.
+- **something in, something out**: if you want to buy something, then you must also prepare to donate something.
+
+#### 1% rule
 
 Think twice before making a purchase that is above 1% of your net worth. 
 
@@ -495,10 +718,30 @@ Think twice before making a purchase that is above 1% of your net worth.
 >
 >Most all of us fall somewhere between the two. As for me, it is better to be closer to the monk.
 
+>" If your goal is to become financially secure, you'll likely attain it but if your goal is to make money to spend money on the good life, you're never going to make it."
 
+Live below your means, and you'll become a millionaire.
 
+Follow these rules which actually make the abstract concrete:
 
-### Compound interest is the 8th wonder of the world
+- **If you have less than $100K**: If you have less than $100K in your bank accounts, follow these rules
+	- **no eating out**: discount groceries only
+	- **no designer clothes**: goodwill only
+- **Don't fly first class unless you have $5M in net worth**
+#### Income matters more than cutting costs
+
+Increasing income will always be your biggest lever towards wealth, not aggressively saving.
+
+There are three ways to reliably increase income:
+
+1. job hop
+2. Learn a new skill
+3. Get education and certifications
+
+The best investors are usually the most boring ones who just try to spend all their energy increasing their income and then investing it in ETFs.
+
+That's you best path to wealth.
+#### Compound interest is the 8th wonder of the world
 
 Time compounding is the biggest factor in wealth increase. 
 
@@ -521,7 +764,39 @@ You can become rich at 65 even on an average salary of 62K even if you invest on
  Most of Warren Buffett's net worth came later on in his life, after 30 years of investing. Trust the compounding. Trust that it works. It happens at a later inflection point in life but after you hit the 100k mark in your investments, your portfolio rapidly begins to rise.
 
 ![](https://i.imgur.com/KyrHmRr.jpeg)
- 
+
+### How to increase income
+
+#### Asking for a raise
+
+To successfully get a raise, prepare a pitch beforehand and schedule a time with your supervisor for the raise negotiation.
+
+Here is what you should focus on in your pitch:
+
+1. Your recent accomplishments and victories
+2. Your skills
+3. Your pay relative to others on Glassdoor
+4. How the extra pay would help you contribute more to the company
+5. Let the boss know how valuable you are to the team.
+
+Timing is also important here. You can increase the chances of getting an affirmative answer by:
+
+1. Formally scheduling time for the discussion
+2. Scheduling the appointment 10-12 weeks before your annual review
+3. Asking soon after a workplace victory
+
+#### Freelancing
+
+Here are the best sites for freelancing:
+
+- Fiverr
+- Upwork
+- Catalant
+- Expert360
+
+#### Passive income ideas
+
+- **writing and publishing an EBOOK**: publish to amazon and sell on gumroad and etsy, heavily market them.
 ## Financial freedom via business
 ### The millionaire fastlane - the new rich
 

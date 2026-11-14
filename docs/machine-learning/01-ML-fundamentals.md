@@ -3,16 +3,35 @@
 ## An overview of machine learning
 
 
-### Types of intelligence
+### Terminology
 
 - **general intelligence**: stuff like humans, biological intelligence at the level of humans
 - **artificial intelligence**: when a machine can perform a task as good or better than a human can, like classifying images.
+- **data**: tabular data or data that can be stored in a single file
+- **big data**: data that is too large to be stored in a tabular format, so it's stored in a stream instead.
 - **AGI**: when artificial intelligence achieves the capability of general intelligence, when AI becomes better at tasks than most humans are.
 - **Strong AI** refers to machines that display full human-like intelligence, including emotions, creativity, and a sense of purpose—like the intelligent characters you see in science fiction. It's the idea of a machine that truly thinks and understands like a person, but this is still mostly theoretical today.  
 - **Weak AI**, on the other hand, is designed for specific tasks. It can process language or recognize patterns but doesn't actually understand or have consciousness. For example, Siri is a weak AI—it listens to your questions and matches them to programmed responses without real understanding.
 - **predictive AI**: regression, classification, or clustering tasks, which is a type of AI that analyzes large amounts of data to find patterns and make predictions about future behavior
 - **generative AI**: generates content
 
+### Big data
+
+Bid data satisfies the three Vs:
+
+- **Volume**: high volume of data, at least several terabytes
+- **Velocity**: high influx rate of data, like 100 megabits per second
+- **Variety**: high variety arising from a complex data structure storage like audio, stream, or image data.
+
+When dealing with Big Data, you arive at the CAP theorem from system design, where there is a tradeoff between consistency, availability, and partitioning with trying to replicate data across multiple machines.
+
+
+### Weak AI vs Strong AI
+
+Machine learning is **weak AI**, where we use mathematical techniques like statistics or hardcoded rules to learn patterns in data.
+
+- **early weak AI**: hardcoded rules designated by experts, much like a hardcoded decision tree
+- **modern weak AI**: learning patterns via computational statistic inference and gradient descent, where a function hypothesis is approximated computationally instead of cognitively.
 
 ### Alignment
 
@@ -36,6 +55,36 @@ There are 4 alignment problems in AI:
 
 For example, if an AI system is designed to reduce health insurance costs by targeting high-cost customers, it might cancel policies for older people to save money, which is not the intended ethical outcome. 
 
+### Types of machine learning
+
+#### Supervised learning
+
+Supervised learning is based on known feature data $X$ and known labels $y$, where $f(X)$ is the unknown, true function that provides a 100% deterministic, correlated relationship between $X$ and $y$.
+
+The goal of supervised learning is to estimate this true relationship $f(X)$ using an approximation function $\hat f(X)$ to make predictions $\hat y$, and then based on the error between prediction $\hat y$ and expected known label $y$, we tune the hypothesis function to grow closer to the true $f(X)$ by trying to minimize error as much as possible
+
+The closer $\hat f(X)$ is to $f(X)$, the better the model performs, which means that hypothesis that minimizes the error (the discrepancy between the hypothesis function and the true unknown function) the most, is the best hypothesis possible, accounting for initial assumptions and bias.
+
+Basically, the goal is to minimize something like this:
+
+$$C = \min \sum_i l(\hat y^{(i)} - y^{(i)})$$
+Where $l$ is some loss function calculating the prediction error for the $i$th training sample $(\vec x^{(i)}, y^{(i)})$, and $C$ is some cost function that aggregates the losses.
+
+- **loss**: the prediction error for one training sample and its expected known value
+- **cost**: the total prediction error over all training samples, found via aggregating losses.
+
+### Semantic gap in machine learning
+
+The semantic gap refers to the difference between the data we have and the actual information or meaning we want to extract from it. 
+
+In machine learning, this often means that the features or data available (like photographs) do not fully capture the true characteristics that distinguish what we want to classify (such as the difference between cats and dogs).
+
+> [!NOTE]
+> Basically a semantic gap occurs when the features you have don't explain the data 100%, and there are some other hidden variables you can't account for, and we just approximate through machine learning.
+
+For example, a photo contains visual information, but it doesn’t include deeper properties like DNA, bone structure, or behavior, which are essential to truly distinguish a cat from a dog. The machine learning model tries to bridge this gap by finding patterns in the available data, but it is limited to what is present in the data. Sometimes, the model may pick up on irrelevant features (like snow in the background of dog photos) rather than the actual distinguishing features.
+
+The semantic gap highlights the challenge that the data used for training may not be sufficient or relevant enough to solve the real-world problem accurately.
 
 
 ## Features
@@ -231,7 +280,54 @@ Here are examples of common feature engineering tasks to create, modify, or dele
 
 - **combining existing features together**: you can achieve a lower complexity model (and thus less variance) by making the data lower complexity by combining several features into one single, powerful predictive feature.
 - **removing highly correlated features**: features that are highly correlated with each other will be redundant. Therefore removing them lets you make your model simpler. 
-- **filling in missing data**: features with missing data are bad data, so it's better to fill them in or remove the feature entirely.
+- **impute missing data**: features with missing data are bad data, so it's better to fill them via **imputation** or remove the feature entirely.
+
+#### Imputation
+
+Imputation is the process of filling in missing data values in your dataset so that your machine learning model can train effectively. 
+
+Instead of leaving gaps or incomplete information, imputation estimates those missing values based on other data, ensuring the dataset is complete and consistent. 
+
+> [!NOTE]
+> Imputation is important because most models require complete data to learn patterns accurately, and imputation allows you to infer reasonable estimates for missing data instead of throwing it away.
+
+## Data preparation
+
+### Data analysis
+
+Here are basic data analysis tools you can do:
+
+- **verify which features have missing values**: it's important to understand which features may have null values
+
+```py
+# Verify which features have missing values
+housing_df.isnull().sum()
+
+# Calculate the % of missing data
+housing_df['total_bedrooms'].isnull().sum()/housing_df.shape[0] * 100
+```
+
+- **find most important features**: use pandas to find feature importances
+
+```py
+# Determine feature importance - random forest algorithm is that it gives you the ‘feature importance’ for all the variables in the data
+# plot the 6 most important features 
+plt.figure(figsize=(10,6))
+feat_importances = pd.Series(rf_model.feature_importances_, index = X_train.columns)
+feat_importances.nlargest(6).plot(kind='barh');
+```
+### Data preparation
+
+#### One-hot encoding
+
+One-hot encoding is the process of converting text enum data into numerical data, where if an enum is of cardinality $N$, then the one-hot encoded vector of a datum of that enum will be of dimensionality $N$, where one value 1 and all other values are 0.
+
+That one position where the value is 1 corresponds to that datum's position in the enum, meaning that one-hot encoded vector representation uniquely represents that enum.
+
+```py
+pd.get_dummies(housing_df['ocean_proximity'])
+```
+
 ## Training, Validation, Test
 
 ### Generalization error
@@ -587,33 +683,105 @@ PCA finds the directions (axes/vectors) in which the most variance the data set 
 
 **Cardinality** of a feature refers to how many unique values that feature has. 
 
-**the effect of high cardinality**
+High cardinality features can increase the complexity of models, particularly those based on tree algorithms. 
 
-High cardinality features can increase the complexity of models, particularly those based on tree algorithms. Decision trees, for example, may struggle to effectively split on high cardinality features, leading to inefficient use of computational resources and potentially overfitting.
+- **how high cardinality affects decision trees**: Decision trees, for example, may struggle to effectively split on high cardinality features, leading to inefficient use of computational resources and potentially overfitting.
 
-> [!NOTE]
-> For features with a high cardinality, you need more data to have robust training on them.
-
+For features with a high cardinality, more data is the cure to improve model performance.
 
 
-
-
-## First algorithm: univariate linear regression
+## univariate linear regression
 
 Understanding how univariate linear regression works will give you a foundational base to understand every other machine learning model out there.
 
+### Algebraic formulation
+
+#### Model and cost
+
+To model $y = mx+b$, we want to find a function $\hat f(x; m,b) = \hat y$ (this notation means that $x$ is variable while $m$ and $b$ are fixed parameters) that is a good approximation for that line.
+
+We use cost and loss:
+
+
+![](https://i.imgur.com/d3vGdOV.jpeg)
+
+
+For this, we need to know what to minimize/optimize:
+
+- **loss**: let the loss function be squared error
+
+$$loss(\hat f(x^{(i)}), y^{(i)}) = (\hat f(x^{(i)}) - y^{(i)})^2$$
+
+- **cost**: let the cost function be mean squared error
+
+$$C = \sum_i(\hat f(x^{(i)}) - y^{(i)})^2 = \sum_i(mx^{(i)} + b  - y^{(i)})^2$$
+
+So our goal is this:
+
+$$\min_{\hat f} C = \min_{\hat f} \sum_i (mx^{(i)} + b - y^{(i)})^2$$
+
+There is also alternative notation:
+
+
+#### Gradient descent
+
+For a single training sample, we calculate $loss(m, b; x, y) = (mx^{(i)} + b - y^{(i)})^2$. 
+
+We then want to calculate the gradient of loss with respect to parameters $m$ and $b$ to figure out how to change those parameters.
+
+1. Calculate loss or cost
+2. Calculate gradient with respect to loss or cost
+3. Perform gradient descent update with a decently small learning rate
+4. Repeat this process until an update of the previous iteration is very small.
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/gradient-descent.png)
+
+
+### Gradient descent basics
+
+Here's some basic terminology concerning gradient descent:
+
+- **loss curve**: plotting cost against number of iterations to view the "elbow" of diminishing returns for when to stop gradient descent.
+- **learning rate**: a percentage multiplier quantifying the proportion of the gradient to step down.
+
+#### Loss curve
+
+When training a model, you'll often look at a [**loss curve**](https://developers.google.com/machine-learning/glossary#loss-curve) to determine if the model has [**converged**](https://developers.google.com/machine-learning/glossary#convergence). The loss curve shows how the loss changes as the model trains. 
+
+The following is what a typical loss curve looks like:
+
+- **y-axis**: Loss is on the y-axis
+- **x-axis**: iterations are on the x-axis
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/convergence.png)
+
+#### Learning rate
+
+[**Learning rate**](https://developers.google.com/machine-learning/glossary#learning-rate) is a floating point number you set that influences how quickly the model converges. 
+
+- If the learning rate is too low, the model can take a long time to converge.
+- However, if the learning rate is too high, the model never converges, but instead bounces around the weights and bias that minimize the loss.
+
+The difference between the old model parameters and the new model parameters is proportional to the slope of the loss function multiplied by the learning rate.
 ### Batches, epoch, gradient descent types
 
 - **batch**: a small portion of a dataset
+- **batch size**: [**Batch size**](https://developers.google.com/machine-learning/glossary#batch-size) is a hyperparameter that refers to the number of [**examples**](https://developers.google.com/machine-learning/glossary#example) the model processes before updating its weights and bias
 - **iteration**: a computational procedure concerning a single batch
-- **epoch**: completion of one iteration on all batches
+- **epoch**: completion of one iteration of gradient descent on the batch size
 
-| Type                        | Speed   | Stability                                       | Has vectorization? |
-| --------------------------- | ------- | ----------------------------------------------- | ------------------ |
-| Batch gradient descent      | Slow    | Highest, completely stable                      | Yes                |
-| Stochastic gradient descent | Fastest | Lowest stability, but moves generally downhill. | No                 |
-| Mini-batch gradient descent | Fast    | Medium stability                                | Only a bit         |
-|                             |         |                                                 |                    |
+You might think that the model should calculate the loss for _every_ example in the dataset before updating the weights and bias. 
+
+However, when a dataset contains hundreds of thousands or even millions of examples, using the full batch isn't practical. 
+
+That's what gives us multiple types of gradient descent:
+
+| Type                        | Speed   | Stability                                              | Has vectorization? |
+| --------------------------- | ------- | ------------------------------------------------------ | ------------------ |
+| Batch gradient descent      | Slow    | Highest, completely stable                             | Yes                |
+| Stochastic gradient descent | Fastest | Lowest stability, noisy, but moves generally downhill. | No                 |
+| Mini-batch gradient descent | Fast    | Medium stability                                       | Only a bit         |
+|                             |         |                                                        |                    |
 - **Batch gradient descent**: each step of gradient descent vectorizes over all the training examples to calculate the gradient with respect to cost.
 - **stochastic gradient descent**: each step of gradient descent chooses only one random training sample to calculate the gradient with respect to cost.
 - **mini-batch gradient descent**: each step of gradient descent chooses a small randomly sampled batch of training sample to calculate the gradient with respect to cost.
@@ -635,15 +803,183 @@ Understanding how univariate linear regression works will give you a foundationa
 
 **stochastic gradient descent** is where you train on one random training sample at a time for the feed forward and backprop process, and update parameters based on one training sample per iteration.
 
-- Fastest form of gradient descent, but most unstable since you’re basing entire parameter update off of one training sample
-- Does not benefit from vectorization
+It is the fastest form of gradient descent, but most unstable since you’re basing entire parameter update off of one training sample
+
+Here are the pros:
+
+1. Quick and computationally efficient
+
+Here are the cons:
+
+1. Does not benefit from vectorization
+2. noisy descent
 
 #### Mini-batch gradient descent
 
+
+ Mini-batch stochastic gradient descent is a compromise between full-batch and SGD. 
+
 **mini batch gradient descent** is where you train on a small randomly sampled batch of training samples for the feed forward and backprop process and update parameters based on calculation from that batch.
 
-- **pro - average stability and speed**: Combines stability and speed for the best of both worlds
-- A batch size of 100 training samples per iteration is the most recommended
+
+Here is the exact formalism
+ 
+ 1. For $N$ number of data points, the batch size can be any number greater than 1 and less than $N$ . 
+ 2. The model chooses the examples included in each batch at random, averages their gradients, and then updates the weights and bias once per iteration.
+
+Determining the number of examples for each batch depends on the dataset and the available compute resources. In general, small batch sizes behaves like SGD, and larger batch sizes behaves like full-batch gradient descent.
+
+> [!TIP]
+> A batch size of 100 training samples per iteration is the most recommended
+
+#### Epochs
+
+In general, more epochs produces a better model, but also takes more time to train.
+
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/batch-size.png)
+
+| Batch type                             | When weights and bias updates occur                                                                                                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full batch                             | After the model looks at all the examples in the dataset. For instance, if a dataset contains 1,000 examples and the model trains for 20 epochs, the model updates the weights and bias 20 times, once per epoch.         |
+| Stochastic gradient descent            | After the model looks at a single example from the dataset. For instance, if a dataset contains 1,000 examples and trains for 20 epochs, the model updates the weights and bias 20,000 times.                             |
+| Mini-batch stochastic gradient descent | After the model looks at the examples in each batch. For instance, if a dataset contains 1,000 examples, and the batch size is 100, and the model trains for 20 epochs, the model updates the weights and bias 200 times. |
+
+### Evaluating the model
+
+#### Coefficient of determination
+
+We need some way to evaluate how well our model does and you can do that either with loss or something in statistics called the **coefficient of determination**, which only works in two-dimensional data (features X and output y).
+
+- **coefficient of determination**: denoted via $R^2$, and has bounds $(-\infty, 1]$.
+	- **use case**: used as a measure of correlation strength between two variables
+- **correlation coefficient**: denoted by $r$, which is just the square root of the coefficient of determination, and has bounds $[0, 1]$.
+	- **use case**: used as a measure of correlation strength
+
+
+
+  
+
+$$r = \sqrt{R^2}$$
+
+  
+
+> [!NOTE]
+> The null model is just predicting the mean, which means that the null model has an $R^2$ value = 0
+
+#### Null model
+
+In linear regression, the **Null Model** is the simplest possible baseline. It assumes that the features ($x$) have no predictive power, so it simply predicts the **mean** ($\mu$) of the target variable ($y$) for every observation.
+
+- **Equation:** $\hat{y} = \bar{y}$
+- **Purpose:** It serves as a benchmark. If your regression model isn't better than the null model, your features are not useful.
+
+The null model will just predict that every point is equal to the mean, giving a straight line. Then from there, we can get the coefficient R^2, which is the coefficient of determination.
+
+  
+
+$$R^2 = 1 - \frac{\mathrm{Sum \ of \  actual \ squared \  errors}}{\mathrm{Sum\  of\  squared\  errors\  using \ \ null\  model}}$$
+
+  
+
+You can also think of it like this:
+
+  
+
+$$R^2 = 1 - \frac{\sum (\hat y - y)^2}{\sum (\hat y - \mu)^2}$$
+
+
+### Sci-kit Learn Linear Regression
+
+Here is a basic pipeline:
+
+1. Create data set, preprocess it
+
+```py
+import sklearn
+from sklearn.model_selection import train_test_split
+
+# remove spaces from column names and convert all to lowercase and remove special characters as it could cause issues in the future
+housing_df_encoded.columns = [c.lower().replace(' ', '_').replace('<', '_') for c in housing_df_encoded.columns]
+
+# Split target variable and feature variables
+X = housing_df_encoded[['housing_median_age', 'median_income','bedrooms_per_room','population_per_household','coords','ocean_proximity__1h_ocean',
+                        'ocean_proximity_inland','ocean_proximity_island','ocean_proximity_near_bay','ocean_proximity_near_ocean']]
+y = housing_df_encoded['median_house_value']
+```
+
+2. Split dataset into train and test
+
+```py
+# Splitting the data into training and testing sets in numpy arrays
+# We train the model with 70% of the samples and test with the remaining 30%
+# X -> array with the inputs; y -> array of the outputs
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, shuffle=True, test_size=0.3)
+```
+
+3. Create linear regression model and fit it to data
+
+```py
+# Use scikit-learn’s LinearRegression to train the model on both the training and evaluate it on the test sets
+from sklearn.linear_model import LinearRegression
+
+# Create a Linear regressor using all the feature variables
+reg_model = LinearRegression()
+
+# Train the model using the training sets
+reg_model.fit(X_train, y_train)
+```
+
+4. Run predictions
+
+```py
+#run the predictions on the training and testing data
+y_pred_test = reg_model.predict(X_test)
+```
+
+5. Evaluate the model
+
+```py
+# Determine accuracy uisng 𝑅^2
+# 𝑅^2 : R squared is another way to evaluate the performance of a regression model.
+# 1, means that the model is perfect and 0 means the the model will perform poorly.
+r2_reg_model_test = round(reg_model.score(X_test, y_test),2)
+
+print("R^2 Test: {}".format(r2_reg_model_test))
+```
+
+
+## Multivariate linear regression
+
+### Model
+
+For linear regression, the hypothesis will be a linear equation with any amount of features. This can be univariate or multivariate linear regression:
+
+  
+
+$$h_\beta (x) = \beta_0 + \beta_1 x $$
+
+$$ h_\beta (x) = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + ... $$
+
+Alternative notation is something like:
+
+![](https://developers.google.com/static/machine-learning/crash-course/linear-regression/images/equation-multiple-features.png)
+
+
+The goal in linear regression is to minimize the squared error consisting of all the data points:
+
+  
+
+$$C = \sum (\hat{y} - y)^2$$
+
+We have several choices of loss functions for linear regression:
+
+
+![](https://i.imgur.com/jiv89SK.jpeg)
+
+
+
+
 ## Regularization
 
 Regularization is a technique to mitigate overfitting by penalizing noise through a parameter $\lambda$, with the purpose of trying to make a complex model (cause of overfitting) simpler.
@@ -1083,7 +1419,14 @@ Before any model or agent touches production, you must evaluate it against a cur
         
     - **Answer Relevance:** Did it actually answer the user's prompt without introducing off-topic noise?
 
-#### 2. Post-Deployment (Online) Observability & Monitoring
+#### Observability & Monitoring against drift and bias
+
+Bias is seen when predictions are less favorable to an individual or group.
+
+Model drift happens when the relationship between the target variable and other input variables changes over time after the model is deployed, and can introduce bias in your model after production.
+
+- This means the patterns the model learned during training no longer fully apply, causing its predictions to become less accurate.
+- Drift can occur due to changes in real-world data or environment where the model operates.
 
 Once in production, static metrics degrade because the real world changes. You must monitor for two primary types of drift:
 
@@ -1093,11 +1436,75 @@ Once in production, static metrics degrade because the real world changes. You m
     
 - **Operational Metrics:** Latency (p95/p99), token consumption/cost tracking, and error/exception rates.
 
+Here are the different ways to mitigate drift:
+
+- **feature engineering**: one approach is weighting important features so the model focuses more on stable, relevant data points. Understanding and managing drift is key to keeping machine learning models reliable in production.
+
 #### 3. Rigorous Experimentation
 
 - **A/B Testing:** Routing a percentage of live production traffic to a newly fine-tuned model or updated prompt chain to measure concrete business impact (e.g., resolution time, user correction rate) before full rollout.
 
 ### ML pipeline
 
+A machine learning pipeline is a way to organize and automate all the steps involved in building a machine learning model—from preparing data, training the model, evaluating it, tuning parameters, to deploying it. 
+
+Instead of running each step separately, a pipeline groups them into a single, streamlined process. 
+
+> [!NOTE]
+> Pipelines make your workflow more efficient, reproducible, and easier to manage.
+
+Here are the key benefits:
+
+
+- **have parallelization capability**: Pipelines also speed up training by running tasks in parallel and help ensure consistent data preparation across different model training runs. 
+- **reliability and reproducibility**: This approach is especially helpful in production environments where you want reliable and maintainable ML systems.
+
 
 ![](https://i.imgur.com/RjqBEs8.jpeg)
+#### Sci-kit learn pipeline
+
+Here's an example pipeline:
+
+1. Get data
+
+
+```py
+import sklearn
+from sklearn.model_selection import train_test_split
+
+# remove spaces from column names and convert all to lowercase and remove special characters as it could cause issues in the future
+housing_df_encoded.columns = [c.lower().replace(' ', '_').replace('<', '_') for c in housing_df_encoded.columns]
+
+# Split target variable and feature variables
+X = housing_df_encoded[['housing_median_age', 'median_income','bedrooms_per_room','population_per_household','coords','ocean_proximity__1h_ocean',
+                        'ocean_proximity_inland','ocean_proximity_island','ocean_proximity_near_bay','ocean_proximity_near_ocean']]
+y = housing_df_encoded['median_house_value']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, shuffle=True, test_size=0.3)
+```
+
+2. Create pipeline
+
+```py
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+
+
+pipeline_lr= Pipeline([('lr_classifier', LinearRegression())])
+pipeline_rf = Pipeline([('rf_classifier', RandomForestRegressor(n_estimators=10,random_state=10))]) 
+pipeline_xgb = Pipeline([('xgb_classifier', XGBRegressor())]) 
+
+pipelines = [pipeline_lr, pipeline_rf, pipeline_xgb]
+pipe_dict = {0: 'Linear Regression', 1: 'Random Forest Regressor', 2: 'XGBRegressor'}
+
+for pipe in pipelines:
+    pipe.fit(X_train, y_train)
+
+for i,model in enumerate(pipelines):
+    pred_test = model.predict(X_test)
+    if i == 1: rf_model = model
+    print("{} Test Accuracy:{}".format(pipe_dict[i],model.score(X_test,y_test)))
+    print(pd.DataFrame({'Actual': y_test, 'Predicted': pred_test}))
+```

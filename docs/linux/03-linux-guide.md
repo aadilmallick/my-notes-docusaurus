@@ -1420,6 +1420,29 @@ If you would like to do it all on one line without prompts do:
 ```
 $ ssh-keygen -p [-P old_passphrase] [-N new_passphrase] [-f keyfile]
 ```
+
+### Other SSH clients
+
+#### `ssh-keygen`
+
+#### Putty
+
+PuTTY is a windows-client for SSH that you can download and then use to SSH into linux servers from windows.
+
+1. Download PuTTY
+
+```bash
+winget install -e --id PuTTY.PuTTY
+```
+
+2. Open the app from the windows toolbar
+3. Enter the host and port (usually 22 for SSH) to target for remote connection
+
+![](https://i.imgur.com/GPUidJ3.png)
+
+
+
+
 ### FTP
 
 FTP is the insecure version of SFTP

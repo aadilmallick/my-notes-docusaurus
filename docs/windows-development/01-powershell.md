@@ -165,7 +165,15 @@ You have these named parameters:
 	- `Cmdlet`
 	- `Function`
 	- `Alias`
-- `-Name <name>`: the name of a certain command to find. Also the 1st positional parameter.
+- `-Name <name>`: the name of a certain cmdlet to find. 
+	- This is also the 1st positional parameter.
+- `-Syntax`: outputs the syntax of how to use the cmdlet or function.
+
+The `Get-Command` cmdlet also works with functions:
+
+```ps
+Get-Command -Name <function-name> -Syntax
+```
 ### Protecting against destructive commands
 
 You have two additional flags you can add to any cmdlet that starts with `Write` or `Remove` which will help you protect against running destructive actions blindly.
@@ -734,16 +742,16 @@ You also have these boolean-specific operators:
 - `-not`: returns `$True` if the operand is false or falsy.
 
 ```ps
-$Age = 22
+$money1 = 22
 
-$IsYoung = $Age -lt 35
-$IsRipeForPickin = $Age -gt 18
+$bool1 = $money1 -lt 35
+$bool2 = $money1 -gt 18
 
-$IsFertile = $IsYoung -And $IsRipeForPickin
+$bool3 = $bool1 -And $bool2
 
-Write-Host "Is fertile $IsFertile"
+Write-Host "bool3 $bool3"
 
-$IsHag = -not $IsYoung
+$bool4 = -not $bool3
 ```
 
 
@@ -1830,7 +1838,11 @@ PowerShell execution policies control which scripts are allowed to run on your s
 
 - Execution policies act as a safety feature to control when scripts can run, helping prevent accidental execution of potentially malicious scripts.
 - Changing execution policies requires administrator privileges for machine-wide settings; users can change policies for their own scope without admin rights.
-- Windows also blocks scripts downloaded from the internet by default, showing a security warning until the file is unblocked manually.
+
+Here are the default behaviors:
+
+- **default online script blocking**: Windows also blocks scripts downloaded from the internet by default, showing a security warning until the file is unblocked manually.
+
 
 > [!NOTE]
 > You can run commands manually, it's just script execution that's blocked and that you need to change execution policies for.
@@ -1843,13 +1855,24 @@ Here are the four main policies:
 - **AllSigned**: Only scripts that are digitally signed by a trusted publisher can run, whether they are local or downloaded.
 	- You can run commands, and scripts only if they are digitally signed.
 - **RemoteSigned** (default): Locally created scripts run without restriction, but scripts downloaded from the internet must be digitally signed.
-	- You can run commands and local scripts
-- **Unrestricted**: All scripts can run regardless of signature. This is risky for production environments and should only be used temporarily for testing.
+	- You can run commands and local scripts, and remote signed scripts.
+- **Unrestricted**: All scripts can run regardless of signature, but warnings and prompts are shown for safety.
+	- This is risky for production environments and should only be used temporarily for testing.
+- **Bypass**: no restrictions at all
+- **Undefined**: no execution policy for the current shell session
 
 > [!NOTE]
 > The default policy is `RemoteSigned`, balancing security and usability. 
 
+Here are the default execution policies for the different Windows distributions:
 
+| Windows Operating System Version | Default Execution Policy |
+| -------------------------------- | ------------------------ |
+| Windows Server 2022              | Remote Signed            |
+| Windows Server 2019              | Remote Signed            |
+| Windows Server 2016              | Remote Signed            |
+| Windows 11                       | Restricted               |
+| Windows 10                       | Restricted               |
 #### Getting the current execution policy
 
 To get the current execution policy of PowerShell, use the `Get-ExecutionPolicy` cmdlet
@@ -1865,7 +1888,6 @@ If you encounter errors running scripts, it’s often due to these policies, and
 > [!WARNING]
 > Just be cautious, especially with Unrestricted, to avoid security risks.
 
-
 To set the current execution policy of PowerShell, use the `Set-ExecutionPolicy` cmdlet and then pass in as the argument one of the 4 available execution policies to choose from.
 
 ```powershell
@@ -1874,8 +1896,12 @@ Set-ExecutionPolicy restricted
 
 Here are the additional flags you can set on this cmdlet:
 
-- `-Scope`: how to scope this. accepts these values:
+- `-Scope`: how to scope the execution policy. It follows in order of highest precedence to least precendence:
+	- `-MachinePolicy`: group policy that affects all users of the computer, highest precedence
+	- `-UserPolicy`: group policy that affects the current user of the computer
+	- `-Process`: not saved to the configuration file, just a temporary JIT access for the current process (powershell script duration or powershell command)
 	- `-CurrentUser`: scope to powershell session, changing the execution policy just for this session. The advantage of this is that now you don't need to run as admin to change the execution policy.
+	- `-LocalMachine`: affects all users of the machine, lowest precedence
 - `-ExecutionPolicy`: specify the execution pollicy, which you use this flag instead of supplying the parameter if you are using flags.
 - `-Force`: force override
 
@@ -1885,21 +1911,89 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
 
 ### Custom modules
 
+
+In PowerShell, a script module is simply a `.psm1` file that contains one or more functions, just like a regular script, but with a different file extension.
+
+There are two types of modules you can create:
+
+- **dynamic module**: in-memory module that lasts for the duration of the powershell session. You can create a dynamic module with the `New-Module` cmdlet.
+
 Before we can create custom modules, we have to understand module internals:
 
 - **private functions**: private functions internal to the module, can't be used after loading a module
 - **public functions**: functions exposed publicly and are accessible after loading the module.
 
-You can create your own modules by creating `.psm1` files (stands for ps1 module files) within the **powershell modules** directory, which you can get the directory path for via the `$ENV:PSModulePath` variable.
 
-That file will then declare functions and export them with the `Export-ModuleMember` cmdlet, allowing reuse and sharing across systems.
+#### Dynamic modules
 
-So here are the generic steps to create and use the custom module:
+The following example uses the `New-Module` cmdlet to create a dynamic module in memory, specifically to demonstrate what happens when you don't use an approved verb.
+
+```ps
+New-Module -Name MyModule -ScriptBlock {
+
+function Return-MrOsVersion {
+        Get-CimInstance -ClassName Win32_OperatingSystem |
+        Select-Object -Property @{Label='OperatingSystem';Expression={$_.Caption}}
+    }
+
+Export-ModuleMember -Function Return-MrOsVersion
+
+} | Import-Module
+```
+#### Static custom module
+
+To create a script module, save your functions in a `.psm1` file. 
+
+1. **create the script module**: For example, save the following two functions in a file named `MyScriptModule.psm1`
+
+```ps
+function Get-MrPSVersion {
+    $PSVersionTable
+}
+
+function Get-MrComputerName {
+    $env:COMPUTERNAME
+}
+```
+
+
+2. **import the script module**: To make the function available, you can manually import the `MyScriptModule.psm1` file using the `Import-Module` cmdlet.
+
+
+```ps
+Import-Module C:\MyScriptModule.psm1
+```
+
+#### Module auto-loading
+
+PowerShell introduced module autoloading in version 3. 
+
+To take advantage of this feature, the script module must follow these requirements:
+
+1. saved in a folder with the same base name as the `.psm1` file
+2. That folder must be located in one of the directories specified in the `$env:PSModulePath` environment variable.
+
+For module autoloading to work, you must place the `MyScriptModule.psm1` file must in a folder named `MyScriptModule`, and that folder must reside directly inside one of the paths listed in  
+`$env:PSModulePath`.
+
+> [!TIP]
+> The output of `$env:PSModulePath` is difficult to read. To make the results more readable, split the paths on the semicolon path separator so each one appears on its own line.
+> 
+> ```ps
+> $env:PSModulePath -split ';'
+> ```
+
+So here are the generic steps to create and use the custom module that can get auto-loaded with Powershell.
 
 1. Inside the `$ENV:PSModulePath` directory, create a subfolder and then within that subfolder create a file named the same as that subfolder but with the `.psm1` file extension.
 2. Create functions in that file.
 3. Export the specific functions you want to make public by using the `Export-ModuleMember` cmdlet with the `-Function` option, which takes in an array of functions
 4. Import the module via the module name
+
+> [!IMPORTANT]
+> You can't just put your PSM file in a module path. You have to put it in a subfolder with the same base name as the script PSM file. 
+> 
+> For example, if you script name is `my-script.psm`, you need to put that file into a folder called `my-script` within a module path.
 
 Here is how to create a custom module example:
 
@@ -1921,7 +2015,11 @@ Function Say-Hello {
 Import-Module greetings
 ```
 
-#### Creating a custom module with powershell cmds
+
+#### Custom modules with module manifests
+
+Every module should include a module manifest, which is a `.psd1` file containing metadata about the module. While the `.psd1` extension is used for manifests, not all `.psd1` files are module manifests. You can also use them for other purposes, such as defining environment data in a DSC  
+configuration.
 
 In a PowerShell module, you use a **Module Manifest (`.psd1`)** and a **Script Module (`.psm1`)** together to manage how your functions are exposed to the user.
 
@@ -1958,6 +2056,19 @@ New-ModuleManifest -Path "\$path\8.MyModule.psd1" `
     -Author "Your Name" `
     -Description "A module containing basic functions"
 ```
+
+```ps
+$moduleManifestParams = @{
+    Path = "$env:ProgramFiles\WindowsPowerShell\Modules\MyScriptModule\MyScriptModule.psd1"
+    RootModule = 'MyScriptModule'
+    Author = 'Mike F. Robbins'
+    Description = 'MyScriptModule'
+    CompanyName = 'mikefrobbins.com'
+}
+
+New-ModuleManifest @moduleManifestParams
+```
+
 
 3. Import the latest version of the module to use it
 
@@ -2236,7 +2347,21 @@ Get-ChildItem Env:
 Remove-Item $Env:Test
 ```
 
+### Function PSDrive
 
+Once loaded into memory, you can see and manage functions on the **Function** PSDrive:
+
+- **get all functions in memory**:
+
+```bash
+Get-ChildItem -Path Function:\Get-*Version
+```
+
+- **removing functions from memory**: If you want to remove these functions from your current session, remove them from the **Function** PSDrive or close and reopen PowerShell.
+
+```bash
+Get-ChildItem -Path Function:\Get-*Version | Remove-Item
+```
 ### Custom providers with PSDrive
 
 A PSDrive in PowerShell is a special kind of provider that lets you map different data stores—like network shares, folders, or even registry keys—as drives you can navigate and manage just like a regular file system.
@@ -2276,6 +2401,7 @@ Set-Location -Path SharedDrive:
 Remove-PSDrive -Name SharedDrive
 ```
 
+
 ## Powershell scripting
 
 ### Special script variables
@@ -2284,7 +2410,7 @@ Remove-PSDrive -Name SharedDrive
 
 #### sourcing scripts
 
-You can source scripts like so, which is called **dot-sourcing**
+You can source scripts like so, which is called **dot-sourcing**, which executes scripts in the current scope, registering variables and functions in a dot-sourced script within the current scope.
 
 ```ps
 . $pathToPWSHScript
@@ -2294,7 +2420,10 @@ Sourcing a script runs it and then it makes all local variables and functions in
 
 To understand how sourcing works, it's also important to understand how it mixes with variable scopes:
 
+- **script**: The issue with running the script that defines the function is that it loads it into the **Script** scope. Once the script finishes executing, PowerShell discards that scope along with the function.
+- **global**: To keep the function available after the script runs, it needs to be loaded into the **Global** scope. You can accomplish this by dot-sourcing the script file. You can use a relative path for this purpose.
 
+Therefore if you want to make local functions within a script global, you need to dot-source the script.
 
 ### Interacting to console
 
@@ -2312,9 +2441,9 @@ The `Write-Host` cmdlet writes to stdout and accepts stdin as input via powershe
 The `Write-Host` cmdlet takes in an unlimited amount of parameters of any type and then writes them to the console as strings separated by spaces:
 
 ```ps
-$IsFertile = $True
+$IsYoung = $True
 
-Write-Host "Is fertile" $IsFertile
+Write-Host "Is young" $IsYoung
 ```
 
 Here are the options you have available for this cmdlet:
@@ -2322,10 +2451,11 @@ Here are the options you have available for this cmdlet:
 - `-ForegroundColor <color>`: sets the text color of the output in the console.
 - `-BackgroundColor <color>`: sets the background color of the text output in the console.
 
-#### `Read-Host` and `Clear-Host`
+#### `Read-Host`
 
-- The `Clear-Host` command clears the screen for you
-- The `Read-Host` command accepts user input, used commonly with variables, see [[#Variables and values]]
+ The `Read-Host` command accepts user input and returns whatever the input was as a string variable.
+
+Here's the basic usage:
 
 ```ps
 $Age = Read-Host "What's your age?"
@@ -2341,6 +2471,9 @@ What's your age?: 22
 Hello, you are 22 years old
 ```
 
+You also have these additional options on the cmdlet:
+
+- `-AsSecureString`: if this flag is set, then it asks for the user input in a password-masked manner and returns the value as a `SecureString` instance (look at [[#SecureString variable]] for more info).
 #### `Write-Output`
 
 The `Write-Output` cmdlet writes to the pipeline stdout, meaning you can store the contents of `Write-Output` in a variable or forward it along the pipeline.
@@ -2805,6 +2938,150 @@ The best practice naming conventions for functions is as follows:
 
 
 ![](https://i.imgur.com/lMByAKR.jpeg)
+
+#### Function metadata
+
+You can view all the parameters of a function like so:
+
+```ps
+(Get-Command -Name Test-MrParameter).Parameters.Keys
+```
+#### Advanced functions
+
+Turning a function into an advanced function in PowerShell is simple. One of the differences between a function and an advanced function is that advanced functions have common parameters that are automatically added. Common parameters include parameters such as **Verbose** and **Debug**.
+
+Given a function like so:
+
+```ps
+function Test-MrParameter {
+	param ([string]$ComputerName)
+
+	Write-Output $ComputerName
+}
+```
+
+You can view the common parameters and syntax of how to use the function with the `-Syntax` flag on the `Get-Command` cmdlet
+
+```ps
+# outputs Test-MrParameter [[-ComputerName] <Object>]
+Get-Command -Name Test-MrParameter -Syntax
+```
+
+- **normal functions**: normal functions don't have common parameters
+- **advanced functions**: advanced functions have common parameters built-in
+
+Add the `CmdletBinding` attribute to turn the function into an advanced function.
+
+- When you specify `CmdletBinding`, the common parameters are added automatically. 
+- `CmdletBinding` requires a `param` block, but the `param` block can be empty.
+
+```ps
+function Test-MrCmdletBinding {
+
+[CmdletBinding()] # Turns a regular function into an advanced function
+    param (
+        $ComputerName
+    )
+
+Write-Output $ComputerName
+
+}
+```
+
+Drilling down into the parameters property of `Get-Command` shows the actual parameter names, including the common ones.
+
+```ps
+# getting all parameters of an advanced function
+(Get-Command -Name Test-MrCmdletBinding).Parameters.Keys
+
+# will output
+ComputerName
+Verbose
+Debug
+ErrorAction
+WarningAction
+InformationAction
+ErrorVariable
+WarningVariable
+InformationVariable
+OutVariable
+OutBuffer
+PipelineVariable
+```
+
+##### Supporting verbose output
+
+Just allowing the use of the `-Verbose` flag on a function execution does nothing if the function doesn't have a built-in way to quantify what to include in the verbose output.
+
+For that, here's what you can do:
+
+Inline comments are useful if you're writing complex code, but users don't see them unless they look at the code.
+
+The function in the following example has an inline comment in the `foreach` loop. While this particular comment might not be difficult to locate, imagine if the function contained hundreds of lines of code.
+
+
+```ps
+function Test-MrVerboseOutput {
+
+    [CmdletBinding()]
+    param (
+        [ValidateNotNullOrEmpty()]
+        [string[]]$ComputerName = $env:COMPUTERNAME
+    )
+
+    foreach ($Computer in $ComputerName) {
+        #Attempting to perform an action on $Computer <<-- Don't use
+        #inline comments like this, use write verbose instead.
+        Write-Output $Computer
+    }
+
+}
+```
+
+A better option is to use `Write-Verbose` instead of inline comments, where stdout will only be written to if the function is executed with the `-Verbose` option.
+
+
+```ps
+function Test-MrVerboseOutput {
+
+    [CmdletBinding()]
+    param (
+        [ValidateNotNullOrEmpty()]
+        [string[]]$ComputerName = $env:COMPUTERNAME
+    )
+
+    foreach ($Computer in $ComputerName) {
+        Write-Verbose -Message "Attempting to perform an action on $Computer"
+        Write-Output $Computer
+    }
+
+}
+```
+
+The verbose output is displayed when the function is called with the **Verbose** parameter.
+
+```ps
+Test-MrVerboseOutput -ComputerName Server01, Server02 -Verbose
+```
+
+##### Supporting `-WhatIf` and `-Confirm`
+
+The `SupportsShouldProcess` attribute adds the **WhatIf** and **Confirm** risk mitigation parameters. These parameters are only needed for commands that make changes.
+
+```ps
+function Test-MrSupportsShouldProcess {
+
+[CmdletBinding(SupportsShouldProcess)]
+    param (
+        $ComputerName
+    )
+
+Write-Output $ComputerName
+
+}
+```
+
+Now the above function allows you to add the `-WhatIf` and `-Confirm` parameters to use on the function, which will work out of the box.
 #### Function examples
 
 **Logging function**
@@ -2865,14 +3142,161 @@ the process name and CPU usage to a text file.
 Beginner script example
 #>
 ```
-## Other commands
 
-### `Get-Date`
+```ps
+function Get-MrAutoStoppedService {
 
-The `Get-Date` cmdlet retruns the current date and time in a human readable format.
+<#
+.SYNOPSIS
+    Returns a list of services that are set to start automatically, are not
+    currently running, excluding the services that are set to delayed start.
 
+.DESCRIPTION
+    Get-MrAutoStoppedService is a function that returns a list of services
+    from the specified remote computer(s) that are set to start
+    automatically, are not currently running, and it excludes the services
+    that are set to start automatically with a delayed startup.
 
+.PARAMETER ComputerName
+    The remote computer(s) to check the status of the services on.
 
+.PARAMETER Credential
+    Specifies a user account that has permission to perform this action. The
+    default is the current user.
+
+.EXAMPLE
+     Get-MrAutoStoppedService -ComputerName 'Server1', 'Server2'
+
+.EXAMPLE
+     'Server1', 'Server2' | Get-MrAutoStoppedService
+
+.EXAMPLE
+     Get-MrAutoStoppedService -ComputerName 'Server1' -Credential (Get-Credential)
+
+.INPUTS
+    String
+
+.OUTPUTS
+    PSCustomObject
+
+.NOTES
+    Author:  Mike F. Robbins
+    Website: https://mikefrobbins.com
+    Twitter: @mikefrobbins
+#>
+
+[CmdletBinding()]
+    param (
+
+)
+
+#Function Body
+
+}
+```
+## Advanced powershell
+
+### Dates in powershell
+
+### C sharp extensibility
+
+In PowerShell, you can extend its capabilities by running C# code inline. Here's how it works:
+
+1. **Create a C# class as a string:** Define your class with methods inside a string variable. For example, a class called `MathHelper` with a static method `addNumbers` that takes two integers and returns their sum:
+
+```ps
+# Define C# class
+$code = @"
+public class MathHelper {
+    public static int addNumbers(int firstNumber, int secondNumber) {
+        return firstNumber + secondNumber;
+    }
+}
+"@
+```
+
+2. **Compile the C# code using `Add-Type`:** Use `Add-Type -TypeDefinition "<your C# code>"` to compile the class and make it accessible in PowerShell.
+
+```ps
+# Compile the class
+Add-Type -TypeDefinition $code
+```
+
+3. **Use the class and its methods in PowerShell:** Call the method using the syntax
+
+```ps
+[ClassName]::MethodName(parameters)
+```
+
+Here's the full example:
+
+```ps
+# Define C# class
+$code = @"
+public class MathHelper {
+    public static int addNumbers(int firstNumber, int secondNumber) {
+        return firstNumber + secondNumber;
+    }
+}
+"@
+
+# Compile the class
+Add-Type -TypeDefinition $code
+
+# Use PowerShell variables
+$firstValue = 5
+$secondValue = 7
+
+# Call the C# method
+$result = [MathHelper]::addNumbers($firstValue, $secondValue)
+
+# Display the result
+Write-Host "Result from C# code: $result"
+```
+
+#### .NET extensibility
+
+PowerShell integrates with the .NET framework to extend its capabilities beyond text-based commands, allowing you to create GUI applications and use powerful .NET classes. Here's how it works with syntax examples:  
+  
+
+- **Load a .NET assembly:** Use `Add-Type -AssemblyName <assembly>` to load the .NET library you want to use. For example:  
+      
+```ps
+Add-Type -AssemblyName System.Windows.Forms
+```
+    
+- **Create an object from a .NET class:** Use `New-Object` with the full class name:  
+      
+```ps
+$form = New-Object System.Windows.Forms.Form
+```
+    
+- **Access or set properties:** Use dot notation to get or set properties of the object:  
+      
+```ps
+$form.Text = 'Hello World GUI' 
+$form.Size = New-Object System.Drawing.Size(300,200)
+```
+    
+- **Call methods:** Use dot notation to invoke methods:  
+      
+```ps
+$form.ShowDialog()
+```
+### Python extensibility
+
+Here is how to run python code within a powershell script using the `Python` cmdlet:
+
+- `Python <file>`: run a python file
+- `Python -c <script>`: run inline python script
+
+```ps
+$Values = 1, 2, 3
+
+ForEach ($Value in $Values) {
+	Python -c "print('hello world', $Value)"
+}
+```
 ### HTTP requests
 
 #### `Invoke-WebRequest`
@@ -2989,6 +3413,19 @@ $response = Invoke-RestMethod -Uri "http://localhost:8080/auth-basic" `
 $response
 ```
 
+#### POST request
+
+```ps
+$Body = @{
+	title = "post title"
+	body = "post body"
+}
+
+$Response = Invoke-RestMethod -Uri "https://api.example.com/post" `
+	-Method Post `
+	-Body ($Body | ConvertTo-Json) `
+	-ContentType "application/json"
+```
 ## Powershell automation
 
 ### Background jobs
@@ -3078,7 +3515,15 @@ This feature is useful when you have tasks that can run independently and you wa
 	- But if the error comes from a script and involves multiple issues, it displays a detailed multiline error message with a pointer to the exact line where the error happened, similar to a stack trace. 
 ## Powershell administration
 
-### Check powershell version
+### Powershell escalated privilege
+
+UAC is a Windows security feature that helps prevent malicious code from running with elevated privileges.
+
+However, PowerShell doesn't participate in [User Access Control (UAC)](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/). That means it's unable to prompt for elevation for tasks that require the approval of an administrator.
+
+Therefore if you want to run privileged access commands in Powershell, you must manually open Powershell as an admin first.
+
+### Powershell version management
 
 View the value of the `$PSVersionTable` variable to see what the current powershell version is.
 
@@ -3296,6 +3741,168 @@ Invoke-Command -ComputerName Win3 -Credential $Cred -ScriptBlock {
 	# some script here
 }
 ```
+
+### Powershell security
+
+#### Foundations
+
+The 4 main risks that come with Powershell security are the following:
+
+1. **Running untrusted scripts without verification**: trusting unverified scripts mean that you could execute malicious scripts.
+2. **Improper use of elevated permissions**: once in elevated permissions, principle of least privilege is violated and you have a greater attack surface.
+3. **lack of logging and auditing**: lack of monitoring makes it harder to detect exploited vulnerabilities or unsafe behavior.
+4. **misconfigured execution policies**: allows running unsigned scripts without a guarantee of their integrity could be malicious.
+
+Powershell has built-in security layers that you can take advantage of, which fix these 4 main risks:
+
+- **RBAC**: RBAC authorizes users with permissions to execute certain commands granularly
+- **execution policies**: configure level of trust with remote and local scripts, with most secure being to run only signed scripts.
+- **script program security**: script hardening with logging, parameter validation, and asking for confirmation frequently.
+- **JIT access**: JIT (Just-in-time) access allows to escalate privilege temporarily to perform an action.
+- **secure credentials**: use the Powershell secret management module for safe secrets injection.
+
+#### Signing scripts
+
+Signing scripts lets you comply with compliance laws and let you run your script with a strict execution policy.
+
+There are two ways you can sign your script:
+
+- **self-signed scripts**: use the local Windows CA on your local machine to sign the script
+- **trusted CA**: use a trusted CA to sign and verify script integrity
+
+Here are the relevant commands:
+
+- `Set-AuthenticodeSignature`: signs a script. If the script is modified, it must resigned by this method.
+
+Here are the steps to sign your script:
+
+1. **Check for an existing code signing certificate:** If you don't have one, proceed to create a self-signed certificate.
+
+  ```ps
+  Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+  ```
+
+2. **Create a self-signed code signing certificate:** This creates a certificate named "PowerShellScriptSigner" in your personal certificate store.
+
+```ps
+$Cert = New-SelfSignedCertificate \
+	-CertStoreLocation Cert:\CurrentUser\My \
+	-Subject "PowerShellScriptSigner" \
+	-KeyUsage DigitalSignature \
+	-Type CodeSigningCert
+
+Write-Host "Certificate created with thumbprint: $($Cert.Thumbprint)"
+```
+
+3. Get the certificate
+
+```ps
+$cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {
+	$_.Subject -like "*PowerShellScriptSigner*" 
+}
+```
+
+4. **sign the powershell script**: Assuming your script path is stored in `$scriptPath`:
+
+```ps
+Set-AuthenticodeSignature -FilePath $scriptPath -Certificate $cert
+```
+
+5. **verify the script signature**: This command shows the signature status, indicating if it's valid or has issues.
+
+```ps
+$Signature = Get-AuthenticodeSignature -FilePath $scriptPath
+
+Write-Host "Signature status: $($Signature.Status)"
+```
+
+#### SecureString variable
+
+The `SecureString` class in powershell allows you to treat a string as a sensitive-string that should be encrypted and not leak its plaintext value.
+
+```bash
+# 1. create a secure plaintext string that gets encrypted
+$SecureString = ConvertTo-SecureString -String "mypassword" -AsPlainText -Force
+
+# 2. save encrypted content to file
+$SecureString | Export-CliXml -Path ".\EncryptedPassword.xml"
+
+# 3. retrieve secure string from file
+$RetrievedString = Import-CliXml -Path ".\EncryptedPassword.xml"
+```
+
+### Logging
+
+PowerShell provides several important log sources for auditing and monitoring:  
+  
+
+- **PowerShell Operational Log:** Captures essential PowerShell activities and is accessible via Event Viewer. It records command execution and script activity.
+- **Security Logs:** Track privilege-related actions to help detect unauthorized access or suspicious behavior.
+- **Application Logs:** Monitor execution history and events related to PowerShell scripts.
+- **Module Logging:** Tracks execution of cmdlets from various modules, helping to see what commands are run.
+- **Script Block Logging:** Captures the content of executed scripts, which is useful for security analysis.
+- **PowerShell Transcription:** Records entire PowerShell sessions including input and output, providing a complete audit trail.
+
+Additionally, custom logging can be implemented within scripts to write specific events or messages to files or event logs, allowing more granular control over what gets logged.
+
+#### Loggings with group policy
+
+Group Policy is a feature in Windows that allows administrators to centrally manage and configure settings for multiple computers within a network, especially in business environments. It helps enforce consistent rules and policies, like security settings or software configurations, across all systems. 
+
+In the context of PowerShell, Group Policy lets you set up logging and security options uniformly on many machines, making it easier to monitor and control PowerShell usage across your organization.
+
+To configure PowerShell logging using Group Policy, you centrally manage logging settings across multiple systems by following these steps:  
+  
+
+1. Open Group Policy Editor and navigate to **Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell**.
+2. **configure logging policies**: Here, you can enable and configure various logging options such as:
+	- **Module Logging** (tracks cmdlet execution)
+	- **Script Block Logging** (captures script content)
+	- **PowerShell Transcription** (records full session input and output).
+3. **navigate to log viewers**: These logs are stored in the Event Viewer under the PowerShell operational log, making it easier to audit and monitor PowerShell activity.
+
+#### event log management
+
+- `Get-WinEvent`: The `Get-WinEvent` cmdlet allows you to get windows event logs
+- `Write-EventLog`: Writes to the Windows event log
+
+Here's how to do event log management:
+
+1. Upsert a new Windows event log source:
+
+```ps
+# 1. if event source exists, use it, else create it.
+$EventSource = "PowerShellScriptLog"
+if (-not (Get-EventLog -LogName Application -Source $EventSource `
+-ErrorAction SilentlyContinue)) {
+    New-EventLog -LogName Application -Source $EventSource
+}
+```
+2. Write an event log to the source
+
+```ps
+# 1. choose log level: can be one of "Information", "Warning", or "Error"
+$EntryType = "Information" 
+
+# 2. choose event id
+$EventId = 1000
+
+Write-EventLog -LogName MyLog -Source $EventSource `
+	-EntryType $EntryType `
+	-EventId 1000 `
+	-Message "Hello world this is an event log"
+```
+
+
+#### **custom logging**
+
+- `Start-Transcript`: The `Start-Transcript` cmdlet allows you to capture all output from a powershell session and capture it to a log file
+- `Stop-Transcript`: this cmdlet 
+
+
+![](https://i.imgur.com/J1ZAF35.jpeg)
+
+
 
 ### Troubleshooting
 

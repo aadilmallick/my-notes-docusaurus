@@ -182,14 +182,23 @@ Here are the dynamic security testing techniques:
 
 SAST is static application security testing, where it reviews the source code of software to identify potential vulnerabilities.
 
+SAST scanners are tools that can help with the security analysis of static source code. When you use the SAST scanner, it's important to understand what cases SAST can help cover, as well as what areas may be best to supplement with other scanners or tools. Below are some strengths and considerations for the SAST scanner.
+
+> [!NOTE]
+> SAST tools are great for finding well-defined security vulnerabilities, however more complex vulnerabilities often need a different approach. Logic based vulnerabilities such as access control issues are often best tested with other scanners such as DAST.
+
 **pros**
 
 - **CI/CD friendly**: runs very quickly and can catch many common vulnerabilities
+- **ease of scaling**: One of the main strengths of SAST is the ability to scale it. If you have many projects or large code bases, you can use SAST to ensure a baseline security posture is met for all of your code. 
+- **consistent security scanning**: Additionally, you can schedule SAST scans to allow for consistent security scanning.
+- **identification of common vulnerabilities**: SAST excels with detecting well-known vulnerabilities, such as buffer overflows and SQL injections. SAST scanners help ensure that these common and well-defined vulnerabilities do not make it into your production code.
 
 **cons**
 
-- **many false positives**
-- **doesn't catch runtime errors**: can't catch runtime security vulnerabilities like authorization misconfiguration
+- **many false positives**: very simple and errs on the side of caution, so you may have many false positives.
+- **doesn't catch runtime errors**: can't catch runtime security vulnerabilities like authorization misconfiguration. For this, use something like DAST.
+- **doesn't catch access control errors**: logical vulnerabilities require more interactive security testing methods like DAST.
 
 
 #### Static code analysis (SCA)
@@ -225,13 +234,22 @@ Here are the best practices:
 
 ![](https://i.imgur.com/GYkfWyu.jpeg)
 
-#### Continuous dependency scanning
+#### Dependency scanning and ontinuous dependency scanning
+
+**dependency scanning** is able to create SBOM reports, determine licenses of open-source libraries, and detect vulnerabilities in libraries.
+
+Here is what dependency scanning allows you to do:
+
+- **detect licenses and vulnerabilities**: As software continues to evolve, we have more reliance on open-source or third-party libraries. These libraries are useful, however they also increase the attack surface of our applications. Having dependency scanning in place lets us ensure that with the increased attack surface, we still have proper awareness of the vulnerabilities in these libraries.
+- **create SBOMs**: SBOM reporting allows you to get a full picture of what open-source components exist in your projects. This is essential for situations where a critical issue occurs in a component. In these cases, the SBOM reports you generate can allow you to quickly validate if any of your projects are impacted by the issue.
+
+> [!TIP]
+> you should combine dependency scanning with other tools such as SAST to get a full coverage of your application code.
+
+Automated dependency scanning integrated into your CI/CD pipeline helps quickly identify vulnerable components by comparing dependencies against known vulnerability databases (CVEs).
 
 **Continuous dependency scanning** uses an automated dependency scanner tool that scans your codebase's third party packages for vulnerabilities or outdated dependencies.
 
-
-> [!NOTE]
-> Automated dependency scanning integrated into your CI/CD pipeline helps quickly identify vulnerable components by comparing dependencies against known vulnerability databases (CVEs).
 
 
 ![](https://i.imgur.com/fITNC1F.jpeg)
@@ -241,6 +259,8 @@ Here are the best practices:
 **Continuous container scanning** scans these three main security focus areas for containerized applications:
   
 - **image vulnerabilities:** Identifying known vulnerabilities in the container's base image and its installed libraries and dependencies.
+- **detection of licenses and vulnerabilities**: Similarly to dependency scanning, container scanning can also report license and vulnerability details for components inside container images. This helps you ensure you maintain license compliance, while also being aware of vulnerabilities in your containers.
+- **SBOM reports**: Container scanning will generate an SBOM report, allowing you to add container image components to a dependency scan SBOM report.
 - **Policy Enforcement:** Ensuring containers are built and configured following security best practices, such as those outlined in CIS Benchmarks.
 - **Runtime Protection:** Monitoring running containers for suspicious activity and preventing container breakouts.
 
@@ -279,6 +299,19 @@ DAST stands for Dynamic Application Security Testing, it is a form of black-box 
 > [!NOTE]
 > DAST simulates how a real attacker interacts with apps, testing vulnerabilities with simulated SQL injections and XSS attacks.
 
+DAST allows you to run tests against a running copy of your application. This can potentially find issues that were not present in your static source code, allowing you to have a more complete picture of the security posture of your application.
+
+DAST scanners provide a variety of different configurations and modes you can use. The two main modes available are passive and active scans.
+
+- **passive scan**: A passive scan checks for vulnerabilities in an application by crawling the application. Passive scans aim to interact with the application the same way a normal user would. This means that passive scans do not attempt to simulate adversarial behavior. A passive check is great for highlighting issues in HTTP messages, cookies, storage events, console events, and DOM.
+- **active scan**: If you need a more intensive scan, you can opt for an active scan. Active scans will check for vulnerabilities by injecting attack payloads into HTTP requests. The goal of this is to simulate adversarial behavior, attempting to explicitly exploit the application. In order to use active mode, you need to add specific configurations to your application to prove you own the server being scanned. More details on this will be discussed later in the course.
+
+An active DAST scan will determine if an exploit is successful through two methods: **match responses** and **time responses**:
+
+- **match responses**: With this method, the scanner is checking to see if the result received matches the expected result of a successful exploit. For example, if the request was trying to access a password file, a response in the format of a password file is considered successful. 
+- **timing response**: Some requests will add sleeps to their payload to see if the application pauses for the specified amount of time. If pauses are seen as a response, it indicates a potentially successful exploit.
+
+
 Here are the three core components DAST handles:
 
 - **Crawling and Spidering:** The scanner navigates the live application to discover all entry points, URLs, forms, inputs, and API endpoints.
@@ -293,6 +326,28 @@ This is an example of using OWASP ZAP DAST tool, which tests a URL for networkin
 ```bash
 docker run -t owasp/zap2docker-stable zap-baseline.py -t http://10.0.2.15:3000
 ```
+
+#### API security scanning
+
+If you are writing a web application, it is likely that your application uses an API to retrieve data from your web server. API security scanners are designed to ensure that your API endpoints stay protected from common vulnerabilities such as unauthorized access and malicious inputs.
+
+As a part of the API security scan configuration, you provide details about your API endpoints. There are four supported formats you can use to do this:
+
+1. OpenAPI spec
+2. GraphQL schema
+3. HTTP archive
+4. Postman collection
+
+After you have specified the API format, the API scanner will use the configuration to send requests to your API. These requests are designed to attempt to trigger vulnerabilities in your API functionality. 
+
+- The goal of the scan is to simulate a real-world hacking attempt to see how your API reacts to these types of requests. 
+- The scans are language agnostic, as they only rely on the API request definitions to run.
+
+Like DAST, API Security can also be configured in a passive or active mode. 
+
+- A passive scan will search for vulnerabilities by calling the API normally and reviewing the results. 
+- An active scan will search with specific vulnerabilities, such as SQL injection.
+
 #### Dynamic code analysis 
 
 For DevSecOps, dynamic scans should run asynchronously in CI/CD pipelines to avoid blocking builds, and tools should be fast, accurate, support automation (API/CLI), and integrate with bug trackers
@@ -316,10 +371,20 @@ Runtime monitoring detects suspicious activities in real time, such as unusual p
 AWS GuardDuty is an example of a runtime monitoring solution that collects logs from various sources (like EC2 and Aurora) to detect suspicious API calls, malware, and misconfigurations, providing comprehensive visibility across your cloud environment.
 
 
-### Complete pipeline
+### Security scanning pipeline
+
+The security scanning pipeline makes use of automated SAST and DAST tools that integrate with CI/CD to perform security scanning on merge requests, artifact uploads, and pushing to the main branch.
 
 ![](https://i.imgur.com/CwZYfKI.jpeg)
 
+#### Merge request security reports
+
+The goal of merge request reporting is twofold. 
+
+1. The first goal is to ensure that security vulnerabilities do not reach the main branch of an application. 
+2. The second goal is to show developers where security vulnerabilities are with every commit they make to a merge request. 
+
+This helps developers catch vulnerabilities early, reducing the impact of security vulnerabilities during development.
 ## SAST tools
 
 ### SNYK
@@ -1038,6 +1103,494 @@ Vulnerability flaws that appear with a blue icon means that Veracode Fix can aut
 
 ![](https://i.imgur.com/J6RvG64.jpeg)
 
+
+## Qodana
+
+Qodana is a SAST tool that has great integrations with CI/CD and IDEs. Qodana is delivered as a **Docker image**, making it portable and compatible with virtually any CI system, such as _GitHub Actions_, _GitLab CI/CD_, and _TeamCity_
+
+> [!IMPORTANT]
+> Running Qodana locally requires the Docker engine to be on.
+
+
+Here are all the tools Qodana offers:
+
+- **CLI**: CLI for running SAST on your codebase
+- **CI/CD**: actions for Github actions, Gitlab workflows, Teamcity, Jenkins, etc.
+- **IDE plugin**: run Qodana SAST analysis from your IDE
+
+You control the analysis through a `qodana.yaml` configuration file placed in your project root. This file tracks your settings, including enabled inspections and excluded directories
+
+ - Qodana provides a visual dashboard to monitor project state, filter results, and track progress over time. Y
+ - ou can even click an "Open in IDE" button to jump directly to specific issues within your local _IntelliJ IDEA_ project
+ 
+The main differences between the **Qodana Community** (free) and **Qodana Ultimate** plans revolve around the breadth of inspection coverage, advanced security features, and enterprise-grade support.
+
+**Qodana Community (Free)**
+
+- **Core Inspection Set:** Provides access to the essential, open-source static analysis inspections derived from _JetBrains_ IDEs.
+- **Standard CI/CD Integration:** Ideal for open-source projects or smaller teams that need basic code quality checks without complex security requirements.
+- **Limited Scope:** Focuses on general code health, structural issues, and best practices that are part of the standard _IntelliJ_ inspection profiles.
+
+**Qodana Ultimate**
+
+- **Comprehensive Inspections:** Unlocks the full suite of static analysis tools, including deep inspections that cover a wider range of frameworks and languages.
+- **Advanced Security & Compliance:** Includes specialized security features, such as **OWASP taint analysis** and more rigorous checks to help meet professional and enterprise security standards.
+- **Baseline & Filtering:** Allows for more advanced reporting, such as setting a "baseline" to ignore legacy issues and focus only on new code quality regressions.
+- **Enterprise Features:** Designed for teams and businesses, offering enhanced support, better integration with enterprise CI/CD pipelines, and capabilities often required for compliance or regulated environments.
+
+In summary, while the **Community** plan is a powerful tool for maintaining general code quality, the **Ultimate** plan is built for professional teams that require deeper security vulnerability detection, advanced compliance reporting, and broader language support.
+
+### Basics
+
+#### Project tokens, CI/CD
+
+#### Tokens
+
+Each project in **Qodana Cloud** requires a specific **unique token** to establish a connection with your CI/CD pipeline, local CLI, or IDE to a specific Qodana project. 
+
+When you create a new project in Qodana Cloud, it generates this token so that your CI server, such as **GitHub Actions**, can authenticate and successfully upload the results of your code quality scans
+
+once you connect your local qodana scans to a qodana project in the cloud via a project token, qodana cloud will store the scan history for you.
+
+
+
+![](https://i.imgur.com/cgf9tJ7.jpeg)
+
+Here is how to create a new qodana project in qodana cloud and then connect it to your CI/CD pipeline in Github
+
+1. Go to qodana cloud and click on **create new project**, then put in your github repo URL
+
+
+![](https://i.imgur.com/ZVoMDZX.jpeg)
+
+
+2. Copy the qodana project token
+3. Set up the CI pipeline in Github which uses the `qodana` action
+
+```yaml
+name: Qodana
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main bks]
+  push:
+    branches:
+      - master
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2023.3
+        with:
+          args: --apply-fixes
+          pr-mode: false
+          push-fixes: pull-request
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+```
+
+4. Add a `secrets.QODANA_TOKEN` repository secret
+
+
+![](https://i.imgur.com/HRGILST.jpeg)
+
+
+### Configuration
+
+Qodana supports two major places to configure behavior:
+
+1. **`qodana.yaml`**
+2. The thing launching Qodana, such as Qodana CLI, Docker, your IDE, or CI/CD system.
+
+JetBrains specifically recommends YAML for configuration that would otherwise produce long commands, particularly inspection settings and `bootstrap`. 
+
+Tool-level settings can override settings from `qodana.yaml`
+
+> [!NOTE]
+> Think of `qodana.yaml` as the configuration describing what Qodana should do, and the CLI, CI/CD, or IDE as the execution medium for executing Qodana.
+
+
+#### Basics - linter, profiles, inspections
+
+This is a basic `qodana.yaml`:
+
+- `version`: uses version 1.0 for the configuration schema
+- `linter`: points to the `jetbrains/qodana-jvm:2026.2` as the image for running SAST analysis on a JVM project'
+- `profile`: the specific profile to use for the SAST setup. In this case, we use the starter profile.
+
+```yaml title="qodana.yaml"
+version: "1.0"
+
+linter: jetbrains/qodana-jvm:2026.2
+
+profile:
+  name: qodana.starter
+```
+
+Here is some terminology:
+
+- **linter**: the Qodana analysis environment appropriate for your technology stack, 
+
+> [!NOTE]
+> You use a JVM linter image for JVM projects, and node linter image for node projects.
+
+- **profile**: a set of inspections and the files they are applied to, representing the full security testing and linting procedure against an application.
+- **inspection**: a single vulnerability to inspect, which contains patterns and rules.
+
+
+> [!NOTE]
+> In Qodana, a **profile** is a customizable set of **inspections** and rules applied to your files
+> 
+> - **Customization:** You can define which checks are active, disable specific categories, or exclude entire folders (like test directories) from analysis to fit your team's standards
+> - **Automation:** These profile adjustments are automatically reflected in your `qodana.yaml`, ensuring that every CI run follows your customized ruleset
+
+Qodana provides these built-in profiles to use:
+
+- `empty`: empty profile containing no inspections, which you can use to fully customize and use manual configuration.
+- `qodana.sanity`: very small sanity checks.
+- `qodana.starter`: small ruleset, basic security tests
+- `qodana.recommended`: larger ruleset, a more comprehensive profile intended for CI/CD and largely corresponding to the default inspection profile
+
+Think of profiles and linters in this hierarchy:
+
+```
+LINTER
+qodana-jvm
+    │
+    └── PROFILE
+        qodana.recommended
+            │
+            ├── Inspection A
+            ├── Inspection B
+            ├── Inspection C
+            ├── Inspection D
+            └── ...
+```
+
+#### Bootstrapping
+
+For applications 
+
+#### Profiles and inspections
+
+### Dashboard
+
+The Qodana dashboard has several things you can do with it.
+
+
+
+#### **SARIF**
+
+**SARIF** is industry-standard file format used to exchange static analysis results between different tools.
+
+After _Qodana_ completes a code scan, it generates a **SARIF** file containing the analysis findings, which is then pushed to the cloud dashboard for visualization and integration with the IDE plugin.
+
+#### Baseline and quality gate
+
+By moving existing issues into the **baseline**, you can effectively hide them from current reports, allowing you to configure a **quality gate** that focuses exclusively on identifying and blocking newly introduced issues in your code
+
+A **quality gate** is a configuration feature within a CI (Continuous Integration) pipeline, such as in _Qodana_, used to enforce code standards before changes are merged into the main codebase.
+
+It works by:
+
+- **Defining criteria:** You set specific thresholds for code quality, such as a limit on the number of new issues allowed or minimum required code coverage
+- **Blocking merges:** If the scan identifies new issues that violate these established thresholds, the pipeline will cause the build to fail, preventing the problematic code from being merged.
+- **Focusing on new code:** When combined with a **baseline**—which hides pre-existing technical debt—a quality gate ensures that developers only focus on and address newly introduced problems in their current work.
+
+To set a **quality gate** in _Qodana_, follow these steps within your project's configuration:
+
+1. **Define the Baseline:** Before configuring the gate, it is recommended to move existing technical debt into a **baseline**. This ensures the quality gate only blocks builds based on _new_ issues rather than pre-existing ones
+2. **Configure Criteria:** Navigate to the quality gate settings where you can define thresholds based on various criteria, such as specific **issue severity** (e.g., critical or high) or required **code coverage** percentages
+3. **Apply to Pipeline:** Once configured, the quality gate integrates into your CI/CD pipeline. If a scan detects new issues that exceed your set thresholds, the pipeline will cause the build to fail, effectively preventing the code from being merged
+
+#### Filters
+
+Here's an example of creating a filter and then saving the filter so you can reuse it later.
+
+
+![](https://i.imgur.com/Vaj3Dsw.jpeg)
+
+#### Inspections and profile
+
+You can enable or disable inspections from the dashboard by looking at the found problems and then clicking on **More actions** and then disabling the inspection category or the specific inspection.
+
+
+![](https://i.imgur.com/Urp51kv.jpeg)
+
+You can edit the profile in the dashboard directly and then download the modified `qodana.yaml` to put that into your project root.
+
+> [!TIP]
+> If you have the Qodana IntelliJ IDE extension installed, edits int he UI automatically update the `qodana.yaml` in your IDE.
+
+#### Comparing against builds
+
+The UI stores all previous scans and scan history, so you can compare scan histories to see what bugs got fixed or introduced.
+
+
+![](https://i.imgur.com/AoUBjS6.jpeg)
+
+### CLI
+
+The CLI is just a wrapper around the Qodana Docker image that runs the container against a profile.
+
+#### Installation
+
+Here is how to install on Windows:
+
+```cmd
+scoop bucket add jetbrains https://github.com/JetBrains/scoop-utils
+scoop install qodana
+```
+
+
+Here is how to install on Mac:
+
+```bash
+brew install jetbrains/utils/qodana
+```
+
+How to install on Linux:
+
+```bash
+curl -fsSL https://jb.gg/qodana-cli/install | bash
+```
+
+#### Setup
+
+To run SAST in the cloud, you need a `QODANA_TOKEN` env var to authenticate with a specific qodana project:
+
+```bash
+QODANA_TOKEN="***********************************MzHc"
+qodana scan
+```
+
+Then the dashboard results will appear in the cloud after the scan.
+
+You can also set up completions like so:
+
+```bash
+qodana completion bash
+qodana completion powershell
+qodana completion zsh
+```
+
+#### `qodana init`
+
+Running `qodana init` in a project will set up the `qodana.yaml` for you, choosing the linter image and configuration version
+
+#### `qodana scan`
+
+```bash
+qodana scan --show-report --port 8888 --print-problems
+```
+
+- `--show-report`: shows the qodana dashboard in localhost
+- `--port <port-number>`: hardcodes the port for the qodana dashboard
+- `--profile <profile>`: the specific profile to use
+- `--print-problems`: if set, then shows all inspections from the profile.
+
+### IDE plugin
+
+Here is how to use the Jetbrains IDE plugin with Qodana:
+
+1. Navigate to the Problems tool window and click the Qodana tab4
+
+![](https://qodana.cloud/assets/problems-tool-window-B1wwjPI_.png)
+
+2. Log in or try locally and then paste in the qodana token, then add the `qodana.yaml` to the project root.
+
+![](https://qodana.cloud/assets/project-token-input-MuJRZ5Z9.png)
+
+3. After the scan runs, click on **Open Qodana report in browser**
+
+
+![](https://i.imgur.com/jo28i5h.jpeg)
+
+### CI/CD
+
+CI/CD in Qodana allows you to shift security left:
+
+```
+                 Developer
+                     |
+                     v
+                 Git push
+                     |
+                     v
+               CI pipeline
+                     |
+                     v
+              Qodana analysis
+                     |
+           +---------+---------+
+           |                   |
+        passes              violates
+      quality gate         quality gate
+           |                   |
+           v                   v
+       continue               fail
+```
+
+#### Github
+
+```yaml
+#-------------------------------------------------------------------------------#
+#        Discover additional configuration options in our documentation         #
+#               https://www.jetbrains.com/help/qodana/github.html               #
+#-------------------------------------------------------------------------------#
+
+name: Qodana
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - testing-zone/DVPS-3364-3365
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2026.2
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+        with:
+          # When pr-mode is set to true, Qodana analyzes only the files that have been changed
+          pr-mode: false
+          use-caches: true
+          post-pr-comment: true
+          use-annotations: true
+          # Upload Qodana results (SARIF, other artifacts, logs) as an artifact to the job
+          upload-result: false
+          # quick-fixes available in Ultimate and Ultimate Plus plans
+          push-fixes: 'none'
+```
+
+Here's another example:
+
+```yaml
+name: Qodana
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main bks]
+  push:
+    branches:
+      - master
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2023.3
+        with:
+          args: --apply-fixes
+          pr-mode: false
+          push-fixes: pull-request
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+```
+
+Here are all the args you can pass:
+
+- `args`: the command line arguments to pass
+	- `--apply-fixes`: will try to apply automatic fixes to findings
+- `pr-mode`: boolean, where if set to true, will only analyze changed files in the commit, and if false, analyzes entire codebase.
+- `push-fixes`: if the CLI command was run with `--apply-fixes`, will submit those code changes for fixing those findings as a pull request.
+#### GItlab
+
+```yaml
+#-------------------------------------------------------------------------------#
+#        Discover additional configuration options in our documentation         #
+#              https://www.jetbrains.com/help/qodana/gitlab.html                #
+#-------------------------------------------------------------------------------#
+
+include:
+  - component: $CI_SERVER_FQDN/qodana/qodana/qodana-gitlab-ci@v2026.2
+    inputs:
+      # When mr-mode is set to true, Qodana analyzes only the files that have been changed
+      mr-mode: false
+      use-caches: true
+      post-mr-comment: true
+      # Upload Qodana results (SARIF, other artifacts, logs) as an artifact to the job
+      upload-result: false
+      # quick-fixes available in Ultimate and Ultimate Plus plans
+      push-fixes: 'none'
+
+qodana:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "testing-zone/DVPS-3364-3365"
+```
+
+#### Teamcity
+
+```kt
+import jetbrains.buildServer.configs.kotlin.*  
+import jetbrains.buildServer.configs.kotlin.buildFeatures.perfmon  
+import jetbrains.buildServer.configs.kotlin.buildSteps.qodana  
+import jetbrains.buildServer.configs.kotlin.triggers.vcs  
+import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot  
+  
+version = "2022.10"  
+  
+project {  
+  vcsRoot(ProjectVcsRoot)  
+  buildType(Build)  
+}  
+  
+object Build : BuildType({  
+  name = "Build"  
+  vcs {  
+    root(ProjectVcsRoot)  
+  }  
+  steps {  
+    qodana {  
+      name = "Qodana Step"  
+      reportAsTests = true  
+      linter = jvm {}  
+    }  
+  }  
+  triggers {  
+    vcs {}  
+  }  
+  features {  
+    perfmon {}  
+  }  
+})  
+  
+object ProjectVcsRoot : GitVcsRoot({  
+  name = "https://gitlab.compusearch.com/devops/teamcityci/prismci.git#refs/heads/master"  
+  url = "https://gitlab.compusearch.com/devops/teamcityci/prismci.git"  
+  branch = "refs/heads/master"  
+  branchSpec = """  
+    refs/heads/testing-zone/DVPS-3364-3365  """.trimIndent()  
+})
+```
 ## DevSecOps pipeline creation
 
 ### Gitlab

@@ -54,11 +54,9 @@ The Build Agent service can be installed either on the same server as the TeamCi
 2. **Configuration**: After installation, the Build Agent must be configured. This includes setting up the necessary tools and SDKs required for building your specific code, such as .NET SDK, JDK, PHP, etc. Essentially, the Build Agent acts as a local environment where all the build and compile processes occur.
 3. **Execution**: Once agents are set up, TeamCity can assign builds to them. The Build Agents check out the source code, compile it, and produce packages, thereby facilitating continuous integration and continuous delivery (CI/CD) workflows.
 
-A very important thing to understand is that TeamCity automatically looks at which build agent to use for which task, depending on the type of software and packages that each build configuration needs. 
+A very important thing to understand is that TeamCity automatically looks at which build agent to use for which task (this is called **agent requirements**), depending on the type of software and packages that each build configuration needs. 
 
-For example, a build configuration that uses NPM heavily will only use a build agent that has NPM and Node installed.
-
-TeamCity will understand how to choose that agent automatically by seeing if it has NPM installed via configuration management. 
+For example, a build configuration that needs to use NPM will only use a build agent that has NPM and Node installed. TeamCity will understand how to choose that agent automatically by seeing if it has NPM installed via configuration management. 
 
 
 ![](https://i.imgur.com/YYMJWo8.jpeg)
@@ -825,6 +823,31 @@ Switched to a new branch 'my_feature'
 **dealing with multiple VCS roots caveat**
 
 If your build configuration has more than one VCS root which support branch remote run, and you push changes to all of them, TeamCity will start one personal build with changes per each VCS root.
+
+#### Parameters
+
+Parameters are `name=value` pairs that you reference via the `%parameterName%` syntax in TeamCity settings and build scripts.
+
+```
+name=value
+```
+
+There are two ways to supply parameter values in teamcity:
+
+- **manually supply value**: The parameter `value` part can be a raw value (`release.number=2026.1`)
+- **reference another parameter**: or include a reference to another parameter (`system.tomcat.libs=%env.CATALINA_HOME%/lib/*.jar`), which just uses the value from that parameter
+
+> [!WARNING]
+> TeamCity interprets any text enclosed in percentage characters as a parameter reference (and potentially adds an [implicit agent requirement](https://www.jetbrains.com/help/teamcity/configuring-agent-requirements.html#Implicit+Requirements) if no such parameter exists). To avoid this behavior, double percentage characters. For example, if you want to pass `%Y%m%d%H%M%S` into the build, change it to `%%Y%%m%%d%%H%%M%%S`.
+
+TeamCity supports parameters of three types:
+
+- **Configuration Parameters** — parameters whose primary objective is to share settings within a build configuration. You can also use these parameters to customize a configuration that was created from a [template](https://www.jetbrains.com/help/teamcity/build-configuration-template.html) or uses a [recipe](https://www.jetbrains.com/help/teamcity/working-with-meta-runner.html
+	- **important**: TeamCity does not pass configuration parameters to a build process (that is, these parameters are not accessible by a build script engine).
+    
+- **Environment Variables** — parameters that start with the `env.` prefix. These parameters are passed to the process of a build runner similarly to the default env variables of a system.
+    
+- **System Properties** — parameters that start with the `system.` prefix, which the build agent supplies (see [[#Variables]]) TeamCity can pass parameters of this type to configuration files of certain runners as variables specific to a build tool.
 #### Build steps
 
 ##### Setting step execution conditions
@@ -1333,6 +1356,40 @@ This section allows you to control whether the second option is available.
 
 Related article: [Working with Recipes](https://www.jetbrains.com/help/teamcity/working-with-meta-runner.html)
 
+#### Tools 
+
+In TeamCity, an agent tool is a type of plugin used only for distributing files to [build agents](https://www.jetbrains.com/help/teamcity/install-and-start-teamcity-agents.html). An agent tool can be a set of files or a binary distribution. Its classes are not loaded into the runtime.
+
+TeamCity allows you to install/remove additional tools on the server and distribute them to build agents on-demand.  
+In environments with many build agents, you can centralize distribution of configuration files (for example, if you want to distribute a custom configuration file/library to all agents that require it) or remove a tool on agents at once.
+
+The `Administration | Tools` page provides a unified interface to set up tools to be used by appropriate plugins. You can install different versions of a tool and/or change the default one. The tools will be automatically distributed to build agents that request them and used in the related runners.
+
+> [!NOTE]
+> Tools are specific software integrations you can install on teamcity agents so you don't have to install everything onto a build agent from scratch yourself.
+
+An agent downloads a tool before starting the first build which requires it. Once downloaded, the tool is stored on the agent so builds don't spend time on downloading it again.
+
+When editing settings of a build step that directly depends on a tool, you just need to select a specific version of this tool from the drop-down menu to let TeamCity know what exact tool should be delivered to an agent.
+
+> [!NOTE]
+> However, there are cases when an arbitrary build script needs a certain tool. In such case, you can reference a required tool via a `%teamcity.tool.<installed_tool_ID>%` parameter in the build step settings that support the input of parameters. 
+> 
+> You can also reference a tool in [values of build configuration parameters](https://www.jetbrains.com/help/teamcity/configuring-build-parameters.html) or in [agent requirements](https://www.jetbrains.com/help/teamcity/configuring-agent-requirements.html). 
+> 
+> - **agent requirement case**: For instance, in case with agent requirements, you can define a requirement of the type `exists` for a parameter with the name `%teamcity.tool.<installed_tool_ID>%`, and this will instruct TeamCity that the build requires the referenced tool. 
+
+Before starting a build, the TeamCity server scans all build steps' settings, finds all such tool references, and informs an agent what tools are required for the build.
+
+To check that the tool appears on the agent, look for `teamcity.tool.<installed_tool_ID>` in [configuration parameters reported by the agent](https://www.jetbrains.com/help/teamcity/predefined-build-parameters.html#Predefined+Agent+Build+Parameters) in the TeamCity UI.
+##### Maven tools
+
+1. Go to **admin** then to **tools**
+2. Select **Maven** and then download a new maven version.
+
+![](https://i.imgur.com/glADaGw.jpeg)
+
+If you follow these steps, now the agent will expose a `teamcity.tools.maven.3.9.16` parameter that points to the maven binary, so you can dynamically use that maven installation depending on if the build agent has that tool installed.
 
 #### SSH build steps
 
@@ -1355,6 +1412,159 @@ Here's the different types of ways you can do a build step that uses SSH somehow
 
 
 ![](https://i.imgur.com/dtUA8I0.jpeg)
+### Agents
+
+#### Intro
+
+Each agent can have a unique environment: architecture, operating system, installed tools, and so on. These properties define which builds an agent can run.
+
+Here are the rules of agents:
+
+- **can only run one build at a time**: An agent can run a single build at a time. The number of agents basically limits the number of parallel builds and environments in which your build processes are run.
+- **can only run on compatible builds**: An agent can run builds of any [compatible build configuration](https://www.jetbrains.com/help/teamcity/configuring-agent-requirements.html), which is defined by agent requirements on a build configuration.
+
+A TeamCity build agent contains [two processes](https://www.jetbrains.com/help/teamcity/configuring-build-agent-startup-properties.html): agent launcher (a Java process that launches the agent process) and agent (the main process for a build agent that runs as a child process for the agent launcher).
+
+#### Agent management and installation
+
+Here's the installation process for an agent:
+
+1. Go to your teamcity server **admin** page, then go to **agents**, then click on **install agent** and select a **full ZIP distribution**, which works on any machine.
+
+
+![](https://i.imgur.com/U1bEWde.jpeg)
+
+2. Download the configuration of the agent using the authentication token, which downloads a `.properties` file that you should register in your build agent.
+
+
+![](https://i.imgur.com/h8ghGkY.jpeg)
+
+
+
+![](https://i.imgur.com/WFZoDAy.jpeg)
+
+
+3. SSH into the agent, unzip the agent ZIP bundle into the agent's home directory.
+4. Run the `agent.bat start` command to start the build agent.
+
+##### **disabling an agent**
+
+Enabling and disabling agents controls the flow of builds to a machine you still trust and manage. You switch this status [in the UI](https://www.jetbrains.com/help/teamcity/build-agents-configuration-and-maintenance.html#Enabling%2FDisabling+Agents+via+UI); for cloud agents, the corresponding action is Disable for maintenance.
+
+![](https://resources.jetbrains.com/help/img/teamcity/2026.2/dk-disable-agent.png)
+
+TeamCity distributes queued builds only to enabled agents. Disabling an agent does not stop the build that is currently running on it, so you can disable a machine and let it finish its work before you take it offline.
+
+> [!TIP]
+> A disabled agent still runs builds that are explicitly assigned to it, for example through [Custom Build](https://www.jetbrains.com/help/teamcity/running-custom-build.html). This makes disabling the usual way to pull an agent out of the build grid and reproduce an agent-specific problem on it without regular builds interfering.
+
+#### Variables
+
+A build agent can be configured by adjusting in the `<TeamCity Agent Home>/conf/buildAgent.properties` file, which stores teamcity system variables as well as environment variables of the build agent enviornment.
+
+Here is an example where by RDPing into a build agent, the build agent properties file is at the `C:\BuildAgent\conf\buildAgent.properties` path:
+
+
+![](https://i.imgur.com/BS9DapI.jpeg)
+
+Syntax reference:
+
+- Use `property_name=value<newline>` syntax.
+    
+- Use `#` in the first position of the line for a comment.
+    
+- Use `/` instead of `\` as the path separator. If you need to include `\`, escape it with another `\`.
+    
+- Whitespaces are processed as any other symbol.
+
+Here's an example file:
+
+```bash
+## The address of the TeamCity server. The same as is used to open the TeamCity web interface in the browser.
+## Must include the protocol specification (https:// is recommended).
+serverUrl=http://localhost:8111/
+
+## The unique name of the agent used to identify this agent on the TeamCity server
+## Use blank name to let server generate it.
+## By default, this name would be created from the build agent's host name
+name=Default agent
+
+## Container directory to create default checkout directories for the build configurations.
+workDir=../work
+
+## Container directory for the temporary directories.
+## Please note that the directory may be cleaned between the builds.
+tempDir=../temp
+
+## Container directory for agent state files and caches.
+## TeamCity agent assumes ownership of the directory and can delete the content inside.
+systemDir=../system
+
+
+######################################
+#   Optional Agent Properties        #
+######################################
+## A token which is used to identify this agent on the TeamCity server for agent authorization purposes.
+## It is automatically generated and saved back on the first agent connection to the server.
+authorizationToken=1234567890abcdefghijklml
+```
+
+Here's how you can set agent properties, system properties, and env properties:
+
+- **agent properties**: simple key-value pairs that are used sort of like tags for agent requirements.
+- **system properties**: All properties starting with the naming syntax `system.<name>` are considered system variables
+
+```bash
+# you would refer to this in a build configuration
+# through %teamcity.agent.ensure.free.space%
+system.teamcity.agent.ensure.free.space=10gb
+```
+
+
+```bash
+######################################
+#   Optional Agent Properties        #
+######################################
+
+## A token which is used to identify this agent on the TeamCity server for agent authorization purposes.
+## It is automatically generated and saved back on the first agent connection to the server.
+authorizationToken=4913cc2f2f527d4a4f26d23c324fc565
+devops.teamcity.tools.dir=D:\\AgentData\\tools
+prodops.products.devops=1
+prodops.products.coco=1
+prodops.products.prism=1
+prodops.products.bam=1
+prodops.products.marketplace=1
+prodops.products.topvue=1
+prodops.products.clm=1
+prodops.products.mp.java.8151=D:\Java.8u151
+prodops.products.mp.java.8265=D:\Java.8u265b01
+
+
+######################################
+#   Default Build Properties         #
+######################################
+## All properties starting with "system.name" will be passed to the build script as "name"
+## All properties starting with "env.name" will be set as environment variable "name" for the build process
+## Note that value should be properly escaped. (use "\\" to represent single backslash ("\"))
+## More on file structure: http://java.sun.com/j2se/1.5.0/docs/api/java/util/Properties.html#load(java.io.InputStream)
+
+# Build Script Properties
+
+#system.exampleProperty=example Value.
+
+# Environment Variables
+env.TEAMCITY_JRE=C\:\\BuildAgent\\jre
+env.RESHARPER_CMD_ARGS=-s=warning
+
+#env.exampleEnvVar=example Env Value
+env.TEAMCITY_JRE=C\:\\BuildAgent\\jre
+ownPort=9090
+teamcity.dotnet.vstest.15.0=C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\TestAgent\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow\\vstest.console.exe
+teamcity.agent.build.checkoutDir.expireHours=744
+system.teamcity.agent.ensure.free.space=10gb
+system.teamcity.agent.ensure.free.temp.space=30gb
+```
 
 ### Teamcity pipelines
 
@@ -2385,7 +2595,15 @@ The `teamcity agent` commands family lets you manage agents, SSH into them, and 
 
 - `teamcity agent list`: lists all agents associated with your Teamcity server
 - `teamcity agent term <agent-id>`: SSH into a specific agent
+- `teamcity agent reboot <agent-id>`: lets you reboot an agent.
 - `teamcity agent exec <agent-id> <cmd>`: Execute a command within the context of an agent's terminal
+	- `--timeout`: set a timeout for the command, like `10m` for 10 minutes.
+
+```bash
+teamcity agent exec 1 "ls -la"
+teamcity agent exec Agent-Linux-01 "cat /etc/os-release"
+teamcity agent exec Agent-Linux-01 --timeout 10m -- long-running-script.sh
+```
 
 Validate Kotlin DSL configuration by running the TeamCity configuration generator:
 
@@ -3837,7 +4055,7 @@ triggers {
     }
 }
 ```
-#### Build steps
+#### Build steps intro
 
 ##### Script steps
 
@@ -3875,7 +4093,7 @@ object CommandLineRunnerTest : BuildType({
 
 Refer to original concept in [[#Step execution conditions]]:
 
-In the Kotlin DSL, you can check the `teamcity.agent.jvm.os.name` parameter to run the current build step only on Windows agents, as follows:
+In the Kotlin DSL, the `conditions` block allows you to use teamcity parameter values in conditional statements where if true, the build step runs, and if false, the build step does not run.
 
 ```kt
 package _Self.buildTypes
@@ -3928,7 +4146,53 @@ object MyBuildConf : BuildType({
 > [!NOTE]
 > If you declare multiple execution conditions, the build step will be executed only if all of them are satisfied in the current build run.
 
+Suppose we define:
 
+```kt
+params {
+    param("deploy.enabled", "false")
+}
+```
+
+Then:
+
+```kt
+script {
+    id = "deploy"
+    name = "Deploy"
+
+    conditions {
+        equals(
+            "deploy.enabled",
+            "true"
+        )
+    }
+
+    scriptContent = "./scripts/deploy.sh"
+}
+```
+
+For a custom build, someone could potentially override:
+
+```
+deploy.enabled=true
+```
+
+and enable the step.
+
+This is a powerful pattern:
+
+```
+TeamCity parameter
+        │
+        ▼
+step execution condition
+        │
+        ▼
+conditional pipeline behavior
+```
+
+TeamCity specifically notes that custom-build parameter overrides can be used to control conditional steps.
 ##### Resolving from the `.teamcity` folder
 
 **Problem**: I want to generate a TeamCity build configuration based on the data in some file residing in the VCS inside the `.teamcity` directory.
@@ -3938,6 +4202,156 @@ object MyBuildConf : BuildType({
 ```kt
 val dataFile = File(DslContext.baseDir, "data/setup.xml")
 ```
+
+##### Step IDs
+
+Build steps can have their own IDs you can set with the `id=` kwarg.
+
+- The BuildType ID identifies the entire configuration.
+- The step ID identifies one step inside it.
+
+Step IDs aren't always required, but they become especially useful when templates are involved or when other configuration needs to refer to a specific step. 
+
+TeamCity specifically notes that template-based builds can override a step by using the same step ID.
+
+> [!TIP]
+> For reusable production DSL, assigning stable IDs to important steps is a good habit.
+
+##### Step execution mode
+
+Step execution modes allow you to control if a step should run or not based on the success status of previous steps or the build configuration as a whole.
+
+Current TeamCity has these modes: `DEFAULT`, `RUN_ON_SUCCESS`, `RUN_ON_FAILURE`, `RUN_ONLY_ON_FAILURE`, and `ALWAYS`, which you can set on the `executionMode` property on a `BuildStep` object.
+
+- `DEFAULT`: Don't execute this step if a previous step has failed. This is the default bheavior.
+
+```kt
+script {
+    executionMode = BuildStep.ExecutionMode.DEFAULT
+}
+```
+
+- `RUN_ON_FAILURE`: execute this step even if a previous step has failed.
+
+```kt
+script {
+    executionMode = BuildStep.ExecutionMode.RUN_ON_FAILURE
+}
+```
+
+- `RUN_ONLY_ON_FAILURE`: execute this step only if a previous step failed, or when teamcity consider the build as failed.
+
+```kt
+script {
+    id = "diagnostics"
+    name = "Collect Failure Diagnostics"
+
+    executionMode =
+        BuildStep.ExecutionMode.RUN_ONLY_ON_FAILURE
+
+    scriptContent = "./scripts/collect-diagnostics.sh"
+}
+```
+
+- `ALWAYS`: execute execute this step, even if a previous step or even the build configuration has failed.
+	- TeamCity documents this as the strongest “run regardless” mode
+
+```kt
+script {
+    id = "cleanup"
+    name = "Cleanup"
+
+    executionMode =
+        BuildStep.ExecutionMode.ALWAYS
+
+    scriptContent = "./scripts/cleanup.sh"
+}
+```
+
+- `RUN_ON_SUCCESS`: Run this step only if the rest of the build configuration has succeeded. This is stricter than simply checking whether previous agent-side steps succeeded.
+	- TeamCity queries the server-side build status before executing the step.
+	- That's useful because TeamCity can mark the build failed for reasons beyond a process exit code—for example, test failures or server-side failure conditions.
+
+```kt
+script {
+    executionMode = BuildStep.ExecutionMode.RUN_ON_SUCCESS
+}
+```
+
+
+
+#### Build steps
+
+##### Powershell step
+
+```kt
+powerShell {
+    name = "Deploy"
+
+    scriptMode = script {
+        content = """
+            Write-Host "Deploying application"
+            ./deploy.ps1
+        """.trimIndent()
+    }
+}
+```
+
+
+```kt
+powerShell {
+	id = "copy-windows"
+	name = "Copy File — Windows"
+
+	conditions {
+		startsWith(
+			"teamcity.agent.jvm.os.name",
+			"Windows"
+		)
+	}
+
+	scriptMode = script {
+		content = """
+			Copy-Item result.xml -Destination C:\output
+		""".trimIndent()
+	}
+}
+```
+
+##### Gradle step
+
+```kt
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
+
+object BuildApplication : BuildType({
+
+    id("BuildApplication")
+    name = "Build Application"
+
+    vcs {
+        root(ApplicationRepository)
+    }
+
+    steps {
+
+        gradle {
+            id = "gradle-build"
+            name = "Gradle Build"
+
+            tasks = "clean build"
+
+            useGradleWrapper = true
+
+            enableStacktrace = true
+        }
+    }
+
+    artifactRules = "build/libs/*.jar"
+})
+```
+
+
 #### Build outputs and variable interpolation
 
 In kotlin you can obviously use template string interpolation with the `${}` syntax, but did you know you can access TeamCity Kotlin DSL variables as well? Here's what you have access to:
@@ -4879,9 +5293,63 @@ Here's how they work
 
 This approach works well because we treat the VCS with the kotlin DSL as the source of truth, and any changes made in the UI as a "nice suggestion" we can choose to include in the code as config or not.
 
-### Advanced best practices
+### Refactoring best practices
 
 #### Level 1 abstraction - wrapper functions
+
+
+
+Here's a basic function that returns a `BuildType` object:
+
+1. Create a function that returns a `BuildType` object
+
+```kt
+fun gradleServiceBuild(
+    buildId: String,
+    service: String
+): BuildType {
+
+    return BuildType {
+
+        id(buildId)
+
+        name = "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+        vcs {
+            root(
+                ApplicationRepository,
+                "+:services/$service => ."
+            )
+        }
+
+        steps {
+            script {
+                name = "Build"
+                scriptContent = "./gradlew clean build"
+            }
+        }
+
+        artifactRules = "build/libs/*.jar"
+    }
+}
+```
+
+2. Create build configurations by invoking those functions
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+)
+
+val ordersBuild = gradleServiceBuild(
+    buildId = "BuildOrders",
+    service = "orders"
+)
+```
+
+We can go beyond this for more flexibility
+##### Parameterizing build features
 
 What we’d ideally like is to have every build configuration automatically have the _Build Files Cleaner_ feature, without having to manually add it. In order to do this, we could introduce a function that wraps every instance of `BuildType` with this feature. In essence, instead of having the _Project_ call
 
@@ -4946,7 +5414,272 @@ buildType(wrapWithFeature(Build){
 })
 ```
 
-#### Level 2 abstraction - classes
+##### Parameterization with lambda receivers
+
+Accept a partial of an object as an optional parameter for extra configuration, using the receiver lambda type.
+
+For example, a receiver lambda type for a build configuration would be:
+
+```
+BuildType.() -> Unit
+```
+
+Here's an example of creating a function that uses a receiver lambda for extra configuration:
+
+```kt
+fun gradleServiceBuild(
+    buildId: String,
+    service: String,
+    tasks: String = "clean build",
+    configure: BuildType.() -> Unit = {}
+): BuildType {
+
+    return BuildType {
+
+        id(buildId)
+        name = "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+        vcs {
+            root(
+                ApplicationRepository,
+                "+:services/$service => ."
+            )
+        }
+
+        steps {
+            script {
+                name = "Build"
+                scriptContent = "./gradlew $tasks"
+            }
+        }
+
+        artifactRules = "build/libs/*.jar"
+
+		// lambda receiver of BuildType
+        configure()
+    }
+}
+```
+
+Then you can create a build configuration using this function like so:
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+    params {
+        param("env.PAYMENT_MODE", "test")
+    }
+}
+```
+
+> [!NOTE]
+> - The function establishes sensible defaults.
+> - The lambda handles exceptional configuration.
+
+##### Parameterization with Extension functions
+
+We can use extension functions to add agent requirements to a build configuration via a single function call.
+
+1. Create an extension function on the `BuildType` class
+
+```kt
+fun BuildType.requireLinuxAgent() {
+
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+}
+```
+
+2. Use the extension function within a build type receiver lambda
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+    requireLinuxAgent()
+}
+```
+
+**in summary**
+
+Extension functions are excellent for reusable **capabilities**.
+
+For example:
+
+```kt
+fun BuildType.requireDocker()
+fun BuildType.addVcsTrigger()
+fun BuildType.publishJUnitReports()
+fun BuildType.enableCommitStatusPublisher()
+fun BuildType.addSecurityScan()
+```
+
+Then configuration reads almost like architecture:
+
+```kt
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+
+    requireLinuxAgent()
+    requireDocker()
+    addSecurityScan()
+}
+```
+
+##### Extension functions with build steps
+
+1. Create an extension function that is an abstraction around a build step:
+
+```kt
+fun BuildSteps.gradleTask(
+    stepId: String,
+    stepName: String,
+    tasks: String,
+    workingDirectory: String? = null
+) {
+
+    gradle {
+        id = stepId
+        name = stepName
+
+        this.tasks = tasks
+        workingDir = workingDirectory
+
+        useGradleWrapper = true
+        enableStacktrace = true
+    }
+}
+```
+
+2. Use the new function you created, then invoke it to register the build step
+
+```kt
+steps {
+
+    gradleTask(
+        stepId = "compile",
+        stepName = "Compile",
+        tasks = "classes"
+    )
+
+    gradleTask(
+        stepId = "test",
+        stepName = "Unit Tests",
+        tasks = "test"
+    )
+}
+```
+##### Factory functions vs Extension functions
+
+When to use factory functions vs extension functions for creating build configurations and other DSL objects? It's about semantic intention:
+
+- **factory function**: for creating a specific type of build configuration with sensible details and optional configuration.
+- **extension function**: syntactic sugar over adding sets of configuration and capabilities in a reusable way.
+
+```
+Factories
+    ↓
+what kind of build is this?
+
+
+Extensions
+    ↓
+what capabilities does this build have?
+```
+
+For example:
+
+```kt
+fun BuildType.requireLinuxAgent() {
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+}
+
+
+fun BuildType.requireDocker() {
+    requirements {
+        exists("docker.server.version")
+    }
+}
+
+val paymentsBuild = gradleServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+) {
+
+    requireLinuxAgent()
+    requireDocker()
+
+    params {
+        param("env.SERVICE_NAME", "payments")
+    }
+}
+```
+#### Level 2 abstraction - classes and templates
+
+Here are the different reasons for when you should use one abstraction technique over the other
+
+| Approach                       | Best fit                                                    |
+| ------------------------------ | ----------------------------------------------------------- |
+| Function returning `BuildType` | simple generation/reuse                                     |
+| Extension function             | add reusable behavior                                       |
+| Custom `BuildType` subclass    | build is meaningfully its own reusable type                 |
+| TeamCity `Template`            | TeamCity itself should know about the reusable relationship |
+
+##### Sneak peek at classes
+
+```kt
+class GradleServiceBuild(
+    buildId: String,
+    service: String,
+    tasks: String = "clean build"
+) : BuildType({
+
+    id(buildId)
+
+    name = "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+    vcs {
+        root(
+            ApplicationRepository,
+            "+:services/$service => ."
+        )
+    }
+
+    steps {
+        script {
+            name = "Build"
+            scriptContent = "./gradlew $tasks"
+        }
+    }
+
+    artifactRules = "build/libs/*.jar"
+})
+```
+
+Then
+
+```kt
+val paymentsBuild =
+    GradleServiceBuild(
+        buildId = "BuildPayments",
+        service = "payments"
+    )
+```
+##### Intro classes
 
 You can create custom classes that inherit from the teamcity constructs as to provide a more configurable approach and avoid code duplication:
 
@@ -4990,6 +5723,267 @@ project {
 }
 ```
 
+#### Templates
+
+The Teamcity `Template` class is a reusable build configuration template that you can override. 
+
+> [!NOTE]
+> Using this class is useful because now TeamCity knows that templates exist, and are useful for creating patches and the like.
+
+Here are the advantages using teamcity templates over custom Kotlin abstractions gives you:
+
+- **teamcity parameterization**: you can change parameter values on a template and build configurations that implement the template via the TeamCity UI.
+	- TeamCity explicitly supports parameterizing template settings and overriding regular template parameter values in build configurations.
+- **creates a teamcity relationship**: Teamcity knows which build configurations are created from which templates, which gives you more observability when something goes wrong.
+
+> [!TIP]
+> Use a TeamCity Template when the reusable concept should be meaningful to **TeamCity itself**.
+
+##### Intro templates
+
+Here is an example of using templates:
+
+1. Create the template:
+
+```kt
+object StandardGradleTemplate : Template({
+
+    id("StandardGradleTemplate")
+    name = "Standard Gradle Build"
+
+    params {
+        param("gradle.tasks", "clean build")
+    }
+
+    steps {
+        script {
+            name = "Gradle"
+            scriptContent = "./gradlew %gradle.tasks%"
+        }
+    }
+
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+})
+```
+
+2. Register the template on the project
+
+```kt
+project {
+
+    template(StandardGradleTemplate)
+}
+```
+
+3. Create a build type from a template
+
+```kt
+object BuildPayments : BuildType({
+
+    id("BuildPayments")
+    name = "Build Payments"
+
+    templates(StandardGradleTemplate)
+
+    vcs {
+        root(
+            ApplicationRepository,
+            "+:services/payments => ."
+        )
+    }
+})
+```
+
+##### Templates with factory functions
+
+Create a TeamCity template:
+
+```kt
+object JvmServiceTemplate : Template({
+
+    id("JvmServiceTemplate")
+    name = "JVM Service"
+
+    params {
+        param(
+            "gradle.tasks",
+            "clean build"
+        )
+    }
+
+    steps {
+
+        script {
+            id = "gradle-build"
+            name = "Build"
+
+            scriptContent =
+                "./gradlew %gradle.tasks%"
+        }
+    }
+
+    requirements {
+        contains(
+            "teamcity.agent.jvm.os.name",
+            "Linux"
+        )
+    }
+})
+```
+
+Then our Kotlin function generates builds that use it:
+
+```kt
+fun jvmServiceBuild(
+    buildId: String,
+    service: String,
+    tasks: String = "clean build",
+    configure: BuildType.() -> Unit = {}
+): BuildType {
+
+    return BuildType {
+
+        id(buildId)
+
+        name =
+            "Build ${service.replaceFirstChar { it.uppercase() }}"
+
+        templates(JvmServiceTemplate)
+
+        params {
+            param("gradle.tasks", tasks)
+        }
+
+        vcs {
+            root(
+                ApplicationRepository,
+                "+:services/$service => ."
+            )
+        }
+
+        configure()
+    }
+}
+```
+
+Now:
+
+```kt
+val paymentsBuild = jvmServiceBuild(
+    buildId = "BuildPayments",
+    service = "payments"
+)
+
+val ordersBuild = jvmServiceBuild(
+    buildId = "BuildOrders",
+    service = "orders",
+    tasks = "clean check build"
+)
+```
+
+This architecture separates concerns nicely.
+
+#### Production-grade folder structure
+
+This is what you should eventually graduate to:
+
+```
+.teamcity/
+├── settings.kts
+├── pom.xml
+│
+└── src/
+    └── main/
+        └── kotlin/
+            │
+            ├── vcs/
+            │   └── ApplicationRepository.kt
+            │
+            ├── templates/
+            │   └── JvmServiceTemplate.kt
+            │
+            ├── builds/
+            │   └── ServiceBuilds.kt
+            │
+            └── common/
+                └── BuildExtensions.kt
+```
+
+##### All together: a good build configuration design
+
+Here is how to design a good build configuration type:
+
+- **use templates**: base a build type off a template
+- **use extension functions**: use extension functions as abstractions over build features, build steps, agent requirements, and more.
+
+```kt
+object VerifyPayments : BuildType({
+
+    id("VerifyPayments")
+    name = "Verify Payments"
+
+    templates(JvmServiceTemplate)
+
+    vcs {
+        root(
+            ApplicationRepository,
+            "+:services/payments => ."
+        )
+    }
+
+    steps {
+
+        gradleTask(
+            stepId = "check",
+            stepName = "Verify",
+            tasks = "clean check"
+        )
+
+        addFailureDiagnostics()
+
+        addCleanupStep()
+    }
+})
+```
+##### Build steps vs Build configurations
+
+Suppose you have:
+
+```
+compile
+test
+package
+```
+
+Should they be three steps:
+
+```
+BuildType
+├── compile
+├── test
+└── package
+```
+
+or three BuildTypes:
+
+```
+Compile → Test → Package
+```
+
+There isn't one universal answer.
+
+| Use separate steps when…       | Use separate BuildTypes when…             |
+| ------------------------------ | ----------------------------------------- |
+| They belong to one logical job | They represent meaningful pipeline stages |
+| Same agent/workspace is useful | They may need different agents            |
+| They always run together       | They may run independently                |
+| No artifact boundary is needed | Files need durable artifact transfer      |
+| Simplicity matters most        | Parallelization/history/promotion matters |
 ### IntelliJ with Kotlin DSL
 
 #### Cloning down project and installing dependencies
@@ -5376,6 +6370,23 @@ teamcity run start <job> `
   --clean `
   --watch
 ```
+
+**Production-grade setup**
+
+1. Create a testing zone branch template that you fork off of when creating new test branches for Kotlin DSL. Call the branch something like `testing-zone/template`.
+2. Create a new branch in the pattern `testing-zone/*` and commit your Kotlin DSL changes to that branch
+3. Edit the VCS versioned settings to be as follows:
+
+
+![](https://i.imgur.com/Awdiip0.jpeg)
+
+4. Now create a custom build and make sure to load DSL settings from the testing zone branch
+
+
+
+![](https://i.imgur.com/GnyihOj.jpeg)
+
+
 ## Teamcity AI
 
 ### Teamcity MCP

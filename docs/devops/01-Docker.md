@@ -200,6 +200,29 @@ Since all container runtimes implement the CRI, you can use the same CRI-compati
 crictl ps
 ```
 
+#### Podman
+
+Podman works out of the box with RHEL because Podman is the native Red Hat-supported container engine, runs daemonless, integrates better with SELinux, and avoids some of the Docker bridge/networking issues that are common on hardened RHEL systems.
+
+Here are the core advantages of using podman over docker:
+
+- **no daemon**: No background daemon means fewer services, permission errors, and troubleshooting points.
+- **SELinux-friendly**: Red Hat designed Podman to work with SELinux out of the box, while Docker requires custom policy adjustments.
+- **rootless containers**: Docker requires privileged root access to run containers, while Podman does not.
+- **no bridge network**: Docker creates its own bridge network to facilitate inter-container communication on the `docker0` bridge network, while podman uses the built-in `netavark` bridge networks that ship with Linux.
+
+here's how you install podman and podman docker.
+
+```bash
+sudo dnf update -y
+sudo dnf install -y podman podman-docker
+podman info
+podman version
+
+docker ps
+```
+
+`podman-docker` specifically is a library that provides a docker CLI that uses podman under the hood, so anything you can do with docker will just use podman instead.
 ## Docker Basics
 
 ### The absolute basics
