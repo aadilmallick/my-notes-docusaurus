@@ -81,8 +81,38 @@ If a stock has a dividend yield of 4% and priced at $100 per share, that means y
 > [!NOTE]
 > Avoid **dividend traps**, which is investing in stocks with a 5%+ dividend yield, because that means they're just focused on attracting more shareholders rather than investing the profits back into R&D for the company, meaning that the company's growth will likely stall if they have a high dividend yield.
 
+### Fundamental vs technical investors
+
+- **fundamental investor**: more simple strategy, pick a stock and hold it for a longer time
+- **technical investor**: Invest based on patterns like P/E ratio or other technical details of a stock.
+
+Here are the attributes of a stock that a fundamental investor cares about:
+
+- **revenue**: the higher the revenue, the more valuable the company is
+	- You want this to be high
+- **net income**: the profit of the company after tax. 
+	- You want this to be high.
+- **P/E ratio**: a company's stock price relative to its earning per share, which indicates how bullish or bearish investors are on this stock.
+	- You want this to be medium like P/E = 5, where people are bullish, but no bullish the stock crashes everywhere
+- **P/S ratio**: A company's stock price relative to its sales. It shows how much investors are willing to pay for each dollar of revenue the company generates.
+	- This ratio is only useful when the company has no profit, so it instead compares price to sales.
+- **free cash flow**: How much cash a company has left over after paying for its operating expenses and necessary investments to maintain and grow its business.
+	- **positive FCF** signals optimism and growth for the company
+	- **negative FCF** signals low performance
+
+####  **understanding P/E ratio**
+
+- **High P/E**: reflects optimism about the stock or signals overvaluation or high growth expectations.
+- **low P/E**: indicates undervaluation or slower growth potential. Whether this is a downside depends on the sector.
+
+A P/E ratio of 38 means that investors are willing to pay $38 for every $1 of apple value.
+
+![](https://i.imgur.com/21KPIPd.jpeg)
 
 
+You should understand that being bullish or bearish about a stock depends on which sector the stock is in. For example in tech, the PE ratio is generally higher for old companies in tech than it is for something bearish like energy, where there are no really new innovations going on. But in tech there are new innovations going on all the time.
+
+So the golden rule is to always compare P/E ratios of a company within the sector it's in.
 ### Investment accounts
 
 There are two types of investment accounts:
@@ -764,6 +794,44 @@ You can become rich at 65 even on an average salary of 62K even if you invest on
  Most of Warren Buffett's net worth came later on in his life, after 30 years of investing. Trust the compounding. Trust that it works. It happens at a later inflection point in life but after you hit the 100k mark in your investments, your portfolio rapidly begins to rise.
 
 ![](https://i.imgur.com/KyrHmRr.jpeg)
+
+#### Never take a loss you can't come back from
+
+Only invest money you own, money you can afford to lose.
+
+You should build a portfolio like this:
+
+1. **liquid cash (20% of net worth)**: emergency fund + 1 year runway of 40K
+2. **ETFs (75% of net worth)**: index funds and retirement accounts
+3. **individual stocks (5% of net worth)**: high risk, high reward
+
+To see if you're taking on too much risk with individual stocks, ask yourself the **zero question**:
+
+>"If this stock went to zero tomorrow, could I still bounce back, or would the loss be too catastrophic?"
+
+If the answer is no, then don't invest in that risk.
+
+If you still want to pick stocks, then ask yourself these three questions to manage risk:
+
+1. **why are you buying?**: what is the upside of investing in this stock?  Do you have insider information?
+2. **imagine this stock is 50% down a year from now. Why?**: what are the downsides of investing in this stock, what could go wrong? Could you handle it, would you still invest?
+3. **what evidence would make you sell**: write down a STOP or Option number to hedge risk
+
+> [!WARNING]
+> The danger in stock picking comes the moment your ego gets involved, the moment you mistakenly take luck for skill.
+
+#### Decide what is enough
+
+You will be stuck in the rat race for all eternity, constantly trying to earn more money, if you never check your desires and if you always want more money. The goal for you is to decide what is enough, and then stick to that, and walk away once you reach that number.
+
+Here are the questions to ask yourself to decide when enough is enough:
+
+1. **what do you want to be?**: healthy, stress-free, always learning, generous to others
+2. **to-do list for life?**: travel the world, become the one man band, move to japan and write books and create anime, get ripped
+3. **what do you need to have to achieve your bucket list?**: the list of items and their money points you need in order to achieve your bucket list:
+	- **travel**: 100K stipend for traveling, or 20K per year saved
+	- **one man band**: 20K in instruments, 5K in youtube and tech
+	- **create anime in japan**: financial freedom, so 1M saved.
 
 ### How to increase income
 
