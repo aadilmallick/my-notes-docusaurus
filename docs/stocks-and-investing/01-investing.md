@@ -468,6 +468,14 @@ Philosophies
 
 >But the simple truth is this: the more complex an investment is, the less likely it is to be profitable. Index funds outperform actively managed funds in large part simply because actively managed funds require expensive active managers. Not only are they prone to making investing mistakes, their fees are a continual performance drag on the portfolio
 
+
+#### Investing and personal finance techniques
+
+Use these techniques to reduce spending and increase investing:
+
+1. **rule of $100**: if you're planning to buy something more than $100, wait one week before making that purchase.
+2. **spend $1, invest $1**: track your expenses. Whatever you spend you should then invest.
+
 ### Investing mistakes
 
 #### Don't pick too many ETFs
@@ -952,6 +960,8 @@ Here are the best sites for freelancing:
 #### Passive income ideas
 
 - **writing and publishing an EBOOK**: publish to amazon and sell on gumroad and etsy, heavily market them.
+
+### Investing tips
 ## Financial freedom via business
 ### The millionaire fastlane - the new rich
 
