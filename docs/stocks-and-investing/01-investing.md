@@ -908,6 +908,8 @@ That's you best path to wealth.
 
 Time compounding is the biggest factor in wealth increase. 
 
+> "He who understands compound interest earns it. He who doesn't pays it "
+
 Here's an example where even though Jasmine contributed twice as much as Miguel, Miguel has more money simply because he started earlier.
 
 
