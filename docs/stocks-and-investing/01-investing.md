@@ -847,21 +847,7 @@ To decide whether a specific house is a worthy purchase, ask yourself these ques
 5. **Are you excited for buying a house?**: Are you buying a house because you truly want it, or are you just avoiding rent because you don't want to be called a loser?
 
 
-### Budgeting and investing strategy
 
-On a 150K salary:
-
-- **invest**: 72K/yr into brokerage
-- **invest**: 6K/yr into roth
-- **invest**: 14K/yr into 401K
-- **checking account**: have at least 1 month of income in a checking account at all times.
-- **emergency fund**: save 18K for an emergency fund
-- **discretionary spending**: save 5K for discretionary spending 
-- **short-term goals**: save whatever is left over for short-term goals
-
-On a 300K salary:
-
-- 
 
 
 
@@ -980,6 +966,10 @@ Here are the questions to ask yourself to decide when enough is enough:
 	- **one man band**: 20K in instruments, 5K in youtube and tech
 	- **create anime in japan**: financial freedom, so 1M saved.
 
+Another form of this exercise is to decide what the "rich life" looks for you:
+
+
+
 ### How to increase income
 
 #### Asking for a raise
@@ -1009,11 +999,21 @@ Here are the best sites for freelancing:
 - Catalant
 - Expert360
 
-#### Passive income ideas
+### Budgeting and investing strategy
 
-- **writing and publishing an EBOOK**: publish to amazon and sell on gumroad and etsy, heavily market them.
+On a 150K salary:
 
-### Investing tips
+- **invest**: 72K/yr into brokerage
+- **invest**: 6K/yr into roth
+- **invest**: 14K/yr into 401K
+- **checking account**: have at least 1 month of income in a checking account at all times.
+- **emergency fund**: save 18K for an emergency fund
+- **discretionary spending**: save 5K for discretionary spending 
+- **short-term goals**: save whatever is left over for short-term goals
+
+On a 300K salary:
+
+- 
 ## Financial freedom via business
 ### The millionaire fastlane - the new rich
 
