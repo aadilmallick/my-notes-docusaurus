@@ -966,7 +966,20 @@ Here are the questions to ask yourself to decide when enough is enough:
 	- **one man band**: 20K in instruments, 5K in youtube and tech
 	- **create anime in japan**: financial freedom, so 1M saved.
 
-Another form of this exercise is to decide what the "rich life" looks for you:
+Another form of this exercise is to decide what the "rich life" looks for you so you don't compare yourself to others and then waste money you don't have. Here's the steps to follow and questions to ask yourself:
+
+1. **what's important to me?**: one man band, making anime in Japan, traveling the world (3 months a year) and speaking languages and being educated.
+2. **what's not important to me?**: being the smartest, having a house, having cars, having clothes
+3. **what do I care about enough to spend extravagantly on?**: hotels, vacations, education
+4. **what do I not care about so I can cut it out?**: restaurant food, clothes, cars, trinkets
+
+Based on my rich life, here's what I estimate I'll need per year to live my rich life:
+
+- 30K/yr vacation stipend
+- 50K/yr education stipend
+- 40K/yr runway
+
+So I'll need about 120K/yr in disposable discretionary income to live a rich life, besides the 40K/yr in normal living expenses. I can achieve all of this on a 300K salary.
 
 
 
