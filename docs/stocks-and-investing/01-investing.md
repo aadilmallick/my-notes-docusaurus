@@ -602,14 +602,19 @@ But in reality, a higher fee does **not** equal higher performance.
 - **High fees actively erode compounding wealth from day one.** On a $100,000 balance, a 1% fee costs $1,000 _every single year_ just in management fees, regardless of whether the fund goes up or down. Over a 10-year FIRE horizon, that fee drag compounded destroys tens of thousands of dollars in gains.
 
 
-#### ETF strategy
+
+
+
+
+
+### Investment strategy
+
+#### Basic strategies
 
 Here's a couple of good strategies:
 
 - **vanguard strategy**: 80% VTI or VTSAX or VOO, 20% VEU
-
-
-### Investment strategy
+- **50/30/20**: 50% in VTI or VOO, 30% in QQQM or QQQ, 10% in VXUS and 10% in individual stocks
 
 #### Tax-Advantaged Accounts (403b, Roth IRA, HSA)
 
@@ -820,6 +825,28 @@ To practically implement avoiding overspending, use these techniques:
 #### 1% rule
 
 Think twice before making a purchase that is above 1% of your net worth. 
+
+### Rent vs Buying
+
+Buying doesn't make any financial sense in 2026 just because the housing market has gone out of control and mortgage prices are way too high. It is much better to rent and then invest the difference into the market, and that will make you a lot more money.
+
+Also, the American dream is something pre-programmed into you as propaganda for you to buy houses by the dark forces larger than you are.
+
+Many people also want to try buying to get into real estate, but there are the facts:
+
+- **real estate has a low roi**: the avergae return on a house is that its price increases 0.6% a year.
+
+So treat a house as a purchase, not an investment.
+
+To decide whether a specific house is a worthy purchase, ask yourself these questions:
+
+1. **will i live here 10+ years**: if the answer is yes, then take it, because the first year of owning a house is the most expensive. You want to spread those costs over 10 years at least.
+2. **will the total monthly cost of the house be less than 28% of my gross income?**: add up monthly costs of mortgage, arbitrary repair costs of 200K, renovation at 200K, and property tax, if that's less than 28% of your gross income, then go ahead and make the purchase.
+3. **have I saved 20% down**: you should need a 20% down payment
+4. **are you ok with the hosue value going down?**: Then good, you're treating it like a purchase instead of an investment.
+5. **Are you excited for buying a house?**: Are you buying a house because you truly want it, or are you just avoiding rent because you don't want to be called a loser?
+
+
 
 
 ## Path to wealth
