@@ -164,7 +164,29 @@ If a stock has a dividend yield of 4% and priced at $100 per share, that means y
 - **Pros:** Predictable passive cash flow; lower volatility than non-dividend growth stocks; compounding returns if you reinvest dividends (DRIP).
     
 - **Cons:** Dividends are **not free money**—on the payout date (ex-dividend date), the stock's price mechanically drops by the exact amount of the dividend paid; dividends are taxed as income in the year you receive them; high-paying companies often grow slower because they aren't reinvesting their profits.
-### Fundamental vs technical investors
+
+#####  **understanding P/E ratio** vs EPS
+
+- **High P/E**: reflects optimism about the stock or signals overvaluation or high growth expectations.
+- **low P/E**: indicates undervaluation or slower growth potential. Whether this is a downside depends on the sector.
+
+A P/E ratio of 38 means that investors are willing to pay $38 for every $1 of apple value.
+
+![](https://i.imgur.com/21KPIPd.jpeg)
+
+
+You should understand that being bullish or bearish about a stock depends on which sector the stock is in. For example in tech, the PE ratio is generally higher for old companies in tech than it is for something bearish like energy, where there are no really new innovations going on. But in tech there are new innovations going on all the time.
+
+So the golden rule is to always compare P/E ratios of a company within the sector it's in.
+
+
+##### Stock splitting
+
+- **forward split**: when a share splits up into multiple shares, where shares are added into a company making the stock price cheaper.
+	- **example**: Sandisk's board approved an **8-for-1 forward stock split**. 
+		- After market close on **Thursday, November 19**, every 1 share becomes 8 shares, and on **Friday, November 20**, the stock begins trading at one-eighth of its price (~$110 per share if it stays near $885).
+		- It doesn't change the company's total value—just like slicing a pizza into 8 pieces instead of 1—but it makes whole shares affordable for everyday retail investors and employees.
+#### Fundamental vs technical investors
 
 - **fundamental investor**: more simple strategy, pick a stock and hold it for a longer time
 - **technical investor**: Invest based on patterns like P/E ratio or other technical details of a stock.
@@ -183,19 +205,6 @@ Here are the attributes of a stock that a fundamental investor cares about:
 	- **positive FCF** signals optimism and growth for the company
 	- **negative FCF** signals low performance
 
-####  **understanding P/E ratio**
-
-- **High P/E**: reflects optimism about the stock or signals overvaluation or high growth expectations.
-- **low P/E**: indicates undervaluation or slower growth potential. Whether this is a downside depends on the sector.
-
-A P/E ratio of 38 means that investors are willing to pay $38 for every $1 of apple value.
-
-![](https://i.imgur.com/21KPIPd.jpeg)
-
-
-You should understand that being bullish or bearish about a stock depends on which sector the stock is in. For example in tech, the PE ratio is generally higher for old companies in tech than it is for something bearish like energy, where there are no really new innovations going on. But in tech there are new innovations going on all the time.
-
-So the golden rule is to always compare P/E ratios of a company within the sector it's in.
 ### Investment accounts
 
 There are two types of investment accounts:
