@@ -847,6 +847,22 @@ To decide whether a specific house is a worthy purchase, ask yourself these ques
 5. **Are you excited for buying a house?**: Are you buying a house because you truly want it, or are you just avoiding rent because you don't want to be called a loser?
 
 
+### Budgeting and investing strategy
+
+On a 150K salary:
+
+- **invest**: 72K/yr into brokerage
+- **invest**: 6K/yr into roth
+- **invest**: 14K/yr into 401K
+- **checking account**: have at least 1 month of income in a checking account at all times.
+- **emergency fund**: save 18K for an emergency fund
+- **discretionary spending**: save 5K for discretionary spending 
+- **short-term goals**: save whatever is left over for short-term goals
+
+On a 300K salary:
+
+- 
+
 
 
 ## Path to wealth
