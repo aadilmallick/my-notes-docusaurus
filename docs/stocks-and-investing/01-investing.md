@@ -838,6 +838,8 @@ Many people also want to try buying to get into real estate, but there are the f
 
 So treat a house as a purchase, not an investment.
 
+#### When to buy a house
+
 To decide whether a specific house is a worthy purchase, ask yourself these questions:
 
 1. **will i live here 10+ years**: if the answer is yes, then take it, because the first year of owning a house is the most expensive. You want to spread those costs over 10 years at least.
@@ -846,6 +848,13 @@ To decide whether a specific house is a worthy purchase, ask yourself these ques
 4. **are you ok with the hosue value going down?**: Then good, you're treating it like a purchase instead of an investment.
 5. **Are you excited for buying a house?**: Are you buying a house because you truly want it, or are you just avoiding rent because you don't want to be called a loser?
 
+You can also decide monetarily via this rule:
+
+>If 1.5x your mortgage in monthly payments is less than 28% of your gross income monthly, then you can afford the house.
+
+Why does this work? You have to account for phantom costs across the lifetime of your house, which include insurance, repairs, renovations, and property taxes, so you're very rarely paying just the mortgage for the house, you're paying 1.5x the mortgage.
+
+Example: A $6500 mortgage on an 800K house actually means 9.6K in monthly payments, and via the rule of 28%, you would need to make $411K/yr to afford that house.
 
 
 
@@ -974,6 +983,10 @@ Another form of this exercise is to decide what the "rich life" looks for you so
 2. **what's not important to me?**: being the smartest, having a house, having cars, having clothes
 3. **what do I care about enough to spend extravagantly on?**: hotels, vacations, education
 4. **what do I not care about so I can cut it out?**: restaurant food, clothes, cars, trinkets
+5. **what is the kind of life I want to live**: a life without worry, where I can freely travel and go to hotels.
+6. **what am I spending on that I actually don't care about?**: junk food, trinkets, etc.
+
+>"Spend extravagantly on things you love and cut costs mercilessly the things you don't care about"
 
 Based on my rich life, here's what I estimate I'll need per year to live my rich life:
 
@@ -981,7 +994,7 @@ Based on my rich life, here's what I estimate I'll need per year to live my rich
 - 50K/yr education stipend
 - 40K/yr runway
 
-So I'll need about 120K/yr in disposable discretionary income to live a rich life, besides the 40K/yr in normal living expenses. I can achieve all of this on a 300K salary.
+So I'll need about 120K/yr in disposable discretionary income to live a rich life, besides the 40K/yr in normal living expenses and the 72K I'll invest after the fact. I can achieve all of this on a 300K salary.
 
 
 
@@ -1014,7 +1027,7 @@ Here are the best sites for freelancing:
 - Catalant
 - Expert360
 
-### Budgeting and investing strategy
+### Budgeting and investing strategy for wealth
 
 On a 150K salary:
 
