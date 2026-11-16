@@ -1015,11 +1015,16 @@ To successfully get a raise, prepare a pitch beforehand and schedule a time with
 
 Here is what you should focus on in your pitch:
 
-1. Your recent accomplishments and victories
+1. Your recent accomplishments and victories, how you hit goals, saved the company money
 2. Your skills
-3. Your pay relative to others on Glassdoor
+3. Your pay relative to others on Glassdoor and salary.com
 4. How the extra pay would help you contribute more to the company
 5. Let the boss know how valuable you are to the team.
+6. Follow this script:
+
+>"Based on my contributions and market data,  I'd like to discuss adjusting my compensation to this number `<number>`. Is this possible?"
+
+7. Don't accept the first offer if bad. Instead ask for flexibility in a bonus.
 
 Timing is also important here. You can increase the chances of getting an affirmative answer by:
 
