@@ -310,6 +310,15 @@ There are differences between the two:
 - **Costs and Access:** ETFs generally have lower costs and no minimum investment requirements, whereas many mutual funds may have minimum investment amounts
 - **Variety and Management:** Mutual funds often offer a wider variety of specialized or actively managed options, which is sometimes required for certain retirement accounts like 401ks
 
+#### Why mutual funds suck
+
+Mutual funds ask for a 1% fee on your total value of all assets at the end of the year, which doesn't seem like much, but actually amounts to a lot. Let's see:
+
+
+![](https://i.imgur.com/TRZJJxu.jpeg)
+
+In the example above, just a 1% fee leads to you losing $200K in money.
+
 ### Why ETFs rule
 
 #### ETFs are better than single stocks
