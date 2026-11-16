@@ -256,6 +256,8 @@ Withdrawing from tax-sheltered accounts before 59.5 years of age results in a 10
 
 - **example**: if you're 20 years old, in a 22% federal tax bracket, an early withdrawal of 10K from a pre-tax retirement account will cost you $3200, resulting from the 10% early penalty fee and the 22% tax bracket combining to be a 32% tax on your withdrawal.
 
+In a 401K account, all employer matches go the traditional pre-tax contribution route, so you might as well also make your contributions pre-tax.
+
 
 ##### Post-tax (Roth)
 
