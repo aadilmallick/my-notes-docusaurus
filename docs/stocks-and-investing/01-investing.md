@@ -873,6 +873,15 @@ Example: A $6500 mortgage on an 800K house actually means 9.6K in monthly paymen
 
 ## Path to wealth
 
+### Mindset of wealth
+
+#### Make money work for you
+
+>If you choose to master it, money becomes a wonderful servant. If you don’t, it will surely master you.
+
+
+If your lifestyle exceeds your income, then you are no more than a gilded slave. The most important thing is to make money work for you
+
 ### Best wealth tips
 
 - **earn passive income**: If you don’t make money while you sleep, you will work until the day you die.
