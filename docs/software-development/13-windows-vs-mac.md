@@ -30,4 +30,17 @@ You can use the `CMD + CMD` shortcut to ask siri something via voice or text.
 
 You can also press `Shift + CMD + space` to use visual intelligence to screen share with siri and ask it about what you want to do now.
 
+To select a specific area on the screen, press `Shift + CMD + 6`
+
 ![](https://i.imgur.com/b1FOyfc.jpeg)
+
+### Shortcuts
+
+#### Shortcuts AI
+
+You can ask for AI to create shortcuts for you just from natural language.
+
+
+![](https://i.imgur.com/DIaZsmd.jpeg)
+
+
