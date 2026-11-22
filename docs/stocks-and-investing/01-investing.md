@@ -329,6 +329,11 @@ So why do mutual funds still exist if they suck so much? It's because people are
 
 Basically every morningstar rating of a mutual fund is biased because of such a skewed dataset, where they are only rating successful funds, so of course they get 4 or 5 stars. If they got any less, the fund disbands completely.
 
+
+#### Mutual funds are sleazy
+
+>Half of all U.S. mutual fund portfolio managers do not invest a cent of their own money in their funds, according to Morningstar. This might seem atrocious, and surely the statistic uncovers some hypocrisy.
+
 ### Why ETFs rule
 
 #### ETFs are better than single stocks
@@ -901,6 +906,22 @@ Example: A $6500 mortgage on an 800K house actually means 9.6K in monthly paymen
 
 If your lifestyle exceeds your income, then you are no more than a gilded slave. The most important thing is to make money work for you
 
+#### Best tips
+
+- **Be humble**: Go out of your way to find humility when things are going right and forgiveness/compassion when they go wrong. Because it’s never as good or as bad as it looks.
+- **Understand luck vs risk**: Luck and risk are both real and hard to identify. Do so when judging both yourself and others. Respect the power of luck and risk and you’ll have a better chance of focusing on things you can actually control.
+- **check your ego to grow wealth**: Less ego, more wealth. Saving money is the gap between your ego and your income, and wealth is what you don’t see. So wealth is created by suppressing what you could buy today in order to have more stuff or more options in the future. No matter how much you earn, you will never build wealth unless you can put a lid on how much fun you can have with your money right now, today.
+- **manage your money as a passive investor, know when enough is enough**: Manage your money in a way that helps you sleep at night. That’s different from saying you should aim to earn the highest returns or save a specific percentage of your income. Some people won’t sleep well unless they’re earning the highest returns; others will only get a good rest if they’re conservatively invested. To each their own. But the foundation of, “does this help me sleep at night?” is the best universal guidepost for all financial decisions.
+- **increase time horizon of investing, never break compounding**: If you want to do better as an investor, the single most powerful thing you can do is increase your time horizon. Time is the most powerful force in investing. It makes little things grow big and big mistakes fade away. It can’t neutralize luck and risk, but it pushes results closer towards what people deserve.
+- **maintain a margin of error**: Become OK with a lot of things going wrong. You can be wrong half the time and still make a fortune, because a small minority of things account for the majority of outcomes. No matter what you’re doing with your money you should be comfortable with a lot of stuff not working.
+- **understand survivorship bias**: Judging how you’ve done by focusing on individual investments makes winners look more brilliant than they were, and losers appear more regrettable than they should.
+- **time is the most important resource**: Use money to gain control over your time, because not having control of your time is such a powerful and universal drag on happiness. The ability to do what you want, when you want, with who you want, for as long as you want to, pays the highest dividend that exists in finance.
+- **save to hedge against the surprises of life**: Save. Just save. You don’t need a specific reason to save. It’s great to save for a car, or a downpayment, or a medical emergency. But saving for things that are impossible to predict or define is one of the best reasons to save. Everyone’s life is a continuous chain of surprises. Savings that aren’t earmarked for anything in particular is a hedge against life’s inevitable ability to surprise the hell out of you at the worst possible moment.
+- **success requires a fee**: Define the cost of success and be ready to pay it. Because nothing worthwhile is free. And remember that most financial costs don’t have visible price tags.
+- **accept risk, avoid ruinous risk**: You should like risk because it pays off over time. But you should be paranoid of ruinous risk because it prevents you from taking future risks that will pay off over time.
+- **understand the game you're playing**: Define the game you’re playing, and make sure your actions are not being influenced by people playing a different game.
+- **expectations move slower than reality on the ground.**
+
 ### Best wealth tips
 
 - **earn passive income**: If you don’t make money while you sleep, you will work until the day you die.
@@ -1077,10 +1098,6 @@ You can also use the **briefcase method**, where you provide documented evidence
 
 Come with a slide deck.
 
-**What if they say no?**
-
-here's what to respond in case they say no.
-
 
 #### Performing well in your career
 
@@ -1094,14 +1111,7 @@ Once you've done 1 year of work in your current position, you can then ask your 
 
 
 
-### Freelancing
 
-Here are the best sites for freelancing:
-
-- Fiverr
-- Upwork
-- Catalant
-- Expert360
 
 ### Budgeting and investing strategy for wealth
 
