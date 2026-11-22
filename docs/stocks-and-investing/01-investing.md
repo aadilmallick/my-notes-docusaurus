@@ -321,6 +321,14 @@ Mutual funds ask for a 1% fee on your total value of all assets at the end of th
 
 In the example above, just a 1% fee leads to you losing $200K in money.
 
+And studies have shown that 88% of all "experts" actually underperform the SP500 in a given year, and 99% of all investors underperform the SP500 in 20 years.
+
+#### Survivorship bias and fraud morningstar ratings
+
+So why do mutual funds still exist if they suck so much? It's because people are suckers who fall for **survivorship bias**, where the 12% of funds that do outperform the market are the only ones that talk about their success, while the 88% that fail quietly disband and say nothing, so you never see those failures.
+
+Basically every morningstar rating of a mutual fund is biased because of such a skewed dataset, where they are only rating successful funds, so of course they get 4 or 5 stars. If they got any less, the fund disbands completely.
+
 ### Why ETFs rule
 
 #### ETFs are better than single stocks
@@ -435,6 +443,17 @@ Do not listen to gurus who say they know the timing of the market.
 
 >Nothing, and I mean nothing, would be more profitable than this ability. That’s what makes it so seductive. That’s why gurus constantly claim they can do it, even if only a tiny bit. Nobody can. Not really. Not in any consistently useful way. Believing in Santa Claus is more profitable. Breeding unicorns is more likely.
 
+**It's all about time in the market, not timing the market.**
+
+Yes, this is all evidence-based. 
+
+- If you miss out on just the 10 best days in the market, you'll only get a less than 3% return for the entire year. 
+- And if you miss the 30 best days, you'll actually lose money in the end.
+
+> [!WARNING]
+> If you try to control your investments and time when to sell or buy, you will fall into this trap.
+
+![](https://i.imgur.com/WU1ndJ0.jpeg)
 
 
 #### NEVER EVER SELL
@@ -1018,7 +1037,7 @@ So I'll need about 120K/yr in disposable discretionary income to live a rich lif
 
 
 
-### How to increase income
+### How to negotiate a higher income
 
 #### Asking for a raise
 
@@ -1043,7 +1062,39 @@ Timing is also important here. You can increase the chances of getting an affirm
 2. Scheduling the appointment 10-12 weeks before your annual review
 3. Asking soon after a workplace victory
 
-#### Freelancing
+Here are th 4 main components to master before walking in for negotiating a salary:
+
+1. **know your market rate**: get actual data on what others are being paid in your range
+2. **set a high anchor**: anchor to the high end of the range
+3. **pivot if the answer is no**: ask for flexibility in a bonus if they say no, or ask, "could we revisit a compensation discussion next quarter after performance? "
+
+You can also use the **briefcase method**, where you provide documented evidence of the following:
+
+1. Your current salary and how it fits within the expected slsary range
+2. Competitive salaries from other companies
+3. List of accomplishments, things you did
+4. Additional ways you can add value to the company and projects you could lead
+
+Come with a slide deck.
+
+**What if they say no?**
+
+here's what to respond in case they say no.
+
+
+#### Performing well in your career
+
+The most important part of actually being able to get a raise is to perform well in your career. How do you do that? 
+
+1. **keep your boss in the loop**: Always be proactive in work. If your boss needs a status update, then you've already lost. Check in every week with a status update of the work you've done.
+2. **keep a work journal**: maintain evidence of everything you've done for the company.
+
+Once you've done 1 year of work in your current position, you can then ask your boss for a meeting to discuss compensation.
+
+
+
+
+### Freelancing
 
 Here are the best sites for freelancing:
 
